@@ -108,3 +108,90 @@ export function useQueueStatus() {
     staleTime: 15_000,
   })
 }
+
+export function useActiveSessions() {
+  return useQuery({
+    queryKey: ['superadmin', 'auth', 'sessions'],
+    queryFn: () => superAdminApi.getActiveSessions(),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useAuditSnapshot() {
+  return useQuery({
+    queryKey: ['superadmin', 'audit', 'snapshot'],
+    queryFn: () => superAdminApi.getAuditSnapshot(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStorageStats() {
+  return useQuery({
+    queryKey: ['superadmin', 'storage', 'stats'],
+    queryFn: () => superAdminApi.getStorageStats(),
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useAuditTrail() {
+  return useQuery({
+    queryKey: ['superadmin', 'audit', 'trail'],
+    queryFn: () => superAdminApi.getAuditTrail({ limit: 15 }),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClasses(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'classes', schoolId],
+    queryFn: () => superAdminApi.getClasses(schoolId, { limit: 30 }),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCapacityAlerts(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'classes', 'capacity', schoolId],
+    queryFn: () => superAdminApi.getCapacityAlerts(schoolId),
+    staleTime: 30_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useWorkerHealth(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'enrollment', 'worker', schoolId],
+    queryFn: () => superAdminApi.getWorkerHealth(schoolId),
+    staleTime: 30_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceAudit(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'enrollment', 'finance-audit', schoolId],
+    queryFn: () => superAdminApi.getFinanceAudit(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function usePresenceDashboard(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'presence', 'dashboard', schoolId],
+    queryFn: () => superAdminApi.getPresenceDashboard(schoolId),
+    staleTime: 0,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+    refetchInterval: 30_000,
+  })
+}

@@ -178,3 +178,124 @@ export interface QueueStatus {
   total: number
   redisEnabled: boolean
 }
+
+/* ─── Sessions actives ──────────────────────────────────────── */
+export interface ActiveSessionItem {
+  id: number
+  userId: number
+  expiresAt: string
+  createdAt: string
+  user: {
+    email: string
+    role: string
+    firstName: string
+    lastName: string
+  }
+}
+
+/* ─── Audit snapshot ────────────────────────────────────────── */
+export interface AuditSnapshotEntry {
+  id: number
+  action: string
+  resource: string
+  severity: string
+  createdAt: string
+  description: string | null
+  actor: {
+    firstName: string
+    lastName: string
+    role: string
+  } | null
+}
+
+/* ─── Stockage Cloudinary ───────────────────────────────────── */
+export interface StorageStats {
+  total_files: number
+  storage_used: string
+  bandwidth: string
+}
+
+/* ─── Audit trail ───────────────────────────────────────────── */
+export interface AuditTrailData {
+  count: number
+  data: AuditSnapshotEntry[]
+}
+
+/* ─── Classes ───────────────────────────────────────────────── */
+export interface ClassItem {
+  id: number
+  name: string
+  academicYear: string
+  maxStudents: number | null
+  _count: { students: number }
+  teacher: {
+    user: { firstName: string; lastName: string }
+  } | null
+}
+
+export interface ClassListData {
+  data: ClassItem[]
+  meta: { total: number; page: number; limit: number }
+}
+
+/* ─── Alertes capacité classes ──────────────────────────────── */
+export interface CapacityAlertItem {
+  id: number
+  name: string
+  currentCount: number
+  capacity: number
+  status: 'FULL' | 'WARNING'
+  occupancyRate: number
+}
+
+/* ─── Présence ───────────────────────────────────────────────── */
+export interface PresenceLiveFeedItem {
+  id: number
+  studentId: number
+  scannedAt: string
+  validated: boolean
+  status: string | null
+  scanMethod: string | null
+  student: {
+    firstName: string
+    lastName: string
+    photoUrl: string | null
+    class: { name: string } | null
+  }
+}
+
+export interface PresenceClassBreakdown {
+  id: number
+  name: string
+  _count: { students: number }
+}
+
+export interface PresenceDashboard {
+  liveFeed: PresenceLiveFeedItem[]
+  stats: { presentCount: number; absentCount: number }
+  criticalAbsents: Array<{
+    firstName: string
+    lastName: string
+    class: { name: string } | null
+  }>
+  classBreakdown: PresenceClassBreakdown[]
+}
+
+export interface PresenceRecordResult {
+  id: number
+  status: string
+  studentName: string
+  fraudScore: number
+}
+
+/* ─── Enrollment ─────────────────────────────────────────────── */
+export interface WorkerHealth {
+  pending: number
+  details: Array<{ status: string; _count: { _all: number } }>
+}
+
+export interface FinanceAuditResult {
+  total: number
+  count: number
+  ids: number[]
+}

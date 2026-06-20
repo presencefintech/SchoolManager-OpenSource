@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, LayoutDashboard, Building2 } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 
 const NAV_LINKS = [
-  { label: 'Dashboard', href: '/super-admin/dashboard', icon: LayoutDashboard },
-  { label: 'Établissements', href: '/super-admin/schools', icon: Building2 },
+  { label: 'Dashboard',       href: '/super-admin/dashboard',  icon: LayoutDashboard },
+  { label: 'Établissements',  href: '/super-admin/schools',    icon: Building2 },
+  { label: 'Inscriptions',    href: '/super-admin/enrollment', icon: UserPlus },
+  { label: 'Présence',        href: '/super-admin/presence',   icon: ScanLine },
 ]
 
 export function SuperAdminNav() {
@@ -20,20 +22,31 @@ export function SuperAdminNav() {
     : 'SA'
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 h-14 bg-zinc-950 border-b border-zinc-800 flex items-center px-6 gap-6">
+    <aside className={cn(
+      'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col',
+      'bg-white/92 backdrop-blur-md',
+      'border-r border-zinc-200/80',
+      'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
+    )}>
+
       {/* Logo */}
-      <Link href="/super-admin/dashboard" className="flex items-center gap-2.5 flex-shrink-0">
-        <div className="w-6 h-6 rounded bg-indigo-500 flex items-center justify-center">
-          <span className="text-[10px] font-bold text-white tracking-tight">PC</span>
+      <Link
+        href="/super-admin/dashboard"
+        className="flex items-center gap-3.5 px-6 py-6 flex-shrink-0 group"
+      >
+        <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
+          <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
-        <span className="text-sm font-semibold text-white hidden sm:block">PresenceCollab</span>
-        <span className="text-xs font-medium text-zinc-500 hidden sm:block">/ SuperAdmin</span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">PresenceCollab</p>
+          <p className="text-[11px] text-zinc-400 leading-tight">Super Admin</p>
+        </div>
       </Link>
 
-      <div className="w-px h-4 bg-zinc-800 hidden sm:block" />
+      <div className="mx-5 h-px bg-zinc-100" />
 
       {/* Nav links */}
-      <div className="flex items-center gap-1 flex-1">
+      <nav className="flex-1 px-4 py-5 space-y-1 overflow-y-auto">
         {NAV_LINKS.map(({ label, href, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
@@ -41,37 +54,45 @@ export function SuperAdminNav() {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
+                'flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all',
                 active
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900',
+                  ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
+                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
               )}
             >
-              <Icon size={13} />
+              <Icon
+                size={16}
+                className={cn('flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
+              />
               {label}
             </Link>
           )
         })}
-      </div>
+      </nav>
 
-      {/* User */}
-      <div className="flex items-center gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center">
-            <span className="text-[10px] font-bold text-white">{initials}</span>
+      <div className="mx-5 h-px bg-zinc-100" />
+
+      {/* User + logout */}
+      <div className="px-5 py-5 flex-shrink-0">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center ring-1 ring-indigo-200/80 flex-shrink-0">
+            <span className="text-xs font-bold text-indigo-700">{initials}</span>
           </div>
-          <span className="text-xs text-zinc-400 hidden md:block">
-            {user?.firstName} {user?.lastName}
-          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-zinc-700 truncate leading-tight">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-[11px] text-zinc-400 truncate leading-tight">{user?.email}</p>
+          </div>
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
+          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
         >
-          <LogOut size={13} />
-          <span className="hidden sm:block">Déconnexion</span>
+          <LogOut size={15} />
+          Déconnexion
         </button>
       </div>
-    </nav>
+    </aside>
   )
 }
