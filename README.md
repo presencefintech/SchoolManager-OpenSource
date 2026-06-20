@@ -1,11 +1,6 @@
 # PresenceCollab — Frontend
 
-> Tableau de bord de gestion scolaire multi-rôles, construit avec Next.js 14 App Router.
 
-![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=flat&logo=nextdotjs)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
-![React Query](https://img.shields.io/badge/React_Query_v5-FF4154?style=flat&logo=reactquery&logoColor=white)
 
 ---
 
