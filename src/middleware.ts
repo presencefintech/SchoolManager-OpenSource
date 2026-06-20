@@ -38,9 +38,9 @@ export function middleware(request: NextRequest) {
     if (isInWrongSection) {
       return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
     }
-    // Accessing root → redirect to role home
-    if (pathname === '/') {
-      return NextResponse.redirect(new URL(allowedPrefix, request.url))
+    // Accessing root or bare role prefix → redirect to role home
+    if (pathname === '/' || pathname === allowedPrefix) {
+      return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
     }
   }
 
