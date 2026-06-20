@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 
@@ -11,6 +11,9 @@ const NAV_LINKS = [
   { label: 'Établissements',  href: '/super-admin/schools',    icon: Building2 },
   { label: 'Inscriptions',    href: '/super-admin/enrollment', icon: UserPlus },
   { label: 'Présence',        href: '/super-admin/presence',   icon: ScanLine },
+  { label: 'Élèves',          href: '/super-admin/students',   icon: GraduationCap },
+  { label: 'Classes',         href: '/super-admin/classes',    icon: BookOpen },
+  { label: 'Audit',           href: '/super-admin/audit',      icon: ShieldAlert },
 ]
 
 export function SuperAdminNav() {

@@ -1,6 +1,63 @@
 import { useQuery } from '@tanstack/react-query'
 import { superAdminApi } from '@/lib/superAdmin/api'
 
+export function useCoreUsers(params?: { page?: number; take?: number; role?: string }) {
+  return useQuery({
+    queryKey: ['superadmin', 'core', 'users', params],
+    queryFn: () => {
+      const { page = 1, take = 15, ...rest } = params ?? {}
+      return superAdminApi.listCoreUsers({ ...rest, page, take })
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCoreStudents(params?: { page?: number; take?: number; schoolId?: number }) {
+  return useQuery({
+    queryKey: ['superadmin', 'core', 'students', params],
+    queryFn: () => {
+      const { page = 1, take = 15, ...rest } = params ?? {}
+      return superAdminApi.listCoreStudents({ ...rest, page, take })
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCorePresences(params?: { page?: number; take?: number; schoolId?: number }) {
+  return useQuery({
+    queryKey: ['superadmin', 'core', 'presences', params],
+    queryFn: () => {
+      const { page = 1, take = 15, ...rest } = params ?? {}
+      return superAdminApi.listCorePresences({ ...rest, page, take })
+    },
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceReport(
+  params: { schoolId: number; startDate: string; endDate: string } | null
+) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'report', params],
+    queryFn: () => superAdminApi.getFinanceReport(params!),
+    staleTime: 300_000,
+    enabled: !!params?.schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCoreAuditLogs(params?: { page?: number; take?: number }) {
+  return useQuery({
+    queryKey: ['superadmin', 'core', 'audit-logs', params],
+    queryFn: () => superAdminApi.getCoreAuditLogs(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export function usePlatformStats() {
   return useQuery({
     queryKey: ['superadmin', 'stats'],
@@ -145,10 +202,10 @@ export function useAuditTrail() {
   })
 }
 
-export function useClasses(schoolId: number) {
+export function useClasses(schoolId: number, params?: { page?: number; limit?: number; name?: string }) {
   return useQuery({
-    queryKey: ['superadmin', 'classes', schoolId],
-    queryFn: () => superAdminApi.getClasses(schoolId, { limit: 30 }),
+    queryKey: ['superadmin', 'classes', schoolId, params],
+    queryFn: () => superAdminApi.getClasses(schoolId, { limit: 30, ...params }),
     staleTime: 60_000,
     enabled: !!schoolId,
     refetchOnWindowFocus: false,
@@ -161,6 +218,36 @@ export function useCapacityAlerts(schoolId: number) {
     queryFn: () => superAdminApi.getCapacityAlerts(schoolId),
     staleTime: 30_000,
     enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassSetup(classId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'classes', 'setup', classId],
+    queryFn: () => superAdminApi.validateSetup(classId),
+    staleTime: 60_000,
+    enabled: !!classId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassPerformance(classId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'classes', 'performance', classId],
+    queryFn: () => superAdminApi.getPerformanceStats(classId),
+    staleTime: 60_000,
+    enabled: !!classId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassAuditTrail(classId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'classes', 'audit', classId],
+    queryFn: () => superAdminApi.getClassAuditTrail(classId),
+    staleTime: 30_000,
+    enabled: !!classId,
     refetchOnWindowFocus: false,
   })
 }
@@ -193,5 +280,68 @@ export function usePresenceDashboard(schoolId: number) {
     enabled: !!schoolId,
     refetchOnWindowFocus: false,
     refetchInterval: 30_000,
+  })
+}
+
+export function useStudentSchoolStats(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'students', 'stats', schoolId],
+    queryFn: () => superAdminApi.getSchoolStats(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStudentList(
+  schoolId: number,
+  params?: { page?: number; limit?: number; search?: string; classId?: number; status?: string }
+) {
+  return useQuery({
+    queryKey: ['superadmin', 'students', 'list', schoolId, params],
+    queryFn: () => superAdminApi.listStudents(schoolId, params),
+    staleTime: 30_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStudentDebtors(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'students', 'debtors', schoolId],
+    queryFn: () => superAdminApi.getDebtors(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStudentDashboard(studentId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'students', 'dashboard', studentId],
+    queryFn: () => superAdminApi.getStudentDashboard(studentId),
+    staleTime: 30_000,
+    enabled: !!studentId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStudentActivity(studentId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'students', 'activity', studentId],
+    queryFn: () => superAdminApi.getStudentActivity(studentId, 15),
+    staleTime: 30_000,
+    enabled: !!studentId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStudentDossier(studentId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'students', 'dossier', studentId],
+    queryFn: () => superAdminApi.getStudentDossier(studentId),
+    staleTime: 60_000,
+    enabled: !!studentId,
+    refetchOnWindowFocus: false,
   })
 }

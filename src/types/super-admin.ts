@@ -227,6 +227,8 @@ export interface ClassItem {
   name: string
   academicYear: string
   maxStudents: number | null
+  isActive: boolean
+  isLocked: boolean
   _count: { students: number }
   teacher: {
     user: { firstName: string; lastName: string }
@@ -246,6 +248,60 @@ export interface CapacityAlertItem {
   capacity: number
   status: 'FULL' | 'WARNING'
   occupancyRate: number
+}
+
+/* ─── Classes — détail ──────────────────────────────────────── */
+export interface ClassSetupReport {
+  isValid: boolean
+  errors: string[]
+  completenessScore: number
+}
+
+export interface ClassPerformanceStats {
+  class: { id: number; name: string }
+  metrics: {
+    attendanceCount: number
+    totalPaid: number
+    totalDebt: number
+    incompleteProfiles: number
+  }
+  financial: {
+    classId: number
+    className: string
+    metrics: { studentCount: number; recoveryRate: number; totalDebt: number }
+  }
+}
+
+export interface ClassAuditEntry {
+  id: number
+  action: string
+  severity?: string
+  createdAt: string
+  description?: string | null
+  user?: { firstName: string; lastName: string } | null
+}
+
+export interface ClassExport {
+  metadata: { generatedAt: string; className: string; academicYear: string; teacher: string }
+  students: Array<{
+    id: number
+    firstName: string
+    lastName: string
+    gender: string
+    dateOfBirth: string | null
+    photoUrl: string | null
+  }>
+}
+
+export interface TeacherConflicts {
+  isOverloaded: boolean
+  assignmentCount: number
+  assignedClasses: Array<{ id: number; name: string }>
+}
+
+export interface RolloverResult {
+  status: string
+  count: number
 }
 
 /* ─── Présence ───────────────────────────────────────────────── */
@@ -298,4 +354,158 @@ export interface FinanceAuditResult {
   total: number
   count: number
   ids: number[]
+}
+
+/* ─── Core monitoring ───────────────────────────────────────── */
+export interface CoreUser {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  createdAt: string
+  school: { name: string } | null
+}
+
+export interface CoreStudent {
+  id: number
+  firstName: string
+  lastName: string
+  matricule: string | null
+  status: string
+  createdAt: string
+  school: { name: string } | null
+}
+
+export interface CorePresence {
+  id: number
+  status: string | null
+  createdAt: string
+  student: { firstName: string; lastName: string }
+  school: { name: string }
+}
+
+export interface CoreAuditLog {
+  id: number
+  action: string
+  resource: string | null
+  createdAt: string
+  actor: { firstName: string; lastName: string; email: string } | null
+  school: { name: string } | null
+}
+
+export interface CoreListResponse<T> {
+  rows: T[]
+  total: number
+}
+
+export interface FinanceReportDetail {
+  id: number
+  reference: string
+  student: string
+  class?: string
+  amount: number
+  method: string
+  confirmedAt: string | null
+  agent: string
+}
+
+export interface FinanceReport {
+  reportId: string
+  generatedAt: string
+  summary: { CASH: number; MOBILE_MONEY: number; BANK: number; TOTAL: number }
+  totalTransactions: number
+  details: FinanceReportDetail[]
+}
+
+/* ─── Students ───────────────────────────────────────────────── */
+export interface StudentGlobalStats {
+  totalStudents: number
+  presentToday: number
+  lateToday: number
+  totalClasses: number
+  attendanceRate: number
+  lastUpdate: string
+}
+
+export interface StudentListItem {
+  id: number
+  firstName: string
+  lastName: string
+  matricule: string | null
+  status: string
+  biometricStatus: string | null
+  isPaymentLocked: boolean
+  class: { name: string } | null
+  _count: { payments: number; presences: number }
+}
+
+export interface StudentListResponse {
+  total: number
+  page: number
+  totalPages: number
+  data: StudentListItem[]
+}
+
+export interface StudentDebtorItem {
+  id: number
+  firstName: string
+  lastName: string
+  matricule: string | null
+  feesBalance: number
+  class: { name: string } | null
+}
+
+export interface StudentStats {
+  attendanceRate: number
+  totalPaid: number
+  remainingDebt: number
+  tuitionDebt: number
+  isUpToDate: boolean
+  currency: string
+}
+
+export interface StudentProfile {
+  id: number
+  firstName: string
+  lastName: string
+  matricule: string | null
+  status: string
+  photoUrl: string | null
+  gender: string
+  birthDate: string | null
+  isPaymentLocked: boolean
+  biometricStatus: string | null
+  school: { name: string; baseCurrency: string } | null
+  class: { name: string } | null
+}
+
+export interface StudentDashboard {
+  profile: StudentProfile
+  stats: StudentStats
+  history: {
+    payments: Array<{ id: number; amount: number; currency: string; createdAt: string }>
+    presences: Array<{ id: number; status: string | null; scannedAt: string; scanMethod: string | null }>
+    sessions: Array<{ id: number; createdAt: string; session: { year: string } | null }>
+    discipline: Array<{ id: number; type: string; createdAt: string }>
+  }
+}
+
+export interface StudentActivityItem {
+  type: 'PRESENCE' | 'PAYMENT' | 'DISCIPLINE'
+  date: string
+  title: string
+  icon: string
+}
+
+export interface StudentDossier {
+  checks: {
+    photo: boolean
+    biometrics: boolean
+    verified: boolean
+    payment: boolean
+    documents: boolean
+  }
+  completionRate: number
+  isReady: boolean
 }
