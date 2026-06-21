@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { feesApi } from '@/lib/superAdmin/api/fees.api'
+import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
 
 export function useCoreUsers(params?: { page?: number; take?: number; role?: string }) {
   return useQuery({
@@ -402,6 +404,46 @@ export function useStudentDossier(studentId: number) {
     queryFn: () => superAdminApi.getStudentDossier(studentId),
     staleTime: 60_000,
     enabled: !!studentId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFeeSchoolStructures(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'fees', 'structures', schoolId],
+    queryFn: () => feesApi.getSchoolStructures(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFeeHistory(feeId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'fees', 'history', feeId],
+    queryFn: () => feesApi.getFeeHistory(feeId),
+    staleTime: 30_000,
+    enabled: !!feeId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useStudentInvoiceAudit(schoolId: number, studentId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'fees', 'invoices', schoolId, studentId],
+    queryFn: () => feesApi.getStudentInvoiceAudit(schoolId, studentId),
+    staleTime: 30_000,
+    enabled: !!schoolId && !!studentId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useSchoolInvitations(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'invitations', 'school', schoolId],
+    queryFn: () => invitationsApi.getSchoolInvitations(schoolId),
+    staleTime: 30_000,
+    enabled: !!schoolId,
     refetchOnWindowFocus: false,
   })
 }

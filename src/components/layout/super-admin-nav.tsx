@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 
@@ -14,6 +15,7 @@ const NAV_LINKS = [
   { label: 'Élèves',          href: '/super-admin/students',   icon: GraduationCap },
   { label: 'Classes',         href: '/super-admin/classes',    icon: BookOpen },
   { label: 'Finance',         href: '/super-admin/finance',          icon: Banknote },
+  { label: 'Frais',           href: '/super-admin/fees',             icon: Receipt },
   { label: 'Accès',           href: '/super-admin/auth-management',  icon: KeyRound },
   { label: 'Sécurité',        href: '/super-admin/security',         icon: Shield },
   { label: 'Audit',           href: '/super-admin/audit',            icon: ShieldAlert },
@@ -39,7 +41,7 @@ export function SuperAdminNav() {
       {/* Logo */}
       <Link
         href="/super-admin/dashboard"
-        className="flex items-center gap-3.5 px-6 py-6 flex-shrink-0 group"
+        className="flex items-center gap-3.5 px-6 py-4 flex-shrink-0 group"
       >
         <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm flex-shrink-0 group-hover:bg-indigo-500 transition-colors">
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
@@ -53,26 +55,46 @@ export function SuperAdminNav() {
       <div className="mx-5 h-px bg-zinc-100" />
 
       {/* Nav links */}
-      <nav className="flex-1 px-4 py-5 space-y-1 overflow-y-auto">
-        {NAV_LINKS.map(({ label, href, icon: Icon }) => {
+      <nav className="flex-1 px-3 py-2 space-y-0.5">
+        {NAV_LINKS.map(({ label, href, icon: Icon }, i) => {
           const active = pathname.startsWith(href)
           return (
-            <Link
+            <motion.div
               key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all',
-                active
-                  ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
-                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
-              )}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 + i * 0.035, duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
             >
-              <Icon
-                size={16}
-                className={cn('flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
-              />
-              {label}
-            </Link>
+              <Link
+                href={href}
+                className={cn(
+                  'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                  active
+                    ? 'text-indigo-700'
+                    : 'text-zinc-500 hover:text-zinc-800',
+                )}
+              >
+                {active && (
+                  <motion.div
+                    layoutId="activeNav"
+                    className="absolute inset-0 rounded-xl bg-indigo-50 shadow-sm ring-1 ring-indigo-100"
+                    transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+                  />
+                )}
+                {!active && (
+                  <motion.div
+                    className="absolute inset-0 rounded-xl bg-zinc-50 opacity-0"
+                    whileHover={{ opacity: 1 }}
+                    transition={{ duration: 0.12 }}
+                  />
+                )}
+                <Icon
+                  size={16}
+                  className={cn('relative flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
+                />
+                <span className="relative">{label}</span>
+              </Link>
+            </motion.div>
           )
         })}
       </nav>
@@ -80,8 +102,8 @@ export function SuperAdminNav() {
       <div className="mx-5 h-px bg-zinc-100" />
 
       {/* User + logout */}
-      <div className="px-5 py-5 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="px-4 py-4 flex-shrink-0">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center ring-1 ring-indigo-200/80 flex-shrink-0">
             <span className="text-xs font-bold text-indigo-700">{initials}</span>
           </div>
@@ -94,7 +116,7 @@ export function SuperAdminNav() {
         </div>
         <button
           onClick={logout}
-          className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
         >
           <LogOut size={15} />
           Déconnexion

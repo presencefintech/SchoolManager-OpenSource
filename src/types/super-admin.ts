@@ -558,3 +558,83 @@ export interface StudentDossier {
   completionRate: number
   isReady: boolean
 }
+
+/* ─── Invitations ───────────────────────────────────────────── */
+export interface StaffInvitation {
+  id: number
+  email: string
+  role: string
+  status: string
+  createdAt: string
+  firstName?: string
+  lastName?: string
+}
+
+export interface ParentInvitation {
+  id: number
+  code?: string
+  studentId: number
+  status: string
+  createdAt: string
+  email?: string
+}
+
+export interface SchoolInvitationsStatus {
+  staff?: StaffInvitation[]
+  parents?: ParentInvitation[]
+  pending?: number
+  total?: number
+}
+
+/* ─── Fees ──────────────────────────────────────────────────── */
+export type FeeType = 'TUITION' | 'TRANSPORT' | 'CANTEEN' | 'OTHER'
+
+export interface FeeSchoolStructure {
+  id: number
+  name: string
+  amount: number
+  type: FeeType
+  levelId: number | null
+  createdAt: string
+}
+
+export interface FeeCategory {
+  id: number
+  name: string
+  description: string | null
+  schoolId: number
+  createdAt: string
+}
+
+export interface FeeHistoryEntry {
+  id: number
+  changedAt: string
+  previousAmount: number | null
+  newAmount: number
+  reason: string | null
+  changedBy?: string
+}
+
+export interface FeeInvoice {
+  id: number
+  reference?: string
+  amount: number
+  status: string
+  description: string | null
+  createdAt: string
+  dueDate?: string | null
+  student?: { firstName: string; lastName: string } | null
+}
+
+export interface BulkApplyResult {
+  processed: number
+  success: number
+  errors: number
+}
+
+export interface ReconcileResult {
+  enrollmentId: number
+  newBalance?: number
+  adjustedAmount?: number
+  message?: string
+}
