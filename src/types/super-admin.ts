@@ -418,6 +418,55 @@ export interface FinanceReport {
   details: FinanceReportDetail[]
 }
 
+/* ─── Finance BI ─────────────────────────────────────────────── */
+export interface FinancePerformance {
+  collected: number
+  remaining: number
+  efficiency: number
+  studentCount: number
+  breakEvenThreshold: number
+  isHealthy: boolean
+}
+
+export interface FinanceEfficiencyLevel {
+  levelName: string
+  studentCount: number
+  totalDue: number
+  efficiency: number
+}
+
+export interface TopPayer {
+  id: number
+  fullName: string
+  score: number
+  totalPaid: number
+}
+
+export interface FinanceAnomaliesResult {
+  severity: 'HIGH' | 'LOW'
+  deviance?: number
+  benfordValid?: boolean
+  reason?: string
+  anomalies: Array<{ id: number; amount: number; method: string; audit: { suspicious: boolean; deviance: number } }>
+}
+
+export interface EndOfDaySnapshot {
+  date: string
+  total: number
+  count: number
+  methods: Array<{ method: string; amount: number; count: number }>
+  reconciliation: { status: 'READY_FOR_DEPOSIT' | 'NO_ACTIVITY'; reference: string }
+}
+
+export interface FinanceAuditFull {
+  meta: { schoolId: number; at: string; risk: 'CRITICAL' | 'LOW' }
+  audit: {
+    integrity: { count: number; anomalies: unknown[] }
+    securityGap: { totalAlerts: number; averageScore: number }
+    stats: { benfordSuspect: boolean; fraudAlerts: FinanceAnomaliesResult }
+  }
+}
+
 /* ─── Students ───────────────────────────────────────────────── */
 export interface StudentGlobalStats {
   totalStudents: number
