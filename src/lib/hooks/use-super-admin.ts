@@ -262,6 +262,66 @@ export function useWorkerHealth(schoolId: number) {
   })
 }
 
+export function useFinancePerformance(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'performance', schoolId],
+    queryFn: () => superAdminApi.getFinancePerformance(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceEfficiency(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'efficiency', schoolId],
+    queryFn: () => superAdminApi.getFinanceEfficiency(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useTopPayers(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'top-payers', schoolId],
+    queryFn: () => superAdminApi.getTopPayers(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceAnomalies(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'anomalies', schoolId],
+    queryFn: () => superAdminApi.getFinanceAnomalies(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceAuditFull(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'audit-full', schoolId],
+    queryFn: () => superAdminApi.getFinanceAuditFull(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useEndOfDaySnapshot(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'finance', 'snapshot', schoolId],
+    queryFn: () => superAdminApi.getEndOfDaySnapshot(schoolId),
+    staleTime: 30_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export function useFinanceAudit(schoolId: number) {
   return useQuery({
     queryKey: ['superadmin', 'enrollment', 'finance-audit', schoolId],

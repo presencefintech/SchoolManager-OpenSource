@@ -8,6 +8,9 @@ import { enrollmentApi } from './enrollment.api'
 import { presenceApi }   from './presence.api'
 import { studentsApi }   from './students.api'
 
+export { exportApi }    from './export.api'
+export { securityApi }  from './security.api'
+
 export const superAdminApi = {
   ...coreApi,
   ...financeApi,
