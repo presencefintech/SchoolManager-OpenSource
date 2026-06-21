@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { motion, type Variants } from 'framer-motion'
 import {
   Building2, GraduationCap, Users,
   ArrowRight, Activity, ChevronRight, ChevronLeft, UserCheck, ScrollText,
@@ -125,6 +126,15 @@ function DonutTooltip({ active, payload }: {
   )
 }
 
+const fadeUp: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.36, ease: 'easeOut' as const } },
+}
+const stagger: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+}
+
 const PER_PAGE = 15
 
 function Pager({ page, total, onPrev, onNext }: { page: number; total: number; onPrev: () => void; onNext: () => void }) {
@@ -203,7 +213,12 @@ export default function SuperAdminDashboardPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div
+        className="bg-white border-b border-zinc-200"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      >
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-8 py-6">
           <div>
             <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Dashboard</h1>
@@ -230,9 +245,14 @@ export default function SuperAdminDashboardPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-6">
+      <motion.div
+        className="max-w-7xl mx-auto px-8 py-8 space-y-6"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
 
         {isError && (
           <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
@@ -242,7 +262,7 @@ export default function SuperAdminDashboardPage() {
         )}
 
         {/* ══ 1. GRAPHIQUES HERO ═════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Area Chart — Encaissements par école (col-span-2) */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-7">
@@ -355,10 +375,10 @@ export default function SuperAdminDashboardPage() {
               <div className="flex-1 flex items-center justify-center text-sm text-zinc-400">Aucune donnée</div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* ══ 2. RÉPARTITION DES ÉLÈVES PAR ÉCOLE ════════════════════════════ */}
-        <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-7">
+        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-7">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-base font-semibold text-zinc-900">Répartition des élèves</h2>
@@ -436,10 +456,10 @@ export default function SuperAdminDashboardPage() {
           })() : (
             <div className="flex items-center justify-center py-8 text-sm text-zinc-400">Aucune donnée disponible</div>
           )}
-        </div>
+        </motion.div>
 
         {/* ══ 3. SANTÉ ÉTABLISSEMENTS ════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-5">Santé des établissements</p>
           {loadingSchools
             ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Sk key={i} className="h-12" />)}</div>
@@ -454,10 +474,10 @@ export default function SuperAdminDashboardPage() {
                 ))}
               </div>
             )}
-        </div>
+        </motion.div>
 
         {/* ══ 4. SESSIONS ACTIVES ════════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
             <div className="flex items-center gap-2.5">
               <ScrollText size={15} className="text-zinc-400" />
@@ -472,14 +492,20 @@ export default function SuperAdminDashboardPage() {
             <Sk className="h-20 rounded-none" />
           ) : sessions?.length ? (
             <div className="divide-y divide-zinc-50">
-              {sessions.slice(0, 5).map((s) => (
-                <div key={s.id} className="flex items-center justify-between px-6 py-3.5">
+              {sessions.slice(0, 5).map((s, i) => (
+                <motion.div
+                  key={s.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 + i * 0.05, duration: 0.22 }}
+                  className="flex items-center justify-between px-6 py-3.5"
+                >
                   <div className="flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-sm text-zinc-700">{s.user.firstName} {s.user.lastName}</span>
                   </div>
                   <span className="text-xs font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-lg">{s.user.role}</span>
-                </div>
+                </motion.div>
               ))}
               {sessions.length > 5 && (
                 <div className="px-6 py-3 text-xs text-zinc-400">+ {sessions.length - 5} autres sessions</div>
@@ -488,53 +514,60 @@ export default function SuperAdminDashboardPage() {
           ) : (
             <div className="px-6 py-5 text-sm text-zinc-400">Aucune session active</div>
           )}
-        </div>
+        </motion.div>
 
         {/* ══ 7. ÉTABLISSEMENTS ══════════════════════════════════════════════ */}
-        {(loadingSchools || (schools && schools.length > 0)) && (
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-50">
-              <span className="text-sm font-medium text-zinc-500">Établissements</span>
-              <Link href="/super-admin/schools" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
-                Voir tous →
-              </Link>
-            </div>
-            {loadingSchools ? <Sk className="h-56 rounded-none" /> : schools && (
-              <div className="divide-y divide-zinc-50">
-                {schools.slice(0, 6).map((school) => (
-                  <Link
-                    key={school.id}
-                    href={`/super-admin/schools/${school.id}`}
-                    className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 transition-colors group"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <Dot level={school.health.level} />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-zinc-900 truncate">{school.name}</p>
-                        <p className="text-xs text-zinc-400">
-                          {school.city} · {school._count.students.toLocaleString('fr-FR')} élève{school._count.students !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                      <HealthBadge level={school.health.level} />
-                      <ChevronRight size={14} className="text-zinc-200 group-hover:text-zinc-500 transition-colors" />
-                    </div>
-                  </Link>
-                ))}
-                {schools.length > 6 && (
-                  <div className="px-6 py-4">
-                    <Link href="/super-admin/schools" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors">
-                      + {schools.length - 6} autres établissements
-                    </Link>
-                  </div>
-                )}
+        <motion.div variants={fadeUp}>
+          {(loadingSchools || (schools && schools.length > 0)) && (
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-50">
+                <span className="text-sm font-medium text-zinc-500">Établissements</span>
+                <Link href="/super-admin/schools" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+                  Voir tous →
+                </Link>
               </div>
-            )}
-          </div>
-        )}
+              {loadingSchools ? <Sk className="h-56 rounded-none" /> : schools && (
+                <div className="divide-y divide-zinc-50">
+                  {schools.slice(0, 6).map((school) => (
+                    <motion.div
+                      key={school.id}
+                      whileHover={{ x: 3 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Link
+                        href={`/super-admin/schools/${school.id}`}
+                        className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 transition-colors group"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <Dot level={school.health.level} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-zinc-900 truncate">{school.name}</p>
+                            <p className="text-xs text-zinc-400">
+                              {school.city} · {school._count.students.toLocaleString('fr-FR')} élève{school._count.students !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                          <HealthBadge level={school.health.level} />
+                          <ChevronRight size={14} className="text-zinc-200 group-hover:text-zinc-500 transition-colors" />
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                  {schools.length > 6 && (
+                    <div className="px-6 py-4">
+                      <Link href="/super-admin/schools" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors">
+                        + {schools.length - 6} autres établissements
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
 
-      </div>
+      </motion.div>
     </div>
   )
 }
