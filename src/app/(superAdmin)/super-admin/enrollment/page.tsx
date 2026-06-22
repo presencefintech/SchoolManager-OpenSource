@@ -4,11 +4,12 @@ import { useState } from 'react'
 import {
   Bot, ShieldCheck, AlertTriangle, Lock, LockOpen,
   Clock, Search, Trash2, CheckCircle, XCircle, Fingerprint,
-  RefreshCw,
+  RefreshCw, UserPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSchools, useWorkerHealth, useFinanceAudit } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { enrollmentApi } from '@/lib/superAdmin/api/enrollment.api'
 
 /* ── helpers ────────────────────────────────────────────────────────────────── */
 
@@ -60,6 +61,13 @@ export default function EnrollmentPage() {
   /* grace period */
   const [graceUntil, setGraceUntil] = useState('')
 
+  /* create student */
+  const [createFirstName, setCreateFirstName] = useState('')
+  const [createLastName, setCreateLastName] = useState('')
+  const [createSchoolId, setCreateSchoolId] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createResult, setCreateResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
   /* purge */
   const [purgeId, setPurgeId] = useState('')
   const [purgeWord, setPurgeWord] = useState('')
@@ -94,6 +102,27 @@ export default function EnrollmentPage() {
       setActionResult({ type: 'error', message: err.response?.data?.message ?? 'Une erreur est survenue.' })
     } finally {
       setLoading(null)
+    }
+  }
+
+  async function runCreateStudent() {
+    if (!createFirstName || !createLastName || !createSchoolId) return
+    setCreating(true)
+    setCreateResult(null)
+    try {
+      const s = await enrollmentApi.createStudent({
+        firstName: createFirstName,
+        lastName: createLastName,
+        schoolId: Number(createSchoolId),
+      })
+      setCreateResult({ type: 'success', message: `Élève créé : ${s.firstName} ${s.lastName} (ID #${s.id})` })
+      setCreateFirstName('')
+      setCreateLastName('')
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la création.' })
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -392,6 +421,60 @@ export default function EnrollmentPage() {
               </span>
             </div>
 
+          </div>
+        </div>
+
+        {/* ══ 3.5. CRÉER UN ÉLÈVE ════════════════════════════════════════════ */}
+        <div>
+          <SectionTitle>Créer un élève</SectionTitle>
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <UserPlus size={13} className="text-indigo-500" />
+              <span className="text-xs font-medium text-zinc-500">Inscription manuelle d'un nouvel élève</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+              <div>
+                <label className="text-[11px] text-zinc-400 block mb-1.5">Prénom</label>
+                <input
+                  type="text"
+                  placeholder="Jean"
+                  value={createFirstName}
+                  onChange={e => setCreateFirstName(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-zinc-400 block mb-1.5">Nom</label>
+                <input
+                  type="text"
+                  placeholder="Dupont"
+                  value={createLastName}
+                  onChange={e => setCreateLastName(e.target.value)}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="text-[11px] text-zinc-400 block mb-1.5">Établissement</label>
+                <select
+                  value={createSchoolId}
+                  onChange={e => setCreateSchoolId(e.target.value)}
+                  className={cn(inputCls, 'pr-8')}
+                >
+                  <option value="">Choisir…</option>
+                  {schools?.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button
+              disabled={!createFirstName || !createLastName || !createSchoolId || creating}
+              onClick={runCreateStudent}
+              className="h-9 flex items-center gap-2 px-4 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              {creating ? 'Création…' : <><UserPlus size={13} /> Créer l'élève</>}
+            </button>
+            <ActionResult result={createResult} />
           </div>
         </div>
 

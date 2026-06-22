@@ -16,4 +16,21 @@ export const auditApi = {
     apiClient
       .get<{ success: boolean; count: number; data: AuditTrailData['data'] }>('/superadmin/audit/trail', { params })
       .then((r) => ({ count: r.data.count, data: r.data.data } as AuditTrailData)),
+
+  checkIntegrity: (schoolId: number, studentId: number) =>
+    apiClient
+      .get<{ success: boolean; data: unknown }>(`/superadmin/audit/integrity/${schoolId}/${studentId}`)
+      .then((r) => r.data.data),
+
+  getPaymentFlags: () =>
+    apiClient
+      .get<{ success: boolean; data: unknown[] }>('/superadmin/audit/payments/flags')
+      .then((r) => r.data.data),
+
+  forceStorageUpload: (formData: FormData) =>
+    apiClient
+      .post<{ success: boolean; data: { message: string } }>('/superadmin/storage/force-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data.data),
 }

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   ShieldAlert, Activity, Wifi, WifiOff, Zap, Clock, UserCheck,
   HardDrive, AlertTriangle, CheckCircle2, XCircle, Download,
-  RefreshCw, FileSearch, ScrollText, Loader2,
+  RefreshCw, FileSearch, ScrollText, Loader2, Flag, SearchCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -55,6 +55,18 @@ export default function AuditPage() {
   const { data: fraudRadar, isLoading: loadingFraud } = useFraudRadar()
   const { data: auditLogs, isLoading: loadingLogs } = useCoreAuditLogs({ take: 50 })
 
+  /* ── integrity check ── */
+  const [integritySchoolId, setIntegritySchoolId] = useState('')
+  const [integrityStudentId, setIntegrityStudentId] = useState('')
+  const [checkingIntegrity, setCheckingIntegrity] = useState(false)
+  const [integrityResult, setIntegrityResult] = useState<Record<string, unknown> | null>(null)
+  const [integrityMsg, setIntegrityMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  /* ── payment flags ── */
+  const [paymentFlags, setPaymentFlags] = useState<unknown[] | null>(null)
+  const [loadingFlags, setLoadingFlags] = useState(false)
+  const [flagsLoaded, setFlagsLoaded] = useState(false)
+
   /* ── reconcile form ── */
   const [paymentId, setPaymentId] = useState('')
   const [providerRef, setProviderRef] = useState('')
@@ -63,6 +75,36 @@ export default function AuditPage() {
 
   /* ── export ── */
   const [exporting, setExporting] = useState(false)
+
+  const handleIntegrityCheck = async () => {
+    if (!integritySchoolId || !integrityStudentId) return
+    setCheckingIntegrity(true)
+    setIntegrityMsg(null)
+    setIntegrityResult(null)
+    try {
+      const data = await superAdminApi.checkIntegrity(Number(integritySchoolId), Number(integrityStudentId))
+      setIntegrityResult(data as Record<string, unknown>)
+      setIntegrityMsg({ ok: true, text: 'Vérification effectuée' })
+    } catch {
+      setIntegrityMsg({ ok: false, text: 'Erreur lors de la vérification d\'intégrité' })
+    } finally {
+      setCheckingIntegrity(false)
+    }
+  }
+
+  const handleLoadFlags = async () => {
+    setLoadingFlags(true)
+    try {
+      const data = await superAdminApi.getPaymentFlags()
+      setPaymentFlags(data)
+      setFlagsLoaded(true)
+    } catch {
+      setPaymentFlags([])
+      setFlagsLoaded(true)
+    } finally {
+      setLoadingFlags(false)
+    }
+  }
 
   const handleReconcile = async () => {
     if (!paymentId) return
@@ -444,7 +486,106 @@ export default function AuditPage() {
           </div>
         </div>
 
-        {/* ══ 5. LOGS D'AUDIT COMPLETS ═══════════════════════════════════════ */}
+        {/* ══ 5. VÉRIFICATION INTÉGRITÉ CROSS-SCHOOL ══════════════════════════ */}
+        <div>
+          <SectionTitle>Vérification intégrité cross-school</SectionTitle>
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-6 py-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SearchCheck size={13} className="text-zinc-400" />
+              <span className="text-sm text-zinc-500">Audit d'intégrité d'un élève dans un établissement</span>
+            </div>
+            <div className="flex items-end gap-3 flex-wrap">
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">ID établissement</label>
+                <input
+                  type="number"
+                  placeholder="Ex: 5"
+                  value={integritySchoolId}
+                  onChange={(e) => setIntegritySchoolId(e.target.value)}
+                  className="px-3 py-2.5 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 w-32"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400 mb-1 block">ID élève</label>
+                <input
+                  type="number"
+                  placeholder="Ex: 42"
+                  value={integrityStudentId}
+                  onChange={(e) => setIntegrityStudentId(e.target.value)}
+                  className="px-3 py-2.5 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30 w-32"
+                />
+              </div>
+              <button
+                onClick={handleIntegrityCheck}
+                disabled={checkingIntegrity || !integritySchoolId || !integrityStudentId}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              >
+                {checkingIntegrity ? <Loader2 size={13} className="animate-spin" /> : <SearchCheck size={13} />}
+                Vérifier
+              </button>
+            </div>
+            {integrityMsg && (
+              <div className={cn('mt-3 flex items-center gap-2 text-sm px-3 py-2.5 rounded-lg', integrityMsg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700')}>
+                {integrityMsg.ok ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                {integrityMsg.text}
+              </div>
+            )}
+            {integrityResult && (
+              <div className="mt-3 bg-zinc-50 border border-zinc-100 rounded-lg p-3 grid grid-cols-2 gap-x-6 gap-y-1.5">
+                {Object.entries(integrityResult).slice(0, 12).map(([k, v]) => (
+                  <div key={k} className="flex items-center gap-2 text-xs">
+                    <span className="text-zinc-400 w-28 flex-shrink-0 truncate">{k}</span>
+                    <span className="font-mono text-zinc-700 truncate">{String(v == null ? '—' : v)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ══ 6. FLAGS DE PAIEMENTS ══════════════════════════════════════════ */}
+        <div>
+          <SectionTitle>Flags de paiements</SectionTitle>
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+              <div className="flex items-center gap-2.5">
+                <Flag size={14} className="text-amber-500" />
+                <span className="text-sm font-medium text-zinc-600">Paiements signalés</span>
+              </div>
+              {!flagsLoaded && (
+                <button
+                  onClick={handleLoadFlags}
+                  disabled={loadingFlags}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-zinc-200 rounded-lg text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+                >
+                  {loadingFlags ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                  Charger
+                </button>
+              )}
+            </div>
+            {!flagsLoaded ? (
+              <div className="px-6 py-10 text-center text-sm text-zinc-400">
+                Cliquez sur Charger pour afficher les flags de paiements
+              </div>
+            ) : paymentFlags && paymentFlags.length > 0 ? (
+              <div className="divide-y divide-zinc-100 max-h-64 overflow-y-auto">
+                {paymentFlags.map((f, i) => (
+                  <div key={i} className="flex items-center gap-4 px-6 py-3 text-xs hover:bg-zinc-50 transition-colors">
+                    <Flag size={11} className="text-amber-400 flex-shrink-0" />
+                    <pre className="font-mono text-zinc-600 truncate flex-1">{JSON.stringify(f)}</pre>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="px-6 py-10 text-center text-sm text-zinc-400">
+                <CheckCircle2 size={20} className="mx-auto text-emerald-400 mb-2" />
+                Aucun flag de paiement détecté
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ══ 7. LOGS D'AUDIT COMPLETS ═══════════════════════════════════════ */}
         <div>
           <SectionTitle>Logs d&apos;audit</SectionTitle>
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">

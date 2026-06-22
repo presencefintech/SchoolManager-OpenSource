@@ -44,4 +44,9 @@ export const monitoringApi = {
     apiClient
       .get<{ success: boolean; data: QueueStatus }>('/superadmin/notifications/queue-status')
       .then((r) => r.data.data),
+
+  reconcilePayment: (paymentId: number, providerRef?: string) =>
+    apiClient
+      .post<{ success: boolean; data: { enrollmentId: number; message?: string } }>(`/superadmin/mm/reconcile/${paymentId}`, providerRef ? { providerRef } : {})
+      .then((r) => r.data.data),
 }
