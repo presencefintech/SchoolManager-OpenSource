@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import type { WorkerHealth, FinanceAuditResult } from '@/types/super-admin'
+import type { WorkerHealth, FinanceAuditResult, StudentProfile } from '@/types/super-admin'
 
 export const enrollmentApi = {
   getWorkerHealth: (schoolId: number) =>
@@ -31,4 +31,19 @@ export const enrollmentApi = {
     apiClient
       .delete<{ success: boolean; message: string }>(`/superadmin/enrollment/${studentId}/purge`)
       .then((r) => r.data),
+
+  createStudent: (payload: { firstName: string; lastName: string; schoolId: number; classId?: number; [key: string]: unknown }) =>
+    apiClient
+      .post<{ success: boolean; data: StudentProfile }>('/superadmin/enrollment', payload)
+      .then((r) => r.data.data),
+
+  testFaceId: (studentId: number, imageBase64: string) =>
+    apiClient
+      .post<{ success: boolean; data: { match: boolean; score: number } }>(`/superadmin/enrollment/${studentId}/test-face-id`, { imageBase64 })
+      .then((r) => r.data.data),
+
+  injectBiometrics: (studentId: number, biometricData: Record<string, unknown>) =>
+    apiClient
+      .put<{ success: boolean; data: { updated: boolean } }>(`/superadmin/enrollment/${studentId}/biometrics`, biometricData)
+      .then((r) => r.data.data),
 }
