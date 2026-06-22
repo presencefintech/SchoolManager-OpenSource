@@ -638,3 +638,120 @@ export interface ReconcileResult {
   adjustedAmount?: number
   message?: string
 }
+
+/* ─── Notifications ─────────────────────────────────────────────── */
+export interface NotificationLog {
+  id: number
+  type?: string
+  title?: string
+  message?: string
+  status?: string
+  createdAt: string
+  recipient?: string
+  schoolId?: number
+}
+
+export interface BroadcastResult {
+  sent: number
+  failed?: number
+  total?: number
+}
+
+/* ─── Fraude cross-school ───────────────────────────────────────── */
+export interface FraudFlag {
+  id: number
+  fraudScore: number
+  reason?: string
+  createdAt: string
+  payment?: {
+    id: number
+    amount: number
+    method: string
+    school: { name: string }
+  }
+  student?: { firstName: string; lastName: string }
+}
+
+export interface FraudAnalysisResult {
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH'
+  score?: number
+  flags?: string[]
+  recommendation?: string
+  message?: string
+}
+
+/* ─── Payment stats avancés ─────────────────────────────────────── */
+export interface PaymentSecurityAuditItem {
+  paymentId?: number
+  studentId?: number
+  presenceMatch?: boolean
+  riskScore?: number
+  flags?: string[]
+  amount?: number
+  method?: string
+  createdAt?: string
+}
+
+export interface HighRiskProfile {
+  studentId?: number
+  id?: number
+  firstName?: string
+  lastName?: string
+  studentName?: string
+  riskScore?: number
+  missedPayments?: number
+  totalDebt?: number
+  feesBalance?: number
+  factors?: string[]
+}
+
+/* ─── QR Code ───────────────────────────────────────────────────── */
+export interface QRTestResult {
+  valid?: boolean
+  decoded?: Record<string, unknown>
+  error?: string
+  message?: string
+}
+
+export interface QRSupportResult {
+  qrCode?: string
+  code?: string
+  studentId?: number
+  expiresAt?: string
+}
+
+/* ─── Fichiers ──────────────────────────────────────────────────── */
+export interface FileUploadResult {
+  publicId?: string
+  url?: string
+  secure_url?: string
+  format?: string
+  bytes?: number
+  message?: string
+}
+
+/* ─── Banque ────────────────────────────────────────────────────── */
+export interface BankSyncResult {
+  status?: string
+  message?: string
+  paymentId?: number
+  updatedAt?: string
+}
+
+export interface BankInspectResult {
+  reference?: string
+  found?: boolean
+  status?: string
+  amount?: number
+  date?: string
+  provider?: string
+  message?: string
+}
+
+/* ─── Anomaly thresholds ────────────────────────────────────────── */
+export interface AnomalyThresholds {
+  fraudScoreMin?: number
+  absenceRateMax?: number
+  devianceMax?: number
+  [key: string]: number | undefined
+}

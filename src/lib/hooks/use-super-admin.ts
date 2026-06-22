@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
+import { notificationsApi } from '@/lib/superAdmin/api/notifications.api'
+import { fraudApi } from '@/lib/superAdmin/api/fraud.api'
+import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 
 export function useCoreUsers(params?: { page?: number; take?: number; role?: string }) {
   return useQuery({
@@ -444,6 +447,53 @@ export function useSchoolInvitations(schoolId: number) {
     queryFn: () => invitationsApi.getSchoolInvitations(schoolId),
     staleTime: 30_000,
     enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useNotificationLogs(params?: { page?: number; limit?: number; schoolId?: number }) {
+  return useQuery({
+    queryKey: ['superadmin', 'notifications', 'logs', params],
+    queryFn: () => notificationsApi.getLogs(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFraudFlags(params?: { schoolId?: number; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['superadmin', 'fraud', 'flags', params],
+    queryFn: () => fraudApi.getFlags(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function usePaymentSecurityAudit(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'payment-stats', 'security-audit', schoolId],
+    queryFn: () => superAdminApi.getPaymentSecurityAudit(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useHighRiskProfiles(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'payment-stats', 'high-risk', schoolId],
+    queryFn: () => superAdminApi.getHighRiskProfiles(schoolId),
+    staleTime: 60_000,
+    enabled: !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useAnomalyThresholds() {
+  return useQuery({
+    queryKey: ['superadmin', 'anomalies', 'thresholds'],
+    queryFn: () => anomaliesApi.getThresholds(),
+    staleTime: 300_000,
     refetchOnWindowFocus: false,
   })
 }

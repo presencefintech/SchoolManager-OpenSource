@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useRef } from 'react'
 import { motion } from 'framer-motion'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 
@@ -20,11 +21,14 @@ const NAV_LINKS = [
   { label: 'Sécurité',        href: '/super-admin/security',         icon: Shield },
   { label: 'Audit',           href: '/super-admin/audit',            icon: ShieldAlert },
   { label: 'Exports',         href: '/super-admin/export',           icon: Download },
+  { label: 'Notifications',   href: '/super-admin/notifications',    icon: Bell },
+  { label: 'Outils SA',       href: '/super-admin/outils',           icon: Wrench },
 ]
 
 export function SuperAdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const hasAnimated = useRef(false)
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
@@ -58,41 +62,30 @@ export function SuperAdminNav() {
       <nav className="flex-1 px-3 py-2 space-y-0.5">
         {NAV_LINKS.map(({ label, href, icon: Icon }, i) => {
           const active = pathname.startsWith(href)
+          const shouldAnimate = !hasAnimated.current
+          if (i === NAV_LINKS.length - 1) hasAnimated.current = true
+
           return (
             <motion.div
               key={href}
-              initial={{ opacity: 0, x: -12 }}
+              initial={shouldAnimate ? { opacity: 0, x: -10 } : false}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 + i * 0.035, duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ delay: shouldAnimate ? 0.04 + i * 0.03 : 0, duration: 0.2 }}
             >
               <Link
                 href={href}
                 className={cn(
-                  'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                  'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
                   active
-                    ? 'text-indigo-700'
-                    : 'text-zinc-500 hover:text-zinc-800',
+                    ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
+                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
                 )}
               >
-                {active && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 rounded-xl bg-indigo-50 shadow-sm ring-1 ring-indigo-100"
-                    transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
-                  />
-                )}
-                {!active && (
-                  <motion.div
-                    className="absolute inset-0 rounded-xl bg-zinc-50 opacity-0"
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.12 }}
-                  />
-                )}
                 <Icon
                   size={16}
-                  className={cn('relative flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
+                  className={cn('flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
                 />
-                <span className="relative">{label}</span>
+                {label}
               </Link>
             </motion.div>
           )
