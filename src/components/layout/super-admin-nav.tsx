@@ -2,11 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
+import { superAdminApi } from '@/lib/superAdmin/api'
 
 const NAV_LINKS = [
   { label: 'Dashboard',       href: '/super-admin/dashboard',  icon: LayoutDashboard },
@@ -28,11 +30,28 @@ const NAV_LINKS = [
 export function SuperAdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const queryClient = useQueryClient()
   const hasAnimated = useRef(false)
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'SA'
+
+  const prefetch = useCallback((href: string) => {
+    if (href === '/super-admin/dashboard') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'stats'], queryFn: superAdminApi.getStats, staleTime: 60_000 })
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'schools'], queryFn: () => superAdminApi.getSchools(), staleTime: 60_000 })
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'auth', 'sessions'], queryFn: () => superAdminApi.getActiveSessions(), staleTime: 15_000 })
+    } else if (href === '/super-admin/schools') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'schools'], queryFn: () => superAdminApi.getSchools(), staleTime: 60_000 })
+    } else if (href === '/super-admin/students') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'students', 'list', undefined], queryFn: () => superAdminApi.listStudents(0), staleTime: 30_000 })
+    } else if (href === '/super-admin/audit') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'audit', 'snapshot'], queryFn: () => superAdminApi.getAuditSnapshot(), staleTime: 30_000 })
+    }
+  }, [queryClient])
 
   return (
     <aside className={cn(
@@ -62,7 +81,7 @@ export function SuperAdminNav() {
       <nav className="flex-1 px-3 py-2 space-y-0.5">
         {NAV_LINKS.map(({ label, href, icon: Icon }, i) => {
           const active = pathname.startsWith(href)
-          const shouldAnimate = !hasAnimated.current
+          const shouldAnimate = mounted && !hasAnimated.current
           if (i === NAV_LINKS.length - 1) hasAnimated.current = true
 
           return (
@@ -74,6 +93,7 @@ export function SuperAdminNav() {
             >
               <Link
                 href={href}
+                onMouseEnter={() => prefetch(href)}
                 className={cn(
                   'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
                   active
