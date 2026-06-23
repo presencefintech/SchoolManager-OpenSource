@@ -279,3 +279,121 @@ export interface BulkPresencePayload {
   status: 'PRESENT' | 'ABSENT' | 'LATE'
   sessionDate?: string
 }
+
+// Classes
+export interface ClassListItem {
+  id: number
+  name: string
+  level?: string
+  capacity?: number
+  studentCount?: number
+  teacherName?: string
+  teacherId?: number
+  isActive: boolean
+  schoolId: number
+  createdAt: string
+}
+
+export interface ClassDetail extends ClassListItem {
+  description?: string
+  students?: { id: number; firstName: string; lastName: string; matricule?: string; status: string }[]
+}
+
+export interface ClassStats {
+  studentCount: number
+  attendanceRate: number
+  presentToday?: number
+  absentToday?: number
+  totalDue?: number
+  totalPaid?: number
+  balance?: number
+}
+
+export interface ClassAuditEntry {
+  id: number
+  action: string
+  description?: string
+  createdAt: string
+  actor?: string
+}
+
+export interface CreateClassPayload {
+  name: string
+  level?: string
+  capacity?: number
+  teacherId?: number
+  description?: string
+}
+
+export interface RolloverPayload {
+  fromYear: string
+  toYear: string
+  classIds?: number[]
+}
+
+// Finance
+export interface FinanceKpi {
+  totalRevenue: number
+  totalPaid: number
+  totalDue: number
+  collectionRate: number
+  pendingPayments: number
+  fraudAlerts: number
+}
+
+export interface PendingPayment {
+  id: number
+  studentName: string
+  amount: number
+  method: string
+  status: string
+  createdAt: string
+  studentId?: number
+  reference?: string
+}
+
+export interface FinanceFraudAlert {
+  id: number
+  type: string
+  severity: string
+  description: string
+  studentName?: string
+  amount?: number
+  createdAt: string
+}
+
+export interface AuditLogEntry {
+  id: number
+  action: string
+  resource: string
+  description?: string
+  actorEmail?: string
+  createdAt: string
+  metadata?: Record<string, unknown>
+}
+
+export interface TopPayer {
+  studentId: number
+  studentName: string
+  totalPaid: number
+  className?: string
+  lastPaymentDate?: string
+}
+
+export interface ManualPaymentPayload {
+  studentId: number
+  amount: number
+  method: 'CASH' | 'BANK_TRANSFER' | 'MOBILE_MONEY' | 'CHEQUE'
+  note?: string
+  feeStructureId?: number
+}
+
+export interface MobilePendingItem {
+  id: number
+  studentName: string
+  amount: number
+  phone?: string
+  operator?: string
+  reference?: string
+  createdAt: string
+}

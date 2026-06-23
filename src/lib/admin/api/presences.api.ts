@@ -1,0 +1,70 @@
+import { apiClient } from '@/lib/api/client'
+import type {
+  PresenceLiveFeedEntry, PresenceStats, PresenceHeatmapEntry,
+  PresenceSecurityAlert, SessionQR, RecordPresencePayload, BulkPresencePayload,
+} from '@/types/admin'
+
+export const presencesApi = {
+  getLiveFeed: (params?: { classId?: number; page?: number; limit?: number }) =>
+    apiClient.get<{ success: boolean; data: any }>('/admin/presences/live', { params })
+      .then(r => {
+        const d = r.data.data
+        const entries: PresenceLiveFeedEntry[] = (d?.data ?? []).map((p: any) => ({
+          id:          p.id,
+          studentName: p.studentName,
+          matricule:   p.matricule,
+          className:   p.className,
+          scannedAt:   p.scannedAt,
+          status:      p.status,
+          method:      p.method,
+          security:    p.security ?? null,
+          location:    p.location ?? null,
+          qrCode:      p.qrCode ?? null,
+        }))
+        return { entries, total: d?.pagination?.total ?? 0, pagination: d?.pagination }
+      }),
+
+  getStats: () =>
+    apiClient.get<{ success: boolean; data: any }>('/admin/presences/stats')
+      .then(r => {
+        const d = r.data.data
+        return {
+          present:        d?.overview?.present       ?? 0,
+          absent:         d?.overview?.absent        ?? 0,
+          late:           d?.overview?.late          ?? 0,
+          totalStudents:  d?.overview?.totalStudents ?? 0,
+          attendanceRate: d?.attendanceRate          ?? 0,
+          criticalFraud:  d?.alerts?.criticalFraud   ?? 0,
+        } satisfies PresenceStats
+      }),
+
+  getHeatmap: (classId?: number) =>
+    apiClient.get<{ success: boolean; data: PresenceHeatmapEntry[] }>('/admin/presences/heatmap', {
+      params: classId ? { classId } : undefined,
+    }).then(r => r.data.data ?? []),
+
+  getAlerts: () =>
+    apiClient.get<{ success: boolean; data: any[] }>('/admin/presences/alerts')
+      .then(r => (r.data.data ?? []) as PresenceSecurityAlert[]),
+
+  generateSessionQR: (classId: number) =>
+    apiClient.get<{ success: boolean; data: SessionQR }>('/admin/presences/session-qr', {
+      params: { classId },
+    }).then(r => r.data.data),
+
+  record: (payload: RecordPresencePayload) =>
+    apiClient.post<{ success: boolean; data: any }>('/admin/presences/record', payload)
+      .then(r => r.data.data),
+
+  bulkRecord: (payload: BulkPresencePayload) =>
+    apiClient.post<{ success: boolean; data: any[] }>('/admin/presences/bulk', payload)
+      .then(r => r.data.data),
+
+  validate: (id: number, reason?: string) =>
+    apiClient.patch<{ success: boolean; data: any }>(`/admin/presences/${id}/validate`, { reason })
+      .then(r => r.data.data),
+
+  remove: (id: number, reason?: string) =>
+    apiClient.delete<{ success: boolean; data: null }>(`/admin/presences/${id}`, { data: { reason } })
+      .then(r => r.data),
+}

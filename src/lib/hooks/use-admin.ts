@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi } from '@/lib/admin/api'
-import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload } from '@/types/admin'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, financeApi } from '@/lib/admin/api'
+import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload } from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────
 export function useAdminStats() {
@@ -311,5 +311,198 @@ export function useDeletePresence() {
       qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
     },
+  })
+}
+
+// ── Classes ────────────────────────────────────────────────────────
+
+export function useClasses(params?: { search?: string; isActive?: boolean }) {
+  return useQuery({
+    queryKey: ['admin', 'classes', 'list', params],
+    queryFn: () => classesApi.list(params),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassDetail(id: number) {
+  return useQuery({
+    queryKey: ['admin', 'classes', id],
+    queryFn: () => classesApi.getById(id),
+    staleTime: 60_000,
+    enabled: !!id,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassStats(id: number) {
+  return useQuery({
+    queryKey: ['admin', 'classes', id, 'stats'],
+    queryFn: () => classesApi.getStats(id),
+    staleTime: 60_000,
+    enabled: !!id,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassAudit(id: number) {
+  return useQuery({
+    queryKey: ['admin', 'classes', id, 'audit'],
+    queryFn: () => classesApi.getAudit(id),
+    staleTime: 120_000,
+    enabled: !!id,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCreateClass() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateClassPayload) => classesApi.create(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'classes'] }),
+  })
+}
+
+export function useUpdateClass() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<CreateClassPayload> }) =>
+      classesApi.update(id, payload),
+    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: ['admin', 'classes', id] }),
+  })
+}
+
+export function useToggleClassStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => classesApi.toggleStatus(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'classes'] }),
+  })
+}
+
+export function useAssignStudents() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ classId, studentIds }: { classId: number; studentIds: number[] }) =>
+      classesApi.assignStudents(classId, studentIds),
+    onSuccess: (_, { classId }) => qc.invalidateQueries({ queryKey: ['admin', 'classes', classId] }),
+  })
+}
+
+export function useTransferStudents() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ classId, studentIds, targetClassId }: { classId: number; studentIds: number[]; targetClassId: number }) =>
+      classesApi.transfer(classId, { studentIds, targetClassId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'classes'] }),
+  })
+}
+
+export function useRollover() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: RolloverPayload) => classesApi.rollover(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'classes'] }),
+  })
+}
+
+// ── Finance ────────────────────────────────────────────────────────
+
+export function useFinanceDashboard() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'dashboard'],
+    queryFn: financeApi.getStrategicDashboard,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceTopPayers() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'top-payers'],
+    queryFn: financeApi.getTopPayers,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceHealthCheck() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'health'],
+    queryFn: financeApi.getHealthCheck,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceFraudAlerts() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fraud-alerts'],
+    queryFn: financeApi.getFraudAlerts,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceAuditLogs(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'audit-logs', params],
+    queryFn: () => financeApi.getAuditLogs(params),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function usePendingVerifications() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'pending'],
+    queryFn: financeApi.getPendingVerifications,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useMobilePending() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'mobile-pending'],
+    queryFn: financeApi.getMobilePending,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useProcessManualPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: ManualPaymentPayload) => financeApi.processManualPayment(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
+    },
+  })
+}
+
+export function useVerifyPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { paymentId: number; step: string; note?: string }) =>
+      financeApi.verifyPaymentStep(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] }),
+  })
+}
+
+export function useConfirmMobilePayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (paymentId: number) => financeApi.confirmMobileTransaction(paymentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'mobile-pending'] }),
+  })
+}
+
+export function useTriggerManualAudit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeApi.triggerManualAudit,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'audit-logs'] }),
   })
 }
