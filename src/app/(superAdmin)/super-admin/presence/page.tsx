@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { motion } from 'framer-motion'
 import {
   Users, UserX, RefreshCw, CheckCircle, XCircle,
   PenLine, UploadCloud, ShieldCheck, Clock, Wifi,
@@ -129,7 +130,7 @@ export default function PresencePage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div>
             <h1 className="text-[22px] font-semibold text-zinc-900 tracking-tight">Présence</h1>
@@ -153,7 +154,7 @@ export default function PresencePage() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 

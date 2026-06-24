@@ -1,10 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, Search, ChevronRight } from 'lucide-react'
 import { useClasses, useCreateClass, useToggleClassStatus, useRollover } from '@/lib/hooks/use-admin'
 import type { CreateClassPayload, RolloverPayload } from '@/types/admin'
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 function CreateClassModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useCreateClass()
@@ -171,7 +175,12 @@ export default function ClassesPage() {
     <div className="min-h-screen bg-zinc-50/50">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <motion.div
+          className="flex items-center justify-between"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
           <div>
             <h1 className="text-2xl font-bold text-zinc-900">Classes</h1>
             <p className="text-sm text-zinc-500 mt-0.5">{classes.length} classe{classes.length !== 1 ? 's' : ''} · {active} actives · {totalStudents} élèves</p>
@@ -192,16 +201,16 @@ export default function ClassesPage() {
               Nouvelle classe
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
           {[
             { label: 'Total classes', value: classes.length, icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Élèves inscrits', value: totalStudents, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
             { label: 'Classes actives', value: active, icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50' },
           ].map(({ label, value, icon: Icon, color, bg }) => (
-            <div key={label} className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm">
+            <motion.div key={label} variants={fadeUp} className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center`}>
                   <Icon size={16} className={color} />
@@ -211,9 +220,9 @@ export default function ClassesPage() {
                   <p className="text-2xl font-bold text-zinc-900">{value}</p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Search */}
         <div className="relative">
@@ -227,7 +236,12 @@ export default function ClassesPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+        <motion.div
+          className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.15 }}
+        >
           {isLoading ? (
             <div className="p-12 text-center text-zinc-400 text-sm">Chargement...</div>
           ) : filtered.length === 0 ? (
@@ -281,7 +295,7 @@ export default function ClassesPage() {
               </tbody>
             </table>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {showCreate && <CreateClassModal onClose={() => setShowCreate(false)} />}

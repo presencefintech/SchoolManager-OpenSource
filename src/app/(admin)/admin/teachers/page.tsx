@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { RefreshCw, BookOpen, QrCode, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { useTeacherDashboard, useTeacherScans, useForceValidatePresence, useUpdateTeacherClasses } from '@/lib/hooks/use-admin'
 
@@ -195,12 +196,17 @@ export default function TeachersPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Enseignants</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Support et gestion des enseignants</p>
-      </div>
+      </motion.div>
 
-      <div className="bg-white rounded-xl border border-zinc-200 p-4">
+      <motion.div
+        className="bg-white rounded-xl border border-zinc-200 p-4"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, delay: 0.08 }}
+      >
         <h3 className="text-sm font-semibold text-zinc-700 mb-3">Accéder au dashboard d'un enseignant</h3>
         <div className="flex gap-2">
           <input
@@ -220,12 +226,17 @@ export default function TeachersPage() {
             Charger
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-6 text-center">
+      <motion.div
+        className="bg-zinc-50 rounded-xl border border-zinc-200 p-6 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.16 }}
+      >
         <BookOpen size={32} className="mx-auto text-zinc-300 mb-2" />
         <p className="text-sm text-zinc-500">Entrez un ID enseignant pour consulter son tableau de bord, ses scans et gérer ses classes.</p>
-      </div>
+      </motion.div>
     </div>
   )
 }

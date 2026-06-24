@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { Mail, UserPlus, Trash2, RefreshCw, Copy, Check } from 'lucide-react'
 import { useInvitationStatus, useGenerateParentCode, useRevokeParentCode, useInviteStaff, useRevokeStaffInvitation } from '@/lib/hooks/use-admin'
 import type { InviteStaffPayload } from '@/types/admin'
@@ -226,12 +227,17 @@ export default function InvitationsPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Invitations</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Gérez les codes d'accès parents et les invitations staff</p>
-      </div>
+      </motion.div>
 
-      <div className="flex gap-1 p-1 bg-zinc-100 rounded-xl w-fit">
+      <motion.div
+        className="flex gap-1 p-1 bg-zinc-100 rounded-xl w-fit"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.25, delay: 0.08 }}
+      >
         {([['parents', 'Codes Parents'], ['staff', 'Staff']] as const).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all ${
@@ -239,9 +245,11 @@ export default function InvitationsPage() {
             }`}
           >{label}</button>
         ))}
-      </div>
+      </motion.div>
 
-      {tab === 'parents' ? <ParentCodesTab /> : <StaffInvitationsTab />}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
+        {tab === 'parents' ? <ParentCodesTab /> : <StaffInvitationsTab />}
+      </motion.div>
     </div>
   )
 }

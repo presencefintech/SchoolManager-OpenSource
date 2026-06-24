@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   Bot, ShieldCheck, AlertTriangle, Lock, LockOpen,
   Clock, Search, Trash2, CheckCircle, XCircle, Fingerprint,
@@ -148,12 +149,12 @@ export default function EnrollmentPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-7xl mx-auto px-6 py-5">
           <h1 className="text-[22px] font-semibold text-zinc-900 tracking-tight">Inscriptions</h1>
           <p className="text-xs text-zinc-400 mt-0.5">Audit IA, intégrité financière et actions critiques sur les élèves</p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
 

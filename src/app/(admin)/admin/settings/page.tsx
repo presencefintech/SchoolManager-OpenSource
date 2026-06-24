@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { Save, RefreshCw } from 'lucide-react'
 import { useAttendanceSettings, useUpdateAttendanceSettings } from '@/lib/hooks/use-admin'
 import type { AttendanceSettings } from '@/types/admin'
@@ -57,10 +58,10 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <div>
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Paramètres école</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Configuration de la présence et des horaires</p>
-      </div>
+      </motion.div>
 
       {isLoading ? (
         <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
@@ -68,7 +69,12 @@ export default function SettingsPage() {
           <p className="text-sm text-zinc-400">Chargement des paramètres…</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-zinc-200 divide-y divide-zinc-100">
+        <motion.div
+          className="bg-white rounded-xl border border-zinc-200 divide-y divide-zinc-100"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.08 }}
+        >
           <div className="p-5">
             <h3 className="text-sm font-semibold text-zinc-700 mb-4">Horaires d'entrée</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -172,7 +178,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   )

@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft } from 'lucide-react'
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useStudents } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
 
@@ -164,7 +168,12 @@ export default function ClassDetailPage() {
     <div className="min-h-screen bg-zinc-50/50">
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-start gap-4">
+        <motion.div
+          className="flex items-start gap-4"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
           <button onClick={() => router.back()} className="mt-1 p-2 rounded-xl hover:bg-zinc-100 transition-colors text-zinc-400">
             <ArrowLeft size={16} />
           </button>
@@ -198,18 +207,18 @@ export default function ClassDetailPage() {
               {cls.isActive ? 'Désactiver' : 'Activer'}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-4 gap-4">
+          <motion.div className="grid grid-cols-4 gap-4" variants={stagger} initial="hidden" animate="show">
             {[
               { label: 'Élèves', value: stats.studentCount, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
               { label: 'Taux présence', value: `${stats.attendanceRate?.toFixed(1) ?? 0}%`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
               { label: 'Total dû', value: stats.totalDue ? `${stats.totalDue.toLocaleString('fr-FR')} F` : '—', icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
               { label: 'Total payé', value: stats.totalPaid ? `${stats.totalPaid.toLocaleString('fr-FR')} F` : '—', icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
             ].map(({ label, value, icon: Icon, color, bg }) => (
-              <div key={label} className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm">
+              <motion.div key={label} variants={fadeUp} className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
                     <Icon size={14} className={color} />
@@ -219,9 +228,9 @@ export default function ClassDetailPage() {
                     <p className="text-lg font-bold text-zinc-900 truncate">{value}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Tabs */}

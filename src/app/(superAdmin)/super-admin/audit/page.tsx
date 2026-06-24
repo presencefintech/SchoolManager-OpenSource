@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   ShieldAlert, Activity, Wifi, WifiOff, Zap, Clock, UserCheck,
   HardDrive, AlertTriangle, CheckCircle2, XCircle, Download,
@@ -141,7 +142,7 @@ export default function AuditPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-8 py-6">
           <div>
             <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Audit & Monitoring</h1>
@@ -156,7 +157,7 @@ export default function AuditPage() {
             Export CSV audit
           </button>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-8 py-8 space-y-8">
 

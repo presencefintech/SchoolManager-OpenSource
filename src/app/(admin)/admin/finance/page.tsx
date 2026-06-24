@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   TrendingUp, DollarSign, AlertTriangle, Users, CheckCircle, XCircle,
   ClipboardList, Wallet, Search, RefreshCw, Send
@@ -12,6 +13,9 @@ import {
   useTriggerManualAudit
 } from '@/lib/hooks/use-admin'
 import type { ManualPaymentPayload } from '@/types/admin'
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 type Tab = 'dashboard' | 'paiements' | 'audit'
 
@@ -136,14 +140,14 @@ function DashboardTab() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <KpiCard label="Total encaissé" value={d?.totalPaid != null ? `${Number(d.totalPaid).toLocaleString('fr-FR')} F` : '—'} icon={DollarSign} color="text-emerald-600" bg="bg-emerald-50" />
-        <KpiCard label="Total dû" value={d?.totalDue != null ? `${Number(d.totalDue).toLocaleString('fr-FR')} F` : '—'} icon={Wallet} color="text-amber-600" bg="bg-amber-50" />
-        <KpiCard label="Taux recouvrement" value={d?.collectionRate != null ? `${Number(d.collectionRate).toFixed(1)}%` : '—'} icon={TrendingUp} color="text-blue-600" bg="bg-blue-50" />
-        <KpiCard label="Revenus totaux" value={d?.totalRevenue != null ? `${Number(d.totalRevenue).toLocaleString('fr-FR')} F` : '—'} icon={DollarSign} color="text-violet-600" bg="bg-violet-50" />
-        <KpiCard label="Paiements en attente" value={d?.pendingPayments ?? '—'} icon={ClipboardList} color="text-orange-600" bg="bg-orange-50" />
-        <KpiCard label="Alertes fraude" value={d?.fraudAlerts ?? 0} icon={AlertTriangle} color="text-red-600" bg="bg-red-50" sub={d?.fraudAlerts > 0 ? 'Attention requise' : 'Aucune alerte'} />
-      </div>
+      <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
+        <motion.div variants={fadeUp}><KpiCard label="Total encaissé" value={d?.totalPaid != null ? `${Number(d.totalPaid).toLocaleString('fr-FR')} F` : '—'} icon={DollarSign} color="text-emerald-600" bg="bg-emerald-50" /></motion.div>
+        <motion.div variants={fadeUp}><KpiCard label="Total dû" value={d?.totalDue != null ? `${Number(d.totalDue).toLocaleString('fr-FR')} F` : '—'} icon={Wallet} color="text-amber-600" bg="bg-amber-50" /></motion.div>
+        <motion.div variants={fadeUp}><KpiCard label="Taux recouvrement" value={d?.collectionRate != null ? `${Number(d.collectionRate).toFixed(1)}%` : '—'} icon={TrendingUp} color="text-blue-600" bg="bg-blue-50" /></motion.div>
+        <motion.div variants={fadeUp}><KpiCard label="Revenus totaux" value={d?.totalRevenue != null ? `${Number(d.totalRevenue).toLocaleString('fr-FR')} F` : '—'} icon={DollarSign} color="text-violet-600" bg="bg-violet-50" /></motion.div>
+        <motion.div variants={fadeUp}><KpiCard label="Paiements en attente" value={d?.pendingPayments ?? '—'} icon={ClipboardList} color="text-orange-600" bg="bg-orange-50" /></motion.div>
+        <motion.div variants={fadeUp}><KpiCard label="Alertes fraude" value={d?.fraudAlerts ?? 0} icon={AlertTriangle} color="text-red-600" bg="bg-red-50" sub={d?.fraudAlerts > 0 ? 'Attention requise' : 'Aucune alerte'} /></motion.div>
+      </motion.div>
 
       {topPayers.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
@@ -410,7 +414,12 @@ export default function FinancePage() {
     <div className="min-h-screen bg-zinc-50/50">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <motion.div
+          className="flex items-center justify-between"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
           <div>
             <h1 className="text-2xl font-bold text-zinc-900">Finance</h1>
             <p className="text-sm text-zinc-500 mt-0.5">Tableau de bord financier et gestion des paiements</p>
@@ -429,7 +438,7 @@ export default function FinancePage() {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">

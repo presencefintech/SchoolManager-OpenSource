@@ -1,11 +1,15 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
   ArrowLeft, GraduationCap, BookOpen, Banknote, Users,
   TrendingUp, TrendingDown, AlertTriangle, ShieldCheck,
   CreditCard, Clock, Target, Activity, TriangleAlert,
 } from 'lucide-react'
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import {
   useSchool,
   useSchoolPerformance,
@@ -61,7 +65,12 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
     <div className="min-h-screen bg-zinc-50">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div
+        className="bg-white border-b border-zinc-200"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link
             href="/super-admin/schools"
@@ -94,9 +103,14 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
               </div>
             )}
         </div>
-      </div>
+      </motion.div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <motion.div
+        className="max-w-7xl mx-auto px-6 py-6 space-y-6"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
 
         {/* ══ 1. VUE D'ENSEMBLE ═════════════════════════════════════════════ */}
         <div>
@@ -419,7 +433,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 : null}
         </div>
 
-      </div>
+      </motion.div>
     </div>
   )
 }
