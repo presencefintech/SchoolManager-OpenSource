@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import type { FinanceKpi, PendingPayment, FinanceFraudAlert, AuditLogEntry, TopPayer, ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload } from '@/types/admin'
+import type { FinanceKpi, PendingPayment, FinanceFraudAlert, AuditLogEntry, TopPayer, ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams } from '@/types/admin'
 
 export const financeApi = {
   // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export const financeApi = {
   applyDiscount: (payload: { invoiceId: number; discountAmount: number; reason?: string }) =>
     apiClient.post('/admin/finance/invoices/apply-discount', payload).then(r => r.data.data),
 
-  setupFeeStructure: (payload: Record<string, unknown>) =>
+  setupFeeStructure: (payload: FeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structure', payload).then(r => r.data.data),
 
   bulkApplyFees: (feeStructureId: number, payload: { studentIds?: number[] }) =>
@@ -121,7 +121,7 @@ export const financeApi = {
   createMoratorium: (payload: CreateMoratoriumPayload) =>
     apiClient.post('/admin/finance/moratoriums', payload).then(r => r.data.data as Moratorium),
 
-  createBulkMoratoriums: (payload: CreateMoratoriumPayload[]) =>
+  createBulkMoratoriums: (payload: BulkMoratoriumPayload) =>
     apiClient.post('/admin/finance/moratoriums/bulk', payload).then(r => r.data.data),
 
   updateMoratorium: (id: number, payload: Partial<CreateMoratoriumPayload>) =>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, financeApi, invitationsApi, teachersApi, schoolsApi } from '@/lib/admin/api'
-import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings } from '@/types/admin'
+import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams } from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────
 export function useAdminStats() {
@@ -613,6 +613,169 @@ export function useRevokeMoratorium() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => financeApi.revokeMoratorium(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] }),
+  })
+}
+
+// ── Finance — hooks manquants ──────────────────────────────────────
+
+export function useFinanceDetailedReport() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'detailed-report'],
+    queryFn: financeApi.getDetailedReport,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceInsights() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'insights'],
+    queryFn: financeApi.getInsights,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceComparativeDashboard() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'comparative'],
+    queryFn: financeApi.getComparativeDashboard,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceEfficiency() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'efficiency'],
+    queryFn: financeApi.getEfficiency,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceEndOfDay() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'end-of-day'],
+    queryFn: financeApi.getEndOfDay,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinancePresenceSecurity() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'presence-security'],
+    queryFn: financeApi.getPresenceSecurity,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceIntegrityScan() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'integrity-scan'],
+    queryFn: financeApi.checkIntegrity,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceRiskProfiles() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'risk-profiles'],
+    queryFn: financeApi.getRiskProfiles,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceDuplicates() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'duplicates'],
+    queryFn: financeApi.getDuplicates,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceLedger() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'ledger'],
+    queryFn: financeApi.getLedger,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceCashierAudit(cashierId: number) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'cashier-audit', cashierId],
+    queryFn: () => financeApi.getCashierAudit(cashierId),
+    staleTime: 60_000,
+    enabled: !!cashierId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useAdvancedSearch(params: AdvancedSearchParams) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'advanced-search', params],
+    queryFn: () => financeApi.advancedSearch(params as Record<string, string | number | undefined>),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFraudRiskAnalysis() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: Record<string, unknown>) => financeApi.fraudRiskAnalysis(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fraud-alerts'] }),
+  })
+}
+
+export function useConfirmBankTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (paymentId: number) => financeApi.confirmBankTransaction(paymentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+    },
+  })
+}
+
+export function useResendReceipt() {
+  return useMutation({
+    mutationFn: (paymentId: number) => financeApi.resendReceipt(paymentId),
+  })
+}
+
+export function useLinkOrphanTransaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: LinkOrphanPayload) => financeApi.linkOrphanTransaction(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
+  })
+}
+
+export function useGetMoratorium(id: number) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'moratoriums', id],
+    queryFn: () => financeApi.getMoratorium(id),
+    staleTime: 60_000,
+    enabled: !!id,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCreateBulkMoratoriums() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: BulkMoratoriumPayload) =>
+      financeApi.createBulkMoratoriums(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] }),
   })
 }

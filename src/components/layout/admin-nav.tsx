@@ -3,25 +3,44 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
-import { LogOut, LayoutDashboard, GraduationCap, Users, UserPlus, ShieldAlert, BookOpen, Activity, Wallet, Mail, School, Settings } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
+  ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
+  Settings, CreditCard, FileText, Clock, Shield,
+} from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, financeApi, invitationsApi, schoolsApi } from '@/lib/admin/api'
+import {
+  dashboardApi, staffApi, studentsApi, enrollmentsApi,
+  presencesApi, classesApi, financeApi, invitationsApi, schoolsApi,
+} from '@/lib/admin/api'
 
-const NAV_LINKS = [
-  { label: 'Dashboard',    href: '/admin/dashboard',    icon: LayoutDashboard },
-  { label: 'Présences',    href: '/admin/presences',    icon: Activity },
-  { label: 'Classes',      href: '/admin/classes',      icon: BookOpen },
-  { label: 'Finance',      href: '/admin/finance',      icon: Wallet },
-  { label: 'Personnel',    href: '/admin/staff',        icon: Users },
-  { label: 'Enseignants',  href: '/admin/teachers',     icon: School },
-  { label: 'Élèves',       href: '/admin/students',     icon: GraduationCap },
-  { label: 'Inscriptions', href: '/admin/enrollments',  icon: UserPlus },
-  { label: 'Invitations',  href: '/admin/invitations',  icon: Mail },
-  { label: 'Fraude',       href: '/admin/fraud',        icon: ShieldAlert },
-  { label: 'Paramètres',   href: '/admin/settings',     icon: Settings },
+type SubLink = { label: string; href: string; icon: React.ElementType }
+type NavLink = { label: string; href: string; icon: React.ElementType; children?: SubLink[] }
+
+const NAV_LINKS: NavLink[] = [
+  { label: 'Dashboard',    href: '/admin/dashboard',   icon: LayoutDashboard },
+  { label: 'Présences',    href: '/admin/presences',   icon: Activity },
+  { label: 'Classes',      href: '/admin/classes',     icon: BookOpen },
+  {
+    label: 'Finance', href: '/admin/finance', icon: Wallet,
+    children: [
+      { label: 'Dashboard',        href: '/admin/finance',             icon: LayoutDashboard },
+      { label: 'Paiements',        href: '/admin/finance/paiements',   icon: CreditCard },
+      { label: 'Factures & Frais', href: '/admin/finance/factures',    icon: FileText },
+      { label: 'Moratoires',       href: '/admin/finance/moratoriums', icon: Clock },
+      { label: 'Audit & Fraude',   href: '/admin/finance/audit',       icon: Shield },
+    ],
+  },
+  { label: 'Personnel',    href: '/admin/staff',       icon: Users },
+  { label: 'Enseignants',  href: '/admin/teachers',    icon: School },
+  { label: 'Élèves',       href: '/admin/students',    icon: GraduationCap },
+  { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
+  { label: 'Invitations',  href: '/admin/invitations', icon: Mail },
+  { label: 'Fraude',       href: '/admin/fraud',       icon: ShieldAlert },
+  { label: 'Paramètres',   href: '/admin/settings',    icon: Settings },
 ]
 
 export function AdminNav() {
@@ -81,11 +100,13 @@ export function AdminNav() {
 
       <div className="mx-5 h-px bg-zinc-100" />
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
-        {NAV_LINKS.map(({ label, href, icon: Icon }, i) => {
-          const active = pathname.startsWith(href)
+      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+        {NAV_LINKS.map(({ label, href, icon: Icon, children }, i) => {
+          const expanded = !!children && pathname.startsWith(href)
+          const active = !children && pathname.startsWith(href)
           const shouldAnimate = mounted && !hasAnimated.current
           if (i === NAV_LINKS.length - 1) hasAnimated.current = true
+
           return (
             <motion.div
               key={href}
@@ -93,19 +114,63 @@ export function AdminNav() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: shouldAnimate ? 0.04 + i * 0.03 : 0, duration: 0.2 }}
             >
+              {/* Parent link — always a real link */}
               <Link
                 href={href}
                 onMouseEnter={() => prefetch(href)}
                 className={cn(
-                  'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
-                  active
-                    ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
-                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
+                  'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
+                  expanded
+                    ? 'text-emerald-700'
+                    : active
+                      ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
+                      : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
                 )}
               >
-                <Icon size={16} className={cn('flex-shrink-0 transition-colors', active ? 'text-emerald-600' : 'text-zinc-400')} />
+                <Icon size={16} className={cn(
+                  'flex-shrink-0 transition-colors',
+                  expanded || active ? 'text-emerald-600' : 'text-zinc-400',
+                )} />
                 {label}
               </Link>
+
+              {/* Sub-links (Finance) */}
+              {children && (
+                <AnimatePresence initial={false}>
+                  {expanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18, ease: 'easeInOut' }}
+                      className="overflow-hidden"
+                    >
+                      <div className="ml-3 pl-3 border-l border-zinc-100 mt-0.5 mb-1 space-y-0.5">
+                        {children.map(({ label: sub, href: subHref, icon: SubIcon }) => {
+                          const subActive = subHref === href
+                            ? pathname === subHref
+                            : pathname.startsWith(subHref)
+                          return (
+                            <Link
+                              key={subHref}
+                              href={subHref}
+                              className={cn(
+                                'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                subActive
+                                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
+                                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50',
+                              )}
+                            >
+                              <SubIcon size={13} className={cn('flex-shrink-0', subActive ? 'text-emerald-600' : 'text-zinc-300')} />
+                              {sub}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              )}
             </motion.div>
           )
         })}
