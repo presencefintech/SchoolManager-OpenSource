@@ -151,12 +151,12 @@ function DashboardTab() {
             <h3 className="text-sm font-semibold text-zinc-900">Top payeurs</h3>
           </div>
           <div className="divide-y divide-zinc-50">
-            {topPayers.slice(0, 10).map((p, i) => (
-              <div key={p.studentId} className="flex items-center justify-between px-5 py-3">
+            {topPayers.slice(0, 10).map((p: any, i: number) => (
+              <div key={p.studentId ?? i} className="flex items-center justify-between px-5 py-3">
                 <div className="flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-bold text-zinc-500">{i + 1}</span>
                   <div>
-                    <p className="text-sm font-medium text-zinc-900">{p.studentName}</p>
+                    <p className="text-sm font-medium text-zinc-900">{p.studentName ?? p.fullName}</p>
                     {p.className && <p className="text-xs text-zinc-400">{p.className}</p>}
                   </div>
                 </div>

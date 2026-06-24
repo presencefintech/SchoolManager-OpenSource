@@ -4,21 +4,24 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { LogOut, LayoutDashboard, GraduationCap, Users, UserPlus, ShieldAlert, BookOpen, Activity, Wallet } from 'lucide-react'
+import { LogOut, LayoutDashboard, GraduationCap, Users, UserPlus, ShieldAlert, BookOpen, Activity, Wallet, Mail, School, Settings } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, financeApi } from '@/lib/admin/api'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, financeApi, invitationsApi, schoolsApi } from '@/lib/admin/api'
 
 const NAV_LINKS = [
-  { label: 'Dashboard',    href: '/admin/dashboard',  icon: LayoutDashboard },
-  { label: 'Présences',    href: '/admin/presences',  icon: Activity },
-  { label: 'Classes',      href: '/admin/classes',    icon: BookOpen },
-  { label: 'Finance',      href: '/admin/finance',    icon: Wallet },
-  { label: 'Personnel',    href: '/admin/staff',      icon: Users },
-  { label: 'Élèves',       href: '/admin/students',   icon: GraduationCap },
-  { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
-  { label: 'Fraude',       href: '/admin/fraud',      icon: ShieldAlert },
+  { label: 'Dashboard',    href: '/admin/dashboard',    icon: LayoutDashboard },
+  { label: 'Présences',    href: '/admin/presences',    icon: Activity },
+  { label: 'Classes',      href: '/admin/classes',      icon: BookOpen },
+  { label: 'Finance',      href: '/admin/finance',      icon: Wallet },
+  { label: 'Personnel',    href: '/admin/staff',        icon: Users },
+  { label: 'Enseignants',  href: '/admin/teachers',     icon: School },
+  { label: 'Élèves',       href: '/admin/students',     icon: GraduationCap },
+  { label: 'Inscriptions', href: '/admin/enrollments',  icon: UserPlus },
+  { label: 'Invitations',  href: '/admin/invitations',  icon: Mail },
+  { label: 'Fraude',       href: '/admin/fraud',        icon: ShieldAlert },
+  { label: 'Paramètres',   href: '/admin/settings',     icon: Settings },
 ]
 
 export function AdminNav() {
@@ -48,6 +51,10 @@ export function AdminNav() {
     } else if (href === '/admin/finance') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'dashboard'], queryFn: financeApi.getStrategicDashboard, staleTime: 60_000 })
       queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'pending'], queryFn: financeApi.getPendingVerifications, staleTime: 30_000 })
+    } else if (href === '/admin/invitations') {
+      queryClient.prefetchQuery({ queryKey: ['admin', 'invitations', 'status'], queryFn: invitationsApi.getStatus, staleTime: 60_000 })
+    } else if (href === '/admin/settings') {
+      queryClient.prefetchQuery({ queryKey: ['admin', 'schools', 'attendance-settings'], queryFn: schoolsApi.getAttendanceSettings, staleTime: 300_000 })
     }
   }, [queryClient])
 
