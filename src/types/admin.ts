@@ -397,3 +397,101 @@ export interface MobilePendingItem {
   reference?: string
   createdAt: string
 }
+
+// Moratoriums
+export interface Moratorium {
+  id: number
+  studentId: number
+  enrollmentId?: number
+  type: string
+  startDate: string
+  endDate: string
+  reason: string
+  status: string
+  student?: { firstName: string; lastName: string }
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface CreateMoratoriumPayload {
+  studentId: number
+  enrollmentId?: number
+  type: string
+  startDate: string
+  endDate: string
+  reason: string
+}
+
+// Invitations
+export interface ParentInvitationCode {
+  id: number
+  code: string
+  studentId: number
+  student?: { firstName: string; lastName: string; matricule?: string }
+  expiresAt?: string
+  usedAt?: string
+  createdAt: string
+}
+
+export interface StaffInvitation {
+  id: number
+  email: string
+  role: string
+  firstName: string
+  lastName: string
+  status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | string
+  createdAt: string
+}
+
+export interface InvitationStatusSummary {
+  parentCodes: ParentInvitationCode[]
+  staffInvitations: StaffInvitation[]
+}
+
+export interface GenerateParentCodePayload {
+  studentId: number
+}
+
+export interface InviteStaffPayload {
+  email: string
+  role: 'TEACHER' | 'FINANCE' | string
+  firstName: string
+  lastName: string
+}
+
+// Teachers
+export interface TeacherListItem {
+  id: number
+  userId: number
+  firstName?: string
+  lastName?: string
+  email?: string
+  classes?: { id: number; name: string }[]
+}
+
+export interface TeacherDashboard {
+  teacher: { id: number; firstName?: string; lastName?: string; email?: string }
+  classes: { id: number; name: string }[]
+  stats: { totalScans: number; present: number; absent: number; late: number }
+  recentScans: TeacherScanEntry[]
+}
+
+export interface TeacherScanEntry {
+  id: number
+  studentId?: number
+  studentName?: string
+  className?: string
+  status: string
+  method?: string
+  scannedAt: string
+}
+
+// School Settings
+export interface AttendanceSettings {
+  startHour: number
+  startMinute: number
+  gracePeriod: number
+  lateThreshold?: number
+  absentThreshold?: number
+  [key: string]: unknown
+}
