@@ -65,6 +65,17 @@ export const presencesApi = {
       .then(r => r.data.data),
 
   remove: (id: number, reason?: string) =>
-    apiClient.delete<{ success: boolean; data: null }>(`/admin/presences/${id}`, { data: { reason } })
-      .then(r => r.data),
+    apiClient.delete<{ success: boolean; data: null }>(`/admin/presences/${id}`, {
+      data: { reason },
+      headers: { 'Content-Type': 'application/json' },
+    }).then(r => r.data),
+
+  // Legacy aliases (singular /presence instead of /presences)
+  recordManualLegacy: (payload: RecordPresencePayload) =>
+    apiClient.post<{ success: boolean; data: any }>('/admin/presence/manual', payload)
+      .then(r => r.data.data),
+
+  validateLegacy: (id: number, reason?: string) =>
+    apiClient.patch<{ success: boolean; data: any }>(`/admin/presence/${id}/validate`, { reason })
+      .then(r => r.data.data),
 }

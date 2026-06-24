@@ -311,6 +311,10 @@ export function useDeletePresence() {
       qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
     },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Erreur lors de la suppression'
+      console.error('[useDeletePresence]', msg, err?.response?.status)
+    },
   })
 }
 

@@ -7,7 +7,13 @@ export const classesApi = {
   list: (params?: { search?: string; isActive?: boolean }) =>
     apiClient.get('/admin/classes', { params }).then(r => {
       const d = r.data
-      return (Array.isArray(d) ? d : d?.data ?? d?.classes ?? []) as ClassListItem[]
+      const raw: any[] = Array.isArray(d) ? d : d?.data ?? d?.classes ?? []
+      return raw.map(c => ({
+        ...c,
+        studentCount: c.studentCount ?? c._count?.students ?? 0,
+        capacity: c.capacity ?? c.maxStudents ?? undefined,
+        teacherName: c.teacherName ?? (c.teacher?.user ? `${c.teacher.user.firstName} ${c.teacher.user.lastName}` : undefined),
+      })) as ClassListItem[]
     }),
 
   create: (payload: CreateClassPayload) =>

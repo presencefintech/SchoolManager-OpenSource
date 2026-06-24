@@ -19,10 +19,16 @@ apiClient.interceptors.response.use(
   (res) => res,
   (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.clear()
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      document.cookie = 'auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      window.location.href = '/login'
+      const token = localStorage.getItem('auth_token')
+      const url = error.config?.url ?? ''
+      // Ne déconnecter que si : pas de token (session expirée) ou c'est le endpoint d'auth lui-même
+      const isAuthEndpoint = url.includes('/auth/')
+      if (!token || isAuthEndpoint) {
+        localStorage.clear()
+        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        document.cookie = 'auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   },
