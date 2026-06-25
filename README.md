@@ -89,6 +89,8 @@ src/
 
 ## Démarrage
 
+**Prérequis** — le backend Presence API doit tourner en local (`npm run dev:local` dans `presence-app/backend`, port **5000**).
+
 ```bash
 # Installation
 npm install
@@ -104,11 +106,18 @@ npm run type-check
 npm run lint
 ```
 
-**Variables d'environnement** — créer `.env.local` à la racine :
+**Variables d'environnement** — copier `.env.example` vers `.env.local` à la racine :
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
+API_URL=http://localhost:5000
 ```
+
+| Service | URL locale |
+| --- | --- |
+| Frontend Next.js | http://localhost:3001 |
+| Backend Presence API (`dev:local`) | http://localhost:5000 |
+
+Le proxy Next.js réécrit `/api/*` vers `${API_URL}/api/*` (voir `next.config.js`). Redémarrer `npm run dev` après toute modification de `.env.local`.
 
 ---
 

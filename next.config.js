@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   async rewrites() {
-    const backendUrl = process.env.API_URL ?? 'http://localhost:3000'
+    const backendUrl = process.env.API_URL ?? 'http://localhost:5000'
     return [
       {
         source: '/api/:path*',

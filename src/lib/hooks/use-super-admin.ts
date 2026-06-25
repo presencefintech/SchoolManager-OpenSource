@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { getAuthToken } from '@/lib/api/auth-storage'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
@@ -13,6 +14,7 @@ export function useCoreUsers(params?: { page?: number; take?: number; role?: str
       const { page = 1, take = 15, ...rest } = params ?? {}
       return superAdminApi.listCoreUsers({ ...rest, page, take })
     },
+    enabled: !!getAuthToken(),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   })
@@ -25,6 +27,7 @@ export function useCoreStudents(params?: { page?: number; take?: number; schoolI
       const { page = 1, take = 15, ...rest } = params ?? {}
       return superAdminApi.listCoreStudents({ ...rest, page, take })
     },
+    enabled: !!getAuthToken(),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   })
@@ -37,6 +40,7 @@ export function useCorePresences(params?: { page?: number; take?: number; school
       const { page = 1, take = 15, ...rest } = params ?? {}
       return superAdminApi.listCorePresences({ ...rest, page, take })
     },
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -49,7 +53,7 @@ export function useFinanceReport(
     queryKey: ['superadmin', 'finance', 'report', params],
     queryFn: () => superAdminApi.getFinanceReport(params!),
     staleTime: 300_000,
-    enabled: !!params?.schoolId,
+    enabled: !!getAuthToken() && !!params?.schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -58,6 +62,7 @@ export function useCoreAuditLogs(params?: { page?: number; take?: number }) {
   return useQuery({
     queryKey: ['superadmin', 'core', 'audit-logs', params],
     queryFn: () => superAdminApi.getCoreAuditLogs(params),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -67,6 +72,7 @@ export function usePlatformStats() {
   return useQuery({
     queryKey: ['superadmin', 'stats'],
     queryFn: superAdminApi.getStats,
+    enabled: !!getAuthToken(),
     staleTime: 60_000,
   })
 }
@@ -75,6 +81,7 @@ export function useSchools() {
   return useQuery({
     queryKey: ['superadmin', 'schools'],
     queryFn: () => superAdminApi.getSchools(),
+    enabled: !!getAuthToken(),
     staleTime: 60_000,
   })
 }
@@ -84,7 +91,7 @@ export function useSchool(id: number) {
     queryKey: ['superadmin', 'schools', id],
     queryFn: () => superAdminApi.getSchool(id),
     staleTime: 60_000,
-    enabled: !!id,
+    enabled: !!getAuthToken() && !!id,
   })
 }
 
@@ -93,7 +100,7 @@ export function useSchoolPerformance(id: number) {
     queryKey: ['superadmin', 'schools', id, 'performance'],
     queryFn: () => superAdminApi.getSchoolPerformance(id),
     staleTime: 60_000,
-    enabled: !!id,
+    enabled: !!getAuthToken() && !!id,
   })
 }
 
@@ -102,7 +109,7 @@ export function useSchoolPaymentDashboard(id: number) {
     queryKey: ['superadmin', 'schools', id, 'payment-dashboard'],
     queryFn: () => superAdminApi.getSchoolPaymentDashboard(id),
     staleTime: 60_000,
-    enabled: !!id,
+    enabled: !!getAuthToken() && !!id,
   })
 }
 
@@ -111,7 +118,7 @@ export function useSchoolAnomalies(id: number) {
     queryKey: ['superadmin', 'schools', id, 'anomalies'],
     queryFn: () => superAdminApi.getSchoolAnomalies(id),
     staleTime: 60_000,
-    enabled: !!id,
+    enabled: !!getAuthToken() && !!id,
   })
 }
 
@@ -119,6 +126,7 @@ export function useReconciliationHealth() {
   return useQuery({
     queryKey: ['superadmin', 'monitoring', 'reconciliation'],
     queryFn: () => superAdminApi.getReconciliationHealth(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
   })
 }
@@ -127,6 +135,7 @@ export function useProviderStats() {
   return useQuery({
     queryKey: ['superadmin', 'monitoring', 'providers'],
     queryFn: () => superAdminApi.getProviderStats(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
   })
 }
@@ -135,6 +144,7 @@ export function useSecurityAlerts() {
   return useQuery({
     queryKey: ['superadmin', 'monitoring', 'alerts'],
     queryFn: () => superAdminApi.getSecurityAlerts(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
   })
 }
@@ -143,6 +153,7 @@ export function useAnomalyDashboard() {
   return useQuery({
     queryKey: ['superadmin', 'anomalies', 'dashboard'],
     queryFn: () => superAdminApi.getAnomalyDashboard(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
   })
 }
@@ -151,6 +162,7 @@ export function useMobileMoneyMetrics() {
   return useQuery({
     queryKey: ['superadmin', 'mm', 'metrics'],
     queryFn: () => superAdminApi.getMobileMoneyMetrics(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
   })
 }
@@ -159,6 +171,7 @@ export function useFraudRadar() {
   return useQuery({
     queryKey: ['superadmin', 'mm', 'fraud-radar'],
     queryFn: () => superAdminApi.getFraudRadar(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
   })
 }
@@ -167,6 +180,7 @@ export function useQueueStatus() {
   return useQuery({
     queryKey: ['superadmin', 'notifications', 'queue-status'],
     queryFn: () => superAdminApi.getQueueStatus(),
+    enabled: !!getAuthToken(),
     staleTime: 15_000,
   })
 }
@@ -175,6 +189,7 @@ export function useActiveSessions() {
   return useQuery({
     queryKey: ['superadmin', 'auth', 'sessions'],
     queryFn: () => superAdminApi.getActiveSessions(),
+    enabled: !!getAuthToken(),
     staleTime: 15_000,
     refetchOnWindowFocus: false,
   })
@@ -184,6 +199,7 @@ export function useAuditSnapshot() {
   return useQuery({
     queryKey: ['superadmin', 'audit', 'snapshot'],
     queryFn: () => superAdminApi.getAuditSnapshot(),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -193,6 +209,7 @@ export function useStorageStats() {
   return useQuery({
     queryKey: ['superadmin', 'storage', 'stats'],
     queryFn: () => superAdminApi.getStorageStats(),
+    enabled: !!getAuthToken(),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
   })
@@ -202,6 +219,7 @@ export function useAuditTrail() {
   return useQuery({
     queryKey: ['superadmin', 'audit', 'trail'],
     queryFn: () => superAdminApi.getAuditTrail({ limit: 15 }),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -212,7 +230,7 @@ export function useClasses(schoolId: number, params?: { page?: number; limit?: n
     queryKey: ['superadmin', 'classes', schoolId, params],
     queryFn: () => superAdminApi.getClasses(schoolId, { limit: 30, ...params }),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -222,7 +240,7 @@ export function useCapacityAlerts(schoolId: number) {
     queryKey: ['superadmin', 'classes', 'capacity', schoolId],
     queryFn: () => superAdminApi.getCapacityAlerts(schoolId),
     staleTime: 30_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -232,7 +250,7 @@ export function useClassSetup(classId: number) {
     queryKey: ['superadmin', 'classes', 'setup', classId],
     queryFn: () => superAdminApi.validateSetup(classId),
     staleTime: 60_000,
-    enabled: !!classId,
+    enabled: !!getAuthToken() && !!classId,
     refetchOnWindowFocus: false,
   })
 }
@@ -242,7 +260,7 @@ export function useClassPerformance(classId: number) {
     queryKey: ['superadmin', 'classes', 'performance', classId],
     queryFn: () => superAdminApi.getPerformanceStats(classId),
     staleTime: 60_000,
-    enabled: !!classId,
+    enabled: !!getAuthToken() && !!classId,
     refetchOnWindowFocus: false,
   })
 }
@@ -252,7 +270,7 @@ export function useClassAuditTrail(classId: number) {
     queryKey: ['superadmin', 'classes', 'audit', classId],
     queryFn: () => superAdminApi.getClassAuditTrail(classId),
     staleTime: 30_000,
-    enabled: !!classId,
+    enabled: !!getAuthToken() && !!classId,
     refetchOnWindowFocus: false,
   })
 }
@@ -262,7 +280,7 @@ export function useWorkerHealth(schoolId: number) {
     queryKey: ['superadmin', 'enrollment', 'worker', schoolId],
     queryFn: () => superAdminApi.getWorkerHealth(schoolId),
     staleTime: 30_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -272,7 +290,7 @@ export function useFinancePerformance(schoolId: number) {
     queryKey: ['superadmin', 'finance', 'performance', schoolId],
     queryFn: () => superAdminApi.getFinancePerformance(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -282,7 +300,7 @@ export function useFinanceEfficiency(schoolId: number) {
     queryKey: ['superadmin', 'finance', 'efficiency', schoolId],
     queryFn: () => superAdminApi.getFinanceEfficiency(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -292,7 +310,7 @@ export function useTopPayers(schoolId: number) {
     queryKey: ['superadmin', 'finance', 'top-payers', schoolId],
     queryFn: () => superAdminApi.getTopPayers(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -302,7 +320,7 @@ export function useFinanceAnomalies(schoolId: number) {
     queryKey: ['superadmin', 'finance', 'anomalies', schoolId],
     queryFn: () => superAdminApi.getFinanceAnomalies(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -312,7 +330,7 @@ export function useFinanceAuditFull(schoolId: number) {
     queryKey: ['superadmin', 'finance', 'audit-full', schoolId],
     queryFn: () => superAdminApi.getFinanceAuditFull(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -322,7 +340,7 @@ export function useEndOfDaySnapshot(schoolId: number) {
     queryKey: ['superadmin', 'finance', 'snapshot', schoolId],
     queryFn: () => superAdminApi.getEndOfDaySnapshot(schoolId),
     staleTime: 30_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -332,7 +350,7 @@ export function useFinanceAudit(schoolId: number) {
     queryKey: ['superadmin', 'enrollment', 'finance-audit', schoolId],
     queryFn: () => superAdminApi.getFinanceAudit(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -342,7 +360,7 @@ export function usePresenceDashboard(schoolId: number) {
     queryKey: ['superadmin', 'presence', 'dashboard', schoolId],
     queryFn: () => superAdminApi.getPresenceDashboard(schoolId),
     staleTime: 0,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
     refetchInterval: 30_000,
   })
@@ -353,7 +371,7 @@ export function useStudentSchoolStats(schoolId: number) {
     queryKey: ['superadmin', 'students', 'stats', schoolId],
     queryFn: () => superAdminApi.getSchoolStats(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -366,7 +384,7 @@ export function useStudentList(
     queryKey: ['superadmin', 'students', 'list', schoolId, params],
     queryFn: () => superAdminApi.listStudents(schoolId, params),
     staleTime: 30_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -376,7 +394,7 @@ export function useStudentDebtors(schoolId: number) {
     queryKey: ['superadmin', 'students', 'debtors', schoolId],
     queryFn: () => superAdminApi.getDebtors(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -386,7 +404,7 @@ export function useStudentDashboard(studentId: number) {
     queryKey: ['superadmin', 'students', 'dashboard', studentId],
     queryFn: () => superAdminApi.getStudentDashboard(studentId),
     staleTime: 30_000,
-    enabled: !!studentId,
+    enabled: !!getAuthToken() && !!studentId,
     refetchOnWindowFocus: false,
   })
 }
@@ -396,7 +414,7 @@ export function useStudentActivity(studentId: number) {
     queryKey: ['superadmin', 'students', 'activity', studentId],
     queryFn: () => superAdminApi.getStudentActivity(studentId, 15),
     staleTime: 30_000,
-    enabled: !!studentId,
+    enabled: !!getAuthToken() && !!studentId,
     refetchOnWindowFocus: false,
   })
 }
@@ -406,7 +424,7 @@ export function useStudentDossier(studentId: number) {
     queryKey: ['superadmin', 'students', 'dossier', studentId],
     queryFn: () => superAdminApi.getStudentDossier(studentId),
     staleTime: 60_000,
-    enabled: !!studentId,
+    enabled: !!getAuthToken() && !!studentId,
     refetchOnWindowFocus: false,
   })
 }
@@ -416,7 +434,7 @@ export function useFeeSchoolStructures(schoolId: number) {
     queryKey: ['superadmin', 'fees', 'structures', schoolId],
     queryFn: () => feesApi.getSchoolStructures(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -426,7 +444,7 @@ export function useFeeHistory(feeId: number) {
     queryKey: ['superadmin', 'fees', 'history', feeId],
     queryFn: () => feesApi.getFeeHistory(feeId),
     staleTime: 30_000,
-    enabled: !!feeId,
+    enabled: !!getAuthToken() && !!feeId,
     refetchOnWindowFocus: false,
   })
 }
@@ -436,7 +454,7 @@ export function useStudentInvoiceAudit(schoolId: number, studentId: number) {
     queryKey: ['superadmin', 'fees', 'invoices', schoolId, studentId],
     queryFn: () => feesApi.getStudentInvoiceAudit(schoolId, studentId),
     staleTime: 30_000,
-    enabled: !!schoolId && !!studentId,
+    enabled: !!getAuthToken() && !!schoolId && !!studentId,
     refetchOnWindowFocus: false,
   })
 }
@@ -446,7 +464,7 @@ export function useSchoolInvitations(schoolId: number) {
     queryKey: ['superadmin', 'invitations', 'school', schoolId],
     queryFn: () => invitationsApi.getSchoolInvitations(schoolId),
     staleTime: 30_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -455,6 +473,7 @@ export function useNotificationLogs(params?: { page?: number; limit?: number; sc
   return useQuery({
     queryKey: ['superadmin', 'notifications', 'logs', params],
     queryFn: () => notificationsApi.getLogs(params),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -464,6 +483,7 @@ export function useFraudFlags(params?: { schoolId?: number; page?: number; limit
   return useQuery({
     queryKey: ['superadmin', 'fraud', 'flags', params],
     queryFn: () => fraudApi.getFlags(params),
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -474,7 +494,7 @@ export function usePaymentSecurityAudit(schoolId: number) {
     queryKey: ['superadmin', 'payment-stats', 'security-audit', schoolId],
     queryFn: () => superAdminApi.getPaymentSecurityAudit(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -484,7 +504,7 @@ export function useHighRiskProfiles(schoolId: number) {
     queryKey: ['superadmin', 'payment-stats', 'high-risk', schoolId],
     queryFn: () => superAdminApi.getHighRiskProfiles(schoolId),
     staleTime: 60_000,
-    enabled: !!schoolId,
+    enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
   })
 }
@@ -493,6 +513,7 @@ export function useAnomalyThresholds() {
   return useQuery({
     queryKey: ['superadmin', 'anomalies', 'thresholds'],
     queryFn: () => anomaliesApi.getThresholds(),
+    enabled: !!getAuthToken(),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
   })
