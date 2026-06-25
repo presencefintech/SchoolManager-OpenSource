@@ -1,4 +1,5 @@
 import axios, { type AxiosError } from 'axios'
+import { clearAuthStorage, getAuthSchoolId, getAuthToken } from '@/lib/api/auth-storage'
 
 export const apiClient = axios.create({
   baseURL: '/api/v1',
@@ -8,9 +9,9 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   if (typeof window === 'undefined') return config
-  const token = localStorage.getItem('auth_token')
+  const token = getAuthToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
-  const schoolId = localStorage.getItem('auth_school_id')
+  const schoolId = getAuthSchoolId()
   if (schoolId) config.headers['x-school-id'] = schoolId
   return config
 })
@@ -27,6 +28,8 @@ apiClient.interceptors.response.use(
         localStorage.clear()
         document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         document.cookie = 'auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      clearAuthStorage()
+      if (!window.location.pathname.startsWith('/login')) {
         window.location.href = '/login'
       }
     }
