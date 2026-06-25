@@ -4,13 +4,15 @@ import Link from 'next/link'
 import {
   ArrowLeft, GraduationCap, BookOpen, Banknote, Users,
   TrendingUp, TrendingDown, AlertTriangle, ShieldCheck,
-  CreditCard, Clock, Target, Activity,
+  CreditCard, Clock, Target, Activity, TriangleAlert,
 } from 'lucide-react'
 import {
   useSchool,
   useSchoolPerformance,
   useSchoolPaymentDashboard,
   useSchoolAnomalies,
+  useClasses,
+  useCapacityAlerts,
 } from '@/lib/hooks/use-super-admin'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +33,7 @@ function Stat({
   icon: React.ElementType; alert?: boolean
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm px-5 py-4">
+    <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-5 py-4">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-zinc-400">{label}</span>
         <Icon size={13} className={alert ? 'text-red-300' : 'text-zinc-200'} />
@@ -52,12 +54,14 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
   const { data: perf, isLoading: loadingPerf } = useSchoolPerformance(id)
   const { data: payDash, isLoading: loadingPay } = useSchoolPaymentDashboard(id)
   const { data: anomalies, isLoading: loadingAno } = useSchoolAnomalies(id)
+  const { data: classes, isLoading: loadingClasses } = useClasses(id)
+  const { data: capacityAlerts, isLoading: loadingCapacity } = useCapacityAlerts(id)
 
   return (
     <div className="min-h-screen bg-zinc-50">
 
       {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-zinc-100">
+      <div className="bg-white border-b border-zinc-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <Link
             href="/super-admin/schools"
@@ -111,7 +115,113 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
           </div>
         </div>
 
-        {/* ══ 2. PERFORMANCE FINANCIÈRE ══════════════════════════════════════ */}
+        {/* ══ 2. CLASSES & CAPACITÉ ══════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+
+          {/* Liste des classes */}
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <BookOpen size={13} className="text-zinc-400" />
+                <span className="text-xs font-medium text-zinc-500">Classes</span>
+              </div>
+              {classes && (
+                <span className="text-xs text-zinc-400 tabular-nums">{classes.meta.total} au total</span>
+              )}
+            </div>
+            {loadingClasses
+              ? <Sk className="h-40 rounded-none" />
+              : classes && classes.data.length > 0
+                ? (
+                  <div className="divide-y divide-zinc-50">
+                    {classes.data.slice(0, 6).map((cls) => {
+                      const fill = cls.maxStudents ? Math.round((cls._count.students / cls.maxStudents) * 100) : null
+                      return (
+                        <div key={cls.id} className="flex items-center justify-between px-5 py-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-zinc-800 truncate">{cls.name}</p>
+                            <p className="text-[11px] text-zinc-400 mt-0.5">{cls.academicYear}</p>
+                          </div>
+                          <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                            <span className="text-xs tabular-nums text-zinc-600">
+                              {cls._count.students}{cls.maxStudents ? `/${cls.maxStudents}` : ''} élèves
+                            </span>
+                            {fill !== null && (
+                              <span className={cn(
+                                'text-[10px] font-medium px-1.5 py-0.5 rounded tabular-nums',
+                                fill >= 100 ? 'bg-red-50 text-red-600'
+                                : fill >= 90 ? 'bg-amber-50 text-amber-600'
+                                : 'bg-zinc-100 text-zinc-500',
+                              )}>
+                                {fill}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {classes.meta.total > 6 && (
+                      <div className="px-5 py-3">
+                        <span className="text-[11px] text-zinc-400">+ {classes.meta.total - 6} autres classes</span>
+                      </div>
+                    )}
+                  </div>
+                )
+                : <p className="text-xs text-zinc-400 px-5 py-4">Aucune classe active.</p>}
+          </div>
+
+          {/* Alertes capacité */}
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <TriangleAlert size={13} className={capacityAlerts && capacityAlerts.length > 0 ? 'text-amber-500' : 'text-zinc-300'} />
+                <span className="text-xs font-medium text-zinc-500">Alertes capacité</span>
+              </div>
+              {capacityAlerts && capacityAlerts.length > 0 && (
+                <span className={cn(
+                  'text-xs font-semibold tabular-nums',
+                  capacityAlerts.some(a => a.status === 'FULL') ? 'text-red-600' : 'text-amber-600',
+                )}>
+                  {capacityAlerts.length} alerte{capacityAlerts.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            {loadingCapacity
+              ? <Sk className="h-40 rounded-none" />
+              : capacityAlerts && capacityAlerts.length > 0
+                ? (
+                  <div className="divide-y divide-zinc-50">
+                    {capacityAlerts.map((alert) => (
+                      <div key={alert.id} className="flex items-center justify-between px-5 py-3.5">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-zinc-800 truncate">{alert.name}</p>
+                          <p className="text-[11px] text-zinc-400 mt-0.5">
+                            {alert.currentCount} / {alert.capacity} élèves
+                          </p>
+                        </div>
+                        <span className={cn(
+                          'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium flex-shrink-0 ml-3',
+                          alert.status === 'FULL'
+                            ? 'bg-red-50 text-red-700 ring-1 ring-red-100'
+                            : 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
+                        )}>
+                          <span className={cn('w-1.5 h-1.5 rounded-full', alert.status === 'FULL' ? 'bg-red-500' : 'bg-amber-400')} />
+                          {alert.occupancyRate}% — {alert.status === 'FULL' ? 'Complet' : 'Quasi-plein'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )
+                : (
+                  <div className="px-5 py-6 text-center">
+                    <p className="text-xs text-zinc-400">Aucune surcharge détectée</p>
+                  </div>
+                )}
+          </div>
+
+        </div>
+
+        {/* ══ 3. PERFORMANCE FINANCIÈRE ══════════════════════════════════════ */}
         <div>
           <p className="text-xs font-medium text-zinc-400 mb-3">Performance financière</p>
           {loadingPerf
@@ -145,7 +255,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 </div>
 
                 {/* Progress */}
-                <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+                <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-medium text-zinc-500">Progression du recouvrement</span>
                     <span className="text-xs font-semibold text-zinc-900 tabular-nums">{pct(perf.efficiency)}</span>
@@ -170,7 +280,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
             )}
         </div>
 
-        {/* ══ 3. DASHBOARD PAIEMENTS ═════════════════════════════════════════ */}
+        {/* ══ 4. DASHBOARD PAIEMENTS ═════════════════════════════════════════ */}
         <div>
           <p className="text-xs font-medium text-zinc-400 mb-3">Dashboard paiements</p>
           {loadingPay
@@ -215,14 +325,14 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
             )}
         </div>
 
-        {/* ══ 4. ANOMALIES ═══════════════════════════════════════════════════ */}
+        {/* ══ 5. ANOMALIES ═══════════════════════════════════════════════════ */}
         <div>
           <p className="text-xs font-medium text-zinc-400 mb-3">Détection d'anomalies</p>
           {loadingAno
             ? <Sk className="h-28" />
             : anomalies && (
               <div className="space-y-3">
-                <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm px-5 py-4 flex items-center justify-between flex-wrap gap-3">
+                <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-5 py-4 flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2">
                     {anomalies.severity === 'HIGH'
                       ? <AlertTriangle size={14} className="text-red-500" />
@@ -251,7 +361,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                   : anomalies.anomalies.length === 0
                     ? <p className="text-sm text-zinc-400 px-1">Aucune transaction suspecte détectée.</p>
                     : (
-                      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+                      <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
                         <div className="divide-y divide-zinc-50">
                           {anomalies.anomalies.slice(0, 8).map((a) => (
                             <div key={a.id} className="flex items-center justify-between px-5 py-3.5">
@@ -279,14 +389,14 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
             )}
         </div>
 
-        {/* ══ 5. ADMINISTRATEURS ═════════════════════════════════════════════ */}
+        {/* ══ 6. ADMINISTRATEURS ═════════════════════════════════════════════ */}
         <div>
           <p className="text-xs font-medium text-zinc-400 mb-3">Administrateurs</p>
           {loadingSchool
             ? <div className="space-y-2">{Array.from({ length: 2 }).map((_, i) => <Sk key={i} className="h-14" />)}</div>
             : school?.admins.length
               ? (
-                <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
                   <div className="divide-y divide-zinc-50">
                     {school.admins.map((admin) => (
                       <div key={admin.id} className="flex items-center justify-between px-5 py-3.5">
