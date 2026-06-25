@@ -383,9 +383,45 @@ export interface TopPayer {
 export interface ManualPaymentPayload {
   studentId: number
   amount: number
-  method: 'CASH' | 'BANK_TRANSFER' | 'MOBILE_MONEY' | 'CHEQUE'
+  method: 'CASH' | 'BANK_TRANSFER' | 'MOBILE_MONEY' | 'CHEQUE' | 'ORANGE_MONEY' | 'MPESA' | 'AIRTEL_MONEY' | 'CARD' | 'BANK'
   note?: string
+  sessionId?: number
   feeStructureId?: number
+}
+
+export interface BulkMoratoriumPayload {
+  studentIds: number[]
+  type: string
+  startDate: string
+  endDate: string
+  reason: string
+}
+
+export interface FeeStructurePayload {
+  classId?: number
+  totalAmount: number
+  label: string
+  academicSessionId?: number
+  categoryId?: number
+  dueDate?: string
+}
+
+export interface LinkOrphanPayload {
+  transactionRef: string
+  studentId: number
+}
+
+export interface AdvancedSearchParams {
+  studentId?: number
+  classId?: number
+  method?: string
+  status?: string
+  startDate?: string
+  endDate?: string
+  minAmount?: number
+  maxAmount?: number
+  page?: number
+  limit?: number
 }
 
 export interface MobilePendingItem {
