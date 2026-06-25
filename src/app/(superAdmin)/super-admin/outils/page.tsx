@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   Wrench, RefreshCw, Search, QrCode, Upload, Loader2,
   CheckCircle2, AlertCircle, FileText, ScanLine,
@@ -166,7 +167,7 @@ export default function OutilsPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-6xl mx-auto px-8 py-6">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-zinc-100 flex items-center justify-center">
@@ -178,7 +179,7 @@ export default function OutilsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
 

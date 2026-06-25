@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async rewrites() {
+async rewrites() {
     const backendUrl = process.env.API_URL ?? 'http://localhost:5000'
     return [
       {

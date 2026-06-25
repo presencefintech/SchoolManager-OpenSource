@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   GraduationCap, Search, Users, Clock, BarChart3, BookOpen,
@@ -582,7 +583,12 @@ export default function StudentsPage() {
   return (
     <div className="px-8 py-8 space-y-7 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Gestion des élèves</h1>
           <p className="text-sm text-zinc-500 mt-1">Statistiques, liste paginée, débiteurs et fiches individuelles</p>
@@ -590,7 +596,7 @@ export default function StudentsPage() {
         <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
           <GraduationCap size={18} className="text-white" />
         </div>
-      </div>
+      </motion.div>
 
       {/* Main tab switch */}
       <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">

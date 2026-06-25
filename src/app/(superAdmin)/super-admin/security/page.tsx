@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   ShieldOff, ShieldCheck, AlertTriangle, Eye,
   CheckCircle2, AlertCircle, Loader2, Building2, User, Activity, Settings,
@@ -156,12 +157,12 @@ export default function SecurityPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-5xl mx-auto px-8 py-6">
           <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Sécurité</h1>
           <p className="text-sm text-zinc-400 mt-1">Suspension, fraude, réactivation et audit RGPD</p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-5xl mx-auto px-8 py-8 space-y-6">
 
