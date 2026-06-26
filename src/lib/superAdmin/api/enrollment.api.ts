@@ -1,5 +1,19 @@
 import { apiClient } from '@/lib/api/client'
-import type { WorkerHealth, FinanceAuditResult, StudentProfile } from '@/types/super-admin'
+import type {
+  WorkerHealth,
+  FinanceAuditResult,
+  EnrollmentCreateResult,
+  SuperAdminCreateStudentInput,
+} from '@/types/super-admin'
+
+const ENROLLMENT_TIMEOUT_MS = 90_000
+
+function appendFormFields(fd: FormData, payload: SuperAdminCreateStudentInput) {
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return
+    fd.append(key, String(value))
+  })
+}
 
 export const enrollmentApi = {
   getWorkerHealth: (schoolId: number) =>
@@ -32,18 +46,43 @@ export const enrollmentApi = {
       .delete<{ success: boolean; message: string }>(`/superadmin/enrollment/${studentId}/purge`)
       .then((r) => r.data),
 
-  createStudent: (payload: { firstName: string; lastName: string; schoolId: number; classId?: number; [key: string]: unknown }) =>
-    apiClient
-      .post<{ success: boolean; data: StudentProfile }>('/superadmin/enrollment', payload)
-      .then((r) => r.data.data),
+  /**
+   * Inscription forcée super-admin (JSON ou multipart si photo).
+   * @see docs/api-contracts/enrollment-architecture.md
+   */
+  createStudent: (payload: SuperAdminCreateStudentInput, photo?: File | null) => {
+    const config = { timeout: ENROLLMENT_TIMEOUT_MS }
+
+    if (photo) {
+      const fd = new FormData()
+      appendFormFields(fd, payload)
+      fd.append('photo', photo)
+      return apiClient
+        .post<{ success: boolean; data: EnrollmentCreateResult }>('/superadmin/enrollment', fd, {
+          ...config,
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then((r) => r.data.data)
+    }
+
+    return apiClient
+      .post<{ success: boolean; data: EnrollmentCreateResult }>('/superadmin/enrollment', payload, config)
+      .then((r) => r.data.data)
+  },
 
   testFaceId: (studentId: number, imageBase64: string) =>
     apiClient
-      .post<{ success: boolean; data: { match: boolean; score: number } }>(`/superadmin/enrollment/${studentId}/test-face-id`, { imageBase64 })
+      .post<{ success: boolean; data: { match: boolean; score: number } }>(
+        `/superadmin/enrollment/${studentId}/test-face-id`,
+        { imageBase64 },
+      )
       .then((r) => r.data.data),
 
-  injectBiometrics: (studentId: number, biometricData: Record<string, unknown>) =>
+  injectBiometrics: (studentId: number, payload: { faceVector: number[] }) =>
     apiClient
-      .put<{ success: boolean; data: { updated: boolean } }>(`/superadmin/enrollment/${studentId}/biometrics`, biometricData)
-      .then((r) => r.data.data),
+      .put<{ success: boolean; data: { updated: boolean }; message?: string }>(
+        `/superadmin/enrollment/${studentId}/biometrics`,
+        payload,
+      )
+      .then((r) => r.data),
 }

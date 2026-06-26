@@ -1,46 +1,187 @@
-'use client'
+﻿'use client'
 
-import { useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { motion } from 'framer-motion'
 import {
   Bot, ShieldCheck, AlertTriangle, Lock, LockOpen,
   Clock, Search, Trash2, CheckCircle, XCircle, Fingerprint,
-  RefreshCw, UserPlus,
+  RefreshCw, UserPlus, ImagePlus, FileDown, Info,
+  GraduationCap, Building2, Sparkles, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useSchools, useWorkerHealth, useFinanceAudit } from '@/lib/hooks/use-super-admin'
+import { useSchools, useWorkerHealth, useFinanceAudit, useClasses } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { enrollmentApi } from '@/lib/superAdmin/api/enrollment.api'
 
-/* ── helpers ────────────────────────────────────────────────────────────────── */
+/* â”€â”€ design system (page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function Sk({ className }: { className?: string }) {
-  return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-3">{children}</p>
+  return <div className={cn('rounded-2xl bg-zinc-100/80 animate-pulse', className)} />
 }
 
 function ActionResult({ result }: { result: { type: 'success' | 'error'; message: string } | null }) {
   if (!result) return null
   return (
-    <div className={cn(
-      'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm',
-      result.type === 'success'
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-        : 'border-red-200 bg-red-50 text-red-700',
-    )}>
-      {result.type === 'success' ? <CheckCircle size={13} /> : <XCircle size={13} />}
-      {result.message}
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn(
+        'flex items-start gap-2.5 px-4 py-3 rounded-xl border text-sm',
+        result.type === 'success'
+          ? 'border-emerald-200/80 bg-emerald-50/90 text-emerald-800'
+          : 'border-red-200/80 bg-red-50/90 text-red-800',
+      )}
+    >
+      {result.type === 'success' ? (
+        <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />
+      ) : (
+        <XCircle size={16} className="flex-shrink-0 mt-0.5" />
+      )}
+      <span className="leading-snug">{result.message}</span>
+    </motion.div>
+  )
+}
+
+function Panel({
+  children,
+  className,
+  padding = true,
+}: {
+  children: React.ReactNode
+  className?: string
+  padding?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'bg-white rounded-2xl border border-zinc-200/80 shadow-[0_1px_3px_rgba(0,0,0,0.04)]',
+        padding && 'p-6',
+        className,
+      )}
+    >
+      {children}
     </div>
   )
 }
 
-const inputCls = 'h-9 px-3 text-sm rounded-lg border border-zinc-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all placeholder:text-zinc-300'
-const btnPrimary = 'h-9 px-4 text-sm font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+function PanelHeader({
+  icon: Icon,
+  iconClass,
+  title,
+  description,
+  action,
+}: {
+  icon: React.ElementType
+  iconClass?: string
+  title: string
+  description?: string
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="flex items-start gap-3">
+        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', iconClass ?? 'bg-indigo-50 text-indigo-600')}>
+          <Icon size={18} />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+          {description && <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed max-w-prose">{description}</p>}
+        </div>
+      </div>
+      {action}
+    </div>
+  )
+}
 
-/* ══════════════════════════════════════════════════════════════════════════════ */
-export default function EnrollmentPage() {
+function MetricTile({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  icon: React.ElementType
+  label: string
+  value: string | number
+  sub: string
+  tone: 'ok' | 'warn' | 'danger'
+}) {
+  const tones = {
+    ok: { ring: 'ring-emerald-500/10', icon: 'bg-emerald-50 text-emerald-600', val: 'text-emerald-600' },
+    warn: { ring: 'ring-amber-500/10', icon: 'bg-amber-50 text-amber-600', val: 'text-amber-600' },
+    danger: { ring: 'ring-red-500/10', icon: 'bg-red-50 text-red-600', val: 'text-red-600' },
+  }[tone]
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn('relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm ring-1', tones.ring)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', tones.icon)}>
+          <Icon size={17} />
+        </div>
+      </div>
+      <p className={cn('text-3xl font-bold tabular-nums tracking-tight mt-4', tones.val)}>{value}</p>
+      <p className="text-xs font-medium text-zinc-700 mt-1">{label}</p>
+      <p className="text-[11px] text-zinc-400 mt-0.5">{sub}</p>
+    </motion.div>
+  )
+}
+
+function FormBlock({
+  step,
+  title,
+  hint,
+  children,
+}: {
+  step: number
+  title: string
+  hint?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="relative pl-4 border-l-2 border-indigo-100">
+      <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-indigo-600 text-[9px] font-bold text-white flex items-center justify-center">
+        {step}
+      </div>
+      <p className="text-sm font-semibold text-zinc-800">{title}</p>
+      {hint && <p className="text-xs text-zinc-500 mt-0.5 mb-3">{hint}</p>}
+      {!hint && <div className="mb-3" />}
+      {children}
+    </div>
+  )
+}
+
+function EmptySchoolPrompt() {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 px-6 text-center rounded-2xl border border-dashed border-zinc-200 bg-gradient-to-b from-white to-zinc-50/80">
+      <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+        <Building2 size={22} className="text-indigo-500" />
+      </div>
+      <p className="text-sm font-medium text-zinc-700">Choisissez un Ã©tablissement</p>
+      <p className="text-xs text-zinc-400 mt-1 max-w-xs">
+        Les indicateurs biomÃ©trie et intÃ©gritÃ© financiÃ¨re s&apos;affichent ici une fois l&apos;Ã©cole sÃ©lectionnÃ©e.
+      </p>
+    </div>
+  )
+}
+
+const inputCls =
+  'h-10 w-full px-3.5 text-sm rounded-xl border border-zinc-200 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-400 transition-all placeholder:text-zinc-400'
+const btnPrimary =
+  'h-10 px-4 text-sm font-medium bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm'
+const textareaCls =
+  'w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-200 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 focus:border-indigo-400 transition-all placeholder:text-zinc-400 resize-none'
+const labelCls = 'text-xs font-medium text-zinc-600 block mb-1.5'
+const hintCls = 'text-[11px] text-zinc-400 mt-1.5 leading-relaxed'
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+function EnrollmentPageContent() {
+  const searchParams = useSearchParams()
   const { data: schools } = useSchools()
 
   /* school selector */
@@ -61,19 +202,48 @@ export default function EnrollmentPage() {
   /* grace period */
   const [graceUntil, setGraceUntil] = useState('')
 
-  /* create student */
+  /* create student â€” intervention plateforme */
   const [createFirstName, setCreateFirstName] = useState('')
   const [createLastName, setCreateLastName] = useState('')
   const [createSchoolId, setCreateSchoolId] = useState('')
+  const [createClassId, setCreateClassId] = useState('')
+  const [createBirthDate, setCreateBirthDate] = useState('')
+  const [createGender, setCreateGender] = useState<'MALE' | 'FEMALE' | ''>('')
+  const [createPlaceOfBirth, setCreatePlaceOfBirth] = useState('')
+  const [createNationality, setCreateNationality] = useState('')
+  const [createAcademicYear, setCreateAcademicYear] = useState('')
+  const [createOverrideReason, setCreateOverrideReason] = useState('')
+  const [createPhoto, setCreatePhoto] = useState<File | null>(null)
+  const [createPhotoPreview, setCreatePhotoPreview] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [createResult, setCreateResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [lastCreatedStudentId, setLastCreatedStudentId] = useState<number | null>(null)
+  const [lastPdfCard, setLastPdfCard] = useState<string | null>(null)
+  const { data: createClasses } = useClasses(Number(createSchoolId) || 0)
+
+  useEffect(() => {
+    const urlSchoolId = Number(searchParams.get('schoolId')) || 0
+    const urlStudentId = searchParams.get('studentId')?.trim() ?? ''
+    if (urlSchoolId > 0) setSchoolId(urlSchoolId)
+    if (urlStudentId) setStudentId(urlStudentId)
+  }, [searchParams])
+
+  const selectedCreateSchool = schools?.find((s) => s.id === Number(createSchoolId))
+  const selectedAuditSchool = schools?.find((s) => s.id === schoolId)
+  const overrideReasonValid = createOverrideReason.trim().length >= 10
+  const createFormValid =
+    Boolean(createFirstName.trim() && createLastName.trim() && createSchoolId && createClassId && createBirthDate && createGender)
+    && overrideReasonValid
 
   /* purge */
   const [purgeId, setPurgeId] = useState('')
   const [purgeWord, setPurgeWord] = useState('')
   const [loadingPurge, setLoadingPurge] = useState(false)
 
-  /* ── handlers ── */
+  /* biomÃ©trie */
+  const [faceVectorJson, setFaceVectorJson] = useState('')
+
+  /* â”€â”€ handlers â”€â”€ */
 
   async function checkIntegrity() {
     if (!studentId) return
@@ -85,7 +255,7 @@ export default function EnrollmentPage() {
       setIntegrity(data as Record<string, unknown>)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      setIntegrityError(err.response?.data?.message ?? 'Élève introuvable.')
+      setIntegrityError(err.response?.data?.message ?? 'Ã‰lÃ¨ve introuvable.')
     } finally {
       setLoadingIntegrity(false)
     }
@@ -96,7 +266,7 @@ export default function EnrollmentPage() {
     setActionResult(null)
     try {
       const r = await fn()
-      setActionResult({ type: 'success', message: r.message ?? 'Action effectuée.' })
+      setActionResult({ type: 'success', message: r.message ?? 'Action effectuÃ©e.' })
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       setActionResult({ type: 'error', message: err.response?.data?.message ?? 'Une erreur est survenue.' })
@@ -105,24 +275,128 @@ export default function EnrollmentPage() {
     }
   }
 
+  function clearCreatePhoto() {
+    if (createPhotoPreview) URL.revokeObjectURL(createPhotoPreview)
+    setCreatePhoto(null)
+    setCreatePhotoPreview(null)
+  }
+
+  function resetCreateFields() {
+    setCreateFirstName('')
+    setCreateLastName('')
+    setCreateSchoolId('')
+    setCreateClassId('')
+    setCreateBirthDate('')
+    setCreateGender('')
+    setCreatePlaceOfBirth('')
+    setCreateNationality('')
+    setCreateAcademicYear('')
+    setCreateOverrideReason('')
+    clearCreatePhoto()
+  }
+
+  function resetCreateForm() {
+    resetCreateFields()
+    setCreateResult(null)
+    setLastCreatedStudentId(null)
+    setLastPdfCard(null)
+  }
+
+  function handleCreatePhotoChange(file: File | null) {
+    clearCreatePhoto()
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setCreateResult({ type: 'error', message: 'La photo doit Ãªtre une image (JPEG, PNG, WebP).' })
+      return
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setCreateResult({ type: 'error', message: 'Photo trop volumineuse (max 5 Mo).' })
+      return
+    }
+    setCreatePhoto(file)
+    setCreatePhotoPreview(URL.createObjectURL(file))
+    setCreateResult(null)
+  }
+
+  function downloadStudentCardPdf() {
+    if (!lastPdfCard) return
+    const a = document.createElement('a')
+    a.href = lastPdfCard
+    a.download = `carte_eleve_${lastCreatedStudentId ?? 'nouveau'}.pdf`
+    a.click()
+  }
+
   async function runCreateStudent() {
-    if (!createFirstName || !createLastName || !createSchoolId) return
+    if (!createFormValid) return
     setCreating(true)
     setCreateResult(null)
+    setLastCreatedStudentId(null)
+    setLastPdfCard(null)
     try {
-      const s = await enrollmentApi.createStudent({
-        firstName: createFirstName,
-        lastName: createLastName,
-        schoolId: Number(createSchoolId),
+      const result = await enrollmentApi.createStudent(
+        {
+          firstName: createFirstName.trim(),
+          lastName: createLastName.trim(),
+          schoolId: Number(createSchoolId),
+          classId: Number(createClassId),
+          birthDate: createBirthDate,
+          gender: createGender as 'MALE' | 'FEMALE',
+          overrideReason: createOverrideReason.trim(),
+          ...(createPlaceOfBirth.trim() ? { placeOfBirth: createPlaceOfBirth.trim() } : {}),
+          ...(createNationality.trim() ? { nationality: createNationality.trim() } : {}),
+          ...(createAcademicYear.trim() ? { academicYear: createAcademicYear.trim() } : {}),
+        },
+        createPhoto,
+      )
+      const { student } = result
+      const matricule = student.matricule ? `, matricule ${student.matricule}` : ''
+      const pdfNote = result.pdfWarning ? ' (carte PDF non générée)' : result.pdfCard ? ' — carte PDF disponible' : ''
+      setLastCreatedStudentId(student.id)
+      setLastPdfCard(result.pdfCard ?? null)
+      setCreateResult({
+        type: 'success',
+        message: `Ã‰lÃ¨ve crÃ©Ã© : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule})${pdfNote}`,
       })
-      setCreateResult({ type: 'success', message: `Élève créé : ${s.firstName} ${s.lastName} (ID #${s.id})` })
-      setCreateFirstName('')
-      setCreateLastName('')
+      setStudentId(String(student.id))
+      resetCreateFields()
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la création.' })
+      setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la crÃ©ation.' })
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function runInjectBiometrics() {
+    if (!studentId || !faceVectorJson.trim()) return
+    setLoading('biometrics')
+    setActionResult(null)
+    try {
+      const parsed = JSON.parse(faceVectorJson) as unknown
+      const faceVector = Array.isArray(parsed)
+        ? parsed
+        : (parsed as { faceVector?: unknown })?.faceVector
+      if (!Array.isArray(faceVector) || faceVector.length < 128 || faceVector.length > 512) {
+        throw new Error('Le vecteur doit contenir entre 128 et 512 nombres (FaceNet).')
+      }
+      if (!faceVector.every((n) => typeof n === 'number' && Number.isFinite(n))) {
+        throw new Error('Chaque valeur du vecteur doit Ãªtre un nombre.')
+      }
+      const r = await enrollmentApi.injectBiometrics(Number(studentId), { faceVector })
+      setActionResult({
+        type: 'success',
+        message: r.message ?? `Vecteur facial injectÃ© pour l'Ã©lÃ¨ve #${studentId} (${faceVector.length} dimensions).`,
+      })
+      setFaceVectorJson('')
+      if (schoolId) refetchWorker()
+    } catch (e: unknown) {
+      const err = e as { message?: string; response?: { data?: { message?: string } } }
+      setActionResult({
+        type: 'error',
+        message: err.response?.data?.message ?? err.message ?? 'Erreur lors de l\'injection biomÃ©trique.',
+      })
+    } finally {
+      setLoading(null)
     }
   }
 
@@ -132,7 +406,7 @@ export default function EnrollmentPage() {
     setActionResult(null)
     try {
       await superAdminApi.purgeStudent(Number(purgeId))
-      setActionResult({ type: 'success', message: `Élève #${purgeId} purgé définitivement.` })
+      setActionResult({ type: 'success', message: `Ã‰lÃ¨ve #${purgeId} purgÃ© dÃ©finitivement.` })
       setPurgeId('')
       setPurgeWord('')
     } catch (e: unknown) {
@@ -143,392 +417,490 @@ export default function EnrollmentPage() {
     }
   }
 
-  /* ────────────────────────────────────────────────────────────────────────── */
+  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-[#f6f7fb]">
 
-      {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <div className="bg-white border-b border-zinc-200">
-        <div className="max-w-7xl mx-auto px-6 py-5">
-          <h1 className="text-[22px] font-semibold text-zinc-900 tracking-tight">Inscriptions</h1>
-          <p className="text-xs text-zinc-400 mt-0.5">Audit IA, intégrité financière et actions critiques sur les élèves</p>
+      {/* â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div className="relative overflow-hidden border-b border-indigo-950/10">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-900" />
+        <div
+          className="absolute inset-0 opacity-[0.15]"
+          style={{
+            backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+        <div className="relative max-w-7xl mx-auto px-6 py-8 lg:py-10">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-indigo-100 text-xs font-medium backdrop-blur-sm mb-4">
+                <Sparkles size={12} />
+                Centre d&apos;inscription plateforme
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
+                  <GraduationCap size={22} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl lg:text-[28px] font-semibold text-white tracking-tight">Inscriptions</h1>
+                  <p className="text-sm text-indigo-100/75 mt-0.5">
+                    Audit, intervention support et conformitÃ© Ã©lÃ¨ves
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="flex items-center gap-2 w-full lg:w-auto"
+            >
+              <select
+                value={schoolId ?? ''}
+                onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
+                className="flex-1 lg:min-w-[300px] h-11 px-4 text-sm rounded-xl border-0 bg-white/95 text-zinc-800 shadow-lg shadow-indigo-950/20 focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                <option value="">Filtrer par établissement…</option>
+                {schools?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}{s.city ? ` — ${s.city}` : ''}
+                  </option>
+                ))}
+              </select>
+              {schoolId && (
+                <button
+                  type="button"
+                  onClick={() => { refetchWorker(); refetchFinance() }}
+                  className="h-11 w-11 flex items-center justify-center rounded-xl bg-white/15 text-white hover:bg-white/25 backdrop-blur transition-all"
+                  title="Actualiser les indicateurs"
+                >
+                  <RefreshCw size={16} />
+                </button>
+              )}
+            </motion.div>
+          </div>
+
+          {selectedAuditSchool && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-xs text-indigo-200/80 mt-4"
+            >
+              Indicateurs pour <span className="font-medium text-white">{selectedAuditSchool.name}</span>
+            </motion.p>
+          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
-        {/* ══ 1. AUDIT PAR ÉCOLE ══════════════════════════════════════════════ */}
-        <div>
-          <SectionTitle>Audit par établissement</SectionTitle>
+        {/* â”€â”€ KPIs Ã©tablissement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {!schoolId ? (
+          <EmptySchoolPrompt />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {loadingWorker ? (
+              <Sk className="h-[148px]" />
+            ) : workerHealth ? (
+              <MetricTile
+                icon={Bot}
+                label="BiomÃ©trie en attente"
+                value={workerHealth.pending}
+                sub={`Ã©lÃ¨ve${workerHealth.pending !== 1 ? 's' : ''} sans vecteur facial`}
+                tone={workerHealth.pending > 0 ? 'warn' : 'ok'}
+              />
+            ) : null}
+            {loadingFinance ? (
+              <Sk className="h-[148px]" />
+            ) : financeAudit ? (
+              <MetricTile
+                icon={ShieldCheck}
+                label="Anomalies financiÃ¨res"
+                value={`${financeAudit.count} / ${financeAudit.total}`}
+                sub={financeAudit.count > 0 ? 'Signatures corrompues dÃ©tectÃ©es' : 'IntÃ©gritÃ© validÃ©e'}
+                tone={financeAudit.count > 0 ? 'danger' : 'ok'}
+              />
+            ) : null}
+          </div>
+        )}
 
-          {/* School picker */}
-          <div className="flex items-center gap-3 mb-4">
-            <select
-              value={schoolId ?? ''}
-              onChange={e => setSchoolId(e.target.value ? Number(e.target.value) : null)}
-              className={cn(inputCls, 'pr-8 min-w-[280px]')}
-            >
-              <option value="">Sélectionner un établissement…</option>
-              {schools?.map(s => (
-                <option key={s.id} value={s.id}>{s.name} — {s.city}</option>
+        {schoolId && financeAudit && financeAudit.count > 0 && (
+          <Panel className="!p-4 border-red-100 bg-red-50/40">
+            <p className="text-xs font-medium text-red-800 mb-2">IDs Ã  investiguer</p>
+            <div className="flex flex-wrap gap-1.5">
+              {financeAudit.ids.slice(0, 12).map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setStudentId(String(id))}
+                  className="text-[11px] font-mono bg-white text-red-700 ring-1 ring-red-200 px-2 py-0.5 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  #{id}
+                </button>
               ))}
-            </select>
-            {schoolId && (
-              <button
-                onClick={() => { refetchWorker(); refetchFinance() }}
-                className="h-9 w-9 flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-400 hover:text-zinc-700 hover:border-zinc-300 transition-all"
-              >
-                <RefreshCw size={13} />
-              </button>
-            )}
-          </div>
-
-          {!schoolId && (
-            <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-8 text-center">
-              <p className="text-sm text-zinc-400">Sélectionnez un établissement pour voir l'état du worker IA et l'intégrité financière.</p>
             </div>
-          )}
+          </Panel>
+        )}
 
-          {schoolId && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {/* â”€â”€ Grille principale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
-              {/* Worker IA */}
-              {loadingWorker
-                ? <Sk className="h-40" />
-                : workerHealth && (
-                  <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="flex items-center gap-2">
-                        <Bot size={14} className="text-zinc-400" />
-                        <span className="text-xs font-medium text-zinc-500">Worker IA — Biométrie</span>
-                      </div>
-                      <span className={cn(
-                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1',
-                        workerHealth.pending > 0
-                          ? 'bg-amber-50 text-amber-700 ring-amber-100'
-                          : 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-                      )}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', workerHealth.pending > 0 ? 'bg-amber-400' : 'bg-emerald-500')} />
-                        {workerHealth.pending > 0 ? 'Retard détecté' : 'À jour'}
-                      </span>
+          {/* Colonne gauche â€” inscription */}
+          <div className="xl:col-span-7 space-y-4">
+            <Panel className="overflow-hidden !p-0 ring-1 ring-indigo-500/10">
+              <div className="px-6 py-4 bg-gradient-to-r from-indigo-50 to-violet-50 border-b border-indigo-100/80">
+                <PanelHeader
+                  icon={UserPlus}
+                  iconClass="bg-indigo-600 text-white shadow-sm shadow-indigo-600/30"
+                  title="Nouvelle inscription"
+                  description="Intervention plateforme auditée. Les champs vides héritent de la configuration école."
+                />
+                <div className="flex items-start gap-2.5 text-xs text-indigo-800/80 bg-white/60 rounded-xl px-3 py-2.5 border border-indigo-100/60">
+                  <Info size={14} className="flex-shrink-0 mt-0.5 text-indigo-600" />
+                  <span>Motif obligatoire (min. 10 car.) — journalisé en audit <strong>SECURITY</strong>.</span>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-8">
+                <FormBlock step={1} title="Identité civile">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Prénom <span className="text-red-500">*</span></label>
+                      <input type="text" placeholder="Jean" value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} className={inputCls} autoComplete="off" />
                     </div>
-                    <p className={cn(
-                      'text-4xl font-bold tabular-nums tracking-tight',
-                      workerHealth.pending > 0 ? 'text-amber-600' : 'text-emerald-600',
-                    )}>
-                      {workerHealth.pending}
-                    </p>
-                    <p className="text-xs text-zinc-400 mt-1.5">élève{workerHealth.pending > 1 ? 's' : ''} sans vecteur facial</p>
+                    <div>
+                      <label className={labelCls}>Nom <span className="text-red-500">*</span></label>
+                      <input type="text" placeholder="Dupont" value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} className={inputCls} autoComplete="off" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Date de naissance <span className="text-red-500">*</span></label>
+                      <input type="date" value={createBirthDate} onChange={(e) => setCreateBirthDate(e.target.value)} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Genre <span className="text-red-500">*</span></label>
+                      <select value={createGender} onChange={(e) => setCreateGender(e.target.value as 'MALE' | 'FEMALE' | '')} className={cn(inputCls, 'pr-8')}>
+                        <option value="">Choisir…</option>
+                        <option value="MALE">Masculin</option>
+                        <option value="FEMALE">Féminin</option>
+                      </select>
+                    </div>
+                  </div>
+                </FormBlock>
 
-                    {workerHealth.details.length > 0 && (
-                      <div className="mt-4 space-y-1.5 border-t border-zinc-50 pt-4">
-                        {workerHealth.details.map((d) => (
-                          <div key={d.status} className="flex items-center justify-between text-xs">
-                            <span className="text-zinc-400 capitalize">{d.status.toLowerCase()}</span>
-                            <span className="font-mono font-semibold text-zinc-700 tabular-nums">{d._count._all}</span>
-                          </div>
+                <FormBlock step={2} title="Scolarité">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Établissement <span className="text-red-500">*</span></label>
+                      <select
+                        value={createSchoolId}
+                        onChange={(e) => { setCreateSchoolId(e.target.value); setCreateClassId('') }}
+                        className={cn(inputCls, 'pr-8')}
+                      >
+                        <option value="">Choisir…</option>
+                        {schools?.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}{s.city ? ` — ${s.city}` : ''}</option>
                         ))}
-                      </div>
-                    )}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Classe <span className="text-red-500">*</span></label>
+                      <select value={createClassId} onChange={(e) => setCreateClassId(e.target.value)} disabled={!createSchoolId} className={cn(inputCls, 'pr-8')}>
+                        <option value="">{createSchoolId ? 'Choisir…' : 'Établissement requis'}</option>
+                        {createClasses?.data?.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                )}
+                </FormBlock>
 
-              {/* Intégrité financière */}
-              {loadingFinance
-                ? <Sk className="h-40" />
-                : financeAudit && (
-                  <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-                    <div className="flex items-center justify-between mb-5">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck size={14} className={financeAudit.count > 0 ? 'text-red-500' : 'text-zinc-400'} />
-                        <span className="text-xs font-medium text-zinc-500">Intégrité financière</span>
-                      </div>
-                      <span className={cn(
-                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ring-1',
-                        financeAudit.count > 0
-                          ? 'bg-red-50 text-red-700 ring-red-100'
-                          : 'bg-emerald-50 text-emerald-700 ring-emerald-100',
-                      )}>
-                        <span className={cn('w-1.5 h-1.5 rounded-full', financeAudit.count > 0 ? 'bg-red-500' : 'bg-emerald-500')} />
-                        {financeAudit.count > 0 ? 'Corruption détectée' : 'Validée'}
-                      </span>
+                <FormBlock
+                  step={3}
+                  title="Compléments"
+                  hint={selectedCreateSchool?.city ? `Défauts école si vide — ville : ${selectedCreateSchool.city}` : 'Optionnel — défauts appliqués côté serveur'}
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className={labelCls}>Lieu de naissance</label>
+                      <input type="text" placeholder={selectedCreateSchool?.city ?? 'Kinshasa'} value={createPlaceOfBirth} onChange={(e) => setCreatePlaceOfBirth(e.target.value)} className={inputCls} />
                     </div>
-                    <div className="flex items-end gap-2">
-                      <p className={cn(
-                        'text-4xl font-bold tabular-nums tracking-tight',
-                        financeAudit.count > 0 ? 'text-red-600' : 'text-emerald-600',
-                      )}>
-                        {financeAudit.count}
-                      </p>
-                      <p className="text-sm text-zinc-400 mb-1">/ {financeAudit.total} anomalie{financeAudit.count > 1 ? 's' : ''}</p>
+                    <div>
+                      <label className={labelCls}>Nationalité</label>
+                      <input type="text" placeholder="Congolaise" value={createNationality} onChange={(e) => setCreateNationality(e.target.value)} className={inputCls} />
                     </div>
-
-                    {financeAudit.count > 0 && (
-                      <div className="mt-4 border-t border-zinc-50 pt-4">
-                        <p className="text-[11px] text-zinc-400 mb-2">IDs corrompus</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {financeAudit.ids.slice(0, 10).map(id => (
-                            <span key={id} className="text-[10px] font-mono bg-red-50 text-red-600 ring-1 ring-red-100 px-1.5 py-0.5 rounded">
-                              #{id}
-                            </span>
-                          ))}
-                          {financeAudit.ids.length > 10 && (
-                            <span className="text-[10px] text-zinc-400 self-center">+{financeAudit.ids.length - 10}</span>
-                          )}
+                    <div>
+                      <label className={labelCls}>Année scolaire</label>
+                      <input type="text" placeholder="2025-2026" value={createAcademicYear} onChange={(e) => setCreateAcademicYear(e.target.value)} className={inputCls} />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-start gap-4">
+                    <label className={cn(
+                      'relative flex h-28 w-28 cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed transition-all overflow-hidden',
+                      createPhotoPreview ? 'border-indigo-400 bg-indigo-50/50' : 'border-zinc-200 bg-zinc-50 hover:border-indigo-300 hover:bg-indigo-50/40',
+                    )}>
+                      {createPhotoPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={createPhotoPreview} alt="Aperçu" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center text-zinc-400">
+                          <ImagePlus size={22} />
+                          <span className="text-[10px] mt-1.5 font-medium">Photo</span>
                         </div>
-                      </div>
+                      )}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(e) => handleCreatePhotoChange(e.target.files?.[0] ?? null)} />
+                    </label>
+                    <div className="flex-1 min-w-[180px]">
+                      <p className="text-xs text-zinc-600 font-medium">Photo élève</p>
+                      <p className={hintCls}>
+                        {createPhoto ? `${createPhoto.name} · ${(createPhoto.size / 1024).toFixed(0)} Ko` : 'JPEG, PNG, WebP — max 5 Mo. Active la carte PDF.'}
+                      </p>
+                      {createPhoto && (
+                        <button type="button" onClick={clearCreatePhoto} className="mt-2 text-xs font-medium text-red-600 hover:text-red-700">
+                          Retirer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </FormBlock>
+
+                <FormBlock step={4} title="Motif d'intervention">
+                  <textarea
+                    rows={3}
+                    placeholder="Ex. Ticket #42 — réinscription urgente, accord direction."
+                    value={createOverrideReason}
+                    onChange={(e) => setCreateOverrideReason(e.target.value)}
+                    className={cn(textareaCls, createOverrideReason.length > 0 && !overrideReasonValid && 'border-amber-300 ring-amber-500/20')}
+                  />
+                  <p className={cn(hintCls, !overrideReasonValid && createOverrideReason.length > 0 && 'text-amber-600')}>
+                    {createOverrideReason.trim().length}/10 caractères minimum
+                  </p>
+                </FormBlock>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-zinc-100">
+                  <button
+                    type="button"
+                    disabled={!createFormValid || creating}
+                    onClick={runCreateStudent}
+                    className="h-10 flex items-center gap-2 px-5 text-sm font-semibold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-40 shadow-sm shadow-indigo-600/25 transition-all"
+                  >
+                    {creating ? <><Loader2 size={15} className="animate-spin" /> Création…</> : <><UserPlus size={15} /> Créer l&apos;élève</>}
+                  </button>
+                  <button type="button" onClick={resetCreateForm} disabled={creating} className="h-10 px-4 text-sm font-medium rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-all">
+                    Réinitialiser
+                  </button>
+                </div>
+
+                <ActionResult result={createResult} />
+
+                {createResult?.type === 'success' && lastCreatedStudentId && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {lastPdfCard && (
+                      <button type="button" onClick={downloadStudentCardPdf} className="h-9 flex items-center gap-2 px-3.5 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all">
+                        <FileDown size={14} />
+                        Télécharger la carte PDF
+                      </button>
                     )}
+                    <span className="text-xs text-zinc-500">ID #{lastCreatedStudentId} → panneau élève</span>
                   </div>
                 )}
-            </div>
-          )}
-        </div>
+              </div>
+            </Panel>
+          </div>
 
-        {/* ══ 2. DIAGNOSTIC ÉLÈVE ════════════════════════════════════════════ */}
-        <div>
-          <SectionTitle>Diagnostic élève</SectionTitle>
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Search size={13} className="text-zinc-400" />
-              <span className="text-xs font-medium text-zinc-500">Vérification signature cryptographique</span>
-            </div>
-            <div className="flex gap-2 mb-4">
-              <input
-                type="number"
-                placeholder="ID élève…"
-                value={studentId}
-                onChange={e => setStudentId(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && checkIntegrity()}
-                className={cn(inputCls, 'w-44')}
+          {/* Colonne droite â€” Ã©lÃ¨ve cible */}
+          <div className="xl:col-span-5 xl:sticky xl:top-6 space-y-4">
+            <Panel>
+              <PanelHeader
+                icon={Search}
+                iconClass="bg-violet-50 text-violet-600"
+                title="Élève cible"
+                description="Diagnostic et actions rapides sur un profil existant."
               />
-              <button
-                onClick={checkIntegrity}
-                disabled={!studentId || loadingIntegrity}
-                className={btnPrimary}
-              >
-                {loadingIntegrity ? 'Vérification…' : 'Vérifier intégrité'}
-              </button>
-            </div>
 
-            {integrityError && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100 text-xs text-red-600">
-                <AlertTriangle size={12} /> {integrityError}
-              </div>
-            )}
-
-            {integrity && !integrityError && (
-              <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-3 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5">
-                {Object.entries(integrity).slice(0, 12).map(([k, v]) => (
-                  <div key={k} className="flex items-center gap-2 text-xs">
-                    <span className="text-zinc-400 w-32 flex-shrink-0 truncate">{k}</span>
-                    <span className="font-mono text-zinc-700 truncate">{String(v ?? '—')}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ══ 3. ACTIONS CRITIQUES ═══════════════════════════════════════════ */}
-        <div>
-          <SectionTitle>Actions critiques</SectionTitle>
-
-          <div className="flex items-center gap-2 mb-3 px-0.5">
-            <p className="text-xs text-zinc-400">ID élève cible :</p>
-            <input
-              type="number"
-              placeholder="ID élève…"
-              value={studentId}
-              onChange={e => setStudentId(e.target.value)}
-              className={cn(inputCls, 'w-36')}
-            />
-            <span className="text-[11px] text-zinc-300">Partagé avec le diagnostic ci-dessus</span>
-          </div>
-
-          <ActionResult result={actionResult} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mt-3">
-
-            {/* Verrouillage financier */}
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock size={13} className="text-zinc-400" />
-                <span className="text-xs font-medium text-zinc-600">Verrouillage financier</span>
-              </div>
-              <p className="text-[11px] text-zinc-400 mb-4">Bloque ou restaure les paiements de l'élève.</p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  disabled={!studentId || loading === 'lock'}
-                  onClick={() => runAction('lock', () => superAdminApi.toggleStudentLock(Number(studentId), true))}
-                  className="h-9 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg border border-red-100 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <Lock size={11} />
-                  {loading === 'lock' ? '…' : 'Verrouiller'}
-                </button>
-                <button
-                  disabled={!studentId || loading === 'unlock'}
-                  onClick={() => runAction('unlock', () => superAdminApi.toggleStudentLock(Number(studentId), false))}
-                  className="h-9 flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <LockOpen size={11} />
-                  {loading === 'unlock' ? '…' : 'Débloquer'}
-                </button>
-              </div>
-            </div>
-
-            {/* Période de grâce */}
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Clock size={13} className="text-zinc-400" />
-                <span className="text-xs font-medium text-zinc-600">Période de grâce</span>
-              </div>
-              <p className="text-[11px] text-zinc-400 mb-3">Suspend les relances de paiement jusqu'à une date.</p>
-              <input
-                type="date"
-                value={graceUntil}
-                onChange={e => setGraceUntil(e.target.value)}
-                className={cn(inputCls, 'w-full mb-3')}
-              />
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  disabled={!studentId || !graceUntil || loading === 'grace'}
-                  onClick={() => runAction('grace', () => superAdminApi.setStudentGracePeriod(Number(studentId), graceUntil))}
-                  className="h-9 flex items-center justify-center text-xs font-medium rounded-lg border border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  {loading === 'grace' ? '…' : 'Appliquer'}
-                </button>
-                <button
-                  disabled={!studentId || loading === 'grace-clear'}
-                  onClick={() => runAction('grace-clear', () => superAdminApi.setStudentGracePeriod(Number(studentId), null))}
-                  className="h-9 flex items-center justify-center text-xs font-medium rounded-lg border border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  {loading === 'grace-clear' ? '…' : 'Lever'}
-                </button>
-              </div>
-            </div>
-
-            {/* Biométrie */}
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Fingerprint size={13} className="text-zinc-400" />
-                <span className="text-xs font-medium text-zinc-600">Vecteur biométrique</span>
-              </div>
-              <p className="text-[11px] text-zinc-400 mb-4">
-                Injection manuelle d'un vecteur facial (tableau float[]). Nécessite les données brutes d'un modèle FaceNet.
-              </p>
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-400 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-                Disponible via l'API directe — <code className="font-mono text-zinc-600">PUT /enrollment/:id/biometrics</code>
-              </span>
-            </div>
-
-          </div>
-        </div>
-
-        {/* ══ 3.5. CRÉER UN ÉLÈVE ════════════════════════════════════════════ */}
-        <div>
-          <SectionTitle>Créer un élève</SectionTitle>
-          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <UserPlus size={13} className="text-indigo-500" />
-              <span className="text-xs font-medium text-zinc-500">Inscription manuelle d'un nouvel élève</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-              <div>
-                <label className="text-[11px] text-zinc-400 block mb-1.5">Prénom</label>
-                <input
-                  type="text"
-                  placeholder="Jean"
-                  value={createFirstName}
-                  onChange={e => setCreateFirstName(e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="text-[11px] text-zinc-400 block mb-1.5">Nom</label>
-                <input
-                  type="text"
-                  placeholder="Dupont"
-                  value={createLastName}
-                  onChange={e => setCreateLastName(e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="text-[11px] text-zinc-400 block mb-1.5">Établissement</label>
-                <select
-                  value={createSchoolId}
-                  onChange={e => setCreateSchoolId(e.target.value)}
-                  className={cn(inputCls, 'pr-8')}
-                >
-                  <option value="">Choisir…</option>
-                  {schools?.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <button
-              disabled={!createFirstName || !createLastName || !createSchoolId || creating}
-              onClick={runCreateStudent}
-              className="h-9 flex items-center gap-2 px-4 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              {creating ? 'Création…' : <><UserPlus size={13} /> Créer l'élève</>}
-            </button>
-            <ActionResult result={createResult} />
-          </div>
-        </div>
-
-        {/* ══ 4. ZONE DE DANGER — PURGE RGPD ════════════════════════════════ */}
-        <div>
-          <SectionTitle>Zone de danger</SectionTitle>
-          <div className="bg-white rounded-xl border border-red-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-            <div className="flex items-start gap-3 mb-5">
-              <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                <Trash2 size={14} className="text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-red-700">Purge RGPD — Action irréversible</p>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Suppression physique complète de toutes les données de l'élève : profil, paiements, présences, biométrie, documents. Non récupérable.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <p className="text-[11px] text-zinc-400 mb-1.5">ID élève</p>
+              <div className="flex gap-2 mb-4">
                 <input
                   type="number"
-                  placeholder="ID…"
-                  value={purgeId}
-                  onChange={e => setPurgeId(e.target.value)}
-                  className={cn(inputCls, 'w-32 focus:ring-red-500/30 focus:border-red-400')}
+                  placeholder="ID élève…"
+                  value={studentId}
+                  onChange={(e) => setStudentId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && checkIntegrity()}
+                  className={cn(inputCls, 'font-mono text-base')}
                 />
+                <button type="button" onClick={checkIntegrity} disabled={!studentId || loadingIntegrity} className={cn(btnPrimary, 'flex-shrink-0 px-4')}>
+                  {loadingIntegrity ? <Loader2 size={16} className="animate-spin" /> : 'Vérifier'}
+                </button>
               </div>
-              <div>
-                <p className="text-[11px] text-zinc-400 mb-1.5">
-                  Tapez <code className="font-mono font-bold text-red-600">PURGE</code> pour confirmer
-                </p>
-                <input
-                  type="text"
-                  placeholder="PURGE"
-                  value={purgeWord}
-                  onChange={e => setPurgeWord(e.target.value)}
-                  className={cn(inputCls, 'w-32 font-mono focus:ring-red-500/30 focus:border-red-400')}
-                />
+
+              {studentId && (
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="text-xs text-zinc-500">Élève sélectionné</span>
+                  <span className="text-xs font-mono font-semibold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-lg">#{studentId}</span>
+                </div>
+              )}
+
+              {integrityError && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 border border-red-100 text-xs text-red-700 mb-4">
+                  <AlertTriangle size={14} /> {integrityError}
+                </div>
+              )}
+
+              {integrity && !integrityError && (
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 p-3 mb-4 max-h-40 overflow-y-auto">
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {Object.entries(integrity).slice(0, 10).map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-2 text-[11px]">
+                        <span className="text-zinc-400 truncate">{k}</span>
+                        <span className="font-mono text-zinc-700 truncate text-right">{String(v ?? '—')}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <ActionResult result={actionResult} />
+
+              <div className="space-y-3 mt-4">
+                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Actions</p>
+
+                <div className="rounded-xl border border-zinc-100 p-3.5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Lock size={14} className="text-zinc-400" />
+                    <span className="text-xs font-medium text-zinc-700">Verrouillage financier</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={!studentId || loading === 'lock'}
+                      onClick={() => runAction('lock', () => superAdminApi.toggleStudentLock(Number(studentId), true))}
+                      className="h-9 text-xs font-medium rounded-xl border border-red-100 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 transition-all"
+                    >
+                      Verrouiller
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!studentId || loading === 'unlock'}
+                      onClick={() => runAction('unlock', () => superAdminApi.toggleStudentLock(Number(studentId), false))}
+                      className="h-9 text-xs font-medium rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40 transition-all"
+                    >
+                      Débloquer
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-zinc-100 p-3.5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock size={14} className="text-zinc-400" />
+                    <span className="text-xs font-medium text-zinc-700">Période de grâce</span>
+                  </div>
+                  <input type="date" value={graceUntil} onChange={(e) => setGraceUntil(e.target.value)} className={inputCls} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={!studentId || !graceUntil || loading === 'grace'}
+                      onClick={() => runAction('grace', () => superAdminApi.setStudentGracePeriod(Number(studentId), graceUntil))}
+                      className="h-9 text-xs font-medium rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-all"
+                    >
+                      Appliquer
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!studentId || loading === 'grace-clear'}
+                      onClick={() => runAction('grace-clear', () => superAdminApi.setStudentGracePeriod(Number(studentId), null))}
+                      className="h-9 text-xs font-medium rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 transition-all"
+                    >
+                      Lever
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-zinc-100 p-3.5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Fingerprint size={14} className="text-zinc-400" />
+                    <span className="text-xs font-medium text-zinc-700">Vecteur facial</span>
+                  </div>
+                  <textarea
+                    rows={3}
+                    placeholder='[0.01, -0.02, …] ou {"faceVector":[…]}'
+                    value={faceVectorJson}
+                    onChange={(e) => setFaceVectorJson(e.target.value)}
+                    className="w-full px-3 py-2 text-[11px] font-mono rounded-xl border border-zinc-200 bg-zinc-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/25 resize-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={!studentId || !faceVectorJson.trim() || loading === 'biometrics'}
+                    onClick={runInjectBiometrics}
+                    className="h-9 w-full text-xs font-medium rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 transition-all"
+                  >
+                    {loading === 'biometrics' ? 'Injection…' : 'Injecter le vecteur'}
+                  </button>
+                </div>
               </div>
-              <button
-                disabled={!purgeId || purgeWord !== 'PURGE' || loadingPurge}
-                onClick={runPurge}
-                className="h-9 px-5 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-              >
-                {loadingPurge ? 'Purge en cours…' : 'Purger définitivement'}
-              </button>
-            </div>
+            </Panel>
           </div>
         </div>
+
+        <Panel className="border-red-200/80 bg-gradient-to-br from-red-50/50 to-white overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center flex-shrink-0">
+              <Trash2 size={20} className="text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-red-900">Zone de danger — Purge RGPD</h3>
+              <p className="text-sm text-zinc-500 mt-1 leading-relaxed">
+                Suppression physique irréversible : profil, paiements, présences, biométrie et documents.
+              </p>
+              <div className="flex flex-wrap items-end gap-3 mt-5">
+                <div>
+                  <label className={labelCls}>ID élève</label>
+                  <input
+                    type="number"
+                    placeholder="ID…"
+                    value={purgeId}
+                    onChange={(e) => setPurgeId(e.target.value)}
+                    className={cn(inputCls, 'w-36 focus:ring-red-500/25 focus:border-red-400')}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>
+                    Confirmation <code className="font-mono text-red-600 font-bold">PURGE</code>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="PURGE"
+                    value={purgeWord}
+                    onChange={(e) => setPurgeWord(e.target.value)}
+                    className={cn(inputCls, 'w-36 font-mono focus:ring-red-500/25 focus:border-red-400')}
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={!purgeId || purgeWord !== 'PURGE' || loadingPurge}
+                  onClick={runPurge}
+                  className="h-10 px-5 text-sm font-semibold bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-40 shadow-sm shadow-red-600/20 transition-all"
+                >
+                  {loadingPurge ? 'Purge…' : 'Purger définitivement'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Panel>
 
       </div>
     </div>
+  )
+}
+
+export default function EnrollmentPage() {
+  return (
+    <Suspense fallback={
+      <div className="px-8 py-8 max-w-6xl mx-auto">
+        <div className="h-10 w-64 bg-zinc-100 rounded-lg animate-pulse mb-8" />
+        <div className="h-96 bg-zinc-100 rounded-xl animate-pulse" />
+      </div>
+    }>
+      <EnrollmentPageContent />
+    </Suspense>
   )
 }
