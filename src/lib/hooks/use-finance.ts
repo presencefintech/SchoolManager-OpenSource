@@ -12,8 +12,9 @@ export function useExecutiveDashboard() {
 export function useCollectionAnalytics(sessionId?: number) {
   return useQuery({
     queryKey: ['finance', 'collection', sessionId],
-    queryFn: () => financeRoleApi.getCollectionAnalytics(sessionId),
+    queryFn: () => financeRoleApi.getCollectionAnalytics(sessionId!),
     staleTime: 60_000,
+    enabled: sessionId != null && sessionId > 0,
   })
 }
 
