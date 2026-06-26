@@ -209,60 +209,57 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50/80">
 
-      {/* ── HERO ERP ───────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-
-        <div className="relative max-w-7xl mx-auto px-6 pt-6 pb-10">
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-zinc-200/80">
+        <div className="max-w-7xl mx-auto px-6 py-5">
           <Link
             href="/super-admin/schools"
-            className="inline-flex items-center gap-1.5 text-xs text-indigo-200/80 hover:text-white transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors mb-4"
           >
             <ArrowLeft size={12} />
             Retour aux établissements
           </Link>
 
           {isError && (
-            <div className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100 mb-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 mb-4">
               Impossible de charger cet établissement.
             </div>
           )}
 
           {loadingSchool ? (
-            <Sk className="h-24 w-full max-w-xl bg-white/10" />
+            <Sk className="h-12 w-80" />
           ) : school && (
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <div className="flex flex-wrap items-start justify-between gap-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur border border-white/10 flex items-center justify-center flex-shrink-0">
-                    <Building2 size={26} className="text-indigo-200" />
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Building2 size={17} className="text-zinc-500" />
                   </div>
                   <div>
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{school.name}</h1>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="text-base font-semibold text-zinc-900">{school.name}</h1>
                       {school.deletedAt ? (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-200 ring-1 ring-red-400/30">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-100">
                           Désactivée
                         </span>
                       ) : (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 ring-1 ring-emerald-400/30">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
                           Active
                         </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-indigo-200/70">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-400 mt-1">
                       {school.city && (
                         <span className="inline-flex items-center gap-1">
-                          <MapPin size={12} /> {school.city}
+                          <MapPin size={11} /> {school.city}
                         </span>
                       )}
                       {school.email && (
                         <span className="inline-flex items-center gap-1">
-                          <Mail size={12} /> {school.email}
+                          <Mail size={11} /> {school.email}
                         </span>
                       )}
-                      <span className="text-indigo-300/50">ID #{school.id}</span>
+                      <span>ID #{school.id}</span>
                     </div>
                   </div>
                 </div>
@@ -272,33 +269,52 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                     <Link
                       key={link.href}
                       href={link.href}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/10 hover:bg-white/15 border border-white/10 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 hover:text-zinc-800 transition-colors"
                     >
                       <link.icon size={12} />
                       {link.label}
-                      <ExternalLink size={10} className="opacity-50" />
                     </Link>
                   ))}
                 </div>
               </div>
 
-              {/* hero KPI strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+              {/* KPI strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-zinc-100">
                 {[
-                  { label: 'Élèves', value: school._count.students, icon: GraduationCap },
-                  { label: 'Classes', value: school._count.classes, icon: BookOpen },
-                  { label: 'Paiements', value: school._count.payments, icon: Banknote },
-                  { label: 'Admins', value: school.admins.length, icon: Users },
+                  {
+                    label: 'Élèves inscrits',
+                    value: school._count.students,
+                    sub: studentStats?.presentToday != null ? `${studentStats.presentToday} présents auj.` : undefined,
+                    icon: GraduationCap,
+                  },
+                  {
+                    label: 'Taux présence',
+                    value: studentStats?.attendanceRate != null ? `${Math.round(studentStats.attendanceRate)}%` : `${school._count.classes} classes`,
+                    sub: studentStats?.attendanceRate != null
+                      ? (studentStats.attendanceRate >= 70 ? 'Objectif atteint' : 'Sous l\'objectif')
+                      : undefined,
+                    icon: studentStats ? Activity : BookOpen,
+                  },
+                  {
+                    label: 'Recouvrement',
+                    value: perf?.efficiency != null ? `${Math.round(perf.efficiency)}%` : `${school._count.payments} paiements`,
+                    sub: perf?.isHealthy != null ? (perf.isHealthy ? 'Objectif atteint' : 'Sous le seuil') : undefined,
+                    icon: perf ? Target : Banknote,
+                  },
+                  {
+                    label: 'Admins',
+                    value: school.admins.length,
+                    sub: school.deletedAt === null ? 'Établissement actif' : 'Désactivé',
+                    icon: Users,
+                  },
                 ].map((kpi) => (
-                  <div
-                    key={kpi.label}
-                    className="rounded-xl bg-white/5 backdrop-blur border border-white/10 px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-indigo-200/60 uppercase tracking-wider">{kpi.label}</span>
-                      <kpi.icon size={13} className="text-indigo-300/40" />
+                  <div key={kpi.label} className="bg-zinc-50 border border-zinc-100 rounded-xl px-4 py-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">{kpi.label}</span>
+                      <kpi.icon size={13} className="text-zinc-400" />
                     </div>
-                    <p className="text-xl font-bold tabular-nums mt-1">{kpi.value}</p>
+                    <p className="text-xl font-bold text-zinc-800 tabular-nums">{kpi.value}</p>
+                    {kpi.sub && <p className="text-[10px] text-zinc-400 mt-0.5">{kpi.sub}</p>}
                   </div>
                 ))}
               </div>
@@ -307,7 +323,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 -mt-4 pb-10 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
 
         {/* ── KPI opérationnels ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

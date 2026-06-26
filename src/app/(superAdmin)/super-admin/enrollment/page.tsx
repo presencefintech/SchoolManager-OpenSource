@@ -14,7 +14,7 @@ import { useSchools, useWorkerHealth, useFinanceAudit, useClasses } from '@/lib/
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { enrollmentApi } from '@/lib/superAdmin/api/enrollment.api'
 
-/* â”€â”€ design system (page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* â"€â"€ design system (page) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-2xl bg-zinc-100/80 animate-pulse', className)} />
@@ -157,14 +157,48 @@ function FormBlock({
 
 function EmptySchoolPrompt() {
   return (
-    <div className="flex flex-col items-center justify-center py-14 px-6 text-center rounded-2xl border border-dashed border-zinc-200 bg-gradient-to-b from-white to-zinc-50/80">
-      <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-        <Building2 size={22} className="text-indigo-500" />
+    <div className="rounded-2xl border border-zinc-200/80 bg-white">
+      <div className="px-8 py-10 text-center border-b border-zinc-100">
+        <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center mx-auto mb-3">
+          <Building2 size={20} className="text-violet-500" />
+        </div>
+        <p className="text-sm font-semibold text-zinc-800">Sélectionnez un établissement</p>
+        <p className="text-xs text-zinc-400 mt-1">
+          Utilisez le sélecteur en haut de page pour filtrer par école.
+        </p>
       </div>
-      <p className="text-sm font-medium text-zinc-700">Choisissez un Ã©tablissement</p>
-      <p className="text-xs text-zinc-400 mt-1 max-w-xs">
-        Les indicateurs biomÃ©trie et intÃ©gritÃ© financiÃ¨re s&apos;affichent ici une fois l&apos;Ã©cole sÃ©lectionnÃ©e.
-      </p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-zinc-100">
+        {[
+          {
+            icon: UserPlus,
+            color: 'bg-indigo-50 text-indigo-600',
+            title: 'Inscription plateforme',
+            desc: 'Créez un élève avec motif d\'intervention audité et génération de carte PDF.',
+          },
+          {
+            icon: Bot,
+            color: 'bg-amber-50 text-amber-600',
+            title: 'Biométrie',
+            desc: 'Suivez les élèves sans vecteur facial et injectez les données FaceNet.',
+          },
+          {
+            icon: ShieldCheck,
+            color: 'bg-emerald-50 text-emerald-600',
+            title: 'Intégrité financière',
+            desc: 'Détectez les signatures corrompues et consultez les IDs à investiguer.',
+          },
+        ].map((item) => (
+          <div key={item.title} className="px-6 py-5 flex items-start gap-3">
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', item.color)}>
+              <item.icon size={15} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-zinc-700">{item.title}</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -202,7 +236,7 @@ function EnrollmentPageContent() {
   /* grace period */
   const [graceUntil, setGraceUntil] = useState('')
 
-  /* create student â€” intervention plateforme */
+  /* create student "" intervention plateforme */
   const [createFirstName, setCreateFirstName] = useState('')
   const [createLastName, setCreateLastName] = useState('')
   const [createSchoolId, setCreateSchoolId] = useState('')
@@ -240,10 +274,10 @@ function EnrollmentPageContent() {
   const [purgeWord, setPurgeWord] = useState('')
   const [loadingPurge, setLoadingPurge] = useState(false)
 
-  /* biomÃ©trie */
+  /* biométrie */
   const [faceVectorJson, setFaceVectorJson] = useState('')
 
-  /* â”€â”€ handlers â”€â”€ */
+  /* â"€â"€ handlers â"€â"€ */
 
   async function checkIntegrity() {
     if (!studentId) return
@@ -255,7 +289,7 @@ function EnrollmentPageContent() {
       setIntegrity(data as Record<string, unknown>)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      setIntegrityError(err.response?.data?.message ?? 'Ã‰lÃ¨ve introuvable.')
+      setIntegrityError(err.response?.data?.message ?? 'Élève introuvable.')
     } finally {
       setLoadingIntegrity(false)
     }
@@ -266,7 +300,7 @@ function EnrollmentPageContent() {
     setActionResult(null)
     try {
       const r = await fn()
-      setActionResult({ type: 'success', message: r.message ?? 'Action effectuÃ©e.' })
+      setActionResult({ type: 'success', message: r.message ?? 'Action effectuée.' })
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       setActionResult({ type: 'error', message: err.response?.data?.message ?? 'Une erreur est survenue.' })
@@ -306,7 +340,7 @@ function EnrollmentPageContent() {
     clearCreatePhoto()
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setCreateResult({ type: 'error', message: 'La photo doit Ãªtre une image (JPEG, PNG, WebP).' })
+      setCreateResult({ type: 'error', message: 'La photo doit être une image (JPEG, PNG, WebP).' })
       return
     }
     if (file.size > MAX_PHOTO_BYTES) {
@@ -355,13 +389,13 @@ function EnrollmentPageContent() {
       setLastPdfCard(result.pdfCard ?? null)
       setCreateResult({
         type: 'success',
-        message: `Ã‰lÃ¨ve crÃ©Ã© : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule})${pdfNote}`,
+        message: `Élève créé : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule})${pdfNote}`,
       })
       setStudentId(String(student.id))
       resetCreateFields()
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la crÃ©ation.' })
+      setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la création.' })
     } finally {
       setCreating(false)
     }
@@ -380,12 +414,12 @@ function EnrollmentPageContent() {
         throw new Error('Le vecteur doit contenir entre 128 et 512 nombres (FaceNet).')
       }
       if (!faceVector.every((n) => typeof n === 'number' && Number.isFinite(n))) {
-        throw new Error('Chaque valeur du vecteur doit Ãªtre un nombre.')
+        throw new Error('Chaque valeur du vecteur doit être un nombre.')
       }
       const r = await enrollmentApi.injectBiometrics(Number(studentId), { faceVector })
       setActionResult({
         type: 'success',
-        message: r.message ?? `Vecteur facial injectÃ© pour l'Ã©lÃ¨ve #${studentId} (${faceVector.length} dimensions).`,
+        message: r.message ?? `Vecteur facial injecté pour l'élève #${studentId} (${faceVector.length} dimensions).`,
       })
       setFaceVectorJson('')
       if (schoolId) refetchWorker()
@@ -393,7 +427,7 @@ function EnrollmentPageContent() {
       const err = e as { message?: string; response?: { data?: { message?: string } } }
       setActionResult({
         type: 'error',
-        message: err.response?.data?.message ?? err.message ?? 'Erreur lors de l\'injection biomÃ©trique.',
+        message: err.response?.data?.message ?? err.message ?? 'Erreur lors de l\'injection biométrique.',
       })
     } finally {
       setLoading(null)
@@ -406,7 +440,7 @@ function EnrollmentPageContent() {
     setActionResult(null)
     try {
       await superAdminApi.purgeStudent(Number(purgeId))
-      setActionResult({ type: 'success', message: `Ã‰lÃ¨ve #${purgeId} purgÃ© dÃ©finitivement.` })
+      setActionResult({ type: 'success', message: `Élève #${purgeId} purgé définitivement.` })
       setPurgeId('')
       setPurgeWord('')
     } catch (e: unknown) {
@@ -417,86 +451,58 @@ function EnrollmentPageContent() {
     }
   }
 
-  /* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
     <div className="min-h-screen bg-[#f6f7fb]">
 
-      {/* â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className="relative overflow-hidden border-b border-indigo-950/10">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-900" />
-        <div
-          className="absolute inset-0 opacity-[0.15]"
-          style={{
-            backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-        <div className="relative max-w-7xl mx-auto px-6 py-8 lg:py-10">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-indigo-100 text-xs font-medium backdrop-blur-sm mb-4">
-                <Sparkles size={12} />
-                Centre d&apos;inscription plateforme
-              </span>
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center">
-                  <GraduationCap size={22} className="text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl lg:text-[28px] font-semibold text-white tracking-tight">Inscriptions</h1>
-                  <p className="text-sm text-indigo-100/75 mt-0.5">
-                    Audit, intervention support et conformitÃ© Ã©lÃ¨ves
-                  </p>
-                </div>
+      {/* Header */}
+      <div className="bg-white border-b border-zinc-200/80">
+        <div className="max-w-7xl mx-auto px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0">
+                <Sparkles size={17} className="text-violet-600" />
               </div>
-            </motion.div>
+              <div>
+                <h1 className="text-base font-semibold text-zinc-900">Inscriptions</h1>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  {selectedAuditSchool ? selectedAuditSchool.name : 'Audit · intervention support · conformité élèves'}
+                </p>
+              </div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 }}
-              className="flex items-center gap-2 w-full lg:w-auto"
-            >
-              <select
-                value={schoolId ?? ''}
-                onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
-                className="flex-1 lg:min-w-[300px] h-11 px-4 text-sm rounded-xl border-0 bg-white/95 text-zinc-800 shadow-lg shadow-indigo-950/20 focus:outline-none focus:ring-2 focus:ring-white/50"
-              >
-                <option value="">Filtrer par établissement…</option>
-                {schools?.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}{s.city ? ` — ${s.city}` : ''}
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center gap-2">
               {schoolId && (
                 <button
                   type="button"
                   onClick={() => { refetchWorker(); refetchFinance() }}
-                  className="h-11 w-11 flex items-center justify-center rounded-xl bg-white/15 text-white hover:bg-white/25 backdrop-blur transition-all"
-                  title="Actualiser les indicateurs"
+                  className="h-8 w-8 flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 transition-all"
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw size={13} />
                 </button>
               )}
-            </motion.div>
+              <div className="flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-1.5 bg-white">
+                <Building2 size={13} className="text-zinc-400" />
+                <select
+                  value={schoolId ?? ''}
+                  onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
+                  className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[220px] cursor-pointer"
+                >
+                  <option value="">Filtrer par établissement…</option>
+                  {schools?.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}{s.city ? ` — ${s.city}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-
-          {selectedAuditSchool && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xs text-indigo-200/80 mt-4"
-            >
-              Indicateurs pour <span className="font-medium text-white">{selectedAuditSchool.name}</span>
-            </motion.p>
-          )}
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-6 pt-6 pb-8 space-y-8">
 
-        {/* â”€â”€ KPIs Ã©tablissement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* â"€â"€ KPIs établissement â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
         {!schoolId ? (
           <EmptySchoolPrompt />
         ) : (
@@ -506,9 +512,9 @@ function EnrollmentPageContent() {
             ) : workerHealth ? (
               <MetricTile
                 icon={Bot}
-                label="BiomÃ©trie en attente"
+                label="Biométrie en attente"
                 value={workerHealth.pending}
-                sub={`Ã©lÃ¨ve${workerHealth.pending !== 1 ? 's' : ''} sans vecteur facial`}
+                sub={`élève${workerHealth.pending !== 1 ? 's' : ''} sans vecteur facial`}
                 tone={workerHealth.pending > 0 ? 'warn' : 'ok'}
               />
             ) : null}
@@ -517,9 +523,9 @@ function EnrollmentPageContent() {
             ) : financeAudit ? (
               <MetricTile
                 icon={ShieldCheck}
-                label="Anomalies financiÃ¨res"
+                label="Anomalies financières"
                 value={`${financeAudit.count} / ${financeAudit.total}`}
-                sub={financeAudit.count > 0 ? 'Signatures corrompues dÃ©tectÃ©es' : 'IntÃ©gritÃ© validÃ©e'}
+                sub={financeAudit.count > 0 ? 'Signatures corrompues détectées' : 'Intégrité validée'}
                 tone={financeAudit.count > 0 ? 'danger' : 'ok'}
               />
             ) : null}
@@ -544,10 +550,10 @@ function EnrollmentPageContent() {
           </Panel>
         )}
 
-        {/* â”€â”€ Grille principale â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* â"€â"€ Grille principale â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
-          {/* Colonne gauche â€” inscription */}
+          {/* Colonne gauche "" inscription */}
           <div className="xl:col-span-7 space-y-4">
             <Panel className="overflow-hidden !p-0 ring-1 ring-indigo-500/10">
               <div className="px-6 py-4 bg-gradient-to-r from-indigo-50 to-violet-50 border-b border-indigo-100/80">
@@ -709,7 +715,7 @@ function EnrollmentPageContent() {
             </Panel>
           </div>
 
-          {/* Colonne droite â€” Ã©lÃ¨ve cible */}
+          {/* Colonne droite "" élève cible */}
           <div className="xl:col-span-5 xl:sticky xl:top-6 space-y-4">
             <Panel>
               <PanelHeader

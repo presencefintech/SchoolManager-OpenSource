@@ -288,6 +288,7 @@ function StudentsPageContent() {
   const studentId = Number(searchParams.get('studentId')) || 0
 
   const { data: schools, isLoading: schoolsLoading } = useSchools()
+  const { data: heroStats } = useStudentSchoolStats(schoolId)
 
   const pushParams = useCallback((mutate: (p: URLSearchParams) => void) => {
     const p = new URLSearchParams(searchParams.toString())
@@ -331,44 +332,61 @@ function StudentsPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50/80">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-500/20 via-transparent to-transparent" />
-        <div className="relative max-w-6xl mx-auto px-8 pt-8 pb-10">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
-                <GraduationCap size={22} className="text-indigo-200" />
+      {/* Header */}
+      <div className="bg-white border-b border-zinc-200/80">
+        <div className="max-w-6xl mx-auto px-8 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                <GraduationCap size={17} className="text-indigo-600" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Gestion des élèves</h1>
-                <p className="text-sm text-indigo-200/70 mt-1">
-                  Liste par établissement · fiche 360° au clic · audit des consultations
-                </p>
+                <h1 className="text-base font-semibold text-zinc-900">Gestion des élèves</h1>
+                <p className="text-xs text-zinc-400 mt-0.5">Fiche 360° · suivi financier · audit PII</p>
               </div>
             </div>
+
+            <div className="flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-1.5 bg-white">
+              <Users size={13} className="text-zinc-400 flex-shrink-0" />
+              {schoolsLoading ? (
+                <div className="h-5 w-48 bg-zinc-100 rounded animate-pulse" />
+              ) : (
+                <select
+                  value={schoolId}
+                  onChange={(e) => setSchoolId(Number(e.target.value))}
+                  className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[200px] cursor-pointer"
+                >
+                  <option value={0}>Sélectionner un établissement</option>
+                  {schools?.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
           </div>
+
+          {schoolId > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
+              {[
+                { label: 'Total élèves', value: heroStats?.totalStudents ?? '—', icon: GraduationCap },
+                { label: 'Présents auj.', value: heroStats?.presentToday ?? '—', sub: heroStats?.lateToday ? `${heroStats.lateToday} en retard` : undefined, icon: CheckCircle2 },
+                { label: 'Taux présence', value: heroStats?.attendanceRate != null ? `${heroStats.attendanceRate}%` : '—', icon: BarChart3 },
+                { label: 'Classes', value: heroStats?.totalClasses ?? '—', icon: BookOpen },
+              ].map((s) => (
+                <div key={s.label} className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 rounded-lg px-3 py-2">
+                  <s.icon size={13} className="text-zinc-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-800 tabular-nums leading-none">{s.value}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{s.label}{s.sub ? ` · ${s.sub}` : ''}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-8 -mt-4 pb-10 space-y-6">
-        <div className="flex items-center gap-3 bg-white rounded-xl border border-zinc-200/80 shadow-sm px-4 py-3">
-          <label className="text-sm font-medium text-zinc-600 whitespace-nowrap">Établissement</label>
-          {schoolsLoading ? (
-            <div className="h-10 w-56 bg-zinc-100 rounded-lg animate-pulse" />
-          ) : (
-            <select
-              value={schoolId}
-              onChange={(e) => setSchoolId(Number(e.target.value))}
-              className="px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 min-w-[220px]"
-            >
-              <option value={0}>Sélectionner un établissement</option>
-              {schools?.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
+      <div className="max-w-6xl mx-auto px-8 pt-6 pb-10 space-y-6">
 
         {!schoolId ? (
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-8 py-16 text-center">
