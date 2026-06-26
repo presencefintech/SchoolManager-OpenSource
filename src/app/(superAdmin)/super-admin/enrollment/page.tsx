@@ -1,18 +1,23 @@
 ﻿'use client'
 
-import { Suspense, useState, useEffect } from 'react'
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Bot, ShieldCheck, AlertTriangle, Lock, LockOpen,
   Clock, Search, Trash2, CheckCircle, XCircle, Fingerprint,
-  RefreshCw, UserPlus, ImagePlus, FileDown, Info,
+  RefreshCw, UserPlus, ImagePlus, FileDown, Info, Printer,
   GraduationCap, Building2, Sparkles, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSchools, useWorkerHealth, useFinanceAudit, useClasses } from '@/lib/hooks/use-super-admin'
+import { useToggleStudentPaymentLock, useSetStudentGracePeriod } from '@/lib/hooks/use-student-mutations'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { enrollmentApi } from '@/lib/superAdmin/api/enrollment.api'
+import { StudentCard } from '@/components/StudentCard'
+import { mapEnrollmentToStudentCard } from '@/lib/student-card/utils'
+import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/export-actions'
+import type { StudentCardData } from '@/types/student-card'
 
 /* â"€â"€ design system (page) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 
@@ -214,12 +219,18 @@ const hintCls = 'text-[11px] text-zinc-400 mt-1.5 leading-relaxed'
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+function readSchoolIdFromParams(params: URLSearchParams): number | null {
+  const id = Number(params.get('schoolId')) || 0
+  return id > 0 ? id : null
+}
+
 function EnrollmentPageContent() {
   const searchParams = useSearchParams()
   const { data: schools } = useSchools()
+  const [mounted, setMounted] = useState(false)
 
   /* school selector */
-  const [schoolId, setSchoolId] = useState<number | null>(null)
+  const [schoolId, setSchoolId] = useState<number | null>(() => readSchoolIdFromParams(searchParams))
   const { data: workerHealth, isLoading: loadingWorker, refetch: refetchWorker } = useWorkerHealth(schoolId ?? 0)
   const { data: financeAudit, isLoading: loadingFinance, refetch: refetchFinance } = useFinanceAudit(schoolId ?? 0)
 
@@ -252,13 +263,29 @@ function EnrollmentPageContent() {
   const [creating, setCreating] = useState(false)
   const [createResult, setCreateResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [lastCreatedStudentId, setLastCreatedStudentId] = useState<number | null>(null)
-  const [lastPdfCard, setLastPdfCard] = useState<string | null>(null)
+  const [lastCardData, setLastCardData] = useState<StudentCardData | null>(null)
+  const [downloadingCard, setDownloadingCard] = useState(false)
+  const [cardExportReady, setCardExportReady] = useState(false)
+  const cardElementRef = useRef<HTMLDivElement | null>(null)
+  const handleCardElement = useCallback((el: HTMLDivElement | null) => {
+    cardElementRef.current = el
+  }, [])
   const { data: createClasses } = useClasses(Number(createSchoolId) || 0)
+  const toggleLock = useToggleStudentPaymentLock()
+  const setGracePeriod = useSetStudentGracePeriod()
+
+  const lockSchoolId = schoolId ?? Number(integrity?.schoolId) ?? Number(createSchoolId) ?? 0
+  const isLockedOptimistic = integrity?.isPaymentLocked === true
+    || integrity?.isPaymentLocked === 'true'
+    || (typeof integrity?.isPaymentLocked === 'string' && integrity.isPaymentLocked === '1')
 
   useEffect(() => {
-    const urlSchoolId = Number(searchParams.get('schoolId')) || 0
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    setSchoolId(readSchoolIdFromParams(searchParams))
     const urlStudentId = searchParams.get('studentId')?.trim() ?? ''
-    if (urlSchoolId > 0) setSchoolId(urlSchoolId)
     if (urlStudentId) setStudentId(urlStudentId)
   }, [searchParams])
 
@@ -309,13 +336,57 @@ function EnrollmentPageContent() {
     }
   }
 
+  function handleToggleLock(isLocked: boolean) {
+    const sid = Number(studentId)
+    if (!sid || lockSchoolId <= 0) {
+      setActionResult({ type: 'error', message: 'Sélectionnez une école et un élève valide.' })
+      return
+    }
+    const previousIntegrity = integrity
+    setIntegrity((prev) => (prev ? { ...prev, isPaymentLocked: isLocked } : prev))
+    setActionResult(null)
+    toggleLock.mutate(
+      { studentId: sid, schoolId: lockSchoolId, isLocked },
+      {
+        onSuccess: (r) => setActionResult({ type: 'success', message: r.message ?? 'Verrou mis à jour.' }),
+        onError: (e: unknown) => {
+          setIntegrity(previousIntegrity)
+          const err = e as { response?: { data?: { message?: string } } }
+          setActionResult({ type: 'error', message: err.response?.data?.message ?? 'Échec du verrouillage.' })
+        },
+      },
+    )
+  }
+
+  function handleSetGrace(until: string | null) {
+    const sid = Number(studentId)
+    if (!sid) return
+    const previousIntegrity = integrity
+    setIntegrity((prev) => (prev ? { ...prev, gracePeriodUntil: until } : prev))
+    setActionResult(null)
+    setGracePeriod.mutate(
+      { studentId: sid, until },
+      {
+        onSuccess: (r) => {
+          setActionResult({ type: 'success', message: r.message ?? 'Période de grâce mise à jour.' })
+          if (!until) setGraceUntil('')
+        },
+        onError: (e: unknown) => {
+          setIntegrity(previousIntegrity)
+          const err = e as { response?: { data?: { message?: string } } }
+          setActionResult({ type: 'error', message: err.response?.data?.message ?? 'Échec de la mise à jour.' })
+        },
+      },
+    )
+  }
+
   function clearCreatePhoto() {
     if (createPhotoPreview) URL.revokeObjectURL(createPhotoPreview)
     setCreatePhoto(null)
     setCreatePhotoPreview(null)
   }
 
-  function resetCreateFields() {
+  function resetCreateFields(keepPhoto = false) {
     setCreateFirstName('')
     setCreateLastName('')
     setCreateSchoolId('')
@@ -326,14 +397,15 @@ function EnrollmentPageContent() {
     setCreateNationality('')
     setCreateAcademicYear('')
     setCreateOverrideReason('')
-    clearCreatePhoto()
+    if (!keepPhoto) clearCreatePhoto()
   }
 
   function resetCreateForm() {
     resetCreateFields()
     setCreateResult(null)
     setLastCreatedStudentId(null)
-    setLastPdfCard(null)
+    setLastCardData(null)
+    setCardExportReady(false)
   }
 
   function handleCreatePhotoChange(file: File | null) {
@@ -352,12 +424,30 @@ function EnrollmentPageContent() {
     setCreateResult(null)
   }
 
-  function downloadStudentCardPdf() {
-    if (!lastPdfCard) return
-    const a = document.createElement('a')
-    a.href = lastPdfCard
-    a.download = `carte_eleve_${lastCreatedStudentId ?? 'nouveau'}.pdf`
-    a.click()
+  async function handleDownloadCard() {
+    if (!lastCardData || !lastCreatedStudentId || !cardExportReady) return
+    setDownloadingCard(true)
+    try {
+      await downloadStudentCardPdf(lastCardData, `carte_eleve_${lastCreatedStudentId}.pdf`, {
+        sourceElement: cardElementRef.current,
+      })
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : 'Impossible de générer le PDF. Attendez la validation QR ou réessayez.'
+      setCreateResult({ type: 'error', message })
+    } finally {
+      setDownloadingCard(false)
+    }
+  }
+
+  async function handlePrintCard() {
+    if (!lastCardData || !cardExportReady) return
+    try {
+      await printStudentCard(lastCardData, { sourceElement: cardElementRef.current })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Impossible d\'imprimer la carte.'
+      setCreateResult({ type: 'error', message })
+    }
   }
 
   async function runCreateStudent() {
@@ -365,7 +455,8 @@ function EnrollmentPageContent() {
     setCreating(true)
     setCreateResult(null)
     setLastCreatedStudentId(null)
-    setLastPdfCard(null)
+    setLastCardData(null)
+    setCardExportReady(false)
     try {
       const result = await enrollmentApi.createStudent(
         {
@@ -384,15 +475,29 @@ function EnrollmentPageContent() {
       )
       const { student } = result
       const matricule = student.matricule ? `, matricule ${student.matricule}` : ''
-      const pdfNote = result.pdfWarning ? ' (carte PDF non générée)' : result.pdfCard ? ' — carte PDF disponible' : ''
+      const photoForCard = student.photoUrl ?? createPhotoPreview
+      const keepPhotoBlob = Boolean(!student.photoUrl && createPhotoPreview)
       setLastCreatedStudentId(student.id)
-      setLastPdfCard(result.pdfCard ?? null)
+      const school = schools?.find((s) => s.id === student.schoolId)
+      const cls = createClasses?.data.find((c) => c.id === student.classId)
+      setLastCardData(
+        mapEnrollmentToStudentCard(result, {
+          schoolName: school?.name ?? 'Établissement',
+          schoolCity: school?.city ?? null,
+          className: cls?.name ?? null,
+          academicYear: student.academicYear ?? (createAcademicYear.trim() || cls?.academicYear || null),
+          placeOfBirth: createPlaceOfBirth.trim() || student.placeOfBirth || null,
+          nationality: createNationality.trim() || student.nationality || null,
+          gender: createGender === 'MALE' || createGender === 'FEMALE' ? createGender : null,
+          photoUrl: photoForCard,
+        }),
+      )
       setCreateResult({
         type: 'success',
-        message: `Élève créé : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule})${pdfNote}`,
+        message: `Élève créé : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule}) — carte disponible ci-dessous`,
       })
       setStudentId(String(student.id))
-      resetCreateFields()
+      resetCreateFields(keepPhotoBlob)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la création.' })
@@ -505,6 +610,11 @@ function EnrollmentPageContent() {
         {/* â"€â"€ KPIs établissement â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
         {!schoolId ? (
           <EmptySchoolPrompt />
+        ) : !mounted ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Sk className="h-[148px]" />
+            <Sk className="h-[148px]" />
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loadingWorker ? (
@@ -532,9 +642,9 @@ function EnrollmentPageContent() {
           </div>
         )}
 
-        {schoolId && financeAudit && financeAudit.count > 0 && (
+        {mounted && schoolId && financeAudit && financeAudit.count > 0 && (
           <Panel className="!p-4 border-red-100 bg-red-50/40">
-            <p className="text-xs font-medium text-red-800 mb-2">IDs Ã  investiguer</p>
+            <p className="text-xs font-medium text-red-800 mb-2">IDs à investiguer</p>
             <div className="flex flex-wrap gap-1.5">
               {financeAudit.ids.slice(0, 12).map((id) => (
                 <button
@@ -701,14 +811,44 @@ function EnrollmentPageContent() {
                 <ActionResult result={createResult} />
 
                 {createResult?.type === 'success' && lastCreatedStudentId && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {lastPdfCard && (
-                      <button type="button" onClick={downloadStudentCardPdf} className="h-9 flex items-center gap-2 px-3.5 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all">
-                        <FileDown size={14} />
-                        Télécharger la carte PDF
-                      </button>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {lastCardData && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleDownloadCard}
+                            disabled={downloadingCard || !cardExportReady}
+                            title={cardExportReady ? undefined : 'En attente de validation QR…'}
+                            className="h-9 flex items-center gap-2 px-3.5 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-all"
+                          >
+                            {downloadingCard ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+                            Télécharger la carte PDF
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handlePrintCard}
+                            disabled={!cardExportReady}
+                            className="h-9 flex items-center gap-2 px-3.5 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
+                          >
+                            <Printer size={14} />
+                            Imprimer
+                          </button>
+                        </>
+                      )}
+                      <span className="text-xs text-zinc-500">ID #{lastCreatedStudentId} → panneau élève</span>
+                    </div>
+                    {lastCardData && (
+                      <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-5 flex flex-col items-center gap-3">
+                        <p className="text-xs font-medium text-zinc-500 self-start">Aperçu carte élève</p>
+                        <StudentCard
+                          data={lastCardData}
+                          preview
+                          onCardElement={handleCardElement}
+                          onReady={(s) => setCardExportReady(s.canDownload)}
+                        />
+                      </div>
                     )}
-                    <span className="text-xs text-zinc-500">ID #{lastCreatedStudentId} → panneau élève</span>
                   </div>
                 )}
               </div>
@@ -778,19 +918,29 @@ function EnrollmentPageContent() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      disabled={!studentId || loading === 'lock'}
-                      onClick={() => runAction('lock', () => superAdminApi.toggleStudentLock(Number(studentId), true))}
-                      className="h-9 text-xs font-medium rounded-xl border border-red-100 bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-40 transition-all"
+                      disabled={!studentId || toggleLock.isPending}
+                      onClick={() => handleToggleLock(true)}
+                      className={cn(
+                        'h-9 text-xs font-medium rounded-xl border transition-all disabled:opacity-40',
+                        isLockedOptimistic
+                          ? 'border-red-300 bg-red-100 text-red-800'
+                          : 'border-red-100 bg-red-50 text-red-700 hover:bg-red-100',
+                      )}
                     >
-                      Verrouiller
+                      {toggleLock.isPending ? '…' : 'Verrouiller'}
                     </button>
                     <button
                       type="button"
-                      disabled={!studentId || loading === 'unlock'}
-                      onClick={() => runAction('unlock', () => superAdminApi.toggleStudentLock(Number(studentId), false))}
-                      className="h-9 text-xs font-medium rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-40 transition-all"
+                      disabled={!studentId || toggleLock.isPending}
+                      onClick={() => handleToggleLock(false)}
+                      className={cn(
+                        'h-9 text-xs font-medium rounded-xl border transition-all disabled:opacity-40',
+                        !isLockedOptimistic
+                          ? 'border-emerald-300 bg-emerald-100 text-emerald-800'
+                          : 'border-emerald-100 bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+                      )}
                     >
-                      Débloquer
+                      {toggleLock.isPending ? '…' : 'Débloquer'}
                     </button>
                   </div>
                 </div>
@@ -804,16 +954,16 @@ function EnrollmentPageContent() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
-                      disabled={!studentId || !graceUntil || loading === 'grace'}
-                      onClick={() => runAction('grace', () => superAdminApi.setStudentGracePeriod(Number(studentId), graceUntil))}
+                      disabled={!studentId || !graceUntil || setGracePeriod.isPending}
+                      onClick={() => handleSetGrace(graceUntil)}
                       className="h-9 text-xs font-medium rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-all"
                     >
-                      Appliquer
+                      {setGracePeriod.isPending ? '…' : 'Appliquer'}
                     </button>
                     <button
                       type="button"
-                      disabled={!studentId || loading === 'grace-clear'}
-                      onClick={() => runAction('grace-clear', () => superAdminApi.setStudentGracePeriod(Number(studentId), null))}
+                      disabled={!studentId || setGracePeriod.isPending}
+                      onClick={() => handleSetGrace(null)}
                       className="h-9 text-xs font-medium rounded-xl border border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 transition-all"
                     >
                       Lever

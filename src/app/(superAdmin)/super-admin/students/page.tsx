@@ -1,18 +1,27 @@
 'use client'
 
 import { Suspense, useState, useEffect, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   GraduationCap, Search, Users, Clock, BarChart3, BookOpen,
-  AlertTriangle, CheckCircle2, RefreshCw, ChevronLeft, ChevronRight, ChevronRight as RowChevron,
+  AlertTriangle, CheckCircle2, RefreshCw, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSchools, useStudentSchoolStats, useStudentList, useStudentDebtors } from '@/lib/hooks/use-super-admin'
+import { useInvalidateStudentStats } from '@/lib/hooks/use-student-mutations'
+import { queryKeys } from '@/lib/query/keys'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { securityApi } from '@/lib/superAdmin/api/security.api'
-import { StudentDetailPanel } from '@/components/super-admin/students/student-detail-panel'
-import { fmtCurrency, statusBadgeClass } from '@/components/super-admin/students/student-utils'
+import { StudentListRow } from '@/components/super-admin/students/student-list-row'
+import { ListRowSkeleton, StatGridSkeleton } from '@/components/ui/list-skeleton'
+import { fmtCurrency } from '@/components/super-admin/students/student-utils'
+
+const StudentDetailPanel = dynamic(
+  () => import('@/components/super-admin/students/student-detail-panel').then((m) => m.StudentDetailPanel),
+  { ssr: false },
+)
 
 /* ─────────────────────────── sub-components ─────────────────── */
 
@@ -57,8 +66,19 @@ function SchoolView({
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)
-  const [invalidating, setInvalidating] = useState(false)
   const qc = useQueryClient()
+  const invalidateStats = useInvalidateStudentStats(schoolId)
+
+  const prefetchStudent = useCallback(
+    (id: number) => {
+      void qc.prefetchQuery({
+        queryKey: queryKeys.superadmin.students.dashboard(id),
+        queryFn: () => superAdminApi.getStudentDashboard(id),
+        staleTime: 60_000,
+      })
+    },
+    [qc],
+  )
 
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedSearch(search); setPage(1) }, 400)
@@ -73,14 +93,8 @@ function SchoolView({
   })
   const { data: debtors, isLoading: debtorsLoading } = useStudentDebtors(schoolId)
 
-  const handleInvalidate = async () => {
-    setInvalidating(true)
-    try {
-      await superAdminApi.invalidateStats(schoolId)
-      qc.invalidateQueries({ queryKey: ['superadmin', 'students', 'stats', schoolId] })
-    } finally {
-      setInvalidating(false)
-    }
+  const handleInvalidate = () => {
+    invalidateStats.mutate()
   }
 
   const rowCls = (id: number) => cn(
@@ -93,9 +107,7 @@ function SchoolView({
   return (
     <div className="space-y-5">
       {statsLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-zinc-100 rounded-xl animate-pulse" />)}
-        </div>
+        <StatGridSkeleton />
       ) : stats ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Total élèves" value={stats.totalStudents} icon={Users} color="indigo" />
@@ -134,10 +146,10 @@ function SchoolView({
         <button
           type="button"
           onClick={handleInvalidate}
-          disabled={invalidating}
+          disabled={invalidateStats.isPending}
           className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm text-zinc-500 border border-zinc-200 bg-white hover:bg-zinc-50 transition-all disabled:opacity-50"
         >
-          <RefreshCw size={13} className={invalidating ? 'animate-spin' : ''} />
+          <RefreshCw size={13} className={invalidateStats.isPending ? 'animate-spin' : ''} />
           Invalider le cache
         </button>
       </div>
@@ -161,52 +173,18 @@ function SchoolView({
           </div>
 
           {listLoading ? (
-            <div className="divide-y divide-zinc-100">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="px-5 py-4 flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-full bg-zinc-100 animate-pulse" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 w-40 bg-zinc-100 rounded animate-pulse" />
-                    <div className="h-3 w-24 bg-zinc-100 rounded animate-pulse" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ListRowSkeleton rows={5} />
           ) : list?.data?.length ? (
             <>
               <div className="divide-y divide-zinc-100">
                 {list.data.map((s) => (
-                  <button
+                  <StudentListRow
                     key={s.id}
-                    type="button"
-                    onClick={() => onSelectStudent(s.id)}
-                    className={rowCls(s.id)}
-                  >
-                    <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-semibold text-indigo-700">
-                        {s.firstName[0]}{s.lastName[0]}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-800 truncate">
-                        {s.firstName} {s.lastName}
-                      </p>
-                      <p className="text-xs text-zinc-400 truncate">
-                        {s.class?.name ?? '—'} · {s.matricule ?? 'Pas de matricule'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={cn('px-2 py-0.5 text-xs rounded-full ring-1', statusBadgeClass(s.status))}>
-                        {s.status}
-                      </span>
-                      {s.isPaymentLocked && (
-                        <span className="px-2 py-0.5 text-xs rounded-full bg-red-50 text-red-600 ring-1 ring-red-200">
-                          Verrouillé
-                        </span>
-                      )}
-                      <RowChevron size={14} className="text-zinc-300 group-hover:text-indigo-400 transition-colors" />
-                    </div>
-                  </button>
+                    student={s}
+                    selected={selectedStudentId === s.id}
+                    onSelect={onSelectStudent}
+                    onHover={prefetchStudent}
+                  />
                 ))}
               </div>
 
@@ -241,9 +219,7 @@ function SchoolView({
           </div>
 
           {debtorsLoading ? (
-            <div className="divide-y divide-zinc-100">
-              {[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-zinc-50 animate-pulse" />)}
-            </div>
+            <ListRowSkeleton rows={4} />
           ) : debtors?.length ? (
             <div className="divide-y divide-zinc-100">
               {debtors.map((d, i) => (
@@ -262,7 +238,7 @@ function SchoolView({
                     <p className="text-xs text-zinc-400 truncate">{d.class?.name ?? '—'} · {d.matricule ?? 'Pas de matricule'}</p>
                   </div>
                   <span className="text-sm font-semibold text-rose-600 tabular-nums">{fmtCurrency(Number(d.feesBalance))}</span>
-                  <RowChevron size={14} className="text-zinc-300 group-hover:text-indigo-400" />
+                  <ChevronRight size={14} className="text-zinc-300 group-hover:text-indigo-400" />
                 </button>
               ))}
             </div>
@@ -332,7 +308,6 @@ function StudentsPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-50/80">
-      {/* Header */}
       <div className="bg-white border-b border-zinc-200/80">
         <div className="max-w-6xl mx-auto px-8 py-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -387,7 +362,6 @@ function StudentsPageContent() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 pt-6 pb-10 space-y-6">
-
         {!schoolId ? (
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-8 py-16 text-center">
             <GraduationCap size={36} className="mx-auto text-zinc-300 mb-3" />
@@ -402,14 +376,28 @@ function StudentsPageContent() {
           />
         )}
 
-        <StudentDetailPanel
-          studentId={studentId}
-          schoolId={schoolId}
-          open={studentId > 0 && schoolId > 0}
-          onClose={closePanel}
-        />
+        {studentId > 0 && schoolId > 0 && (
+          <StudentDetailPanel
+            studentId={studentId}
+            schoolId={schoolId}
+            open
+            onClose={closePanel}
+          />
+        )}
       </div>
     </div>
   )
 }
-
+
+export default function StudentsPage() {
+  return (
+    <Suspense fallback={
+      <div className="px-8 py-8 max-w-6xl mx-auto">
+        <div className="h-10 w-64 bg-zinc-100 rounded-lg animate-pulse mb-8" />
+        <div className="h-96 bg-zinc-100 rounded-xl animate-pulse" />
+      </div>
+    }>
+      <StudentsPageContent />
+    </Suspense>
+  )
+}

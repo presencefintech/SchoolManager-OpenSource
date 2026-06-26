@@ -1,0 +1,46 @@
+/**
+ * Données affichées sur la carte élève (format badge CR80 — 85.6 × 54 mm).
+ */
+export type StudentCardFinancialStatus = 'current' | 'alert' | 'standard'
+
+export type StudentCardGender = 'MALE' | 'FEMALE' | 'M' | 'F'
+
+export interface StudentCardData {
+  studentId: number
+  firstName: string
+  lastName: string
+  matricule: string | null
+  className: string | null
+  section: string | null
+  option: string | null
+  photoUrl: string | null
+  qrPayload: string
+  schoolName: string
+  schoolCity?: string | null
+  schoolLogoUrl?: string | null
+  academicYear: string | null
+  placeOfBirth: string | null
+  nationality: string | null
+  gender: StudentCardGender | null
+  financialStatus: StudentCardFinancialStatus
+}
+
+export interface StudentCardProps {
+  data: StudentCardData
+  preview?: boolean
+  className?: string
+  id?: string
+}
+
+export interface StudentCardPhotoProps {
+  photoUrl: string | null
+  firstName: string
+  lastName: string
+  className?: string
+}
+
+export interface StudentCardFinancialInput {
+  feesBalance?: number | null
+  isUpToDate?: boolean | null
+  isPaymentLocked?: boolean | null
+}
