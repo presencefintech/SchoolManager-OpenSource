@@ -28,9 +28,10 @@ apiClient.interceptors.response.use(
         localStorage.clear()
         document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
         document.cookie = 'auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      clearAuthStorage()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
+        clearAuthStorage()
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login'
+        }
       }
     }
     return Promise.reject(error)

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useMemo } from 'react'
-import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, UserX, RefreshCw, CheckCircle, XCircle,
@@ -288,96 +287,85 @@ export default function PresencePage() {
       <div className="bg-white border-b border-zinc-200/80">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
-    <div className="min-h-screen bg-zinc-50">
-
-      {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-[22px] font-semibold text-zinc-900 tracking-tight">Présence</h1>
-            <p className="text-xs text-zinc-400 mt-0.5">Dashboard live · enregistrement forcé · validation · sync offline</p>
-          </div>
-          {schoolId && (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <ScanLine size={17} className="text-emerald-600" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-semibold text-zinc-900">Présence</h1>
-                  {schoolId && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Live
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  {selectedSchool ? `${selectedSchool.name} — ${selectedSchool.city}` : 'Dashboard temps réel · flux de scans · suivi des absences'}
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <ScanLine size={17} className="text-emerald-600" />
             </div>
-
-            <div className="flex items-center gap-2">
-              {schoolId && lastRefresh && (
-                <span className="text-[11px] text-zinc-400 tabular-nums">MAJ {lastRefresh}</span>
-              )}
-              {schoolId && (
-                <button
-                  onClick={() => refetch()}
-                  disabled={isLoading}
-                  className="h-8 w-8 flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 transition-all disabled:opacity-40"
-                >
-                  <RefreshCw size={13} className={cn(isLoading && 'animate-spin')} />
-                </button>
-              )}
-              <div className="flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-1.5 bg-white">
-                <Building2 size={13} className="text-zinc-400" />
-                <select
-                  value={schoolId ?? ''}
-                  onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
-                  className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[220px] cursor-pointer"
-                >
-                  <option value="">Sélectionner un établissement…</option>
-                  {schools?.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} — {s.city}
-                    </option>
-                  ))}
-                </select>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-semibold text-zinc-900">Présence</h1>
+                {schoolId && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live
+                  </span>
+                )}
               </div>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                {selectedSchool ? `${selectedSchool.name} — ${selectedSchool.city}` : 'Dashboard temps réel · flux de scans · suivi des absences'}
+              </p>
             </div>
           </div>
 
-          {/* Stat chips quand une école est chargée */}
-          {schoolId && dashboard && (
-            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
-              {[
-                { label: 'Présents', value: dashboard.stats.presentCount, icon: Users },
-                { label: 'Absents', value: dashboard.stats.absentCount, icon: UserX },
-                { label: 'Taux de présence', value: `${rate}%`, icon: BarChart3 },
-                { label: 'Total actifs', value: total, icon: Clock },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 rounded-lg px-3 py-2">
-                  <s.icon size={13} className="text-zinc-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-800 tabular-nums leading-none">{s.value}</p>
-                    <p className="text-[10px] text-zinc-400 mt-0.5">{s.label}</p>
-                  </div>
-                  <p className="text-xl font-bold tabular-nums">{s.value}</p>
-                </div>
-              ))}
+          <div className="flex items-center gap-2">
+            {schoolId && lastRefresh && (
+              <span className="text-[11px] text-zinc-400 tabular-nums">MAJ {lastRefresh}</span>
+            )}
+            {schoolId && (
+              <button
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="h-8 w-8 flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 transition-all disabled:opacity-40"
+              >
+                <RefreshCw size={13} className={cn(isLoading && 'animate-spin')} />
+              </button>
+            )}
+            <div className="flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-1.5 bg-white">
+              <Building2 size={13} className="text-zinc-400" />
+              <select
+                value={schoolId ?? ''}
+                onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
+                className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[220px] cursor-pointer"
+              >
+                <option value="">Sélectionner un établissement…</option>
+                {schools?.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} — {s.city}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-          {schoolId && isLoading && (
-            <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-10 w-32 bg-zinc-100 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
-      </motion.div>
+
+        {/* Stat chips quand une école est chargée */}
+        {schoolId && dashboard && (
+          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
+            {[
+              { label: 'Présents', value: dashboard.stats.presentCount, icon: Users },
+              { label: 'Absents', value: dashboard.stats.absentCount, icon: UserX },
+              { label: 'Taux de présence', value: `${rate}%`, icon: BarChart3 },
+              { label: 'Total actifs', value: total, icon: Clock },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center gap-2 bg-zinc-50 border border-zinc-100 rounded-lg px-3 py-2">
+                <s.icon size={13} className="text-zinc-400 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-zinc-800 tabular-nums leading-none">{s.value}</p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {schoolId && isLoading && (
+          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-zinc-100">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-10 w-32 bg-zinc-100 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
 

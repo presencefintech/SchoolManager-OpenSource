@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -29,6 +30,8 @@ const NAV_LINKS = [
 export function SuperAdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
+  const queryClient = useQueryClient()
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()

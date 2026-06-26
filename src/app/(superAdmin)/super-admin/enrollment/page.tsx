@@ -2,7 +2,6 @@
 
 import { Suspense, useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Bot, ShieldCheck, AlertTriangle, Lock, LockOpen,
@@ -457,8 +456,6 @@ function EnrollmentPageContent() {
 
       {/* Header */}
       <div className="bg-white border-b border-zinc-200/80">
-      {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
-      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -501,7 +498,7 @@ function EnrollmentPageContent() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-8 space-y-8">
 
