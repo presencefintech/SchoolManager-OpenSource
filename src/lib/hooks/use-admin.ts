@@ -489,7 +489,7 @@ export function useProcessManualPayment() {
 export function useVerifyPayment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { paymentId: number; step: string; note?: string }) =>
+    mutationFn: (payload: { verificationId: number; action: 'ADMIN' | 'FINANCE' | 'REJECT'; notes?: string }) =>
       financeApi.verifyPaymentStep(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] }),
   })
@@ -514,7 +514,7 @@ export function useTriggerManualAudit() {
 export function useSetupFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: Record<string, unknown>) => financeApi.setupFeeStructure(payload),
+    mutationFn: (payload: FeeStructurePayload) => financeApi.setupFeeStructure(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
   })
 }

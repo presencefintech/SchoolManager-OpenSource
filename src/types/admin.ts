@@ -342,6 +342,7 @@ export interface FinanceKpi {
 }
 
 export interface PendingPayment {
+  verificationId?: number
   id: number
   studentName: string
   amount: number

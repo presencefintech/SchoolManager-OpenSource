@@ -164,7 +164,7 @@ export default function PaiementsPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const { data: searchResults } = useAdvancedSearch(searchParams)
 
-  const filteredPending = (pending as any[]).filter(p =>
+  const filteredPending = pending.filter(p =>
     !search || p.studentName?.toLowerCase().includes(search.toLowerCase()) || p.reference?.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -178,10 +178,10 @@ export default function PaiementsPage() {
           <h1 className="text-2xl font-bold text-zinc-900">Paiements</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Vérification et validation des paiements</p>
         </div>
-        {(pending as any[]).length > 0 && (
+        {pending.length > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100">
             <DollarSign size={13} className="text-amber-600" />
-            <span className="text-xs font-medium text-amber-700">{(pending as any[]).length} en attente</span>
+            <span className="text-xs font-medium text-amber-700">{pending.length} en attente</span>
           </div>
         )}
       </motion.div>
@@ -316,7 +316,7 @@ export default function PaiementsPage() {
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-zinc-900">Vérifications en attente</h3>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{(pending as any[]).length}</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{pending.length}</span>
         </div>
         {filteredPending.length === 0 ? (
           <EmptyState icon={CheckCircle} message="Aucun paiement en attente" />
@@ -334,8 +334,8 @@ export default function PaiementsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPending.map((p: any) => (
-                  <tr key={p.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                {filteredPending.map((p) => (
+                  <tr key={p.verificationId ?? p.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-5 py-3.5 font-medium text-zinc-900">{p.studentName}</td>
                     <td className="px-5 py-3.5 text-zinc-700 font-medium">{Number(p.amount).toLocaleString('fr-FR')} F</td>
                     <td className="px-5 py-3.5"><span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">{p.method}</span></td>
@@ -343,11 +343,11 @@ export default function PaiementsPage() {
                     <td className="px-5 py-3.5 text-zinc-400 text-xs">{new Date(p.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
-                        <button disabled={verifying} onClick={() => verify({ paymentId: p.id, step: 'approve' })}
+                        <button disabled={verifying} onClick={() => verify({ verificationId: p.verificationId ?? p.id, action: 'ADMIN' })}
                           className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 transition-colors" title="Valider">
                           <CheckCircle size={14} />
                         </button>
-                        <button disabled={verifying} onClick={() => verify({ paymentId: p.id, step: 'reject' })}
+                        <button disabled={verifying} onClick={() => verify({ verificationId: p.verificationId ?? p.id, action: 'REJECT' })}
                           className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors" title="Rejeter">
                           <XCircle size={14} />
                         </button>
@@ -369,17 +369,17 @@ export default function PaiementsPage() {
         )}
       </div>
 
-      {(mobilePending as any[]).length > 0 && (
+      {mobilePending.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Smartphone size={14} className="text-zinc-400" />
               <h3 className="text-sm font-semibold text-zinc-900">Mobile Money en attente</h3>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{(mobilePending as any[]).length}</span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{mobilePending.length}</span>
           </div>
           <div className="divide-y divide-zinc-50">
-            {(mobilePending as any[]).map((m) => (
+            {mobilePending.map((m) => (
               <div key={m.id} className="flex items-center justify-between px-5 py-3.5">
                 <div>
                   <p className="text-sm font-medium text-zinc-900">{m.studentName}</p>
