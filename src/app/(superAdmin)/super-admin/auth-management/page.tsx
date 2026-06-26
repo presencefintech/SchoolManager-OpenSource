@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   LogOut, KeyRound, Trash2, Mail, QrCode,
   CheckCircle2, AlertCircle, Loader2, RefreshCw, Users,
@@ -274,12 +275,12 @@ export default function AuthManagementPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* Header */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-6xl mx-auto px-8 py-6">
           <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Gestion des accès</h1>
           <p className="text-sm text-zinc-400 mt-1">Sessions · Invitations · Comptes</p>
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-6xl mx-auto px-8 py-8 space-y-10">
 

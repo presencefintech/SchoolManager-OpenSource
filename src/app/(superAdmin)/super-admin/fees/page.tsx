@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   Building2, Plus, RefreshCw, FileText, Tag,
   Zap, Search, CheckCircle2, XCircle, History,
@@ -255,7 +256,7 @@ export default function FeesPage() {
     <div className="min-h-screen bg-zinc-50">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-zinc-200">
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between gap-6">
           <div>
             <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Frais & Facturation</h1>
@@ -275,7 +276,7 @@ export default function FeesPage() {
             </select>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {!schoolId ? (
         <div className="max-w-7xl mx-auto px-8 py-24 flex flex-col items-center gap-4 text-zinc-400">

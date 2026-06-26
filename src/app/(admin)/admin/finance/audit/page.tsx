@@ -1,0 +1,235 @@
+'use client'
+
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import {
+  Shield, AlertTriangle, ClipboardList, CheckCircle, Send, XCircle,
+} from 'lucide-react'
+import {
+  useFinanceFraudAlerts, useFinanceAuditLogs, useTriggerManualAudit,
+  useFinanceIntegrityScan, useFinanceRiskProfiles, useFinanceDuplicates,
+  useFinanceLedger,
+} from '@/lib/hooks/use-admin'
+
+function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
+  return (
+    <div className="py-12 text-center">
+      <Icon size={28} className="mx-auto text-zinc-300 mb-2" />
+      <p className="text-sm text-zinc-400">{message}</p>
+    </div>
+  )
+}
+
+export default function AuditPage() {
+  const { data: alerts = [] } = useFinanceFraudAlerts()
+  const { data: logs = [] } = useFinanceAuditLogs()
+  const { mutate: triggerAudit, isPending: auditing } = useTriggerManualAudit()
+  const { data: integrity } = useFinanceIntegrityScan()
+  const { data: riskProfiles } = useFinanceRiskProfiles()
+  const { data: duplicates } = useFinanceDuplicates()
+  const { data: ledger } = useFinanceLedger()
+  const [logPage, setLogPage] = useState(1)
+  const LOGS_PER_PAGE = 20
+
+  const integ = integrity as any
+  const rp = riskProfiles as any
+  const dup = duplicates as any
+
+  const paginatedLogs = (logs as any[]).slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE)
+  const totalLogPages = Math.ceil((logs as any[]).length / LOGS_PER_PAGE)
+
+  return (
+    <div className="space-y-6">
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+      >
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">Audit & Fraude</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Surveillance, intégrité et détection des anomalies</p>
+        </div>
+        <button
+          onClick={() => triggerAudit()}
+          disabled={auditing}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+        >
+          <Send size={13} />
+          {auditing ? 'Audit en cours...' : 'Déclencher audit manuel'}
+        </button>
+      </motion.div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
+              <Shield size={14} className="text-blue-500" />
+            </div>
+            <p className="text-xs text-zinc-500">Intégrité</p>
+          </div>
+          <p className="text-2xl font-bold text-zinc-900">
+            {integ?.errors ?? integ?.errorCount ?? (integ ? Object.keys(integ).length : '—')}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">erreurs détectées</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+              <AlertTriangle size={14} className="text-amber-500" />
+            </div>
+            <p className="text-xs text-zinc-500">Profils à risque</p>
+          </div>
+          <p className="text-2xl font-bold text-zinc-900">
+            {Array.isArray(rp) ? rp.length : rp?.count ?? '—'}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">profils identifiés</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
+              <XCircle size={14} className="text-red-500" />
+            </div>
+            <p className="text-xs text-zinc-500">Doublons</p>
+          </div>
+          <p className="text-2xl font-bold text-zinc-900">
+            {Array.isArray(dup) ? dup.length : dup?.count ?? '—'}
+          </p>
+          <p className="text-xs text-zinc-400 mt-1">doublons détectés</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-zinc-900">Alertes fraude</h3>
+          {(alerts as any[]).length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{(alerts as any[]).length}</span>
+          )}
+        </div>
+        {(alerts as any[]).length === 0 ? (
+          <EmptyState icon={CheckCircle} message="Aucune alerte fraude" />
+        ) : (
+          <div className="divide-y divide-zinc-50">
+            {(alerts as any[]).map((alert) => (
+              <div key={alert.id} className="px-5 py-4 flex items-start gap-3">
+                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${alert.severity === 'HIGH' ? 'bg-red-500' : alert.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-zinc-400'}`} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${alert.severity === 'HIGH' ? 'bg-red-50 text-red-700' : alert.severity === 'MEDIUM' ? 'bg-amber-50 text-amber-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                      {alert.severity}
+                    </span>
+                    <span className="text-xs font-medium text-zinc-700">{alert.type}</span>
+                    {alert.studentName && <span className="text-xs text-zinc-500">{alert.studentName}</span>}
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">{alert.description}</p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  {alert.amount != null && <p className="text-sm font-semibold text-zinc-900">{Number(alert.amount).toLocaleString('fr-FR')} F</p>}
+                  <p className="text-xs text-zinc-400">{new Date(alert.createdAt).toLocaleDateString('fr-FR')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {rp && Array.isArray(rp) && rp.length > 0 && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+          <div className="px-5 py-4 border-b border-zinc-100">
+            <h3 className="text-sm font-semibold text-zinc-900">Profils à risque</h3>
+          </div>
+          <div className="divide-y divide-zinc-50">
+            {rp.map((r: any, i: number) => (
+              <div key={r.id ?? i} className="px-5 py-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">{r.studentName ?? r.name ?? `Profil #${r.id ?? i + 1}`}</p>
+                  {r.reason && <p className="text-xs text-zinc-400">{r.reason}</p>}
+                </div>
+                {r.score != null && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.score > 70 ? 'bg-red-50 text-red-700' : r.score > 40 ? 'bg-amber-50 text-amber-700' : 'bg-zinc-100 text-zinc-500'}`}>
+                    Score {r.score}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {dup && Array.isArray(dup) && dup.length > 0 && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+          <div className="px-5 py-4 border-b border-zinc-100">
+            <h3 className="text-sm font-semibold text-zinc-900">Doublons détectés</h3>
+          </div>
+          <div className="divide-y divide-zinc-50">
+            {dup.map((d: any, i: number) => (
+              <div key={d.id ?? i} className="px-5 py-3.5">
+                <p className="text-sm text-zinc-700">{d.description ?? d.reference ?? `Doublon #${i + 1}`}</p>
+                {d.amount != null && <p className="text-xs text-zinc-400">{Number(d.amount).toLocaleString('fr-FR')} F</p>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {ledger && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-zinc-900 mb-4">Grand livre (Ledger)</h3>
+          <div className="space-y-2">
+            {Object.entries(ledger as object).map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
+                <span className="text-xs text-zinc-500 capitalize">{k.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
+                <span className="text-xs font-semibold text-zinc-800">
+                  {typeof v === 'number' ? Number(v).toLocaleString('fr-FR') : String(v)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="px-5 py-4 border-b border-zinc-100">
+          <h3 className="text-sm font-semibold text-zinc-900">Journal d'audit</h3>
+        </div>
+        {(logs as any[]).length === 0 ? (
+          <EmptyState icon={ClipboardList} message="Aucun événement d'audit" />
+        ) : (
+          <>
+            <div className="divide-y divide-zinc-50">
+              {paginatedLogs.map((log: any) => (
+                <div key={log.id} className="px-5 py-3.5 flex items-start gap-3">
+                  <div className="w-2 h-2 rounded-full bg-zinc-300 mt-1.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-semibold text-zinc-700 uppercase tracking-wide">{log.action}</span>
+                      <span className="text-xs text-zinc-400">{log.resource}</span>
+                      {log.actorEmail && <span className="text-xs text-zinc-400">· {log.actorEmail}</span>}
+                    </div>
+                    {log.description && <p className="text-xs text-zinc-500 mt-0.5">{log.description}</p>}
+                  </div>
+                  <span className="text-xs text-zinc-400 flex-shrink-0">
+                    {new Date(log.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {totalLogPages > 1 && (
+              <div className="px-5 py-3 border-t border-zinc-100 flex items-center justify-between">
+                <span className="text-xs text-zinc-400">Page {logPage} / {totalLogPages}</span>
+                <div className="flex gap-2">
+                  <button disabled={logPage === 1} onClick={() => setLogPage(p => p - 1)}
+                    className="px-3 py-1 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40">
+                    Précédent
+                  </button>
+                  <button disabled={logPage === totalLogPages} onClick={() => setLogPage(p => p + 1)}
+                    className="px-3 py-1 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40">
+                    Suivant
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

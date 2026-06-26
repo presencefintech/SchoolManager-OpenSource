@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -37,7 +38,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-md px-4">
+    <motion.div
+      className="w-full max-w-md px-4"
+      initial={{ opacity: 0, scale: 0.96, y: 16 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+    >
       <div className="bg-white rounded-2xl shadow-2xl shadow-black/20 p-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -132,6 +138,6 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
-    </div>
+    </motion.div>
   )
 }

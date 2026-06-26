@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   BookOpen, Search, Users, TrendingUp, AlertTriangle, CheckCircle2,
   XCircle, ChevronLeft, ChevronRight, Lock, Unlock, RefreshCw,
@@ -514,7 +515,12 @@ export default function ClassesPage() {
   return (
     <div className="px-8 py-8 space-y-7 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Gestion des classes</h1>
           <p className="text-sm text-zinc-500 mt-1">Liste, audit, performances, rollover et conflits enseignants</p>
@@ -522,7 +528,7 @@ export default function ClassesPage() {
         <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
           <BookOpen size={18} className="text-white" />
         </div>
-      </div>
+      </motion.div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">

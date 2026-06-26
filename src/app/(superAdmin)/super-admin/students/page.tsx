@@ -415,13 +415,77 @@ function StudentsPageContent() {
 
 export default function StudentsPage() {
   return (
-    <Suspense fallback={
-      <div className="px-8 py-8 max-w-6xl mx-auto">
-        <div className="h-10 w-64 bg-zinc-100 rounded-lg animate-pulse mb-8" />
-        <div className="h-96 bg-zinc-100 rounded-xl animate-pulse" />
+    <div className="px-8 py-8 space-y-7 max-w-6xl mx-auto">
+      {/* Header */}
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Gestion des élèves</h1>
+          <p className="text-sm text-zinc-500 mt-1">Statistiques, liste paginée, débiteurs et fiches individuelles</p>
+        </div>
+        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm">
+          <GraduationCap size={18} className="text-white" />
+        </div>
+      </motion.div>
+
+      {/* Main tab switch */}
+      <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('school')}
+          className={cn('flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all', activeTab === 'school' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700')}
+        >
+          <Users size={14} />
+          Vue par école
+        </button>
+        <button
+          onClick={() => setActiveTab('student')}
+          className={cn('flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all', activeTab === 'student' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700')}
+        >
+          <User size={14} />
+          Fiche élève
+        </button>
       </div>
-    }>
-      <StudentsPageContent />
-    </Suspense>
+
+      {/* School tab */}
+      {activeTab === 'school' && (
+        <>
+          {/* School selector */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-zinc-600 whitespace-nowrap">Établissement</label>
+            {schoolsLoading ? (
+              <div className="h-10 w-56 bg-zinc-100 rounded-lg animate-pulse" />
+            ) : (
+              <select
+                value={schoolId}
+                onChange={(e) => setSchoolId(Number(e.target.value))}
+                className="px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 min-w-[220px]"
+              >
+                <option value={0}>Sélectionner un établissement</option>
+                {schools?.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {!schoolId ? (
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-8 py-16 text-center">
+              <GraduationCap size={36} className="mx-auto text-zinc-300 mb-3" />
+              <p className="text-base font-medium text-zinc-500">Sélectionnez un établissement</p>
+              <p className="text-sm text-zinc-400 mt-1">Statistiques et liste des élèves disponibles après sélection</p>
+            </div>
+          ) : (
+            <SchoolView schoolId={schoolId} />
+          )}
+        </>
+      )}
+
+      {/* Student tab */}
+      {activeTab === 'student' && <StudentView />}
+    </div>
   )
 }

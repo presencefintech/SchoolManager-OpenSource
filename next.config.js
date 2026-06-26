@@ -1,13 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  async redirects() {
+ async redirects() {
     return [
       { source: '/favicon.ico', destination: '/favicon.svg', permanent: false },
     ]
   },
   async rewrites() {
-    const backendUrl = process.env.API_URL ?? 'http://localhost:5000'
+async rewrites() {
+  const backendUrl = process.env.API_URL ?? 'http://localhost:5000'
     return [
       {
         source: '/api/:path*',

@@ -1,5 +1,6 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -9,6 +10,9 @@ import {
   Building2, MapPin, Mail, BarChart3, PieChart as PieIcon,
   UserCheck, UserX, Wallet, ExternalLink, Sparkles,
 } from 'lucide-react'
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -321,7 +325,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
             </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
 
@@ -915,7 +919,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
           ) : null}
         </Panel>
 
-      </div>
+      </motion.div>
     </div>
   )
 }

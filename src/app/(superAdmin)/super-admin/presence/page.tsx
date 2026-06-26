@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo } from 'react'
+import { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, UserX, RefreshCw, CheckCircle, XCircle,
@@ -287,6 +288,16 @@ export default function PresencePage() {
       <div className="bg-white border-b border-zinc-200/80">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="min-h-screen bg-zinc-50">
+
+      {/* ── PAGE HEADER ──────────────────────────────────────────────────────── */}
+      <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="text-[22px] font-semibold text-zinc-900 tracking-tight">Présence</h1>
+            <p className="text-xs text-zinc-400 mt-0.5">Dashboard live · enregistrement forcé · validation · sync offline</p>
+          </div>
+          {schoolId && (
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
                 <ScanLine size={17} className="text-emerald-600" />
@@ -366,7 +377,7 @@ export default function PresencePage() {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
 

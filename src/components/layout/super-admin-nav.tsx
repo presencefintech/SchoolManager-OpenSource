@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
+import { superAdminApi } from '@/lib/superAdmin/api'
 
 const NAV_LINKS = [
   { label: 'Dashboard',       href: '/super-admin/dashboard',  icon: LayoutDashboard },
@@ -31,6 +33,20 @@ export function SuperAdminNav() {
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'SA'
+
+  const prefetch = useCallback((href: string) => {
+    if (href === '/super-admin/dashboard') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'stats'], queryFn: superAdminApi.getStats, staleTime: 60_000 })
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'schools'], queryFn: () => superAdminApi.getSchools(), staleTime: 60_000 })
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'auth', 'sessions'], queryFn: () => superAdminApi.getActiveSessions(), staleTime: 15_000 })
+    } else if (href === '/super-admin/schools') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'schools'], queryFn: () => superAdminApi.getSchools(), staleTime: 60_000 })
+    } else if (href === '/super-admin/students') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'students', 'list', undefined], queryFn: () => superAdminApi.listStudents(0), staleTime: 30_000 })
+    } else if (href === '/super-admin/audit') {
+      queryClient.prefetchQuery({ queryKey: ['superadmin', 'audit', 'snapshot'], queryFn: () => superAdminApi.getAuditSnapshot(), staleTime: 30_000 })
+    }
+  }, [queryClient])
 
   return (
     <aside className={cn(
@@ -70,6 +86,7 @@ export function SuperAdminNav() {
             >
               <Link
                 href={href}
+                onMouseEnter={() => prefetch(href)}
                 className={cn(
                   'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
                   active
