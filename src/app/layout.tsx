@@ -7,7 +7,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'PresenceCollab — Admin',
+  title: 'presenceFintech — Admin',
   description: "Tableau de bord de gestion scolaire",
   icons: { icon: '/favicon.svg' },
 }

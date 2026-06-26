@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -29,6 +30,8 @@ const NAV_LINKS = [
 export function SuperAdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
+  const queryClient = useQueryClient()
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
@@ -65,7 +68,7 @@ export function SuperAdminNav() {
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">PresenceCollab</p>
+          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
           <p className="text-[11px] text-zinc-400 leading-tight">Super Admin</p>
         </div>
       </Link>

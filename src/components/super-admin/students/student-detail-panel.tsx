@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X, ScanLine, Wallet, ShieldAlert, AlertTriangle, CheckCircle2, XCircle,
   Camera, Fingerprint, BadgeCheck, FileText, History, LayoutDashboard, UserPlus,
+  CreditCard, Printer, FileDown, Loader2, Lock, LockOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -13,6 +14,10 @@ import {
   useStudentActivity,
   useStudentDossier,
 } from '@/lib/hooks/use-super-admin'
+import { useToggleStudentPaymentLock } from '@/lib/hooks/use-student-mutations'
+import { StudentCard } from '@/components/StudentCard'
+import { mapDashboardToStudentCard } from '@/lib/student-card/utils'
+import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/export-actions'
 import { fmtCurrency, fmtDate, statusBadgeClass } from './student-utils'
 
 type PanelTab = 'overview' | 'history' | 'dossier' | 'activity'
@@ -73,13 +78,61 @@ export interface StudentDetailPanelProps {
 
 export function StudentDetailPanel({ studentId, schoolId, open, onClose }: StudentDetailPanelProps) {
   const [tab, setTab] = useState<PanelTab>('overview')
+  const [downloadingCard, setDownloadingCard] = useState(false)
+  const [cardExportReady, setCardExportReady] = useState(false)
+  const cardElementRef = useRef<HTMLDivElement | null>(null)
+  const handleCardElement = useCallback((el: HTMLDivElement | null) => {
+    cardElementRef.current = el
+  }, [])
 
   const { data: dashboard, isLoading: dashLoading, isError: dashError } = useStudentDashboard(studentId)
   const { data: activity, isLoading: actLoading } = useStudentActivity(studentId)
   const { data: dossier, isLoading: dossierLoading } = useStudentDossier(studentId)
+  const toggleLock = useToggleStudentPaymentLock()
+
+  const handleTogglePaymentLock = useCallback(() => {
+    if (!dashboard || schoolId <= 0) return
+    toggleLock.mutate({
+      studentId,
+      schoolId,
+      isLocked: !dashboard.profile.isPaymentLocked,
+    })
+  }, [dashboard, schoolId, studentId, toggleLock])
+
+  const cardData = useMemo(
+    () => (dashboard ? mapDashboardToStudentCard(dashboard) : null),
+    [dashboard],
+  )
+
+  async function handleDownloadCard() {
+    if (!cardData || !cardExportReady) return
+    setDownloadingCard(true)
+    try {
+      await downloadStudentCardPdf(cardData, `carte_eleve_${studentId}.pdf`, {
+        sourceElement: cardElementRef.current,
+      })
+    } catch (e) {
+      console.error('[StudentCard] export PDF', e)
+    } finally {
+      setDownloadingCard(false)
+    }
+  }
+
+  async function handlePrintCard() {
+    if (!cardData || !cardExportReady) return
+    try {
+      await printStudentCard(cardData, { sourceElement: cardElementRef.current })
+    } catch (e) {
+      console.error('[StudentCard] print', e)
+      window.alert(e instanceof Error ? e.message : 'Impossible d\'imprimer la carte.')
+    }
+  }
 
   useEffect(() => {
-    if (open) setTab('overview')
+    if (open) {
+      setTab('overview')
+      setCardExportReady(false)
+    }
   }, [studentId, open])
 
   const dossierItems = dossier
@@ -230,11 +283,75 @@ export function StudentDetailPanel({ studentId, schoolId, open, onClose }: Stude
                           color="amber"
                         />
                       </div>
+                      {schoolId > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleTogglePaymentLock}
+                          disabled={toggleLock.isPending}
+                          className={cn(
+                            'w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors',
+                            dashboard.profile.isPaymentLocked
+                              ? 'bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100'
+                              : 'bg-zinc-50 text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-100',
+                          )}
+                        >
+                          {toggleLock.isPending ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : dashboard.profile.isPaymentLocked ? (
+                            <Lock size={14} />
+                          ) : (
+                            <LockOpen size={14} />
+                          )}
+                          {dashboard.profile.isPaymentLocked ? 'Déverrouiller les paiements' : 'Verrouiller les paiements'}
+                        </button>
+                      )}
                       {dashboard.profile.birthDate && (
                         <p className="text-[11px] text-zinc-400 text-center">
                           Né(e) le {fmtDate(dashboard.profile.birthDate)} · {dashboard.profile.gender}
                           {dashboard.profile.isPaymentLocked && ' · Paiement verrouillé'}
                         </p>
+                      )}
+
+                      {cardData && (
+                        <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 overflow-hidden">
+                          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-zinc-100 bg-white/80">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CreditCard size={14} className="text-indigo-600 flex-shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-zinc-800">Carte élève</p>
+                                <p className="text-[10px] text-zinc-400 truncate">Format badge · réimpression</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={handleDownloadCard}
+                                disabled={downloadingCard || !cardExportReady}
+                                className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+                              >
+                                {downloadingCard ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+                                PDF
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handlePrintCard}
+                                disabled={!cardExportReady}
+                                className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                              >
+                                <Printer size={12} />
+                                Imprimer
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex justify-center p-4 overflow-x-auto">
+                            <StudentCard
+                              data={cardData}
+                              preview
+                              onCardElement={handleCardElement}
+                              onReady={(s) => setCardExportReady(s.canDownload)}
+                            />
+                          </div>
+                        </div>
                       )}
                     </>
                   )}

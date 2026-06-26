@@ -46,7 +46,7 @@ function FinanceNav() {
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">PresenceCollab</p>
+          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
           <p className="text-[11px] text-zinc-400 leading-tight">Finance</p>
         </div>
       </Link>
