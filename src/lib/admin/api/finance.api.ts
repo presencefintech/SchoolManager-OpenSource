@@ -1,6 +1,52 @@
 import { apiClient } from '@/lib/api/client'
 import type { FinanceKpi, PendingPayment, FinanceFraudAlert, AuditLogEntry, TopPayer, ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams } from '@/types/admin'
 
+function asItemList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[]
+  if (data && typeof data === 'object' && Array.isArray((data as { items?: unknown }).items)) {
+    return (data as { items: T[] }).items
+  }
+  return []
+}
+
+function normalizePendingPayment(row: Record<string, unknown>): PendingPayment {
+  const payment = (row.payment ?? {}) as Record<string, unknown>
+  const student = (row.student ?? {}) as Record<string, unknown>
+  const studentName =
+    (student.name as string | undefined)
+    ?? (row.studentName as string | undefined)
+    ?? ([student.firstName, student.lastName].filter(Boolean).join(' ').trim() || '—')
+
+  return {
+    verificationId: Number(row.verificationId ?? row.id),
+    id: Number(row.paymentId ?? payment.id ?? row.id),
+    studentName,
+    amount: Number(payment.amount ?? row.amount ?? 0),
+    method: String(payment.method ?? row.method ?? ''),
+    status: String(row.status ?? payment.status ?? 'PENDING'),
+    createdAt: String(payment.createdAt ?? row.queuedAt ?? row.createdAt ?? ''),
+    studentId: student.id != null ? Number(student.id) : undefined,
+    reference: (payment.reference ?? row.reference ?? payment.providerRef) as string | undefined,
+  }
+}
+
+function normalizeMobilePending(row: Record<string, unknown>): MobilePendingItem {
+  const student = row.student as Record<string, unknown> | undefined
+  const studentName = student
+    ? [student.firstName, student.lastName].filter(Boolean).join(' ').trim() || '—'
+    : (row.studentName as string | undefined) ?? '—'
+
+  return {
+    id: Number(row.id),
+    studentName,
+    amount: Number(row.amount ?? 0),
+    phone: (row.payerPhone ?? row.phone) as string | undefined,
+    operator: String(row.method ?? row.operator ?? 'MOBILE'),
+    reference: (row.reference ?? row.providerRef) as string | undefined,
+    createdAt: String(row.createdAt ?? ''),
+  }
+}
+
 export const financeApi = {
   // ── Dashboard ──────────────────────────────────────────────────────────────
   getStrategicDashboard: () =>
@@ -60,15 +106,19 @@ export const financeApi = {
 
   // ── Paiements ──────────────────────────────────────────────────────────────
   getPendingVerifications: () =>
-    apiClient.get('/admin/finance/payments/pending-verifications').then(r => (r.data.data ?? []) as PendingPayment[]),
+    apiClient
+      .get('/admin/finance/payments/pending-verifications')
+      .then((r) => asItemList<Record<string, unknown>>(r.data.data).map(normalizePendingPayment)),
 
   getMobilePending: () =>
-    apiClient.get('/admin/finance/payments/mobile/pending').then(r => (r.data.data ?? []) as MobilePendingItem[]),
+    apiClient
+      .get('/admin/finance/payments/mobile/pending')
+      .then((r) => asItemList<Record<string, unknown>>(r.data.data).map(normalizeMobilePending)),
 
   processManualPayment: (payload: ManualPaymentPayload) =>
     apiClient.post('/admin/finance/payments/manual', payload).then(r => r.data.data),
 
-  verifyPaymentStep: (payload: { paymentId: number; step: string; note?: string }) =>
+  verifyPaymentStep: (payload: { verificationId: number; action: 'ADMIN' | 'FINANCE' | 'REJECT'; notes?: string }) =>
     apiClient.post('/admin/finance/payments/verify-step', payload).then(r => r.data.data),
 
   confirmBankTransaction: (paymentId: number) =>

@@ -75,16 +75,16 @@ export default function FinanceDashboardPage() {
           <p className="text-sm text-zinc-500 mt-0.5">Tableau de bord financier et gestion des paiements</p>
         </div>
         <div className="flex items-center gap-3">
-          {(pending as any[]).length > 0 && (
+          {(pending).length > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100">
               <DollarSign size={13} className="text-amber-600" />
-              <span className="text-xs font-medium text-amber-700">{(pending as any[]).length} en attente</span>
+              <span className="text-xs font-medium text-amber-700">{pending.length} en attente</span>
             </div>
           )}
-          {(alerts as any[]).length > 0 && (
+          {(alerts).length > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-100">
               <AlertTriangle size={13} className="text-red-600" />
-              <span className="text-xs font-medium text-red-700">{(alerts as any[]).length} alertes</span>
+              <span className="text-xs font-medium text-red-700">{alerts.length} alertes</span>
             </div>
           )}
         </div>
