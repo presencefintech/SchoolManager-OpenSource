@@ -219,12 +219,18 @@ const hintCls = 'text-[11px] text-zinc-400 mt-1.5 leading-relaxed'
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+function readSchoolIdFromParams(params: URLSearchParams): number | null {
+  const id = Number(params.get('schoolId')) || 0
+  return id > 0 ? id : null
+}
+
 function EnrollmentPageContent() {
   const searchParams = useSearchParams()
   const { data: schools } = useSchools()
+  const [mounted, setMounted] = useState(false)
 
   /* school selector */
-  const [schoolId, setSchoolId] = useState<number | null>(null)
+  const [schoolId, setSchoolId] = useState<number | null>(() => readSchoolIdFromParams(searchParams))
   const { data: workerHealth, isLoading: loadingWorker, refetch: refetchWorker } = useWorkerHealth(schoolId ?? 0)
   const { data: financeAudit, isLoading: loadingFinance, refetch: refetchFinance } = useFinanceAudit(schoolId ?? 0)
 
@@ -274,9 +280,12 @@ function EnrollmentPageContent() {
     || (typeof integrity?.isPaymentLocked === 'string' && integrity.isPaymentLocked === '1')
 
   useEffect(() => {
-    const urlSchoolId = Number(searchParams.get('schoolId')) || 0
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    setSchoolId(readSchoolIdFromParams(searchParams))
     const urlStudentId = searchParams.get('studentId')?.trim() ?? ''
-    if (urlSchoolId > 0) setSchoolId(urlSchoolId)
     if (urlStudentId) setStudentId(urlStudentId)
   }, [searchParams])
 
@@ -601,6 +610,11 @@ function EnrollmentPageContent() {
         {/* â"€â"€ KPIs établissement â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
         {!schoolId ? (
           <EmptySchoolPrompt />
+        ) : !mounted ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Sk className="h-[148px]" />
+            <Sk className="h-[148px]" />
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loadingWorker ? (
@@ -628,7 +642,7 @@ function EnrollmentPageContent() {
           </div>
         )}
 
-        {schoolId && financeAudit && financeAudit.count > 0 && (
+        {mounted && schoolId && financeAudit && financeAudit.count > 0 && (
           <Panel className="!p-4 border-red-100 bg-red-50/40">
             <p className="text-xs font-medium text-red-800 mb-2">IDs à investiguer</p>
             <div className="flex flex-wrap gap-1.5">
