@@ -7,7 +7,7 @@ export interface AuthUser {
   firstName: string
   lastName: string
   role: UserRole
-  schoolId: number
+  schoolId: number | null
 }
 
 export interface LoginPayload {

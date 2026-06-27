@@ -439,7 +439,7 @@ export default function PresencesPage() {
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 px-8 py-6">
           <div>
             <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Présences</h1>
-            <p className="text-sm text-zinc-400 mt-1 capitalize">
+            <p className="text-sm text-zinc-400 mt-1 capitalize" suppressHydrationWarning>
               {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>

@@ -359,7 +359,7 @@ export function usePresenceDashboard(schoolId: number) {
   return useQuery({
     queryKey: ['superadmin', 'presence', 'dashboard', schoolId],
     queryFn: () => superAdminApi.getPresenceDashboard(schoolId),
-    staleTime: 0,
+    staleTime: 15_000,
     enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
     refetchInterval: 30_000,

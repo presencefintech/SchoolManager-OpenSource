@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const BACKEND = process.env.API_URL ?? 'http://localhost:4000'
 
-const SKIP_HEADERS = new Set(['host', 'origin', 'referer', 'connection', 'transfer-encoding'])
+const SKIP_HEADERS = new Set(['host', 'origin', 'referer', 'connection', 'transfer-encoding', 'cookie'])
 
 async function proxy(req: NextRequest, path: string[]) {
   const search = req.nextUrl.search
@@ -31,7 +31,8 @@ async function proxy(req: NextRequest, path: string[]) {
       resHeaders.set(key, value)
     }
   })
-  resHeaders.set('access-control-allow-origin', '*')
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3001'
+  resHeaders.set('access-control-allow-origin', appUrl)
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

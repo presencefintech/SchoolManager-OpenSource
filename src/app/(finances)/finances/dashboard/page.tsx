@@ -67,7 +67,7 @@ export default function FinanceDashboardPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Finance</h1>
-          <p className="text-sm text-zinc-500 mt-0.5 capitalize">{today}</p>
+          <p className="text-sm text-zinc-500 mt-0.5 capitalize" suppressHydrationWarning>{today}</p>
         </div>
         <div className="flex items-center gap-2">
           {integ && (

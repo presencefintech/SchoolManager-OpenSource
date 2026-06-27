@@ -274,7 +274,7 @@ function EnrollmentPageContent() {
   const toggleLock = useToggleStudentPaymentLock()
   const setGracePeriod = useSetStudentGracePeriod()
 
-  const lockSchoolId = schoolId ?? Number(integrity?.schoolId) ?? Number(createSchoolId) ?? 0
+  const lockSchoolId = schoolId || Number(integrity?.schoolId) || Number(createSchoolId) || 0
   const isLockedOptimistic = integrity?.isPaymentLocked === true
     || integrity?.isPaymentLocked === 'true'
     || (typeof integrity?.isPaymentLocked === 'string' && integrity.isPaymentLocked === '1')
@@ -590,6 +590,7 @@ function EnrollmentPageContent() {
                 <select
                   value={schoolId ?? ''}
                   onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
+                  aria-label="Filtrer par établissement"
                   className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[220px] cursor-pointer"
                 >
                   <option value="">Filtrer par établissement…</option>

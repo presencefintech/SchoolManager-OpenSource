@@ -315,6 +315,7 @@ export default function PresencePage() {
               <button
                 onClick={() => refetch()}
                 disabled={isLoading}
+                aria-label="Rafraîchir"
                 className="h-8 w-8 flex items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 transition-all disabled:opacity-40"
               >
                 <RefreshCw size={13} className={cn(isLoading && 'animate-spin')} />
@@ -325,6 +326,7 @@ export default function PresencePage() {
               <select
                 value={schoolId ?? ''}
                 onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
+                aria-label="Sélectionner un établissement"
                 className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[220px] cursor-pointer"
               >
                 <option value="">Sélectionner un établissement…</option>
