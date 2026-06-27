@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
@@ -111,7 +112,7 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
     <div className="flex min-h-screen">
       <FinanceNav />
       <main className="flex-1 ml-64 min-h-screen bg-zinc-50">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
     </div>
   )

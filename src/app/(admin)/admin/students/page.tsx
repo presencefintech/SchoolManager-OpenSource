@@ -12,6 +12,7 @@ import {
   useStudents, useStudentDashboard,
   useStudentApplications, useApproveApplication, useRejectApplication,
 } from '@/lib/hooks/use-admin'
+import type { StudentApplication } from '@/types/admin'
 import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
@@ -249,7 +250,7 @@ export default function StudentsPage() {
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               {loadingApps ? (
                 <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
-              ) : ((applications as unknown[]) ?? []).length ? (
+              ) : ((applications as unknown as StudentApplication[]) ?? []).length ? (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-zinc-100">
@@ -261,7 +262,7 @@ export default function StudentsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50">
-                    {((applications as Array<{ id: number; firstName: string; lastName: string; email?: string; phone?: string; submittedAt: string; status: string }>) ?? []).map((app) => {
+                    {((applications as unknown as StudentApplication[]) ?? []).map((app) => {
                       const cfg = APP_STATUS_CFG[app.status] ?? { label: app.status, cls: 'bg-zinc-100 text-zinc-500' }
                       return (
                         <tr key={app.id} className="hover:bg-zinc-50 transition-colors">

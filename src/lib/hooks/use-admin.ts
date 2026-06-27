@@ -514,7 +514,7 @@ export function useTriggerManualAudit() {
 export function useSetupFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: Record<string, unknown>) => financeApi.setupFeeStructure(payload),
+    mutationFn: (payload: FeeStructurePayload) => financeApi.setupFeeStructure(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
   })
 }
