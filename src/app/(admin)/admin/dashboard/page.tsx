@@ -1,12 +1,14 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { fadeUp, stagger } from '@/lib/animations'
 import {
   GraduationCap, CheckCircle2, XCircle, Clock,
   ShieldAlert, Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminStats, useLiveFeed, useFraudAlerts, useControlStats } from '@/lib/hooks/use-admin'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -22,7 +24,7 @@ function KpiCard({ label, value, sub, icon: Icon, color = 'indigo', loading }: {
     amber: 'bg-amber-50 text-amber-600',
     rose: 'bg-rose-50 text-rose-600',
   }
-  if (loading) return <Sk className="h-28" />
+  if (loading) return <Skeleton className="h-28" />
   return (
     <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-5 py-5">
       <div className="flex items-start justify-between gap-3">
@@ -50,9 +52,6 @@ const SEVERITY_CFG: Record<string, string> = {
   MEDIUM: 'bg-amber-50 text-amber-700',
   HIGH:   'bg-red-50 text-red-700',
 }
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 export default function AdminDashboardPage() {
   const { data: stats, isLoading: loadingStats } = useAdminStats()
@@ -100,7 +99,7 @@ export default function AdminDashboardPage() {
               <KpiCard label="Workers actifs" value={control.workers?.active ?? 0} icon={Activity} color="indigo" loading={loadingControl} />
             </>
           ) : (
-            <><Sk className="h-28" /><Sk className="h-28" /></>
+            <><Skeleton className="h-28" /><Skeleton className="h-28" /></>
           )}
         </motion.div>
 
@@ -116,7 +115,7 @@ export default function AdminDashboardPage() {
               <span className="text-xs text-zinc-400">Actualisation auto 15s</span>
             </div>
             {loadingFeed ? (
-              <div className="p-4 space-y-3">{[...Array(5)].map((_, i) => <Sk key={i} className="h-10" />)}</div>
+              <div className="p-4 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
             ) : feed?.entries?.length ? (
               <div className="divide-y divide-zinc-50 max-h-96 overflow-y-auto">
                 {feed.entries.map((entry) => {
@@ -155,7 +154,7 @@ export default function AdminDashboardPage() {
               )}
             </div>
             {loadingAlerts ? (
-              <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <Sk key={i} className="h-16" />)}</div>
+              <div className="p-4 space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
             ) : alerts?.length ? (
               <div className="divide-y divide-zinc-50 max-h-96 overflow-y-auto">
                 {alerts.map((alert) => (

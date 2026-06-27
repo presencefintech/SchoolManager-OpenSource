@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { fadeUp, stagger } from '@/lib/animations'
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
   QrCode, Plus, Users, RefreshCw, CheckCheck, Trash2, X,
@@ -13,6 +14,7 @@ import {
   useGenerateSessionQR, useStudents, useClasses,
 } from '@/lib/hooks/use-admin'
 import type { RecordPresencePayload, BulkPresencePayload } from '@/types/admin'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -393,9 +395,6 @@ function HeatmapChart({ classId }: { classId?: number }) {
 
 type Tab = 'live' | 'heatmap' | 'alerts'
 
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
-
 export default function PresencesPage() {
   const [tab, setTab] = useState<Tab>('live')
   const [showManual, setShowManual] = useState(false)
@@ -476,7 +475,7 @@ export default function PresencesPage() {
           {STAT_CARDS.map(({ label, value, color, Icon }) => (
             <div key={label} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-5 py-4">
               {loadingStats ? (
-                <Sk className="h-12" />
+                <Skeleton className="h-12" />
               ) : (
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -548,7 +547,7 @@ export default function PresencesPage() {
               </div>
 
               {loadingFeed ? (
-                <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-12" />)}</div>
+                <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
               ) : feed?.entries?.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -664,7 +663,7 @@ export default function PresencesPage() {
               </div>
 
               {loadingAlerts ? (
-                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-20" />)}</div>
+                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
               ) : alerts?.length ? (
                 <div className="divide-y divide-zinc-50">
                   {alerts.map((alert) => (

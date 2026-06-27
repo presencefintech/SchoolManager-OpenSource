@@ -6,9 +6,8 @@ import Link from 'next/link'
 import { Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, Search, ChevronRight } from 'lucide-react'
 import { useClasses, useCreateClass, useToggleClassStatus, useRollover } from '@/lib/hooks/use-admin'
 import type { CreateClassPayload, RolloverPayload } from '@/types/admin'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
+import { fadeUp, stagger } from '@/lib/animations'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 function CreateClassModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useCreateClass()
@@ -21,8 +20,8 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
     try {
       await mutateAsync({ ...form, capacity: form.capacity ? Number(form.capacity) : undefined })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur lors de la création')
+    } catch (err) {
+      setError(getApiErrorMessage(err))
     }
   }
 
@@ -101,8 +100,8 @@ function RolloverModal({ onClose }: { onClose: () => void }) {
     try {
       await mutateAsync(form)
       setSuccess(true)
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur lors du passage annuel')
+    } catch (err) {
+      setError(getApiErrorMessage(err))
     }
   }
 

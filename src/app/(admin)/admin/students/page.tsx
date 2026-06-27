@@ -12,6 +12,7 @@ import {
   useStudents, useStudentDashboard,
   useStudentApplications, useApproveApplication, useRejectApplication,
 } from '@/lib/hooks/use-admin'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -145,7 +146,7 @@ export default function StudentsPage() {
 
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               {loadingStudents ? (
-                <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
+                <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
               ) : (studentsData as { data?: unknown[] } | undefined)?.data?.length ? (
                 <>
                   <table className="w-full">
@@ -247,7 +248,7 @@ export default function StudentsPage() {
 
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               {loadingApps ? (
-                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-16" />)}</div>
+                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
               ) : ((applications as unknown[]) ?? []).length ? (
                 <table className="w-full">
                   <thead>

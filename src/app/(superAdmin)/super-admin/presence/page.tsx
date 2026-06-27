@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useSchools, usePresenceDashboard } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
 
@@ -410,7 +411,7 @@ export default function PresencePage() {
             {/* ── KPI ─────────────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {isLoading ? (
-                <><Sk className="h-32" /><Sk className="h-32" /><Sk className="h-32" /></>
+                <><Skeleton className="h-32" /><Skeleton className="h-32" /><Skeleton className="h-32" /></>
               ) : dashboard ? (
                 <>
                   <KpiCard
@@ -590,7 +591,7 @@ export default function PresencePage() {
                 <div className="overflow-y-auto max-h-80 divide-y divide-zinc-50 flex-1">
                   {isLoading ? (
                     <div className="p-6 space-y-3">
-                      {[...Array(6)].map((_, i) => <Sk key={i} className="h-10 rounded-xl" />)}
+                      {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
                     </div>
                   ) : !dashboard?.liveFeed.length ? (
                     <div className="p-10 text-center">
@@ -646,7 +647,7 @@ export default function PresencePage() {
                 <div className="overflow-y-auto max-h-80 divide-y divide-zinc-50 flex-1">
                   {isLoading ? (
                     <div className="p-6 space-y-3">
-                      {[...Array(6)].map((_, i) => <Sk key={i} className="h-10 rounded-xl" />)}
+                      {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
                     </div>
                   ) : !dashboard?.criticalAbsents.length ? (
                     <div className="p-10 text-center">

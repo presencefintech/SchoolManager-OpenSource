@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { BookOpen, ChevronDown, BarChart3, ClipboardList } from 'lucide-react'
 import { useFinanceClasses, useClassFinancialStatus, useClassAudit } from '@/lib/hooks/use-finance'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
+import { fadeUp, stagger } from '@/lib/animations'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -28,7 +27,7 @@ function ClassDetail({ classId }: { classId: number }) {
           <h4 className="text-xs font-semibold text-zinc-700">Statut financier</h4>
         </div>
         {loadingStatus ? (
-          <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Sk key={i} className="h-6" />)}</div>
+          <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-6" />)}</div>
         ) : st ? (
           <div className="space-y-1.5">
             {Object.entries(st).map(([k, v]) => (
@@ -52,7 +51,7 @@ function ClassDetail({ classId }: { classId: number }) {
           <h4 className="text-xs font-semibold text-zinc-700">Audit trail</h4>
         </div>
         {loadingAudit ? (
-          <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Sk key={i} className="h-8" />)}</div>
+          <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : auditEntries.length === 0 ? (
           <p className="text-xs text-zinc-400">Aucun événement</p>
         ) : (
@@ -98,7 +97,7 @@ export default function ClassesPage() {
 
         {isLoading ? (
           <div className="p-5 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => <Sk key={i} className="h-12" />)}
+            {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
           </div>
         ) : classes.length === 0 ? (
           <div className="py-12 text-center">

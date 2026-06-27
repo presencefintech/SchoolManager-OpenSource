@@ -12,8 +12,8 @@ import {
   useLinkOrphanTransaction, useAdvancedSearch, useProcessManualPayment,
 } from '@/lib/hooks/use-admin'
 import type { ManualPaymentPayload, AdvancedSearchParams } from '@/types/admin'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+import { fadeUp } from '@/lib/animations'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
   return (
@@ -34,7 +34,7 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
     e.preventDefault()
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur lors de l\'enregistrement') }
+    catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -107,7 +107,7 @@ function LinkOrphanModal({ onClose }: { onClose: () => void }) {
     e.preventDefault()
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (

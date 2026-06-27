@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import {
   useStudentDetail, useStudentActivity, useDossierStatus, useSecurityAction,
 } from '@/lib/hooks/use-admin'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -65,9 +66,9 @@ export default function StudentDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-50 p-8 space-y-4 max-w-4xl mx-auto">
-        <Sk className="h-8 w-48" />
-        <Sk className="h-48" />
-        <Sk className="h-64" />
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-48" />
+        <Skeleton className="h-64" />
       </div>
     )
   }
@@ -165,7 +166,7 @@ export default function StudentDetailPage() {
                 <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><Clock size={14} /> Activité récente</h2>
               </div>
               {loadingActivity ? (
-                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-10" />)}</div>
+                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
               ) : (activity as unknown[])?.length ? (
                 <div className="divide-y divide-zinc-50 max-h-72 overflow-y-auto">
                   {((activity as Array<{ id: number; type: string; description: string; createdAt: string }>) ?? []).map((evt) => (

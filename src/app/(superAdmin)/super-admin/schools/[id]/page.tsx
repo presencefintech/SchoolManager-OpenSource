@@ -25,6 +25,7 @@ import {
   useFinanceEfficiency,
 } from '@/lib/hooks/use-super-admin'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) =>
@@ -227,7 +228,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
           )}
 
           {loadingSchool ? (
-            <Sk className="h-12 w-80" />
+            <Skeleton className="h-12 w-80" />
           ) : school && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -328,7 +329,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
         {/* ── KPI opérationnels ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {loadingStats || loadingPerf
-            ? Array.from({ length: 4 }).map((_, i) => <Sk key={i} className="h-28" />)
+            ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28" />)
             : (
               <>
                 <KpiCard
@@ -384,7 +385,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 description="Encaissé vs reste à recouvrer (performance école)"
               />
               {loadingPerf ? (
-                <Sk className="h-52" />
+                <Skeleton className="h-52" />
               ) : financePie.length ? (
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="relative w-44 h-44 flex-shrink-0">
@@ -459,7 +460,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 description="Répartition présents, retards et absents"
               />
               {loadingStats && loadingPresence ? (
-                <Sk className="h-52" />
+                <Skeleton className="h-52" />
               ) : presencePie.length ? (
                 <div className="flex flex-col sm:flex-row items-center gap-6">
                   <div className="relative w-44 h-44 flex-shrink-0">
@@ -526,7 +527,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 description="Élèves inscrits vs capacité maximale"
               />
               {loadingClasses ? (
-                <Sk className="h-52" />
+                <Skeleton className="h-52" />
               ) : classBarData.length ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={classBarData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }} barGap={2}>
@@ -567,7 +568,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 description="Revenus, projections et impayés (dashboard paiements)"
               />
               {loadingPay ? (
-                <Sk className="h-52" />
+                <Skeleton className="h-52" />
               ) : treasuryBar.length ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={treasuryBar} layout="vertical" margin={{ top: 0, right: 16, left: 4, bottom: 0 }}>
@@ -609,7 +610,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                   description="Taux de recouvrement segmenté par niveau scolaire"
                 />
                 {loadingEfficiency ? (
-                  <Sk className="h-48" />
+                  <Skeleton className="h-48" />
                 ) : efficiencyBar.length ? (
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={efficiencyBar} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
@@ -651,7 +652,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
               />
             </div>
             {loadingClasses ? (
-              <Sk className="h-40 mx-6 mb-6 rounded-xl" />
+              <Skeleton className="h-40 mx-6 mb-6 rounded-xl" />
             ) : classes && classes.data.length > 0 ? (
               <div className="divide-y divide-zinc-50 border-t border-zinc-100">
                 {classes.data.slice(0, 6).map((cls) => {
@@ -707,7 +708,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
               />
             </div>
             {loadingCapacity ? (
-              <Sk className="h-40 mx-6 mb-6 rounded-xl" />
+              <Skeleton className="h-40 mx-6 mb-6 rounded-xl" />
             ) : capacityAlerts && capacityAlerts.length > 0 ? (
               <div className="divide-y divide-zinc-50 border-t border-zinc-100">
                 {capacityAlerts.map((alert) => (
@@ -825,7 +826,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
             description="Analyse statistique des transactions"
           />
           {loadingAno ? (
-            <Sk className="h-28" />
+            <Skeleton className="h-28" />
           ) : anomalies && (
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-3 rounded-xl bg-zinc-50 border border-zinc-100">
@@ -890,7 +891,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
             description="Comptes avec accès à cet établissement"
           />
           {loadingSchool ? (
-            <div className="space-y-2">{Array.from({ length: 2 }).map((_, i) => <Sk key={i} className="h-14" />)}</div>
+            <div className="space-y-2">{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
           ) : school?.admins.length ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {school.admins.map((admin) => (

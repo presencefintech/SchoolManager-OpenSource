@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Search, RefreshCw } from 'lucide-react'
 import { useSearchTransactions } from '@/lib/hooks/use-finance'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+import { fadeUp } from '@/lib/animations'
 
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
   PENDING:   { label: 'En attente', cls: 'bg-amber-50 text-amber-700' },

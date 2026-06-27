@@ -10,9 +10,8 @@ import {
   useFinanceEfficiency, useFinanceEndOfDay,
   usePendingVerifications, useFinanceFraudAlerts,
 } from '@/lib/hooks/use-admin'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
+import { fadeUp, stagger } from '@/lib/animations'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -93,7 +92,7 @@ export default function FinanceDashboardPage() {
 
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <Sk key={i} className="h-28" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
         </div>
       ) : (
         <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">

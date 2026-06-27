@@ -8,6 +8,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useNotificationLogs, useQueueStatus } from '@/lib/hooks/use-super-admin'
 import { notificationsApi } from '@/lib/superAdmin/api/notifications.api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Feedback = { type: 'success' | 'error'; message: string } | null
 
@@ -159,9 +160,9 @@ export default function NotificationsPage() {
             <div className="divide-y divide-zinc-100">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="px-7 py-4 flex gap-4">
-                  <Sk className="h-3 w-24 flex-shrink-0" />
-                  <Sk className="h-3 flex-1" />
-                  <Sk className="h-3 w-16 flex-shrink-0" />
+                  <Skeleton className="h-3 w-24 flex-shrink-0" />
+                  <Skeleton className="h-3 flex-1" />
+                  <Skeleton className="h-3 w-16 flex-shrink-0" />
                 </div>
               ))}
             </div>

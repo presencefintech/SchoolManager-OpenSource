@@ -291,7 +291,7 @@ function StudentsPageContent() {
       studentId: id,
       schoolId,
       dataType: 'PERSONAL_DOCS',
-    }).catch(() => undefined)
+    }).catch((err) => console.warn('[PII audit]', err))
   }
 
   const closePanel = useCallback(() => {

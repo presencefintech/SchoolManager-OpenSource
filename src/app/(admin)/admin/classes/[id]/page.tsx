@@ -4,11 +4,10 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft } from 'lucide-react'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
+import { fadeUp, stagger } from '@/lib/animations'
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useStudents } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 function AssignModal({ classId, onClose }: { classId: number; onClose: () => void }) {
   const { mutateAsync, isPending } = useAssignStudents()
@@ -23,8 +22,8 @@ function AssignModal({ classId, onClose }: { classId: number; onClose: () => voi
     try {
       await mutateAsync({ classId, studentIds: ids })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getApiErrorMessage(err))
     }
   }
 
@@ -71,8 +70,8 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
     try {
       await mutateAsync({ classId, studentIds: ids, targetClassId: Number(targetClassId) })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getApiErrorMessage(err))
     }
   }
 

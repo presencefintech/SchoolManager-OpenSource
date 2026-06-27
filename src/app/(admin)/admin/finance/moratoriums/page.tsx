@@ -8,6 +8,8 @@ import {
   useRevokeMoratorium, useMoratoriumRecoveryRate,
 } from '@/lib/hooks/use-admin'
 import type { CreateMoratoriumPayload, BulkMoratoriumPayload } from '@/types/admin'
+import { Skeleton } from '@/components/ui/skeleton'
+ import { getApiErrorMessage } from '@/lib/api/client'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -35,7 +37,7 @@ function MoratoriumModal({ onClose }: { onClose: () => void }) {
     e.preventDefault()
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -109,7 +111,7 @@ function BulkMoratoriumModal({ onClose }: { onClose: () => void }) {
     const ids = idsText.split('\n').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n > 0)
     if (ids.length === 0) { setError('Entrez au moins un ID élève'); return }
     try { await mutateAsync({ ...form, studentIds: ids }); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -221,7 +223,7 @@ export default function MoratoriumsPage() {
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         {isLoading ? (
-          <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <Sk key={i} className="h-12" />)}</div>
+          <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
         ) : (moratoriums as any[]).length === 0 ? (
           <div className="py-12 text-center">
             <Calendar size={28} className="mx-auto text-zinc-300 mb-2" />
