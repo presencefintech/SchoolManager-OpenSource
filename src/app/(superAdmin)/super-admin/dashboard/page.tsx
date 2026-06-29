@@ -17,6 +17,7 @@ import {
   useProviderStats, useFinanceReport, useWorkerHealth,
 } from '@/lib/hooks/use-super-admin'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) =>
@@ -309,7 +310,7 @@ export default function SuperAdminDashboardPage() {
                 Sélectionnez un établissement pour afficher la courbe
               </div>
             ) : loadingRevenue ? (
-              <Sk className="h-48 rounded-xl" />
+              <Skeleton className="h-48 rounded-xl" />
             ) : dailyData.length ? (
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={dailyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
@@ -337,8 +338,8 @@ export default function SuperAdminDashboardPage() {
             <p className="text-xs text-zinc-400 mb-5">Répartition par volume</p>
             {loadingProviders ? (
               <div className="flex-1 flex flex-col items-center gap-4">
-                <Sk className="w-40 h-40 rounded-full" />
-                <div className="w-full space-y-3">{[...Array(3)].map((_, i) => <Sk key={i} className="h-4" />)}</div>
+                <Skeleton className="w-40 h-40 rounded-full" />
+                <div className="w-full space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4" />)}</div>
               </div>
             ) : chartData.length ? (
               <>
@@ -415,7 +416,7 @@ export default function SuperAdminDashboardPage() {
               Sélectionnez un établissement pour afficher la répartition
             </div>
           ) : loadingPipeline ? (
-            <div className="space-y-4">{[...Array(4)].map((_, i) => <Sk key={i} className="h-14 rounded-xl" />)}</div>
+            <div className="space-y-4">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
           ) : workerHealth?.details.length ? (() => {
             const total = workerHealth.details.reduce((s, d) => s + d._count._all, 0)
             return (
@@ -462,7 +463,7 @@ export default function SuperAdminDashboardPage() {
         <motion.div variants={fadeUp} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-5">Santé des établissements</p>
           {loadingSchools
-            ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Sk key={i} className="h-12" />)}</div>
+            ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
             : (
               <div className="flex items-center gap-8">
                 {(['EXCELLENT', 'STABLE', 'CRITICAL'] as const).map((level) => (
@@ -489,7 +490,7 @@ export default function SuperAdminDashboardPage() {
             </Link>
           </div>
           {loadingSessions ? (
-            <Sk className="h-20 rounded-none" />
+            <Skeleton className="h-20 rounded-none" />
           ) : sessions?.length ? (
             <div className="divide-y divide-zinc-50">
               {sessions.slice(0, 5).map((s, i) => (
@@ -526,7 +527,7 @@ export default function SuperAdminDashboardPage() {
                   Voir tous →
                 </Link>
               </div>
-              {loadingSchools ? <Sk className="h-56 rounded-none" /> : schools && (
+              {loadingSchools ? <Skeleton className="h-56 rounded-none" /> : schools && (
                 <div className="divide-y divide-zinc-50">
                   {schools.slice(0, 6).map((school) => (
                     <motion.div

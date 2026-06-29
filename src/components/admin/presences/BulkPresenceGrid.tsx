@@ -1,14 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, X, Users } from 'lucide-react'
+import { AlertCircle, Check, X, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBulkRecordPresence, useStudents, useClasses } from '@/lib/hooks/use-admin'
 import type { BulkPresencePayload } from '@/types/admin'
+import { interpretBulkPresenceResult } from '@/lib/presence/presence-response.utils'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 
 type RowStatus = 'PRESENT' | 'ABSENT' | 'LATE'
+
+const ROW_STATUS_OPTIONS: { value: RowStatus; label: string; active: string }[] = [
+  { value: 'PRESENT', label: 'Présent', active: 'bg-emerald-600 text-white border-emerald-600' },
+  { value: 'LATE', label: 'Retard', active: 'bg-amber-600 text-white border-amber-600' },
+  { value: 'ABSENT', label: 'Absent', active: 'bg-red-600 text-white border-red-600' },
+]
 
 function createIdempotencyKey(): string {
   return crypto.randomUUID()
@@ -25,6 +32,8 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
   const [sessionDate, setSessionDate] = useState('')
   const [statusByStudent, setStatusByStudent] = useState<Record<number, RowStatus>>({})
   const [submitting, setSubmitting] = useState(false)
+  const [failedIds, setFailedIds] = useState<Set<number>>(new Set())
+  const [duplicateIds, setDuplicateIds] = useState<Set<number>>(new Set())
 
   const { data: classesData, isFetching: classesLoading } = useClasses()
   const { data: studentsData, isFetching: studentsLoading } = useStudents(
@@ -46,6 +55,8 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
       }
       return next
     })
+    setFailedIds(new Set())
+    setDuplicateIds(new Set())
   }, [classId, students])
 
   const entryCount = useMemo(
@@ -61,6 +72,16 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
 
   function setStudentStatus(studentId: number, status: RowStatus) {
     setStatusByStudent((prev) => ({ ...prev, [studentId]: status }))
+    setFailedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(studentId)
+      return next
+    })
+    setDuplicateIds((prev) => {
+      const next = new Set(prev)
+      next.delete(studentId)
+      return next
+    })
   }
 
   async function submit(e: React.FormEvent) {
@@ -79,36 +100,29 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
 
     setSubmitting(true)
     try {
-      const { data, message } = await bulk.mutateAsync(payload)
-      const { succeeded, failed, duplicates } = data
+      const { data, message, statusCode } = await bulk.mutateAsync(payload)
+      const outcome = interpretBulkPresenceResult(data, statusCode, message)
 
-      if (failed.length > 0) {
-        const detail = failed
-          .slice(0, 3)
-          .map((f) => `#${f.studentId}: ${f.error}`)
-          .join(' · ')
-        toast.warning(
-          'Enregistrement partiel',
-          `${succeeded.length} OK · ${failed.length} échec(s) · ${duplicates.length} doublon(s). ${detail}${failed.length > 3 ? '…' : ''}`
-        )
-      } else if (duplicates.length > 0 && succeeded.length === 0) {
-        toast.warning(
-          'Aucun nouvel enregistrement',
-          `${duplicates.length} élève(s) déjà pointé(s) aujourd'hui.`
-        )
-      } else if (duplicates.length > 0) {
-        toast.warning(
-          'Enregistrement partiel',
-          message ?? `${succeeded.length} OK · ${duplicates.length} déjà pointé(s).`
-        )
+      setFailedIds(new Set(outcome.failedStudentIds))
+      setDuplicateIds(new Set(outcome.duplicateStudentIds))
+
+      if (outcome.kind === 'full_success') {
+        toast.success(outcome.title, outcome.detail)
         onClose()
-      } else {
-        toast.success(
-          'Cahier d\'appel enregistré',
-          message ?? `${succeeded.length} présence(s) enregistrée(s).`
-        )
-        onClose()
+        return
       }
+
+      if (outcome.kind === 'all_duplicates') {
+        toast.warning(outcome.title, outcome.detail)
+        return
+      }
+
+      if (outcome.kind === 'all_failed') {
+        toast.error(outcome.title, outcome.detail)
+        return
+      }
+
+      toast.warning(outcome.title, outcome.detail)
     } catch (err) {
       toast.error('Enregistrement impossible', getApiErrorMessage(err))
     } finally {
@@ -117,6 +131,7 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
   }
 
   const busy = submitting || bulk.isPending
+  const hasRowIssues = failedIds.size > 0 || duplicateIds.size > 0
   const selectCls =
     'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 bg-white disabled:bg-zinc-50'
 
@@ -188,6 +203,14 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   disabled={busy}
+                  onClick={() => setAll('LATE')}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  Tout retard
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
                   onClick={() => setAll('ABSENT')}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50"
                 >
@@ -196,6 +219,17 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
                 <span className="text-xs text-zinc-400 self-center ml-auto">
                   {entryCount} élève(s)
                 </span>
+              </div>
+            )}
+
+            {hasRowIssues && (
+              <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                <p>
+                  Lignes en <span className="font-semibold text-red-700">rouge</span> : échec serveur.
+                  Lignes en <span className="font-semibold text-amber-700">ambre</span> : déjà pointé aujourd&apos;hui.
+                  Corrigez puis réessayez.
+                </p>
               </div>
             )}
           </div>
@@ -217,37 +251,48 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
               <ul className="space-y-2">
                 {students.map((student) => {
                   const status = statusByStudent[student.id] ?? 'PRESENT'
+                  const isFailed = failedIds.has(student.id)
+                  const isDuplicate = duplicateIds.has(student.id)
                   const name =
                     `${student.firstName ?? ''} ${student.lastName ?? ''}`.trim() ||
                     `Élève #${student.id}`
                   return (
                     <li
                       key={student.id}
-                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border border-zinc-100 hover:bg-zinc-50/80"
+                      className={cn(
+                        'flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl border transition-colors',
+                        isFailed && 'border-red-200 bg-red-50/80',
+                        !isFailed && isDuplicate && 'border-amber-200 bg-amber-50/80',
+                        !isFailed && !isDuplicate && 'border-zinc-100 hover:bg-zinc-50/80',
+                      )}
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-zinc-900 truncate">{name}</p>
                         {student.matricule && (
                           <p className="text-xs text-zinc-400">{student.matricule}</p>
                         )}
+                        {isFailed && (
+                          <p className="text-[10px] font-medium text-red-600 mt-0.5">Échec — vérifiez l&apos;élève</p>
+                        )}
+                        {isDuplicate && !isFailed && (
+                          <p className="text-[10px] font-medium text-amber-700 mt-0.5">Déjà pointé aujourd&apos;hui</p>
+                        )}
                       </div>
                       <div className="flex gap-1 shrink-0">
-                        {(['PRESENT', 'ABSENT'] as const).map((value) => (
+                        {ROW_STATUS_OPTIONS.map(({ value, label, active }) => (
                           <button
                             key={value}
                             type="button"
                             disabled={busy}
                             onClick={() => setStudentStatus(student.id, value)}
                             className={cn(
-                              'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50',
+                              'px-2 py-1 rounded-lg text-[10px] sm:text-xs font-medium border transition-colors disabled:opacity-50',
                               status === value
-                                ? value === 'PRESENT'
-                                  ? 'bg-emerald-600 text-white border-emerald-600'
-                                  : 'bg-red-600 text-white border-red-600'
-                                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                                ? active
+                                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
                             )}
                           >
-                            {value === 'PRESENT' ? 'Présent' : 'Absent'}
+                            {label}
                           </button>
                         ))}
                       </div>
@@ -265,7 +310,7 @@ export function BulkPresenceGrid({ onClose }: { onClose: () => void }) {
               disabled={busy}
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-50"
             >
-              Annuler
+              {hasRowIssues ? 'Fermer' : 'Annuler'}
             </button>
             <button
               type="submit"

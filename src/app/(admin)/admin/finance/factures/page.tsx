@@ -2,12 +2,15 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Plus, Search, CheckCircle, DollarSign, RotateCcw } from 'lucide-react'
+import { FileText, Plus, CheckCircle, DollarSign, RotateCcw } from 'lucide-react'
 import {
   useSetupFeeStructure, useStudentInvoices, useGenerateInvoice,
-  useApplyDiscount, useSyncBalance,
+  useApplyDiscount, useSyncBalance, useFeeStructures, useClasses,
 } from '@/lib/hooks/use-admin'
 import type { FeeStructurePayload } from '@/types/admin'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -24,17 +27,20 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 
 function GenerateInvoiceModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useGenerateInvoice()
+  const { data: feeStructures = [], isLoading: loadingFees } = useFeeStructures()
   const [form, setForm] = useState({ studentId: 0, feeStructureId: 0, dueDate: '' })
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.studentId) { setError('Sélectionnez un élève.'); return }
+    if (!form.feeStructureId) { setError('Sélectionnez une structure de frais.'); return }
     setError(null)
     try {
       await mutateAsync({ studentId: form.studentId, feeStructureId: form.feeStructureId, dueDate: form.dueDate || undefined })
       setSuccess(true)
-    } catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    } catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -49,17 +55,31 @@ function GenerateInvoiceModal({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <StudentSearchField
+              studentId={form.studentId}
+              onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
+              label="Élève"
+              required
+            />
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Élève *</label>
-              <input type="number" required min={1} value={form.studentId || ''}
-                onChange={e => setForm(p => ({ ...p, studentId: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Structure de frais *</label>
-              <input type="number" required min={1} value={form.feeStructureId || ''}
-                onChange={e => setForm(p => ({ ...p, feeStructureId: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Structure de frais *</label>
+              {loadingFees ? (
+                <div className="h-9 rounded-lg bg-zinc-100 animate-pulse" />
+              ) : (
+                <select
+                  required
+                  value={form.feeStructureId || ''}
+                  onChange={e => setForm(p => ({ ...p, feeStructureId: Number(e.target.value) }))}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  <option value="">— Choisir —</option>
+                  {feeStructures.map((fs) => (
+                    <option key={fs.id} value={fs.id}>
+                      {fs.label} · {Number(fs.amount).toLocaleString('fr-FR')} F
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Date d'échéance</label>
@@ -91,7 +111,7 @@ function DiscountModal({ invoiceId, onClose }: { invoiceId: number; onClose: () 
     e.preventDefault()
     setError(null)
     try { await mutateAsync({ invoiceId, discountAmount: form.discountAmount, reason: form.reason || undefined }); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -135,22 +155,22 @@ function DiscountModal({ invoiceId, onClose }: { invoiceId: number; onClose: () 
 export default function FacturesPage() {
   const { mutateAsync: createFee, isPending: creatingFee } = useSetupFeeStructure()
   const { mutate: syncBalance } = useSyncBalance()
+  const { data: classes = [] } = useClasses({ isActive: true })
   const [feeForm, setFeeForm] = useState<FeeStructurePayload>({ label: '', totalAmount: 0 })
   const [feeSuccess, setFeeSuccess] = useState(false)
   const [feeError, setFeeError] = useState<string | null>(null)
-  const [studentIdSearch, setStudentIdSearch] = useState('')
-  const [activeStudentId, setActiveStudentId] = useState<number | null>(null)
+  const [activeStudentId, setActiveStudentId] = useState<number>(0)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [discountInvoiceId, setDiscountInvoiceId] = useState<number | null>(null)
 
-  const { data: invoices = [], isLoading: loadingInvoices } = useStudentInvoices(activeStudentId ?? 0)
+  const { data: invoices = [], isLoading: loadingInvoices } = useStudentInvoices(activeStudentId)
 
   async function handleCreateFee(e: React.FormEvent) {
     e.preventDefault()
     setFeeError(null)
     setFeeSuccess(false)
     try { await createFee(feeForm); setFeeSuccess(true); setFeeForm({ label: '', totalAmount: 0 }) }
-    catch (err: any) { setFeeError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setFeeError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -186,10 +206,17 @@ export default function FacturesPage() {
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">ID Classe</label>
-            <input type="number" min={1} value={feeForm.classId ?? ''}
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Classe</label>
+            <select
+              value={feeForm.classId ?? ''}
               onChange={e => setFeeForm(p => ({ ...p, classId: e.target.value ? Number(e.target.value) : undefined }))}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="">Toutes les classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Échéance</label>
@@ -217,17 +244,15 @@ export default function FacturesPage() {
           </button>
         </div>
         <div className="px-5 py-4 border-b border-zinc-100">
-          <div className="flex gap-2 items-center">
-            <input type="number" min={1} value={studentIdSearch}
-              onChange={e => setStudentIdSearch(e.target.value)}
-              placeholder="ID Élève..."
-              className="w-48 px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            <button
-              onClick={() => setActiveStudentId(studentIdSearch ? Number(studentIdSearch) : null)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-700 hover:bg-zinc-50">
-              <Search size={13} /> Rechercher
-            </button>
-            {activeStudentId && (
+          <div className="flex gap-2 items-end">
+            <div className="flex-1 max-w-sm">
+              <StudentSearchField
+                studentId={activeStudentId}
+                onSelect={(id) => setActiveStudentId(id)}
+                label="Rechercher un élève"
+              />
+            </div>
+            {activeStudentId > 0 && (
               <button
                 onClick={() => syncBalance(activeStudentId)}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50">
@@ -236,9 +261,9 @@ export default function FacturesPage() {
             )}
           </div>
         </div>
-        {activeStudentId ? (
+        {activeStudentId > 0 ? (
           loadingInvoices ? (
-            <div className="p-6 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Sk key={i} className="h-12" />)}</div>
+            <div className="p-6 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
           ) : (invoices as any[]).length === 0 ? (
             <EmptyState icon={FileText} message="Aucune facture pour cet élève" />
           ) : (
@@ -276,8 +301,8 @@ export default function FacturesPage() {
           )
         ) : (
           <div className="px-5 py-10 text-center">
-            <Search size={24} className="mx-auto text-zinc-300 mb-2" />
-            <p className="text-sm text-zinc-400">Entrez un ID élève pour voir ses factures</p>
+            <FileText size={24} className="mx-auto text-zinc-300 mb-2" />
+            <p className="text-sm text-zinc-400">Recherchez un élève pour voir ses factures</p>
           </div>
         )}
       </div>

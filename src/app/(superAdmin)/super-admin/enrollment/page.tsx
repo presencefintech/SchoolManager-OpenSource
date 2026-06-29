@@ -18,6 +18,7 @@ import { StudentCard } from '@/components/StudentCard'
 import { mapEnrollmentToStudentCard } from '@/lib/student-card/utils'
 import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/export-actions'
 import type { StudentCardData } from '@/types/student-card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* â"€â"€ design system (page) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 
@@ -224,6 +225,30 @@ function readSchoolIdFromParams(params: URLSearchParams): number | null {
   return id > 0 ? id : null
 }
 
+type CreateFormState = {
+  firstName: string
+  lastName: string
+  schoolId: string
+  classId: string
+  birthDate: string
+  gender: 'MALE' | 'FEMALE' | ''
+  placeOfBirth: string
+  nationality: string
+  academicYear: string
+  overrideReason: string
+  photo: File | null
+  photoPreview: string | null
+  creating: boolean
+  result: { type: 'success' | 'error'; message: string } | null
+}
+
+const INITIAL_CREATE: CreateFormState = {
+  firstName: '', lastName: '', schoolId: '', classId: '',
+  birthDate: '', gender: '', placeOfBirth: '', nationality: '',
+  academicYear: '', overrideReason: '', photo: null, photoPreview: null,
+  creating: false, result: null,
+}
+
 function EnrollmentPageContent() {
   const searchParams = useSearchParams()
   const { data: schools } = useSchools()
@@ -247,21 +272,18 @@ function EnrollmentPageContent() {
   /* grace period */
   const [graceUntil, setGraceUntil] = useState('')
 
-  /* create student "" intervention plateforme */
-  const [createFirstName, setCreateFirstName] = useState('')
-  const [createLastName, setCreateLastName] = useState('')
-  const [createSchoolId, setCreateSchoolId] = useState('')
-  const [createClassId, setCreateClassId] = useState('')
-  const [createBirthDate, setCreateBirthDate] = useState('')
-  const [createGender, setCreateGender] = useState<'MALE' | 'FEMALE' | ''>('')
-  const [createPlaceOfBirth, setCreatePlaceOfBirth] = useState('')
-  const [createNationality, setCreateNationality] = useState('')
-  const [createAcademicYear, setCreateAcademicYear] = useState('')
-  const [createOverrideReason, setCreateOverrideReason] = useState('')
-  const [createPhoto, setCreatePhoto] = useState<File | null>(null)
-  const [createPhotoPreview, setCreatePhotoPreview] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [createResult, setCreateResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  /* create student — intervention plateforme */
+  const [createForm, setCreateForm] = useState<CreateFormState>(INITIAL_CREATE)
+  const sf = (f: Partial<CreateFormState>) => setCreateForm(prev => ({ ...prev, ...f }))
+  const {
+    firstName: createFirstName, lastName: createLastName,
+    schoolId: createSchoolId, classId: createClassId,
+    birthDate: createBirthDate, gender: createGender,
+    placeOfBirth: createPlaceOfBirth, nationality: createNationality,
+    academicYear: createAcademicYear, overrideReason: createOverrideReason,
+    photo: createPhoto, photoPreview: createPhotoPreview,
+    creating, result: createResult,
+  } = createForm
   const [lastCreatedStudentId, setLastCreatedStudentId] = useState<number | null>(null)
   const [lastCardData, setLastCardData] = useState<StudentCardData | null>(null)
   const [downloadingCard, setDownloadingCard] = useState(false)
@@ -274,7 +296,7 @@ function EnrollmentPageContent() {
   const toggleLock = useToggleStudentPaymentLock()
   const setGracePeriod = useSetStudentGracePeriod()
 
-  const lockSchoolId = schoolId ?? Number(integrity?.schoolId) ?? Number(createSchoolId) ?? 0
+  const lockSchoolId = schoolId || Number(integrity?.schoolId) || Number(createSchoolId) || 0
   const isLockedOptimistic = integrity?.isPaymentLocked === true
     || integrity?.isPaymentLocked === 'true'
     || (typeof integrity?.isPaymentLocked === 'string' && integrity.isPaymentLocked === '1')
@@ -381,28 +403,22 @@ function EnrollmentPageContent() {
   }
 
   function clearCreatePhoto() {
-    if (createPhotoPreview) URL.revokeObjectURL(createPhotoPreview)
-    setCreatePhoto(null)
-    setCreatePhotoPreview(null)
+    if (createForm.photoPreview) URL.revokeObjectURL(createForm.photoPreview)
+    sf({ photo: null, photoPreview: null })
   }
 
   function resetCreateFields(keepPhoto = false) {
-    setCreateFirstName('')
-    setCreateLastName('')
-    setCreateSchoolId('')
-    setCreateClassId('')
-    setCreateBirthDate('')
-    setCreateGender('')
-    setCreatePlaceOfBirth('')
-    setCreateNationality('')
-    setCreateAcademicYear('')
-    setCreateOverrideReason('')
-    if (!keepPhoto) clearCreatePhoto()
+    if (!keepPhoto && createForm.photoPreview) URL.revokeObjectURL(createForm.photoPreview)
+    setCreateForm(prev => ({
+      ...INITIAL_CREATE,
+      photo: keepPhoto ? prev.photo : null,
+      photoPreview: keepPhoto ? prev.photoPreview : null,
+    }))
   }
 
   function resetCreateForm() {
     resetCreateFields()
-    setCreateResult(null)
+    sf({ result: null })
     setLastCreatedStudentId(null)
     setLastCardData(null)
     setCardExportReady(false)
@@ -412,16 +428,16 @@ function EnrollmentPageContent() {
     clearCreatePhoto()
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setCreateResult({ type: 'error', message: 'La photo doit être une image (JPEG, PNG, WebP).' })
+      sf({ result: { type: 'error', message: 'La photo doit être une image (JPEG, PNG, WebP).' } })
       return
     }
     if (file.size > MAX_PHOTO_BYTES) {
-      setCreateResult({ type: 'error', message: 'Photo trop volumineuse (max 5 Mo).' })
+      sf({ result: { type: 'error', message: 'Photo trop volumineuse (max 5 Mo).' } })
       return
     }
-    setCreatePhoto(file)
-    setCreatePhotoPreview(URL.createObjectURL(file))
-    setCreateResult(null)
+    sf({ photo: file })
+    sf({ photoPreview: URL.createObjectURL(file) })
+    sf({ result: null })
   }
 
   async function handleDownloadCard() {
@@ -434,7 +450,7 @@ function EnrollmentPageContent() {
     } catch (e) {
       const message =
         e instanceof Error ? e.message : 'Impossible de générer le PDF. Attendez la validation QR ou réessayez.'
-      setCreateResult({ type: 'error', message })
+      sf({ result: { type: 'error', message } })
     } finally {
       setDownloadingCard(false)
     }
@@ -446,14 +462,14 @@ function EnrollmentPageContent() {
       await printStudentCard(lastCardData, { sourceElement: cardElementRef.current })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Impossible d\'imprimer la carte.'
-      setCreateResult({ type: 'error', message })
+      sf({ result: { type: 'error', message } })
     }
   }
 
   async function runCreateStudent() {
     if (!createFormValid) return
-    setCreating(true)
-    setCreateResult(null)
+    sf({ creating: true })
+    sf({ result: null })
     setLastCreatedStudentId(null)
     setLastCardData(null)
     setCardExportReady(false)
@@ -492,17 +508,17 @@ function EnrollmentPageContent() {
           photoUrl: photoForCard,
         }),
       )
-      setCreateResult({
+      sf({ result: {
         type: 'success',
         message: `Élève créé : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule}) — carte disponible ci-dessous`,
-      })
+      } })
       setStudentId(String(student.id))
       resetCreateFields(keepPhotoBlob)
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
-      setCreateResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la création.' })
+      sf({ result: { type: 'error', message: err.response?.data?.message ?? 'Erreur lors de la création.' } })
     } finally {
-      setCreating(false)
+      sf({ creating: false })
     }
   }
 
@@ -590,6 +606,7 @@ function EnrollmentPageContent() {
                 <select
                   value={schoolId ?? ''}
                   onChange={(e) => setSchoolId(e.target.value ? Number(e.target.value) : null)}
+                  aria-label="Filtrer par établissement"
                   className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[220px] cursor-pointer"
                 >
                   <option value="">Filtrer par établissement…</option>
@@ -612,13 +629,13 @@ function EnrollmentPageContent() {
           <EmptySchoolPrompt />
         ) : !mounted ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Sk className="h-[148px]" />
-            <Sk className="h-[148px]" />
+            <Skeleton className="h-[148px]" />
+            <Skeleton className="h-[148px]" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loadingWorker ? (
-              <Sk className="h-[148px]" />
+              <Skeleton className="h-[148px]" />
             ) : workerHealth ? (
               <MetricTile
                 icon={Bot}
@@ -629,7 +646,7 @@ function EnrollmentPageContent() {
               />
             ) : null}
             {loadingFinance ? (
-              <Sk className="h-[148px]" />
+              <Skeleton className="h-[148px]" />
             ) : financeAudit ? (
               <MetricTile
                 icon={ShieldCheck}
@@ -684,19 +701,19 @@ function EnrollmentPageContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Prénom <span className="text-red-500">*</span></label>
-                      <input type="text" placeholder="Jean" value={createFirstName} onChange={(e) => setCreateFirstName(e.target.value)} className={inputCls} autoComplete="off" />
+                      <input type="text" placeholder="Jean" value={createFirstName} onChange={(e) => sf({ firstName: e.target.value })} className={inputCls} autoComplete="off" />
                     </div>
                     <div>
                       <label className={labelCls}>Nom <span className="text-red-500">*</span></label>
-                      <input type="text" placeholder="Dupont" value={createLastName} onChange={(e) => setCreateLastName(e.target.value)} className={inputCls} autoComplete="off" />
+                      <input type="text" placeholder="Dupont" value={createLastName} onChange={(e) => sf({ lastName: e.target.value })} className={inputCls} autoComplete="off" />
                     </div>
                     <div>
                       <label className={labelCls}>Date de naissance <span className="text-red-500">*</span></label>
-                      <input type="date" value={createBirthDate} onChange={(e) => setCreateBirthDate(e.target.value)} className={inputCls} />
+                      <input type="date" value={createBirthDate} onChange={(e) => sf({ birthDate: e.target.value })} className={inputCls} />
                     </div>
                     <div>
                       <label className={labelCls}>Genre <span className="text-red-500">*</span></label>
-                      <select value={createGender} onChange={(e) => setCreateGender(e.target.value as 'MALE' | 'FEMALE' | '')} className={cn(inputCls, 'pr-8')}>
+                      <select value={createGender} onChange={(e) => sf({ gender: e.target.value as 'MALE' | 'FEMALE' | '' })} className={cn(inputCls, 'pr-8')}>
                         <option value="">Choisir…</option>
                         <option value="MALE">Masculin</option>
                         <option value="FEMALE">Féminin</option>
@@ -711,7 +728,7 @@ function EnrollmentPageContent() {
                       <label className={labelCls}>Établissement <span className="text-red-500">*</span></label>
                       <select
                         value={createSchoolId}
-                        onChange={(e) => { setCreateSchoolId(e.target.value); setCreateClassId('') }}
+                        onChange={(e) => { sf({ schoolId: e.target.value, classId: '' }) }}
                         className={cn(inputCls, 'pr-8')}
                       >
                         <option value="">Choisir…</option>
@@ -722,7 +739,7 @@ function EnrollmentPageContent() {
                     </div>
                     <div>
                       <label className={labelCls}>Classe <span className="text-red-500">*</span></label>
-                      <select value={createClassId} onChange={(e) => setCreateClassId(e.target.value)} disabled={!createSchoolId} className={cn(inputCls, 'pr-8')}>
+                      <select value={createClassId} onChange={(e) => sf({ classId: e.target.value })} disabled={!createSchoolId} className={cn(inputCls, 'pr-8')}>
                         <option value="">{createSchoolId ? 'Choisir…' : 'Établissement requis'}</option>
                         {createClasses?.data?.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
@@ -740,15 +757,15 @@ function EnrollmentPageContent() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className={labelCls}>Lieu de naissance</label>
-                      <input type="text" placeholder={selectedCreateSchool?.city ?? 'Kinshasa'} value={createPlaceOfBirth} onChange={(e) => setCreatePlaceOfBirth(e.target.value)} className={inputCls} />
+                      <input type="text" placeholder={selectedCreateSchool?.city ?? 'Kinshasa'} value={createPlaceOfBirth} onChange={(e) => sf({ placeOfBirth: e.target.value })} className={inputCls} />
                     </div>
                     <div>
                       <label className={labelCls}>Nationalité</label>
-                      <input type="text" placeholder="Congolaise" value={createNationality} onChange={(e) => setCreateNationality(e.target.value)} className={inputCls} />
+                      <input type="text" placeholder="Congolaise" value={createNationality} onChange={(e) => sf({ nationality: e.target.value })} className={inputCls} />
                     </div>
                     <div>
                       <label className={labelCls}>Année scolaire</label>
-                      <input type="text" placeholder="2025-2026" value={createAcademicYear} onChange={(e) => setCreateAcademicYear(e.target.value)} className={inputCls} />
+                      <input type="text" placeholder="2025-2026" value={createAcademicYear} onChange={(e) => sf({ academicYear: e.target.value })} className={inputCls} />
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap items-start gap-4">
@@ -786,7 +803,7 @@ function EnrollmentPageContent() {
                     rows={3}
                     placeholder="Ex. Ticket #42 — réinscription urgente, accord direction."
                     value={createOverrideReason}
-                    onChange={(e) => setCreateOverrideReason(e.target.value)}
+                    onChange={(e) => sf({ overrideReason: e.target.value })}
                     className={cn(textareaCls, createOverrideReason.length > 0 && !overrideReasonValid && 'border-amber-300 ring-amber-500/20')}
                   />
                   <p className={cn(hintCls, !overrideReasonValid && createOverrideReason.length > 0 && 'text-amber-600')}>

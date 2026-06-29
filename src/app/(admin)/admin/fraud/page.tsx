@@ -5,6 +5,7 @@ import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
+import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -37,18 +38,19 @@ export default function FraudPage() {
   const { data: alerts, isLoading: loadingAlerts, refetch } = useAdminFraudAlerts()
   const { mutateAsync: checkFraud, isPending, data: checkResult, reset } = useCheckFraud()
 
-  const [form, setForm] = useState({ studentId: '', amount: '' })
+  const [form, setForm] = useState({ studentId: 0, amount: '' })
   const [error, setError] = useState('')
 
   const alertList: any[] = Array.isArray(alerts) ? alerts : (alerts as any)?.data ?? []
 
   async function handleCheck(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.studentId) { setError('Sélectionnez un élève'); return }
     setError('')
     reset()
     try {
       await checkFraud({
-        studentId: Number(form.studentId),
+        studentId: form.studentId,
         amount: form.amount ? Number(form.amount) : undefined,
       })
     } catch (err: any) {
@@ -86,16 +88,12 @@ export default function FraudPage() {
           </div>
 
           <form onSubmit={handleCheck} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Élève <span className="text-red-500">*</span></label>
-              <input
-                type="number" required min={1}
-                value={form.studentId}
-                onChange={e => setForm(p => ({ ...p, studentId: e.target.value }))}
-                placeholder="123"
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
-            </div>
+            <StudentSearchField
+              studentId={form.studentId}
+              onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
+              label="Élève"
+              required
+            />
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Montant à vérifier (optionnel)</label>
               <input

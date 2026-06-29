@@ -15,6 +15,7 @@ import {
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 function Sk({ className }: { className?: string }) {
@@ -310,7 +311,7 @@ export default function AuthManagementPage() {
               <div className="max-h-64 overflow-y-auto">
                 {loadingSessions ? (
                   <div className="divide-y divide-zinc-100">
-                    {[...Array(3)].map((_, i) => <div key={i} className="px-6 py-4"><Sk className="h-4 w-2/3" /></div>)}
+                    {[...Array(3)].map((_, i) => <div key={i} className="px-6 py-4"><Skeleton className="h-4 w-2/3" /></div>)}
                   </div>
                 ) : sessions?.length ? (
                   <div className="divide-y divide-zinc-100">
@@ -546,7 +547,7 @@ export default function AuthManagementPage() {
                   {!invSchoolId ? (
                     <div className="px-6 py-8 text-center text-xs text-zinc-400">Sélectionnez une école</div>
                   ) : loadingInvitations ? (
-                    <div className="p-4 space-y-2">{[...Array(3)].map((_, i) => <Sk key={i} className="h-9" />)}</div>
+                    <div className="p-4 space-y-2">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-9" />)}</div>
                   ) : (
                     <>
                       {schoolInvitations?.staff?.map((inv) => (

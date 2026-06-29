@@ -8,6 +8,8 @@ import {
   useRevokeMoratorium, useMoratoriumRecoveryRate, useAllowedMoratoriumTypes,
 } from '@/lib/hooks/use-admin'
 import { MoratoriumTypeSelect } from '@/components/admin/finance/moratorium-type-select'
+import { StudentSearchField } from '@/components/admin/shared/student-search-field'
+import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { CreateMoratoriumPayload, BulkMoratoriumPayload } from '@/types/admin'
 import { labelMoratoriumType } from '@/lib/business-labels'
 
@@ -76,12 +78,12 @@ function MoratoriumModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Élève *</label>
-              <input type="number" required min={1} value={form.studentId || ''}
-                onChange={e => setForm(p => ({ ...p, studentId: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
+            <StudentSearchField
+              studentId={form.studentId}
+              onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
+              label="Élève"
+              required
+            />
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Type *</label>
               <MoratoriumTypeSelect
@@ -138,7 +140,6 @@ function BulkMoratoriumModal({
   const [form, setForm] = useState<BulkMoratoriumPayload>({
     studentIds: [], type: defaultType, startDate: '', endDate: '', reason: '',
   })
-  const [idsText, setIdsText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
@@ -149,9 +150,8 @@ function BulkMoratoriumModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const ids = idsText.split('\n').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n > 0)
-    if (ids.length === 0) { setError('Entrez au moins un ID élève'); return }
-    try { await mutateAsync({ ...form, studentIds: ids }); setSuccess(true) }
+    if (form.studentIds.length === 0) { setError('Sélectionnez au moins un élève'); return }
+    try { await mutateAsync(form); setSuccess(true) }
     catch (err: any) {
       const status = err?.response?.status
       setError(
@@ -174,11 +174,12 @@ function BulkMoratoriumModal({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">IDs élèves (un par ligne) *</label>
-              <textarea value={idsText} onChange={e => setIdsText(e.target.value)} rows={4} placeholder={'123\n456\n789'}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
-            </div>
+            <StudentMultiSelect
+              studentIds={form.studentIds}
+              onSelect={(ids) => setForm((p) => ({ ...p, studentIds: ids }))}
+              label="Élèves"
+              required
+            />
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Type *</label>
               <MoratoriumTypeSelect

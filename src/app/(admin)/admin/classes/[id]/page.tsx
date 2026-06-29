@@ -12,19 +12,19 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useStudents } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
+import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 
 function AssignModal({ classId, onClose }: { classId: number; onClose: () => void }) {
   const { mutateAsync, isPending } = useAssignStudents()
-  const [raw, setRaw] = useState('')
+  const [studentIds, setStudentIds] = useState<number[]>([])
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const ids = raw.split(/[\n,\s]+/).map(s => Number(s.trim())).filter(n => n > 0)
-    if (!ids.length) { setError('Entrez au moins un ID élève'); return }
+    if (!studentIds.length) { setError('Sélectionnez au moins un élève'); return }
     try {
-      await mutateAsync({ classId, studentIds: ids })
+      await mutateAsync({ classId, studentIds })
       onClose()
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Erreur')
@@ -33,17 +33,14 @@ function AssignModal({ classId, onClose }: { classId: number; onClose: () => voi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 mx-4">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Affecter des élèves</h2>
-        <p className="text-xs text-zinc-400 mb-5">IDs séparés par virgule, espace ou retour à la ligne</p>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Affecter des élèves</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <textarea
+          <StudentMultiSelect
+            studentIds={studentIds}
+            onSelect={setStudentIds}
+            label="Élèves à affecter"
             required
-            value={raw}
-            onChange={e => setRaw(e.target.value)}
-            rows={4}
-            placeholder="1, 2, 3, 4..."
-            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
           />
           {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-2">
@@ -61,18 +58,17 @@ function AssignModal({ classId, onClose }: { classId: number; onClose: () => voi
 function TransferModal({ classId, onClose }: { classId: number; onClose: () => void }) {
   const { mutateAsync, isPending } = useTransferStudents()
   const { data: classes = [] } = useClasses()
-  const [raw, setRaw] = useState('')
+  const [studentIds, setStudentIds] = useState<number[]>([])
   const [targetClassId, setTargetClassId] = useState<number | ''>('')
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const ids = raw.split(/[\n,\s]+/).map(s => Number(s.trim())).filter(n => n > 0)
-    if (!ids.length) { setError('Entrez au moins un ID élève'); return }
+    if (!studentIds.length) { setError('Sélectionnez au moins un élève'); return }
     if (!targetClassId) { setError('Sélectionnez une classe cible'); return }
     try {
-      await mutateAsync({ classId, studentIds: ids, targetClassId: Number(targetClassId) })
+      await mutateAsync({ classId, studentIds, targetClassId: Number(targetClassId) })
       onClose()
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Erreur')
@@ -81,20 +77,15 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 mx-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
         <h2 className="text-lg font-semibold text-zinc-900 mb-5">Transférer des élèves</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">IDs élèves (séparés par virgule)</label>
-            <textarea
-              required
-              value={raw}
-              onChange={e => setRaw(e.target.value)}
-              rows={3}
-              placeholder="1, 2, 3..."
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
-            />
-          </div>
+          <StudentMultiSelect
+            studentIds={studentIds}
+            onSelect={setStudentIds}
+            label="Élèves à transférer"
+            required
+          />
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Classe de destination</label>
             <select

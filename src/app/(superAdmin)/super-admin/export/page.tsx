@@ -9,6 +9,7 @@ import {
 import { useSchools, useFinanceReport } from '@/lib/hooks/use-super-admin'
 import { exportApi, type ExportPayload } from '@/lib/superAdmin/api/export.api'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
@@ -26,8 +27,6 @@ function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
 }
 
-const today = new Date().toISOString().slice(0, 10)
-const thirtyDaysAgo = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10)
 
 const FORMATS = [
   {
@@ -80,8 +79,8 @@ export default function ExportPage() {
   const { data: schools } = useSchools()
 
   const [schoolId, setSchoolId] = useState<number | null>(null)
-  const [from, setFrom] = useState(thirtyDaysAgo)
-  const [to, setTo] = useState(today)
+  const [from, setFrom] = useState(() => new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10))
+  const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10))
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -178,7 +177,7 @@ export default function ExportPage() {
                 type="date"
                 value={to}
                 min={from}
-                max={today}
+                max={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setTo(e.target.value)}
                 className="text-sm text-zinc-700 bg-transparent focus:outline-none"
               />
@@ -197,7 +196,7 @@ export default function ExportPage() {
         {schoolId && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {loadingReport ? (
-              [...Array(4)].map((_, i) => <Sk key={i} className="h-20 rounded-xl" />)
+              [...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
             ) : report ? (
               <>
                 <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-5 py-4">

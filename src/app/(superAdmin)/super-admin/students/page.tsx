@@ -192,10 +192,10 @@ function SchoolView({
                 <div className="px-5 py-3 border-t border-zinc-100 flex items-center justify-between">
                   <p className="text-xs text-zinc-400 tabular-nums">Page {list.page} / {list.totalPages}</p>
                   <div className="flex gap-1">
-                    <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40">
+                    <button type="button" aria-label="Page précédente" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40">
                       <ChevronLeft size={14} />
                     </button>
-                    <button type="button" onClick={() => setPage((p) => Math.min(list.totalPages, p + 1))} disabled={page === list.totalPages} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40">
+                    <button type="button" aria-label="Page suivante" onClick={() => setPage((p) => Math.min(list.totalPages, p + 1))} disabled={page === list.totalPages} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40">
                       <ChevronRight size={14} />
                     </button>
                   </div>
@@ -291,7 +291,7 @@ function StudentsPageContent() {
       studentId: id,
       schoolId,
       dataType: 'PERSONAL_DOCS',
-    }).catch(() => undefined)
+    }).catch((err) => console.warn('[PII audit]', err))
   }
 
   const closePanel = useCallback(() => {
@@ -329,6 +329,7 @@ function StudentsPageContent() {
                 <select
                   value={schoolId}
                   onChange={(e) => setSchoolId(Number(e.target.value))}
+                  aria-label="Sélectionner un établissement"
                   className="bg-transparent text-sm text-zinc-700 focus:outline-none min-w-[200px] cursor-pointer"
                 >
                   <option value={0}>Sélectionner un établissement</option>

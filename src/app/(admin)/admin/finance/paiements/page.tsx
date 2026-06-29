@@ -10,9 +10,10 @@ import {
   usePendingVerifications, useMobilePending, useVerifyPayment,
   useConfirmMobilePayment, useConfirmBankTransaction, useResendReceipt,
   useLinkOrphanTransaction, useAdvancedSearch, useProcessManualPayment,
-  useStudents, useMarkVerificationProcessed, useExportPendingVerifications,
+  useMarkVerificationProcessed, useExportPendingVerifications,
 } from '@/lib/hooks/use-admin'
-import type { ManualPaymentPayload, AdvancedSearchParams, StudentListItem, PendingVerificationItem } from '@/types/admin'
+import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem } from '@/types/admin'
+import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer } from '@/components/admin/finance/verification-ui'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -23,89 +24,6 @@ function isMobileMoneyMethod(method?: string) {
   return method ? MOBILE_MONEY_METHODS.has(method.toUpperCase()) : false
 }
 
-function StudentSearchField({
-  studentId,
-  onSelect,
-  label = 'Élève',
-}: {
-  studentId: number
-  onSelect: (id: number) => void
-  label?: string
-}) {
-  const [query, setQuery] = useState('')
-  const [debounced, setDebounced] = useState('')
-  const [selected, setSelected] = useState<StudentListItem | null>(null)
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim()), 350)
-    return () => clearTimeout(t)
-  }, [query])
-
-  const { data, isFetching } = useStudents(
-    debounced.length >= 2 ? { search: debounced, limit: 15 } : undefined,
-  )
-  const results = data?.data ?? []
-  const display = selected ?? (studentId > 0 ? results.find((s) => s.id === studentId) : null)
-
-  function pick(student: StudentListItem) {
-    setSelected(student)
-    onSelect(student.id)
-    setQuery('')
-    setDebounced('')
-  }
-
-  function clear() {
-    setSelected(null)
-    onSelect(0)
-  }
-
-  return (
-    <div className="space-y-2">
-      <label className="block text-xs font-medium text-zinc-500 mb-1">{label} *</label>
-      {display && studentId > 0 ? (
-        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50/80">
-          <p className="text-sm text-emerald-900">
-            {display.firstName} {display.lastName}
-            {display.matricule ? ` · ${display.matricule}` : ''}
-          </p>
-          <button type="button" onClick={clear} className="text-xs text-emerald-700 hover:underline">Changer</button>
-        </div>
-      ) : (
-        <>
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nom, prénom ou matricule (min. 2 caractères)"
-            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-          />
-          {debounced.length >= 2 && (
-            <div className="max-h-40 overflow-y-auto rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
-              {isFetching ? (
-                <p className="px-3 py-2 text-xs text-zinc-400">Recherche…</p>
-              ) : results.length ? (
-                results.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => pick(s)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50"
-                  >
-                    <span className="font-medium text-zinc-900">{s.firstName} {s.lastName}</span>
-                    {s.matricule && <span className="text-zinc-400 ml-1">({s.matricule})</span>}
-                    {s.className && <span className="block text-xs text-zinc-400">{s.className}</span>}
-                  </button>
-                ))
-              ) : (
-                <p className="px-3 py-2 text-xs text-zinc-400">Aucun élève trouvé</p>
-              )}
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  )
-}
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
 
@@ -362,12 +280,11 @@ export default function PaiementsPage() {
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
           <h3 className="text-sm font-semibold text-zinc-900 mb-4">Recherche avancée</h3>
           <div className="grid grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1">ID Élève</label>
-              <input type="number" min={1} value={searchDraft.studentId ?? ''}
-                onChange={e => setSearchDraft(p => ({ ...p, studentId: e.target.value ? Number(e.target.value) : undefined }))}
-                className="w-full px-3 py-1.5 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
+            <StudentSearchField
+              studentId={searchDraft.studentId ?? 0}
+              onSelect={(id) => setSearchDraft(p => ({ ...p, studentId: id > 0 ? id : undefined }))}
+              label="Élève"
+            />
             <div>
               <label className="block text-xs text-zinc-500 mb-1">Méthode</label>
               <select value={searchDraft.method ?? ''} onChange={e => setSearchDraft(p => ({ ...p, method: e.target.value || undefined }))}

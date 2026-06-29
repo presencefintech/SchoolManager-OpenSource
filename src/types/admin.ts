@@ -390,24 +390,25 @@ export interface AdminPresenceRecordResult {
   isSameDayDuplicate?: boolean
 }
 
+export interface BulkPresenceRecordItem {
+  studentId: number
+  presenceId: number
+  status: 'PRESENT' | 'ABSENT' | 'LATE'
+  studentName: string
+  idempotentReplay?: boolean
+  isSameDayDuplicate?: boolean
+}
+
+export interface BulkPresenceRecordFailure {
+  studentId: number
+  error: string
+  code?: string
+}
+
 export interface BulkPresenceRecordResult {
-  succeeded: Array<{
-    studentId: number
-    presenceId: number
-    status: 'PRESENT' | 'ABSENT' | 'LATE'
-    studentName: string
-  }>
-  failed: Array<{
-    studentId: number
-    error: string
-    code?: string
-  }>
-  duplicates: Array<{
-    studentId: number
-    presenceId: number
-    status: 'PRESENT' | 'ABSENT' | 'LATE'
-    studentName: string
-  }>
+  succeeded: BulkPresenceRecordItem[]
+  failed: BulkPresenceRecordFailure[]
+  duplicates: BulkPresenceRecordItem[]
 }
 
 // Classes

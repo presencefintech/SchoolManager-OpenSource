@@ -13,7 +13,8 @@ export function getCookie(name: string): string | null {
 }
 
 function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax${secure}`
 }
 
 function deleteCookie(name: string) {

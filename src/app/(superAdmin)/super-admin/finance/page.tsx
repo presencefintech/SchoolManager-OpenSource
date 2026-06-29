@@ -18,6 +18,7 @@ import {
   usePaymentSecurityAudit, useHighRiskProfiles,
 } from '@/lib/hooks/use-super-admin'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) =>
@@ -98,7 +99,7 @@ export default function FinancePage() {
 
           {/* ══ 1. KPI PERFORMANCE ══════════════════════════════════════════ */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {loadingPerf ? [...Array(6)].map((_, i) => <Sk key={i} className="h-28 rounded-2xl" />) : perf ? (
+            {loadingPerf ? [...Array(6)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />) : perf ? (
               <>
                 <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] px-7 py-6">
                   <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">Encaissé</p>
@@ -150,7 +151,7 @@ export default function FinancePage() {
               )}
             </div>
 
-            {loadingSnapshot ? <Sk className="h-32 rounded-xl" /> : snapshot ? (
+            {loadingSnapshot ? <Skeleton className="h-32 rounded-xl" /> : snapshot ? (
               <div className="flex flex-wrap gap-6 items-start">
                 <div>
                   <p className="text-4xl font-bold text-zinc-900 tabular-nums">{fmt(snapshot.total)}</p>
@@ -182,7 +183,7 @@ export default function FinancePage() {
             <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
               <h2 className="text-base font-semibold text-zinc-900 mb-1">Recouvrement par niveau</h2>
               <p className="text-xs text-zinc-400 mb-5">Taux d'encaissement par segment</p>
-              {loadingLevels ? <Sk className="h-52 rounded-xl" /> : levels?.length ? (
+              {loadingLevels ? <Skeleton className="h-52 rounded-xl" /> : levels?.length ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={levels} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barSize={28}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
@@ -227,7 +228,7 @@ export default function FinancePage() {
               </div>
               {loadingPayers ? (
                 <div className="divide-y divide-zinc-100">
-                  {[...Array(5)].map((_, i) => <div key={i} className="px-6 py-3"><Sk className="h-4" /></div>)}
+                  {[...Array(5)].map((_, i) => <div key={i} className="px-6 py-3"><Skeleton className="h-4" /></div>)}
                 </div>
               ) : payers?.length ? (
                 <div className="divide-y divide-zinc-100 max-h-64 overflow-y-auto">
@@ -281,7 +282,7 @@ export default function FinancePage() {
                 )}
               </div>
 
-              {loadingAnomalies ? <Sk className="h-32 rounded-xl" /> : anomalies ? (
+              {loadingAnomalies ? <Skeleton className="h-32 rounded-xl" /> : anomalies ? (
                 <div className="space-y-3">
                   {anomalies.reason ? (
                     <p className="text-sm text-zinc-400">{anomalies.reason}</p>
@@ -346,7 +347,7 @@ export default function FinancePage() {
                 )}
               </div>
 
-              {loadingAudit ? <Sk className="h-48 rounded-xl" /> : audit ? (
+              {loadingAudit ? <Skeleton className="h-48 rounded-xl" /> : audit ? (
                 <div className="space-y-3">
                   {/* Intégrité */}
                   <div className={cn(
@@ -438,7 +439,7 @@ export default function FinancePage() {
             </div>
             {loadingSecAudit ? (
               <div className="px-7 py-6 space-y-3">
-                {[...Array(3)].map((_, i) => <Sk key={i} className="h-4 rounded-lg" />)}
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-4 rounded-lg" />)}
               </div>
             ) : secAudit && secAudit.length > 0 ? (
               <div className="overflow-x-auto max-h-72">
@@ -499,7 +500,7 @@ export default function FinancePage() {
             {loadingHighRisk ? (
               <div className="divide-y divide-zinc-100">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="px-7 py-4"><Sk className="h-4 rounded-lg" /></div>
+                  <div key={i} className="px-7 py-4"><Skeleton className="h-4 rounded-lg" /></div>
                 ))}
               </div>
             ) : highRisk && highRisk.length > 0 ? (
