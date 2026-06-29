@@ -88,6 +88,8 @@ export interface BulkPresenceRecordItem {
   presenceId: number
   status: PresenceStatusValue
   studentName: string
+  idempotentReplay?: boolean
+  isSameDayDuplicate?: boolean
 }
 
 export interface BulkPresenceRecordFailure {
