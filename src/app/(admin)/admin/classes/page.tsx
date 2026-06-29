@@ -1,35 +1,113 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 import Link from 'next/link'
 import { Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, Search, ChevronRight } from 'lucide-react'
-import { useClasses, useCreateClass, useToggleClassStatus, useRollover } from '@/lib/hooks/use-admin'
+import { useClasses, useCreateClass, useToggleClassStatus, useRollover, useSections, useOptions, useAcademicSessions } from '@/lib/hooks/use-admin'
 import type { CreateClassPayload, RolloverPayload } from '@/types/admin'
-import { fadeUp, stagger } from '@/lib/animations'
-import { getApiErrorMessage } from '@/lib/api/client'
+
+const inputCls = 'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400'
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
+} satisfies Variants
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 function CreateClassModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useCreateClass()
-  const [form, setForm] = useState<CreateClassPayload>({ name: '', level: '', capacity: undefined, teacherId: undefined })
+  const { data: sections = [] } = useSections()
+  const { data: sessions = [] } = useAcademicSessions()
+  const [form, setForm] = useState<CreateClassPayload>({
+    name: '',
+    academicYear: '',
+    sectionId: 0,
+    optionId: 0,
+    level: '',
+    capacity: undefined,
+    teacherId: undefined,
+  })
+  const { data: options = [] } = useOptions(form.sectionId || undefined)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!form.sectionId || !form.optionId || !form.academicYear) {
+      setError('Section, option et année scolaire sont requis')
+      return
+    }
     try {
-      await mutateAsync({ ...form, capacity: form.capacity ? Number(form.capacity) : undefined })
+      await mutateAsync({
+        ...form,
+        capacity: form.capacity ? Number(form.capacity) : undefined,
+      })
       onClose()
-    } catch (err) {
-      setError(getApiErrorMessage(err))
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Erreur lors de la création')
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 mb-5">Nouvelle classe</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Section *</label>
+            <select
+              required
+              value={form.sectionId || ''}
+              onChange={e => setForm(p => ({ ...p, sectionId: Number(e.target.value), optionId: 0 }))}
+              className={inputCls}
+            >
+              <option value="">— Choisir —</option>
+              {sections.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Option *</label>
+            <select
+              required
+              value={form.optionId || ''}
+              disabled={!form.sectionId}
+              onChange={e => setForm(p => ({ ...p, optionId: Number(e.target.value) }))}
+              className={inputCls}
+            >
+              <option value="">— Choisir —</option>
+              {options.map(o => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Année scolaire *</label>
+            {sessions.length > 0 ? (
+              <select
+                required
+                value={form.academicYear}
+                onChange={e => setForm(p => ({ ...p, academicYear: e.target.value }))}
+                className={inputCls}
+              >
+                <option value="">— Choisir —</option>
+                {sessions.map(s => (
+                  <option key={s.id} value={s.label}>{s.label}{s.isCurrent ? ' (courante)' : ''}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                required
+                value={form.academicYear}
+                onChange={e => setForm(p => ({ ...p, academicYear: e.target.value }))}
+                placeholder="2025-2026"
+                pattern="\d{4}-\d{4}"
+                className={inputCls}
+              />
+            )}
+          </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Nom *</label>
             <input
@@ -37,7 +115,7 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
               value={form.name}
               onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
               placeholder="Ex: 6ème A"
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className={inputCls}
             />
           </div>
           <div>
@@ -100,8 +178,8 @@ function RolloverModal({ onClose }: { onClose: () => void }) {
     try {
       await mutateAsync(form)
       setSuccess(true)
-    } catch (err) {
-      setError(getApiErrorMessage(err))
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Erreur lors du passage annuel')
     }
   }
 

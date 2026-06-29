@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, CheckCircle, Ban, TrendingUp, Calendar } from 'lucide-react'
 import {
   useMoratoriums, useCreateMoratorium, useCreateBulkMoratoriums,
-  useRevokeMoratorium, useMoratoriumRecoveryRate,
+  useRevokeMoratorium, useMoratoriumRecoveryRate, useAllowedMoratoriumTypes,
 } from '@/lib/hooks/use-admin'
+import { MoratoriumTypeSelect } from '@/components/admin/finance/moratorium-type-select'
 import type { CreateMoratoriumPayload, BulkMoratoriumPayload } from '@/types/admin'
-import { Skeleton } from '@/components/ui/skeleton'
- import { getApiErrorMessage } from '@/lib/api/client'
+import { labelMoratoriumType } from '@/lib/business-labels'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -22,22 +22,46 @@ const STATUS_CFG: Record<string, { label: string; cls: string }> = {
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  PAYMENT_PLAN: 'Plan de paiement',
-  DEBT_FREEZE:  'Gel de dette',
-  GRACE_PERIOD: 'Période de grâce',
+  MONTHLY: labelMoratoriumType('MONTHLY'),
+  QUARTERLY: labelMoratoriumType('QUARTERLY'),
+  EXCEPTIONAL: labelMoratoriumType('EXCEPTIONAL'),
+  SCHOLARSHIP_REVIEW: labelMoratoriumType('SCHOLARSHIP_REVIEW'),
 }
 
-function MoratoriumModal({ onClose }: { onClose: () => void }) {
+function MoratoriumModal({
+  onClose,
+  allowedTypes,
+  defaultType,
+  policyLoading,
+}: {
+  onClose: () => void
+  allowedTypes: import('@/types/admin').MoratoriumType[]
+  defaultType: import('@/types/admin').MoratoriumType
+  policyLoading: boolean
+}) {
   const { mutateAsync, isPending } = useCreateMoratorium()
-  const [form, setForm] = useState<CreateMoratoriumPayload>({ studentId: 0, type: 'PAYMENT_PLAN', startDate: '', endDate: '', reason: '' })
+  const [form, setForm] = useState<CreateMoratoriumPayload>({
+    studentId: 0, type: defaultType, startDate: '', endDate: '', reason: '',
+  })
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    setForm((p) => ({ ...p, type: defaultType }))
+  }, [defaultType])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
-    catch (err) { setError(getApiErrorMessage(err)) }
+    catch (err: any) {
+      const status = err?.response?.status
+      setError(
+        status === 429
+          ? 'Trop de requêtes — patientez quelques instants puis réessayez.'
+          : (err?.response?.data?.message ?? 'Erreur'),
+      )
+    }
   }
 
   return (
@@ -60,12 +84,13 @@ function MoratoriumModal({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Type *</label>
-              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                <option value="PAYMENT_PLAN">Plan de paiement</option>
-                <option value="DEBT_FREEZE">Gel de dette</option>
-                <option value="GRACE_PERIOD">Période de grâce</option>
-              </select>
+              <MoratoriumTypeSelect
+                value={form.type}
+                onChange={(type) => setForm((p) => ({ ...p, type }))}
+                allowedTypes={allowedTypes}
+                defaultType={defaultType}
+                isLoading={policyLoading}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -98,12 +123,28 @@ function MoratoriumModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-function BulkMoratoriumModal({ onClose }: { onClose: () => void }) {
+function BulkMoratoriumModal({
+  onClose,
+  allowedTypes,
+  defaultType,
+  policyLoading,
+}: {
+  onClose: () => void
+  allowedTypes: import('@/types/admin').MoratoriumType[]
+  defaultType: import('@/types/admin').MoratoriumType
+  policyLoading: boolean
+}) {
   const { mutateAsync, isPending } = useCreateBulkMoratoriums()
-  const [form, setForm] = useState<BulkMoratoriumPayload>({ studentIds: [], type: 'PAYMENT_PLAN', startDate: '', endDate: '', reason: '' })
+  const [form, setForm] = useState<BulkMoratoriumPayload>({
+    studentIds: [], type: defaultType, startDate: '', endDate: '', reason: '',
+  })
   const [idsText, setIdsText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    setForm((p) => ({ ...p, type: defaultType }))
+  }, [defaultType])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -111,7 +152,14 @@ function BulkMoratoriumModal({ onClose }: { onClose: () => void }) {
     const ids = idsText.split('\n').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n > 0)
     if (ids.length === 0) { setError('Entrez au moins un ID élève'); return }
     try { await mutateAsync({ ...form, studentIds: ids }); setSuccess(true) }
-    catch (err) { setError(getApiErrorMessage(err)) }
+    catch (err: any) {
+      const status = err?.response?.status
+      setError(
+        status === 429
+          ? 'Trop de requêtes — patientez quelques instants puis réessayez.'
+          : (err?.response?.data?.message ?? 'Erreur'),
+      )
+    }
   }
 
   return (
@@ -133,12 +181,13 @@ function BulkMoratoriumModal({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Type *</label>
-              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-                <option value="PAYMENT_PLAN">Plan de paiement</option>
-                <option value="DEBT_FREEZE">Gel de dette</option>
-                <option value="GRACE_PERIOD">Période de grâce</option>
-              </select>
+              <MoratoriumTypeSelect
+                value={form.type}
+                onChange={(type) => setForm((p) => ({ ...p, type }))}
+                allowedTypes={allowedTypes}
+                defaultType={defaultType}
+                isLoading={policyLoading}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -175,10 +224,10 @@ export default function MoratoriumsPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [showBulk, setShowBulk] = useState(false)
+  const { allowedTypes, defaultType, isLoading: policyLoading } = useAllowedMoratoriumTypes()
   const { data: moratoriums = [], isLoading } = useMoratoriums({ status: statusFilter || undefined })
   const { data: recoveryRate } = useMoratoriumRecoveryRate()
   const { mutate: revoke } = useRevokeMoratorium()
-  const rate = recoveryRate as any
 
   return (
     <div className="space-y-6">
@@ -203,12 +252,17 @@ export default function MoratoriumsPage() {
       </motion.div>
 
       <div className="flex items-center gap-3">
-        {rate && (
+        {recoveryRate && (
           <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-zinc-100 shadow-sm">
             <TrendingUp size={14} className="text-emerald-600" />
             <span className="text-sm font-semibold text-zinc-800">
-              Taux recouvrement : {rate?.rate != null ? `${Number(rate.rate).toFixed(1)}%` : rate?.recoveryRate != null ? `${Number(rate.recoveryRate).toFixed(1)}%` : '—'}
+              Taux recouvrement : {recoveryRate.recoveryRateGlobal.toFixed(1)}%
             </span>
+            {recoveryRate.studentsUnderMoratorium > 0 && (
+              <span className="text-xs text-zinc-400">
+                · {recoveryRate.studentsUnderMoratorium} sous moratoire
+              </span>
+            )}
           </div>
         )}
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
@@ -223,8 +277,8 @@ export default function MoratoriumsPage() {
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         {isLoading ? (
-          <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-        ) : (moratoriums as any[]).length === 0 ? (
+          <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <Sk key={i} className="h-12" />)}</div>
+        ) : moratoriums.length === 0 ? (
           <div className="py-12 text-center">
             <Calendar size={28} className="mx-auto text-zinc-300 mb-2" />
             <p className="text-sm text-zinc-400">Aucun moratoire</p>
@@ -239,16 +293,20 @@ export default function MoratoriumsPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Fin</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Statut</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Motif</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Accordé par</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
-              {(moratoriums as any[]).map((m) => {
+              {moratoriums.map((m) => {
                 const cfg = STATUS_CFG[m.status] ?? { label: m.status, cls: 'bg-zinc-100 text-zinc-500' }
+                const studentLabel = m.studentName ?? (
+                  (m.student ? `${m.student.firstName} ${m.student.lastName}`.trim() : '') || `#${m.studentId}`
+                )
                 return (
                   <tr key={m.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-5 py-3.5 font-medium text-zinc-900">
-                      {m.student ? `${m.student.firstName} ${m.student.lastName}` : `#${m.studentId}`}
+                      {studentLabel}
                     </td>
                     <td className="px-5 py-3.5 text-zinc-600 text-xs">{TYPE_LABEL[m.type] ?? m.type}</td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs">{new Date(m.startDate).toLocaleDateString('fr-FR')}</td>
@@ -257,6 +315,7 @@ export default function MoratoriumsPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>
                     </td>
                     <td className="px-5 py-3.5 text-zinc-400 text-xs max-w-[160px] truncate">{m.reason}</td>
+                    <td className="px-5 py-3.5 text-zinc-500 text-xs">{m.grantedByName ?? '—'}</td>
                     <td className="px-5 py-3.5">
                       {m.status === 'ACTIVE' && (
                         <button onClick={() => revoke(m.id)}
@@ -273,8 +332,22 @@ export default function MoratoriumsPage() {
         )}
       </div>
 
-      {showCreate && <MoratoriumModal onClose={() => setShowCreate(false)} />}
-      {showBulk && <BulkMoratoriumModal onClose={() => setShowBulk(false)} />}
+      {showCreate && (
+        <MoratoriumModal
+          onClose={() => setShowCreate(false)}
+          allowedTypes={allowedTypes}
+          defaultType={defaultType}
+          policyLoading={policyLoading}
+        />
+      )}
+      {showBulk && (
+        <BulkMoratoriumModal
+          onClose={() => setShowBulk(false)}
+          allowedTypes={allowedTypes}
+          defaultType={defaultType}
+          policyLoading={policyLoading}
+        />
+      )}
     </div>
   )
 }

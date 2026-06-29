@@ -260,6 +260,8 @@ Ces endpoints sont documentés dans **`swagger-docs/finance.json`** (lecture KYC
 | **Statut KYC / paiements en ligne parent** | `GET /admin/finance/payment-profile` | `finance.json` (lecture FINANCE) |
 | Configuration RIB (admin uniquement) | `PUT /admin/finance/payment-profile` | `admin.json` |
 | Moratoires CRUD | `/admin/finance/moratoriums/*` | `admin.json` |
+| **Export vérifications pending** | `GET /admin/finance/payments/pending-verifications/export?format=csv` | `admin-business-actions.md` |
+| **Clôture vérification** | `POST /admin/finance/payments/verifications/{id}/mark-processed` | `admin-business-actions.md` |
 | Validation remboursements | `/admin/finance/refunds/{id}/review` | `admin.json` |
 | Barèmes / tarifs (écriture) | routes admin finance | `admin.json` |
 

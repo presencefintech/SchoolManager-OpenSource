@@ -1,0 +1,358 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Loader2, X, Calendar, PauseCircle, UserPlus } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  enrollSessionSchema,
+  moratoriumDrawerSchema,
+  type EnrollSessionForm,
+  type MoratoriumDrawerForm,
+} from '@/lib/schemas/enrollment-actions'
+import { labelMoratoriumType } from '@/lib/business-labels'
+import type { MoratoriumType } from '@/types/admin'
+import {
+  useAcademicSessions,
+  useClasses,
+  useEnrollInSession,
+  useCreateMoratorium,
+  useAllowedMoratoriumTypes,
+} from '@/lib/hooks/use-admin'
+import { useToast } from '@/providers/toast-provider'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { fmtMoney } from '@/components/admin/finance/verification-ui'
+
+function DrawerShell({
+  open,
+  title,
+  subtitle,
+  icon: Icon,
+  onClose,
+  children,
+}: {
+  open: boolean
+  title: string
+  subtitle?: string
+  icon: React.ElementType
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/30 z-[60]"
+            onClick={onClose}
+          />
+          <motion.aside
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[70] flex flex-col"
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                  <Icon size={16} />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+                  {subtitle && <p className="text-xs text-zinc-500">{subtitle}</p>}
+                </div>
+              </div>
+              <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">{children}</div>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+export function EnrollSessionDrawer({
+  open,
+  studentId,
+  studentName,
+  onClose,
+}: {
+  open: boolean
+  studentId: number
+  studentName: string
+  onClose: () => void
+}) {
+  const toast = useToast()
+  const { data: sessions = [], isLoading: loadingSessions } = useAcademicSessions()
+  const { data: classesData } = useClasses({ isActive: true })
+  const classes = classesData ?? []
+  const enrollMutation = useEnrollInSession()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<EnrollSessionForm>({
+    resolver: zodResolver(enrollSessionSchema),
+    defaultValues: { type: 'RE_ENROLLMENT' },
+  })
+
+  useEffect(() => {
+    if (!open) reset({ type: 'RE_ENROLLMENT' })
+  }, [open, reset])
+
+  async function onSubmit(data: EnrollSessionForm) {
+    try {
+      await enrollMutation.mutateAsync({ studentId, ...data })
+      toast.success('Inscription enregistrée', `${studentName} est inscrit(e) à la session sélectionnée.`)
+      onClose()
+    } catch (err) {
+      toast.error('Échec de l\'inscription', getApiErrorMessage(err))
+    }
+  }
+
+  return (
+    <DrawerShell
+      open={open}
+      title="Inscrire à une session"
+      subtitle={studentName}
+      icon={UserPlus}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Session académique *</label>
+          {loadingSessions ? (
+            <div className="h-10 rounded-lg bg-zinc-100 animate-pulse" />
+          ) : (
+            <select
+              {...register('sessionId')}
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              <option value="">— Choisir —</option>
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}{s.isCurrent ? ' (courante)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
+          {errors.sessionId && <p className="text-xs text-red-600 mt-1">{errors.sessionId.message}</p>}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Classe (optionnel)</label>
+          <select
+            {...register('classId')}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            <option value="">— Conserver la classe actuelle —</option>
+            {classes.map((c: { id: number; name: string }) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Type d&apos;inscription</label>
+          <select
+            {...register('type')}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm"
+          >
+            <option value="RE_ENROLLMENT">Réinscription</option>
+            <option value="NEW">Nouvelle inscription</option>
+            <option value="TRANSFER">Transfert</option>
+          </select>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={enrollMutation.isPending}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium disabled:opacity-50"
+          >
+            {enrollMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+            Confirmer
+          </button>
+        </div>
+      </form>
+    </DrawerShell>
+  )
+}
+
+export function MoratoriumDrawer({
+  open,
+  studentId,
+  studentName,
+  enrollmentId,
+  onClose,
+}: {
+  open: boolean
+  studentId: number
+  studentName: string
+  enrollmentId?: number
+  onClose: () => void
+}) {
+  const toast = useToast()
+  const createMutation = useCreateMoratorium()
+  const { allowedTypes, defaultType, isLoading: loadingPolicy } = useAllowedMoratoriumTypes({ enabled: open })
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<MoratoriumDrawerForm>({
+    resolver: zodResolver(moratoriumDrawerSchema),
+    defaultValues: { note: '', type: 'EXCEPTIONAL' },
+  })
+
+  const amount = watch('amount')
+  const moratoriumType = watch('type')
+
+  useEffect(() => {
+    if (!open) {
+      reset({ note: '', endDate: '', amount: undefined, type: defaultType })
+    } else if (!loadingPolicy) {
+      setValue('type', defaultType)
+    }
+  }, [open, reset, defaultType, loadingPolicy, setValue])
+
+  async function onSubmit(data: MoratoriumDrawerForm) {
+    if (!allowedTypes.includes(data.type)) {
+      toast.error('Type non autorisé', `Types permis : ${allowedTypes.map(labelMoratoriumType).join(', ')}`)
+      return
+    }
+    const today = new Date().toISOString().slice(0, 10)
+    const reason = data.amount != null && data.amount > 0
+      ? `${data.note} — Plafond convenu : ${fmtMoney(data.amount)}`
+      : data.note
+    try {
+      await createMutation.mutateAsync({
+        studentId,
+        enrollmentId,
+        type: data.type as MoratoriumType,
+        startDate: today,
+        endDate: data.endDate,
+        reason,
+      })
+      toast.success('Moratoire activé', `Les relances sont suspendues jusqu'au ${new Date(data.endDate).toLocaleDateString('fr-FR')}.`)
+      onClose()
+    } catch (err) {
+      toast.error('Impossible d\'activer le moratoire', getApiErrorMessage(err))
+    }
+  }
+
+  return (
+    <DrawerShell
+      open={open}
+      title="Gérer le moratoire"
+      subtitle={studentName}
+      icon={PauseCircle}
+      onClose={onClose}
+    >
+      <p className="text-xs text-zinc-500 mb-4 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+        Un moratoire suspend les relances de paiement pour la période indiquée. Le solde reste dû.
+      </p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Type de moratoire</label>
+          {loadingPolicy ? (
+            <div className="h-10 rounded-lg bg-zinc-100 animate-pulse" />
+          ) : (
+            <select
+              {...register('type')}
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            >
+              {allowedTypes.map((t) => (
+                <option key={t} value={t}>{labelMoratoriumType(t)}</option>
+              ))}
+            </select>
+          )}
+          {!loadingPolicy && allowedTypes.length === 1 && (
+            <p className="text-[10px] text-zinc-400 mt-1">Seul ce type est autorisé par la politique de votre école.</p>
+          )}
+          {moratoriumType === 'EXCEPTIONAL' && allowedTypes.includes('EXCEPTIONAL') && (
+            <p className="text-[10px] text-zinc-400 mt-1">Recommandé pour un accord de paiement échelonné.</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Date de fin *</label>
+          <div className="relative">
+            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="date"
+              {...register('endDate')}
+              min={new Date().toISOString().slice(0, 10)}
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+            />
+          </div>
+          {errors.endDate && <p className="text-xs text-red-600 mt-1">{errors.endDate.message}</p>}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Montant couvert (optionnel)</label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="Ex. 150"
+            {...register('amount')}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          />
+          {amount != null && amount > 0 && (
+            <p className="text-[10px] text-zinc-400 mt-1">Sera mentionné dans la note interne : {fmtMoney(amount)}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Note / motif *</label>
+          <textarea
+            rows={3}
+            {...register('note')}
+            placeholder="Ex. Accord direction — paiement échelonné en 3 fois"
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          />
+          {errors.note && <p className="text-xs text-red-600 mt-1">{errors.note.message}</p>}
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={createMutation.isPending}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium disabled:opacity-50"
+          >
+            {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+            Activer le moratoire
+          </button>
+        </div>
+      </form>
+    </DrawerShell>
+  )
+}

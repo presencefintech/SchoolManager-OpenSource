@@ -5,13 +5,23 @@ import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
-  FileCheck, Loader2,
+  FileCheck, Loader2, FileEdit,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useStudentDetail, useStudentActivity, useDossierStatus, useSecurityAction,
+  useEnrollmentDetail, useSyncBalance, useToggleLock,
 } from '@/lib/hooks/use-admin'
-import { Skeleton } from '@/components/ui/skeleton'
+import type { StudentSecurityAction } from '@/types/admin'
+import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
+import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
+import { AdminProfileModal } from '@/components/admin/students/admin-profile-modal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/providers/toast-provider'
+import { labelBiometricStatus } from '@/lib/business-labels'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { formatStudentDisplayName } from '@/lib/admin/normalizers'
+import { fmtMoney } from '@/components/admin/finance/verification-ui'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -45,30 +55,87 @@ function DossierCheck({ ok, label }: { ok: boolean; label: string }) {
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const toast = useToast()
   const studentId = Number(id)
 
   const { data: student, isLoading } = useStudentDetail(studentId)
+  const { data: enrollmentDetail } = useEnrollmentDetail(studentId)
   const { data: activity, isLoading: loadingActivity } = useStudentActivity(studentId)
   const { data: dossier } = useDossierStatus(studentId)
   const securityMutation = useSecurityAction()
+  const toggleLockMutation = useToggleLock()
+  const syncMutation = useSyncBalance()
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [securityReason, setSecurityReason] = useState('')
+  const [syncingEnrollmentId, setSyncingEnrollmentId] = useState<number | null>(null)
+  const [showAdminProfile, setShowAdminProfile] = useState(false)
+  const [pendingAction, setPendingAction] = useState<{
+    key: string
+    kind: 'security' | 'lock'
+    label: string
+    studentName: string
+    action?: StudentSecurityAction
+    danger?: boolean
+    currentlyLocked?: boolean
+  } | null>(null)
 
-  async function doAction(action: string, reason?: string) {
-    setActionLoading(action)
+  async function executePendingAction() {
+    if (!pendingAction) return
+    setActionLoading(pendingAction.key)
     try {
-      await securityMutation.mutateAsync({ id: studentId, action, reason })
+      if (pendingAction.kind === 'lock') {
+        await toggleLockMutation.mutateAsync(studentId)
+        toast.success(
+          pendingAction.currentlyLocked ? 'Dossier déverrouillé' : 'Dossier verrouillé',
+          pendingAction.currentlyLocked
+            ? 'Les modifications sont à nouveau autorisées.'
+            : 'Les modifications sont suspendues.',
+        )
+      } else if (pendingAction.action === 'BLOCK') {
+        const reason = securityReason.trim()
+        if (!reason) {
+          toast.error('Motif obligatoire', 'Indiquez la raison de la suspension.')
+          return
+        }
+        await securityMutation.mutateAsync({ id: studentId, action: 'BLOCK', reason })
+        toast.success('Compte suspendu', 'L\'élève ne peut plus accéder aux services.')
+      } else if (pendingAction.action === 'UNBLOCK') {
+        await securityMutation.mutateAsync({ id: studentId, action: 'UNBLOCK' })
+        toast.success('Compte réactivé', 'L\'élève peut à nouveau accéder aux services.')
+      }
+    } catch (err) {
+      toast.error('Action impossible', getApiErrorMessage(err))
     } finally {
       setActionLoading(null)
+      setPendingAction(null)
+      setSecurityReason('')
+    }
+  }
+
+  function closePendingAction() {
+    setPendingAction(null)
+    setSecurityReason('')
+  }
+
+  async function handleSyncEnrollment(enrollmentId: number) {
+    setSyncingEnrollmentId(enrollmentId)
+    try {
+      await syncMutation.mutateAsync(enrollmentId)
+      toast.success('Solde recalculé')
+    } catch (err) {
+      toast.error('Échec', getApiErrorMessage(err))
+    } finally {
+      setSyncingEnrollmentId(null)
     }
   }
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-50 p-8 space-y-4 max-w-4xl mx-auto">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-48" />
-        <Skeleton className="h-64" />
+        <Sk className="h-8 w-48" />
+        <Sk className="h-48" />
+        <Sk className="h-64" />
       </div>
     )
   }
@@ -83,10 +150,38 @@ export default function StudentDetailPage() {
 
   const sc = STATUS_CFG[student.status] ?? { label: student.status, cls: 'bg-zinc-100 text-zinc-500' }
   const debtAmount = student.debtAmount ?? 0
+  const studentDisplayName = formatStudentDisplayName(student)
   const dossierItem = dossier as {
     hasPhoto?: boolean; hasBiometrics?: boolean; hasParentContact?: boolean;
     isFinanciallyCleared?: boolean; completionRate?: number
   } | undefined
+
+  const securityActions = [
+    ...(student.status !== 'SUSPENDED'
+      ? [{
+          key: 'BLOCK',
+          kind: 'security' as const,
+          action: 'BLOCK' as const,
+          label: 'Suspendre le compte',
+          danger: true,
+        }]
+      : [{
+          key: 'UNBLOCK',
+          kind: 'security' as const,
+          action: 'UNBLOCK' as const,
+          label: 'Réactiver le compte',
+          danger: false,
+        }]),
+    {
+      key: student.isLocked ? 'UNLOCK' : 'LOCK',
+      kind: 'lock' as const,
+      label: student.isLocked ? 'Déverrouiller le dossier' : 'Verrouiller le dossier',
+      danger: !student.isLocked,
+      currentlyLocked: student.isLocked,
+    },
+  ]
+
+  const actionPending = securityMutation.isPending || toggleLockMutation.isPending
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -108,11 +203,19 @@ export default function StudentDetailPage() {
               </span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-zinc-900">{student.firstName} {student.lastName}</h1>
-              <div className="flex items-center gap-2 mt-0.5">
+              <h1 className="text-lg font-semibold text-zinc-900">{studentDisplayName}</h1>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', sc.cls)}>{sc.label}</span>
                 {student.matricule && <span className="text-xs text-zinc-400 font-mono">{student.matricule}</span>}
               </div>
+              <StudentFinanceBadges
+                className="mt-2"
+                debtAmount={debtAmount > 0 ? debtAmount : undefined}
+                isPaymentLocked={student.isPaymentLocked}
+                activeMoratoriumId={student.activeMoratoriumId ?? enrollmentDetail?.activeMoratoriumId}
+                biometricStatus={student.biometricStatus ?? enrollmentDetail?.biometricStatus}
+                scholarshipPercent={student.scholarshipPercent ?? enrollmentDetail?.scholarshipPercent}
+              />
             </div>
           </div>
         </div>
@@ -125,7 +228,16 @@ export default function StudentDetailPage() {
           {/* Profile */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-              <h2 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2"><User size={14} /> Informations</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><User size={14} /> Informations</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowAdminProfile(true)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                >
+                  <FileEdit size={12} /> Profil administratif
+                </button>
+              </div>
               <InfoRow label="Classe" value={student.className} />
               <InfoRow label="Email" value={student.email} />
               <InfoRow label="Téléphone" value={student.phone} />
@@ -135,16 +247,35 @@ export default function StudentDetailPage() {
               <InfoRow label="Tél. parent" value={student.parentPhone} />
               <InfoRow label="Email parent" value={student.parentEmail} />
               <InfoRow label="Genre" value={student.gender === 'M' ? 'Masculin' : student.gender === 'F' ? 'Féminin' : undefined} />
+              <InfoRow label="Lieu de naissance" value={student.placeOfBirth} />
+              <InfoRow label="Nationalité" value={student.nationality} />
+              <InfoRow label="Année scolaire" value={student.academicYear ?? enrollmentDetail?.academicYear} />
+              <InfoRow label="Biométrie" value={labelBiometricStatus(student.biometricStatus ?? enrollmentDetail?.biometricStatus)} />
+              <InfoRow label="Groupe sanguin" value={student.bloodGroup} />
+              <InfoRow label="Allergies" value={student.allergies} />
+              <InfoRow label="Notes médicales" value={student.medicalNotes} />
             </div>
+
+            {/* Sessions académiques */}
+            {enrollmentDetail?.enrollments && enrollmentDetail.enrollments.length > 0 && (
+              <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
+                <h2 className="text-sm font-semibold text-zinc-700 mb-4">Inscriptions par session</h2>
+                <SessionEnrollmentsTable
+                  enrollments={enrollmentDetail.enrollments}
+                  onSync={handleSyncEnrollment}
+                  syncingId={syncingEnrollmentId}
+                />
+              </div>
+            )}
 
             {/* Finance */}
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
               <h2 className="text-sm font-semibold text-zinc-700 mb-4">Finance</h2>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: 'À payer', value: student.totalDue, color: 'zinc' },
-                  { label: 'Payé', value: student.totalPaid, color: 'emerald' },
-                  { label: 'Solde', value: debtAmount, color: debtAmount > 0 ? 'red' : 'emerald' },
+                  { label: 'À payer', value: student.totalDue ?? enrollmentDetail?.totalFees, color: 'zinc' },
+                  { label: 'Payé', value: student.totalPaid ?? enrollmentDetail?.feesPaid, color: 'emerald' },
+                  { label: 'Solde', value: debtAmount || enrollmentDetail?.feesBalance, color: debtAmount > 0 ? 'red' : 'emerald' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className={cn('rounded-xl p-3',
                     color === 'emerald' ? 'bg-emerald-50' : color === 'red' ? 'bg-red-50' : 'bg-zinc-50'
@@ -153,7 +284,7 @@ export default function StudentDetailPage() {
                     <p className={cn('text-base font-bold tabular-nums',
                       color === 'emerald' ? 'text-emerald-700' : color === 'red' ? 'text-red-700' : 'text-zinc-700'
                     )}>
-                      {(value ?? 0).toLocaleString('fr-FR')}
+                      {fmtMoney(Number(value ?? 0))}
                     </p>
                   </div>
                 ))}
@@ -166,7 +297,7 @@ export default function StudentDetailPage() {
                 <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><Clock size={14} /> Activité récente</h2>
               </div>
               {loadingActivity ? (
-                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-10" />)}</div>
               ) : (activity as unknown[])?.length ? (
                 <div className="divide-y divide-zinc-50 max-h-72 overflow-y-auto">
                   {((activity as Array<{ id: number; type: string; description: string; createdAt: string }>) ?? []).map((evt) => (
@@ -229,7 +360,7 @@ export default function StudentDetailPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-zinc-500">Dossier verrouillé</span>
                     <span className={cn('text-xs font-medium', student.isLocked ? 'text-red-600' : 'text-emerald-600')}>
-                      {student.isLocked ? 'Oui' : 'Non'}
+                      {student.isLocked ? 'Oui — modifications suspendues' : 'Non'}
                     </span>
                   </div>
                 </div>
@@ -242,16 +373,19 @@ export default function StudentDetailPage() {
                 <ShieldAlert size={14} className="text-red-500" /> Actions
               </h2>
               <div className="space-y-2">
-                {[
-                  { action: 'SUSPEND', label: 'Suspendre', danger: true },
-                  { action: 'UNSUSPEND', label: 'Lever suspension', danger: false },
-                  { action: 'LOCK', label: 'Verrouiller dossier', danger: true },
-                  { action: 'UNLOCK', label: 'Déverrouiller dossier', danger: false },
-                ].map(({ action, label, danger }) => (
+                {securityActions.map(({ key, kind, action, label, danger, currentlyLocked }) => (
                   <button
-                    key={action}
-                    onClick={() => doAction(action)}
-                    disabled={securityMutation.isPending}
+                    key={key}
+                    onClick={() => setPendingAction({
+                      key,
+                      kind,
+                      label,
+                      studentName: studentDisplayName,
+                      action,
+                      danger,
+                      currentlyLocked,
+                    })}
+                    disabled={actionPending}
                     className={cn(
                       'w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-medium transition-colors',
                       danger
@@ -259,7 +393,7 @@ export default function StudentDetailPage() {
                         : 'border border-zinc-200 text-zinc-600 hover:bg-zinc-50',
                     )}
                   >
-                    {actionLoading === action && <Loader2 size={12} className="animate-spin" />}
+                    {actionLoading === key && <Loader2 size={12} className="animate-spin" />}
                     {label}
                   </button>
                 ))}
@@ -269,6 +403,37 @@ export default function StudentDetailPage() {
           </div>
         </div>
       </div>
+
+      <AdminProfileModal open={showAdminProfile} student={student} onClose={() => setShowAdminProfile(false)} />
+
+      <ConfirmDialog
+        open={pendingAction != null}
+        title={`Confirmer : ${pendingAction?.label ?? ''}`}
+        description={
+          pendingAction?.kind === 'lock'
+            ? (pendingAction.currentlyLocked
+              ? 'Le dossier pourra à nouveau être modifié (inscriptions, paiements, etc.).'
+              : 'Les modifications du dossier seront bloquées jusqu\'au déverrouillage.')
+            : pendingAction?.action === 'BLOCK'
+              ? 'Le compte élève sera suspendu et les parents seront notifiés.'
+              : 'Le compte élève sera réactivé et l\'accès aux services restauré.'
+        }
+        impact={[
+          `Élève : ${pendingAction?.studentName ?? studentDisplayName}`,
+          student.matricule ? `Matricule : ${student.matricule}` : '',
+          student.className ? `Classe : ${student.className}` : '',
+        ].filter(Boolean)}
+        variant={pendingAction?.danger ? 'danger' : 'default'}
+        loading={actionPending}
+        confirmLabel="Confirmer"
+        reason={pendingAction?.action === 'BLOCK' ? securityReason : undefined}
+        onReasonChange={pendingAction?.action === 'BLOCK' ? setSecurityReason : undefined}
+        reasonLabel="Motif de suspension *"
+        reasonPlaceholder="Ex. impayés récurrents, fraude suspectée…"
+        confirmDisabled={pendingAction?.action === 'BLOCK' && !securityReason.trim()}
+        onConfirm={executePendingAction}
+        onCancel={closePendingAction}
+      />
     </div>
   )
 }

@@ -32,6 +32,28 @@ export function getAuthSchoolId(): string | null {
   return schoolId && schoolId !== 'null' ? schoolId : null
 }
 
+export function getAuthRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
+}
+
+export function updateAuthTokens(token: string, refreshToken?: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(AUTH_TOKEN_KEY, token)
+  setCookie(AUTH_TOKEN_KEY, token)
+  if (refreshToken) {
+    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, refreshToken)
+  }
+}
+
+export function redirectToLogin(): void {
+  if (typeof window === 'undefined') return
+  clearAuthStorage()
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login'
+  }
+}
+
 export function clearAuthStorage(): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(AUTH_TOKEN_KEY)

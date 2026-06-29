@@ -4,8 +4,15 @@ import type { ClassListItem, ClassDetail, ClassStats, ClassAuditEntry, CreateCla
 // Note: ClassController utilise res.json(result) directement (sans ApiResponse wrapper).
 // Seuls create/update wrappent dans { status, data }.
 export const classesApi = {
-  list: (params?: { search?: string; isActive?: boolean }) =>
-    apiClient.get('/admin/classes', { params }).then(r => {
+  list: (params?: {
+    search?: string
+    isActive?: boolean
+    limit?: number
+    sectionId?: number
+    optionId?: number
+    academicYear?: string
+  }) =>
+    apiClient.get('/admin/classes', { params: { limit: 100, ...params } }).then(r => {
       const d = r.data
       const raw: any[] = Array.isArray(d) ? d : d?.data ?? d?.classes ?? []
       return raw.map(c => ({
@@ -13,6 +20,11 @@ export const classesApi = {
         studentCount: c.studentCount ?? c._count?.students ?? 0,
         capacity: c.capacity ?? c.maxStudents ?? undefined,
         teacherName: c.teacherName ?? (c.teacher?.user ? `${c.teacher.user.firstName} ${c.teacher.user.lastName}` : undefined),
+        sectionId: c.sectionId ?? c.section?.id,
+        optionId: c.optionId ?? c.option?.id,
+        sectionName: c.section?.name ?? c.sectionName,
+        optionName: c.option?.name ?? c.optionName,
+        academicYear: c.academicYear,
       })) as ClassListItem[]
     }),
 

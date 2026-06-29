@@ -1,7 +1,7 @@
 # Guide d'intégration Frontend — Presence
 
 **Public :** équipes Flutter (parent), React/Vue (admin / finance)  
-**Dernière mise à jour :** 24 juin 2026  
+**Dernière mise à jour :** 26 juin 2026  
 **Backend production (Render) :** `https://gestion-presence-et-paiement-mobile.onrender.com`
 
 > **Collègue web (admin / superadmin / finance) :** pack de passation dédié → **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** (message Slack copiable + écrans + OpenAPI).
@@ -47,6 +47,25 @@ static const socketUrl = 'http://192.168.1.42:5000';
 | **Payment Intent (2 étapes)** | `/api/v1/mobile/parents/finance` ou `/api/v1/finance` | `PARENT` |
 | **Admin web** | `/api/v1/admin/*` | `ADMIN`, `SUPER_ADMIN` |
 | **Finance web** | `/api/v1/admin/finance/*`, `/api/v1/finance/*` | `ADMIN`, `FINANCE` |
+
+### Admin web — Dashboard (`/admin/dashboard`)
+
+Page : `src/app/(admin)/admin/dashboard` · contrat : **`types/dashboard.types.ts`**
+
+| Hook | API | Refresh |
+|------|-----|---------|
+| `useAdminStats()` | `GET /admin/stats` | 60s |
+| `useLiveFeed()` | `GET /admin/live-feed?limit=25` | 15s |
+| `useHeatmap()` | `GET /admin/heatmap` | cache 5 min |
+| `useFraudAlerts()` | `GET /admin/fraud-alerts` | 60s |
+| `useControlStats()` | `GET /admin/dashboard/stats` | 30s |
+| `useClasses()` | `GET /admin/classes?limit=100` | 60s |
+
+**Champ clé juin 2026 :** `data.weeklyTrend[]` sur `/admin/stats` — `{ date, label, present, rate }` pour le graphique tendance 7 jours.
+
+**Auth :** refresh automatique sur 401 via `POST /auth/refresh-token` (`src/lib/api/client.ts`).
+
+**Structure inscription :** `GET/POST /admin/structure/sections` · `GET/POST /admin/structure/options?sectionId=` — voir `admin-README.md` § Structure scolaire.
 
 **Swagger / OpenAPI :**
 

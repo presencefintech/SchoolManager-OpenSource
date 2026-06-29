@@ -33,13 +33,14 @@
           "Admin"
         ],
         "summary": "Statistiques présence rapides (dashboard)",
+        "responseSchema": "DashboardQuickStats",
         "responses": {
           "200": {
             "description": "Opération réussie",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "DashboardQuickStats"
                 }
               }
             }
@@ -121,7 +122,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Heatmap de présence",
+        "summary": "Heatmap horaire des scans (jour courant)",
         "parameters": [
           {
             "name": "classId",
@@ -133,13 +134,24 @@
             }
           }
         ],
+        "responseSchema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/HeatmapHourBucket"
+          }
+        },
         "responses": {
           "200": {
             "description": "Opération réussie",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/HeatmapHourBucket"
+                    }
+                  }
                 }
               }
             }
@@ -494,6 +506,173 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/structure/sections": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les sections scolaires de l'établissement",
+        "responseSchema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/SectionRef"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/SectionRef"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Créer une section scolaire",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSectionBody"
+              }
+            }
+          }
+        },
+        "responseSchema": "SectionRef",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "SectionRef"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/structure/options": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les options (filtrées par section)",
+        "parameters": [
+          {
+            "name": "sectionId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par section",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responseSchema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/components/schemas/OptionRef"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/OptionRef"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Créer une option scolaire",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOptionBody"
+              }
+            }
+          }
+        },
+        "responseSchema": "OptionRef",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "OptionRef"
                 }
               }
             }
@@ -4750,17 +4929,51 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Enregistrer une présence",
+        "summary": "Enregistrer une présence manuelle",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordPresenceBody"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Opération réussie",
+          "201": {
+            "description": "Présence créée",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/AdminPresenceRecordResult"
                 }
               }
             }
+          },
+          "202": {
+            "description": "Doublon jour ou rejeu idempotent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AdminPresenceRecordResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -4779,7 +4992,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Enregistrement présence en masse",
+        "summary": "Cahier d'appel — enregistrement groupé",
         "requestBody": {
           "required": true,
           "content": {
@@ -4791,15 +5004,39 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Opération réussie",
+          "201": {
+            "description": "Tous les élèves enregistrés",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/BulkPresenceRecordResult"
                 }
               }
             }
+          },
+          "202": {
+            "description": "Résultat partiel (échecs ou doublons)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/BulkPresenceRecordResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -5849,6 +6086,163 @@
           }
         }
       },
+      "DashboardQuickStats": {
+        "type": "object",
+        "description": "KPIs présence du jour + tendance 7 jours (dashboard admin)",
+        "properties": {
+          "overview": {
+            "type": "object",
+            "properties": {
+              "present": {
+                "type": "integer",
+                "example": 420
+              },
+              "late": {
+                "type": "integer",
+                "example": 12
+              },
+              "absent": {
+                "type": "integer",
+                "example": 38
+              },
+              "totalStudents": {
+                "type": "integer",
+                "example": 470
+              }
+            }
+          },
+          "alerts": {
+            "type": "object",
+            "properties": {
+              "criticalFraud": {
+                "type": "integer",
+                "example": 2
+              }
+            }
+          },
+          "attendanceRate": {
+            "type": "number",
+            "format": "float",
+            "example": 91.9
+          },
+          "weeklyTrend": {
+            "type": "array",
+            "description": "Taux de présence sur les 7 derniers jours",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date",
+                  "example": "2026-06-20"
+                },
+                "label": {
+                  "type": "string",
+                  "example": "ven. 20"
+                },
+                "present": {
+                  "type": "integer",
+                  "example": 415
+                },
+                "rate": {
+                  "type": "number",
+                  "example": 88.3
+                }
+              }
+            }
+          }
+        }
+      },
+      "HeatmapHourBucket": {
+        "type": "object",
+        "properties": {
+          "hour": {
+            "type": "string",
+            "example": "8h"
+          },
+          "count": {
+            "type": "integer",
+            "example": 42
+          }
+        }
+      },
+      "SectionRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "schoolId": {
+            "type": "integer"
+          }
+        }
+      },
+      "OptionRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sectionId": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "schoolId": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateSectionBody": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 20
+          }
+        }
+      },
+      "CreateOptionBody": {
+        "type": "object",
+        "required": [
+          "sectionId",
+          "name"
+        ],
+        "properties": {
+          "sectionId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 20
+          }
+        }
+      },
       "Role": {
         "type": "string",
         "enum": [
@@ -6596,25 +6990,183 @@
       "BulkPresenceBody": {
         "type": "object",
         "required": [
-          "studentIds",
+          "classId",
+          "entries"
+        ],
+        "properties": {
+          "classId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sessionDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Optionnel — max 30 jours en arrière"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          },
+          "entries": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/BulkPresenceEntry"
+            }
+          }
+        }
+      },
+      "BulkPresenceEntry": {
+        "type": "object",
+        "required": [
+          "studentId",
+          "status"
+        ],
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "ABSENT"
+            ]
+          }
+        }
+      },
+      "RecordPresenceBody": {
+        "type": "object",
+        "required": [
+          "studentId",
           "classId"
         ],
         "properties": {
-          "studentIds": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
           },
           "classId": {
-            "type": "integer"
+            "type": "integer",
+            "minimum": 1
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "ABSENT"
+            ],
+            "default": "PRESENT"
           },
           "sessionDate": {
             "type": "string",
             "format": "date-time"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "AdminPresenceRecordResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "ABSENT"
+            ]
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "fraudScore": {
+            "type": "number"
+          },
+          "idempotentReplay": {
+            "type": "boolean"
+          },
+          "isSameDayDuplicate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BulkPresenceRecordResult": {
+        "type": "object",
+        "required": [
+          "succeeded",
+          "failed",
+          "duplicates"
+        ],
+        "properties": {
+          "succeeded": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkPresenceRecordItem"
+            }
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkPresenceRecordFailure"
+            }
+          },
+          "duplicates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BulkPresenceRecordItem"
+            }
+          }
+        }
+      },
+      "BulkPresenceRecordItem": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer"
+          },
+          "presenceId": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "ABSENT"
+            ]
+          },
+          "studentName": {
+            "type": "string"
+          }
+        }
+      },
+      "BulkPresenceRecordFailure": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
           }
         }
       },

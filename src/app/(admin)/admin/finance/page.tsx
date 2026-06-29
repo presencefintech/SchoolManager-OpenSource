@@ -1,17 +1,23 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
+import Link from 'next/link'
 import {
   TrendingUp, DollarSign, AlertTriangle, Wallet, ClipboardList,
-  BarChart3, Clock, Users,
+  BarChart3, Clock, Users, Building2, ChevronRight,
 } from 'lucide-react'
 import {
   useFinanceDashboard, useFinanceTopPayers, useFinanceInsights,
   useFinanceEfficiency, useFinanceEndOfDay,
-  usePendingVerifications, useFinanceFraudAlerts,
+  usePendingVerifications, useFinanceFraudAlerts, usePaymentProfile,
 } from '@/lib/hooks/use-admin'
-import { fadeUp, stagger } from '@/lib/animations'
-import { Skeleton } from '@/components/ui/skeleton'
+import { KycStatusBadge } from '@/components/admin/students/student-finance-badges'
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
+} satisfies Variants
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -58,6 +64,7 @@ export default function FinanceDashboardPage() {
   const { data: efficiency } = useFinanceEfficiency()
   const { data: pending = [] } = usePendingVerifications()
   const { data: alerts = [] } = useFinanceFraudAlerts()
+  const { data: paymentProfile } = usePaymentProfile()
 
   const d = kpis as any
   const ins = insights as any
@@ -90,9 +97,25 @@ export default function FinanceDashboardPage() {
         </div>
       </motion.div>
 
+      {paymentProfile && paymentProfile.kycStatus !== 'VERIFIED' && (
+        <Link
+          href="/admin/finance/payment-profile"
+          className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-amber-100 bg-amber-50/80 hover:bg-amber-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <Building2 size={18} className="text-amber-600 flex-shrink-0" />
+            <div>
+              <KycStatusBadge status={paymentProfile.kycStatus} onlineEnabled={paymentProfile.onlinePaymentsEnabled} />
+              <p className="text-xs text-amber-800/80 mt-1">Configurez le profil marchand pour activer les paiements en ligne parents.</p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-amber-600 flex-shrink-0" />
+        </Link>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Sk key={i} className="h-28" />)}
         </div>
       ) : (
         <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">

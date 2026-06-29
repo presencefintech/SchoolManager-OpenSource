@@ -1,11 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { apiClient, getApiErrorMessage } from '@/lib/api/client'
-import { fadeUp, stagger } from '@/lib/animations'
+import { apiClient } from '@/lib/api/client'
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
+} satisfies Variants
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 function useAdminFraudAlerts() {
   return useQuery({
@@ -46,8 +51,8 @@ export default function FraudPage() {
         studentId: Number(form.studentId),
         amount: form.amount ? Number(form.amount) : undefined,
       })
-    } catch (err) {
-      setError(getApiErrorMessage(err))
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Erreur lors de la vérification')
     }
   }
 
