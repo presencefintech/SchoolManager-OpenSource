@@ -2,17 +2,16 @@
 
 import { motion } from 'framer-motion'
 import {
-  TrendingUp, DollarSign, AlertTriangle, Wallet, ClipboardList,
-  BarChart3, CheckCircle, XCircle, Users, ShieldAlert, RefreshCw,
-  TrendingDown, Target, Shield,
+  DollarSign, ClipboardList, CheckCircle, Users,
+  RotateCcw, Banknote, RefreshCw, AlertTriangle, CalendarCheck, ShieldCheck, TrendingUp,
 } from 'lucide-react'
 import {
-  useExecutiveDashboard, useDailyCashReport, useFinanceIntegrity,
-  useDebtors, useHighRisk, useCollectionAnalytics,
+  useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
+  useExecutiveDashboard, useFinanceIntegrity,
 } from '@/lib/hooks/use-finance'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { ExecutiveDashboard, IntegrityReport, DebtorEntry, RiskEntry, DailyCashEntry, CollectionReport } from '@/types/finance'
+import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
 
 function KpiCard({ label, value, sub, icon: Icon, color, bg }: {
   label: string; value: string | number; sub?: string
@@ -33,30 +32,27 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg }: {
 }
 
 export default function FinanceDashboardPage() {
-  const { data: kpis, isLoading, refetch } = useExecutiveDashboard()
+  const { data: guichet, isLoading, refetch } = useGuichetDashboard()
   const { data: dailyCash = [] } = useDailyCashReport()
-  const { data: integrity } = useFinanceIntegrity()
   const { data: debtorsData } = useDebtors(10)
-  const { data: highRisk } = useHighRisk()
   const { data: collection } = useCollectionAnalytics()
+  const { data: execData } = useExecutiveDashboard()
+  const { data: integrityData } = useFinanceIntegrity()
 
-  const d = kpis as ExecutiveDashboard | undefined
-  const perf = d?.performance
-  const audit = d?.audit
-  const treasury = d?.treasury
-  const integ = integrity as IntegrityReport | undefined
-  const coll = collection as CollectionReport | undefined
-  const debtors: DebtorEntry[] = (debtorsData as { data?: DebtorEntry[] } | DebtorEntry[] | undefined) != null
-    ? ((debtorsData as { data?: DebtorEntry[] })?.data ?? (Array.isArray(debtorsData) ? (debtorsData as DebtorEntry[]) : []))
-    : []
-  const risks: RiskEntry[] = audit?.highRiskProfiles ?? (Array.isArray(highRisk) ? (highRisk as RiskEntry[]) : ((highRisk as { data?: RiskEntry[] } | undefined)?.data ?? []))
+  const g = guichet as any
   const cash: DailyCashEntry[] = Array.isArray(dailyCash) ? (dailyCash as DailyCashEntry[]) : []
+  const exec = execData as ExecutiveDashboard | undefined
+  const integrity = integrityData as IntegrityReport | undefined
+
+  const debtors: any[] = (debtorsData as any)?.data ?? (Array.isArray(debtorsData) ? debtorsData : [])
+  const coll = collection as any
+
+  const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
+  const totalTx = cash.reduce((acc, r) => acc + (r._count?.id || 0), 0)
 
   const today = typeof window !== 'undefined'
     ? new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : ''
-  const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
-  const totalTx = cash.reduce((acc, r) => acc + (r._count?.id || 0), 0)
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -70,20 +66,14 @@ export default function FinanceDashboardPage() {
           <p className="text-sm text-zinc-500 mt-0.5 capitalize" suppressHydrationWarning>{today}</p>
         </div>
         <div className="flex items-center gap-2">
-          {integ && (
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${
-              integ.status === 'INTEGRITY_OK'
-                ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-                : 'bg-red-50 border-red-100 text-red-700'
-            }`}>
-              {integ.status === 'INTEGRITY_OK' ? <CheckCircle size={13} /> : <XCircle size={13} />}
-              {integ.status === 'INTEGRITY_OK' ? 'Intégrité OK' : `${integ.anomalies?.length ?? 0} anomalie(s)`}
+          {g?.closingFinalizedToday && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50 text-xs font-medium text-emerald-700">
+              <CalendarCheck size={13} /> Clôture finalisée
             </div>
           )}
-          {audit?.suspiciousActivity && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 text-xs font-medium text-amber-700">
-              <ShieldAlert size={13} />
-              Activité suspecte détectée
+          {g?.openCashSession && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-100 bg-blue-50 text-xs font-medium text-blue-700">
+              <Banknote size={13} /> Session ouverte
             </div>
           )}
           <button onClick={() => refetch()} className="p-2 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50 transition-colors">
@@ -92,7 +82,7 @@ export default function FinanceDashboardPage() {
         </div>
       </motion.div>
 
-      {/* KPIs Performance */}
+      {/* KPIs guichet */}
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
@@ -100,79 +90,54 @@ export default function FinanceDashboardPage() {
       ) : (
         <>
           <div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Performance du mois</p>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Aujourd'hui</p>
             <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
               <motion.div variants={fadeUp}>
                 <KpiCard
-                  label="Revenus du mois"
-                  value={perf?.monthlyRevenue != null ? `${Number(perf.monthlyRevenue).toLocaleString('fr-FR')} F` : '—'}
+                  label="Encaissements du jour"
+                  value={g?.collectionsToday?.total != null ? `${Number(g.collectionsToday.total).toLocaleString('fr-FR')} F` : '—'}
+                  sub={`${g?.collectionsToday?.count ?? 0} transaction(s)`}
                   icon={DollarSign} color="text-emerald-600" bg="bg-emerald-50"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
                 <KpiCard
-                  label="Revenus projetés"
-                  value={perf?.projectedRevenue != null ? `${Number(perf.projectedRevenue).toLocaleString('fr-FR')} F` : '—'}
-                  icon={TrendingUp} color="text-blue-600" bg="bg-blue-50"
-                />
-              </motion.div>
-              <motion.div variants={fadeUp}>
-                <KpiCard
-                  label="Efficacité recouvrement"
-                  value={perf?.collectionEfficiency != null ? `${Number(perf.collectionEfficiency).toFixed(1)}%` : '—'}
-                  icon={BarChart3} color="text-violet-600" bg="bg-violet-50"
-                  sub={perf?.collectionEfficiency != null ? (Number(perf.collectionEfficiency) >= 80 ? 'Bon niveau' : 'À améliorer') : undefined}
-                />
-              </motion.div>
-              <motion.div variants={fadeUp}>
-                <KpiCard
-                  label="ARPU (revenu/élève)"
-                  value={perf?.arpu != null ? `${Number(perf.arpu).toLocaleString('fr-FR')} F` : '—'}
-                  icon={Users} color="text-indigo-600" bg="bg-indigo-50"
-                />
-              </motion.div>
-              <motion.div variants={fadeUp}>
-                <KpiCard
-                  label="Adoption digitale"
-                  value={perf?.digitalAdoption != null ? `${Number(perf.digitalAdoption).toFixed(1)}%` : '—'}
-                  icon={Target} color="text-cyan-600" bg="bg-cyan-50"
-                />
-              </motion.div>
-              <motion.div variants={fadeUp}>
-                <KpiCard
                   label="Vérifications en attente"
-                  value={audit?.pendingVerifications ?? '—'}
-                  icon={ClipboardList} color="text-orange-600" bg="bg-orange-50"
-                  sub={(audit?.pendingVerifications ?? 0) > 0 ? 'À traiter' : 'Aucune'}
-                />
-              </motion.div>
-            </motion.div>
-          </div>
-
-          {/* Trésorerie */}
-          <div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Trésorerie</p>
-            <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
-              <motion.div variants={fadeUp}>
-                <KpiCard
-                  label="Impayés totaux"
-                  value={treasury?.totalUnpaid != null ? `${Number(treasury.totalUnpaid).toLocaleString('fr-FR')} F` : '—'}
-                  icon={Wallet} color="text-red-600" bg="bg-red-50"
+                  value={g?.pendingVerifications ?? '—'}
+                  sub={(g?.pendingVerifications ?? 0) > 0 ? 'À traiter' : 'Aucune en attente'}
+                  icon={ClipboardList} color="text-amber-600" bg="bg-amber-50"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
                 <KpiCard
-                  label="Estimation créances irrécouvrables"
-                  value={treasury?.badDebtEstimate != null ? `${Number(treasury.badDebtEstimate).toFixed(1)}%` : '—'}
-                  icon={TrendingDown} color="text-amber-600" bg="bg-amber-50"
+                  label="Remboursements en attente"
+                  value={g?.pendingRefunds ?? '—'}
+                  sub={g?.approvedRefundsAwaitingProcess > 0 ? `${g.approvedRefundsAwaitingProcess} approuvé(s) à traiter` : undefined}
+                  icon={RotateCcw} color="text-violet-600" bg="bg-violet-50"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
                 <KpiCard
-                  label="DSO (jours)"
-                  value={audit?.daysSalesOutstanding != null ? `${Number(audit.daysSalesOutstanding).toFixed(0)} j` : '—'}
-                  icon={Shield} color="text-zinc-600" bg="bg-zinc-100"
-                  sub="Délai moyen de recouvrement"
+                  label="Remboursements en cours"
+                  value={g?.gatewayRefundsProcessing ?? '—'}
+                  sub="Via gateway"
+                  icon={RefreshCw} color="text-blue-600" bg="bg-blue-50"
+                />
+              </motion.div>
+              <motion.div variants={fadeUp}>
+                <KpiCard
+                  label="Top débiteurs (> 10 F)"
+                  value={debtors.length}
+                  sub={debtors.length > 0 ? `${debtors.reduce((a, d) => a + (Number(d.feesBalance) || 0), 0).toLocaleString('fr-FR')} F total` : 'Aucun'}
+                  icon={Users} color="text-red-600" bg="bg-red-50"
+                />
+              </motion.div>
+              <motion.div variants={fadeUp}>
+                <KpiCard
+                  label="Session de caisse"
+                  value={g?.openCashSession ? 'Ouverte' : 'Fermée'}
+                  sub={g?.openCashSession ? `Ouverte le ${new Date(g.openCashSession.openedAt).toLocaleDateString('fr-FR')}` : 'Ouvrir une session pour encaisser'}
+                  icon={Banknote} color={g?.openCashSession ? 'text-emerald-600' : 'text-zinc-500'} bg={g?.openCashSession ? 'bg-emerald-50' : 'bg-zinc-100'}
                 />
               </motion.div>
             </motion.div>
@@ -180,7 +145,7 @@ export default function FinanceDashboardPage() {
         </>
       )}
 
-      {/* Rapport journalier + Top débiteurs */}
+      {/* Encaissements par méthode + Top débiteurs */}
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
@@ -232,17 +197,17 @@ export default function FinanceDashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-zinc-50">
-              {debtors.slice(0, 8).map((dbtr, i) => (
-                <div key={dbtr.studentId ?? i} className="flex items-center justify-between px-5 py-3">
+              {debtors.slice(0, 8).map((dbtr: any, i: number) => (
+                <div key={dbtr.id ?? i} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-[10px] font-bold text-red-500">{i + 1}</span>
                     <div>
                       <p className="text-sm font-medium text-zinc-900">{dbtr.firstName} {dbtr.lastName}</p>
-                      {dbtr.className && <p className="text-xs text-zinc-400">{dbtr.className}</p>}
+                      {dbtr.class?.name && <p className="text-xs text-zinc-400">{dbtr.class.name}</p>}
                     </div>
                   </div>
                   <span className="text-sm font-semibold text-red-600">
-                    {dbtr.balance != null ? `${Number(dbtr.balance).toLocaleString('fr-FR')} F` : '—'}
+                    {dbtr.feesBalance != null ? `${Number(dbtr.feesBalance).toLocaleString('fr-FR')} F` : '—'}
                   </span>
                 </div>
               ))}
@@ -251,11 +216,30 @@ export default function FinanceDashboardPage() {
         </div>
       </div>
 
+      {/* Encaissements par méthode (guichet) */}
+      {g?.collectionsToday?.byMethod?.length > 0 && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+            <Banknote size={14} className="text-zinc-400" />
+            <h3 className="text-sm font-semibold text-zinc-900">Détail par méthode (aujourd'hui)</h3>
+          </div>
+          <div className={`grid grid-cols-${Math.min(g.collectionsToday.byMethod.length, 4)} divide-x divide-zinc-100`}>
+            {g.collectionsToday.byMethod.map((m: any) => (
+              <div key={m.method} className="px-5 py-4">
+                <p className="text-xs text-zinc-500 mb-1">{m.method}</p>
+                <p className="text-lg font-bold text-zinc-900">{Number(m.amount).toLocaleString('fr-FR')} F</p>
+                <p className="text-xs text-zinc-400">{m.count} tx</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Analytics de recouvrement */}
       {coll && Object.keys(coll).length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
-            <TrendingUp size={14} className="text-zinc-400" />
+            <AlertTriangle size={14} className="text-zinc-400" />
             <h3 className="text-sm font-semibold text-zinc-900">Analytics de recouvrement</h3>
           </div>
           <div className="grid grid-cols-4 gap-0 divide-x divide-zinc-100">
@@ -271,72 +255,112 @@ export default function FinanceDashboardPage() {
         </div>
       )}
 
-      {/* Profils à risque */}
-      {risks.length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
-          <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-amber-500" />
-              <h3 className="text-sm font-semibold text-zinc-900">Profils à risque élevé</h3>
+      {/* Performance & Intégrité */}
+      {(exec || integrity) && (
+        <div className="grid grid-cols-2 gap-6">
+          {exec && (
+            <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+              <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+                <TrendingUp size={14} className="text-zinc-400" />
+                <h3 className="text-sm font-semibold text-zinc-900">Performance</h3>
+              </div>
+              <div className="p-5 space-y-3">
+                {exec.performance && (
+                  <div className="space-y-2">
+                    {[
+                      ['Revenus du mois', `${Number(exec.performance.monthlyRevenue).toLocaleString('fr-FR')} F`],
+                      ['Revenu projeté', `${Number(exec.performance.projectedRevenue).toLocaleString('fr-FR')} F`],
+                      ['Taux de recouvrement', `${Number(exec.performance.collectionEfficiency).toFixed(1)} %`],
+                      ['ARPU', `${Number(exec.performance.arpu).toLocaleString('fr-FR')} F`],
+                      ['Adoption digitale', `${Number(exec.performance.digitalAdoption).toFixed(1)} %`],
+                    ].map(([k, v]) => (
+                      <div key={k} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
+                        <span className="text-xs text-zinc-500">{k}</span>
+                        <span className="text-xs font-semibold text-zinc-800">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {exec.treasury && (
+                  <div className="mt-3 pt-3 border-t border-zinc-100 space-y-2">
+                    <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Trésorerie</p>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-500">Impayés totaux</span>
+                      <span className="font-semibold text-red-600">{Number(exec.treasury.totalUnpaid).toLocaleString('fr-FR')} F</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-zinc-500">Estimation créances douteuses</span>
+                      <span className="font-semibold text-amber-600">{Number(exec.treasury.badDebtEstimate).toLocaleString('fr-FR')} F</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{risks.length}</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Élève</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Impayés</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Présences suspectes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {risks.map((r, i) => (
-                  <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-5 py-3.5 font-medium text-zinc-900">{r.firstName} {r.lastName}</td>
-                    <td className="px-5 py-3.5 text-right font-semibold text-red-600">
-                      {r.tuitionBalance != null ? `${Number(r.tuitionBalance).toLocaleString('fr-FR')} F` : '—'}
-                    </td>
-                    <td className="px-5 py-3.5 text-right text-zinc-500">
-                      {r._count?.presences ?? '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          )}
 
-      {/* Audit Benford */}
-      {audit && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Shield size={14} className="text-zinc-400" />
-            <h3 className="text-sm font-semibold text-zinc-900">Audit d'intégrité financière</h3>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-zinc-50 rounded-xl p-4">
-              <p className="text-xs text-zinc-500 mb-1">Loi de Benford</p>
-              <div className={`flex items-center gap-1.5 ${audit.isBenfordValid ? 'text-emerald-600' : 'text-red-600'}`}>
-                {audit.isBenfordValid ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                <span className="text-sm font-semibold">{audit.isBenfordValid ? 'Conforme' : 'Anomalie détectée'}</span>
+          {integrity && (
+            <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+              <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+                <ShieldCheck size={14} className="text-zinc-400" />
+                <h3 className="text-sm font-semibold text-zinc-900">Intégrité comptable</h3>
+              </div>
+              <div className="p-5">
+                <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl mb-4 ${
+                  integrity.status === 'OK' || integrity.status === 'ok'
+                    ? 'bg-emerald-50 border border-emerald-100'
+                    : 'bg-amber-50 border border-amber-100'
+                }`}>
+                  <ShieldCheck size={16} className={integrity.status === 'OK' || integrity.status === 'ok' ? 'text-emerald-600' : 'text-amber-500'} />
+                  <div>
+                    <p className={`text-sm font-semibold ${integrity.status === 'OK' || integrity.status === 'ok' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      Statut : {integrity.status}
+                    </p>
+                    {(!integrity.anomalies || integrity.anomalies.length === 0) && (
+                      <p className="text-xs text-emerald-600">Aucune anomalie détectée</p>
+                    )}
+                  </div>
+                </div>
+                {exec?.audit && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs py-1.5 border-b border-zinc-50">
+                      <span className="text-zinc-500">Vérifications en attente</span>
+                      <span className={`font-semibold ${exec.audit.pendingVerifications > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                        {exec.audit.pendingVerifications}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs py-1.5 border-b border-zinc-50">
+                      <span className="text-zinc-500">DSO (jours)</span>
+                      <span className="font-semibold text-zinc-700">{exec.audit.daysSalesOutstanding}</span>
+                    </div>
+                    <div className="flex justify-between text-xs py-1.5 border-b border-zinc-50">
+                      <span className="text-zinc-500">Activité suspecte</span>
+                      <span className={`font-semibold ${exec.audit.suspiciousActivity ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {exec.audit.suspiciousActivity ? 'Oui' : 'Non'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs py-1.5">
+                      <span className="text-zinc-500">Loi de Benford</span>
+                      <span className={`font-semibold ${exec.audit.isBenfordValid ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {exec.audit.isBenfordValid ? 'Conforme' : 'Déviance'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {integrity.anomalies && integrity.anomalies.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-zinc-100">
+                    <p className="text-xs font-semibold text-red-600 mb-2">{integrity.anomalies.length} anomalie(s) détectée(s)</p>
+                    <div className="space-y-1 max-h-28 overflow-y-auto">
+                      {integrity.anomalies.map((a, i) => (
+                        <div key={i} className="text-xs text-zinc-500 bg-red-50 rounded px-2 py-1">
+                          {typeof a === 'string' ? a : JSON.stringify(a)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="bg-zinc-50 rounded-xl p-4">
-              <p className="text-xs text-zinc-500 mb-1">Activité suspecte</p>
-              <div className={`flex items-center gap-1.5 ${audit.suspiciousActivity ? 'text-red-600' : 'text-emerald-600'}`}>
-                {audit.suspiciousActivity ? <AlertTriangle size={14} /> : <CheckCircle size={14} />}
-                <span className="text-sm font-semibold">{audit.suspiciousActivity ? 'Oui' : 'Non'}</span>
-              </div>
-            </div>
-            <div className="bg-zinc-50 rounded-xl p-4">
-              <p className="text-xs text-zinc-500 mb-1">Niveau de déviance</p>
-              <p className="text-sm font-semibold text-zinc-900">
-                {audit.devianceLevel != null ? `${Number(audit.devianceLevel).toFixed(2)}` : '—'}
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
