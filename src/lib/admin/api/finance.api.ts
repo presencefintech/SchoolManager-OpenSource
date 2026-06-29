@@ -140,6 +140,9 @@ export const financeApi = {
   applyDiscount: (payload: { invoiceId: number; discountAmount: number; reason?: string }) =>
     apiClient.post('/admin/finance/invoices/apply-discount', payload).then(r => r.data.data),
 
+  listFeeStructures: (params?: { classId?: number; sessionId?: number }) =>
+    apiClient.get('/admin/finance/fee-structures', { params }).then(r => r.data.data as { id: number; label: string; amount: number; description?: string }[]),
+
   setupFeeStructure: (payload: FeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structure', payload).then(r => r.data.data),
 

@@ -5,6 +5,7 @@ import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
+import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -37,18 +38,19 @@ export default function FraudPage() {
   const { data: alerts, isLoading: loadingAlerts, refetch } = useAdminFraudAlerts()
   const { mutateAsync: checkFraud, isPending, data: checkResult, reset } = useCheckFraud()
 
-  const [form, setForm] = useState({ studentId: '', amount: '' })
+  const [form, setForm] = useState({ studentId: 0, amount: '' })
   const [error, setError] = useState('')
 
   const alertList: any[] = Array.isArray(alerts) ? alerts : (alerts as any)?.data ?? []
 
   async function handleCheck(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.studentId) { setError('Sélectionnez un élève'); return }
     setError('')
     reset()
     try {
       await checkFraud({
-        studentId: Number(form.studentId),
+        studentId: form.studentId,
         amount: form.amount ? Number(form.amount) : undefined,
       })
     } catch (err: any) {

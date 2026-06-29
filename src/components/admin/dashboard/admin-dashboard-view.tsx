@@ -5,11 +5,9 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   GraduationCap, CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
-  TrendingUp, TrendingDown, ArrowRight, Radio, Users, BookOpen,
-  ClipboardList, AlertTriangle, Server, Zap, RefreshCw,
+  TrendingUp, TrendingDown, ArrowRight, AlertTriangle, Server, Zap, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/providers/auth-provider'
 import {
   useAdminStats, useLiveFeed, useFraudAlerts, useControlStats, useHeatmap, useClasses,
 } from '@/lib/hooks/use-admin'
@@ -38,12 +36,6 @@ const SEVERITY_CFG: Record<string, string> = {
   HIGH: 'bg-red-50 text-red-700',
 }
 
-const QUICK_LINKS = [
-  { href: '/admin/enrollments', label: 'Inscriptions', icon: ClipboardList },
-  { href: '/admin/students', label: 'Élèves', icon: Users },
-  { href: '/admin/classes', label: 'Classes', icon: BookOpen },
-  { href: '/admin/presences', label: 'Présences', icon: Radio },
-] as const
 
 const KPI_COLORS = {
   indigo: 'bg-indigo-50 text-indigo-600',
@@ -140,7 +132,6 @@ function KpiCard({
 }
 
 export function AdminDashboardView() {
-  const { user } = useAuth()
   const { data: stats, isLoading: loadingStats, isError: statsError, refetch: refetchStats } = useAdminStats()
   const { data: feed, isLoading: loadingFeed } = useLiveFeed({ limit: 25 })
   const { data: alerts, isLoading: loadingAlerts } = useFraudAlerts()
@@ -179,62 +170,8 @@ export function AdminDashboardView() {
     [classes],
   )
 
-  const todayLabel = new Date().toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-
-  const greeting = (() => {
-    const h = new Date().getHours()
-    if (h < 12) return 'Bonjour'
-    if (h < 18) return 'Bon après-midi'
-    return 'Bonsoir'
-  })()
-
   return (
     <div className="min-h-full bg-[#e8ecf4]">
-      {/* Hero — plus compact */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 via-indigo-900 to-indigo-950 text-white border-b border-indigo-950/30">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.25),_transparent_55%)]" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-indigo-200/80 text-xs font-medium capitalize">{todayLabel}</p>
-              <h1 className="text-xl lg:text-2xl font-semibold tracking-tight mt-0.5">
-                {greeting}{user?.firstName ? `, ${user.firstName}` : ''}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1.5 text-[11px] text-indigo-200/70 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live
-              </span>
-              <Link
-                href="/admin/presences"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/95 text-indigo-950 text-xs font-semibold hover:bg-white transition-colors"
-              >
-                <Radio size={13} />
-                Pointage
-              </Link>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-4">
-            {QUICK_LINKS.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-100 bg-white/8 hover:bg-white/12 border border-white/10 transition-colors"
-              >
-                <Icon size={13} />
-                {label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <motion.div
         className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-5"
         variants={stagger}

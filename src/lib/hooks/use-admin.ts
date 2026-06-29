@@ -624,6 +624,14 @@ export function useTriggerManualAudit() {
   })
 }
 
+export function useFeeStructures(params?: { classId?: number; sessionId?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-structures', params],
+    queryFn: () => financeApi.listFeeStructures(params),
+    staleTime: 60_000,
+  })
+}
+
 export function useSetupFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
