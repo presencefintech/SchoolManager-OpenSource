@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
-  Settings, CreditCard, FileText, Clock, Shield, Building2,
+  Settings, CreditCard, FileText, Clock, Shield, Building2, Upload,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -41,6 +41,7 @@ const NAV_LINKS: NavLink[] = [
   { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
   { label: 'Invitations',  href: '/admin/invitations', icon: Mail },
   { label: 'Fraude',       href: '/admin/fraud',       icon: ShieldAlert },
+  { label: 'Import',       href: '/admin/import',      icon: Upload },
   { label: 'Paramètres',   href: '/admin/settings',    icon: Settings },
 ]
 

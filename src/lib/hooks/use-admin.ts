@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi } from '@/lib/admin/api'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi } from '@/lib/admin/api'
+import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType, StudentSecurityAction } from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -1072,5 +1073,28 @@ export function useUpdateAttendanceSettings() {
   return useMutation({
     mutationFn: (payload: Partial<AttendanceSettings>) => schoolsApi.updateAttendanceSettings(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'schools'] }),
+  })
+}
+
+// ── Import ──────────────────────────────────────────────────────────
+
+export function useImportUpload() {
+  return useMutation({
+    mutationFn: ({ type, file, schoolId }: { type: ImportType; file: File; schoolId?: number }) =>
+      importApi.upload(type, file, schoolId),
+  })
+}
+
+export function useImportStatus(jobId: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'import', jobId],
+    queryFn: () => importApi.getStatus(jobId!),
+    enabled: !!jobId,
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const status = (query.state.data as ImportJobResult | undefined)?.status
+      if (!status || ['COMPLETED', 'PARTIAL', 'FAILED'].includes(status)) return false
+      return 2000
+    },
   })
 }
