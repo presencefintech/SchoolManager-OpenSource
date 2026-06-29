@@ -23,3 +23,54 @@
     @apply bg-slate-200 rounded-full;
   }
 }
+
+/* ─── Carte élève — impression CR80 haute résolution ─────────────── */
+@media print {
+  @page {
+    size: 85.6mm 54mm;
+    margin: 0;
+  }
+
+  body.student-card-printing * {
+    visibility: hidden !important;
+  }
+
+  body.student-card-printing .student-card-print-root,
+  body.student-card-printing .student-card-print-root *,
+  body.student-card-printing .student-card-print-target,
+  body.student-card-printing .student-card-print-target * {
+    visibility: visible !important;
+  }
+
+  body.student-card-printing .student-card-print-root,
+  body.student-card-printing .student-card-print-target {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    z-index: 99999 !important;
+    background: transparent !important;
+  }
+
+  body.student-card-printing .student-card {
+    width: 85.6mm !important;
+    height: 54mm !important;
+    min-width: 85.6mm !important;
+    min-height: 54mm !important;
+    max-width: 85.6mm !important;
+    max-height: 54mm !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.student-card-printing .student-card-qr-box,
+  body.student-card-printing .student-card-qr-image {
+    aspect-ratio: 1 / 1 !important;
+    object-fit: contain !important;
+  }
+}

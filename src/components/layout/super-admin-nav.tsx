@@ -1,8 +1,8 @@
 'use client'
 
+import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef, useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -30,10 +30,8 @@ const NAV_LINKS = [
 export function SuperAdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
   const queryClient = useQueryClient()
-  const hasAnimated = useRef(false)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
@@ -70,7 +68,7 @@ export function SuperAdminNav() {
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">PresenceCollab</p>
+          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
           <p className="text-[11px] text-zinc-400 leading-tight">Super Admin</p>
         </div>
       </Link>
@@ -79,17 +77,15 @@ export function SuperAdminNav() {
 
       {/* Nav links */}
       <nav className="flex-1 px-3 py-2 space-y-0.5">
-        {NAV_LINKS.map(({ label, href, icon: Icon }, i) => {
+        {NAV_LINKS.map(({ label, href, icon: Icon }) => {
           const active = pathname.startsWith(href)
-          const shouldAnimate = mounted && !hasAnimated.current
-          if (i === NAV_LINKS.length - 1) hasAnimated.current = true
 
           return (
             <motion.div
               key={href}
-              initial={shouldAnimate ? { opacity: 0, x: -10 } : false}
+              initial={false}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: shouldAnimate ? 0.04 + i * 0.03 : 0, duration: 0.2 }}
+              transition={{ duration: 0.2 }}
             >
               <Link
                 href={href}

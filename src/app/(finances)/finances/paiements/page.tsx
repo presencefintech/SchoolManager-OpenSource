@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { DollarSign, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { useProcessPayment, useDailyCashReport } from '@/lib/hooks/use-finance'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+import { fadeUp } from '@/lib/animations'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 const METHODS = [
   { value: 'CASH',         label: 'Espèces' },
@@ -55,8 +55,8 @@ export default function PaiementsPage() {
       setStatus('success')
       reset()
       refetchCash()
-    } catch (err: any) {
-      setErrorMsg(err?.response?.data?.message ?? 'Erreur lors de l\'encaissement')
+    } catch (err) {
+      setErrorMsg(getApiErrorMessage(err))
       setStatus('error')
     }
   }

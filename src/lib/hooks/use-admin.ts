@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, financeApi, invitationsApi, teachersApi, schoolsApi } from '@/lib/admin/api'
-import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams } from '@/types/admin'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi } from '@/lib/admin/api'
+import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType, StudentSecurityAction } from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────
 export function useAdminStats() {
@@ -161,9 +161,12 @@ export function useRejectApplication() {
 export function useSecurityAction() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, action, reason }: { id: number; action: string; reason?: string }) =>
+    mutationFn: ({ id, action, reason }: { id: number; action: StudentSecurityAction; reason?: string }) =>
       studentsApi.securityAction(id, action, reason),
-    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: ['admin', 'students', id] }),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'students', id] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', 'list'] })
+    },
   })
 }
 
@@ -215,7 +218,44 @@ export function useToggleLock() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (studentId: number) => enrollmentsApi.toggleLock(studentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+    onSuccess: (_, studentId) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', 'list'] })
+    },
+  })
+}
+
+export function useAcademicSessions() {
+  return useQuery({
+    queryKey: ['admin', 'enrollments', 'sessions'],
+    queryFn: () => enrollmentsApi.listSessions(),
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useEnrollInSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, ...payload }: { studentId: number; sessionId: number; classId?: number; type?: string }) =>
+      enrollmentsApi.enrollInSession(studentId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+    },
+  })
+}
+
+export function useUpdateAdministrativeProfile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, payload }: { studentId: number; payload: Record<string, unknown> }) =>
+      enrollmentsApi.updateAdministrativeProfile(studentId, payload),
+    onSuccess: (_, { studentId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments', studentId] })
+    },
   })
 }
 
@@ -318,6 +358,35 @@ export function useDeletePresence() {
   })
 }
 
+export function useDismissSecurityAlert() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ eventId, note }: { eventId: number; note?: string }) =>
+      presencesApi.dismissSecurityAlert(eventId, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'presences', 'alerts'] }),
+  })
+}
+
+export function useValidateSecurityAlert() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (eventId: number) => presencesApi.validateSecurityAlert(eventId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'presences', 'alerts'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
+    },
+  })
+}
+
+export function useNotifySecurityAlert() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ eventId, message }: { eventId: number; message?: string }) =>
+      presencesApi.notifySecurityAlert(eventId, message),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'presences', 'alerts'] }),
+  })
+}
+
 // ── Classes ────────────────────────────────────────────────────────
 
 export function useClasses(params?: { search?: string; isActive?: boolean }) {
@@ -363,7 +432,51 @@ export function useCreateClass() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateClassPayload) => classesApi.create(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'classes'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'classes'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'structure'] })
+    },
+  })
+}
+
+// ── Structure scolaire (sections / options) ───────────────────────
+
+export function useSections() {
+  return useQuery({
+    queryKey: ['admin', 'structure', 'sections'],
+    queryFn: () => structureApi.listSections(),
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useOptions(sectionId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'structure', 'options', sectionId],
+    queryFn: () => structureApi.listOptions(sectionId),
+    staleTime: 120_000,
+    enabled: sectionId != null && sectionId > 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCreateSection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { name: string; code?: string }) => structureApi.createSection(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'structure', 'sections'] }),
+  })
+}
+
+export function useCreateOption() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { sectionId: number; name: string; code?: string }) =>
+      structureApi.createOption(payload),
+    onSuccess: (_, { sectionId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'structure', 'options'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'structure', 'options', sectionId] })
+    },
   })
 }
 
@@ -489,7 +602,7 @@ export function useProcessManualPayment() {
 export function useVerifyPayment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { paymentId: number; step: string; note?: string }) =>
+    mutationFn: (payload: { verificationId: number; action: 'ADMIN' | 'FINANCE' | 'REJECT'; notes?: string }) =>
       financeApi.verifyPaymentStep(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] }),
   })
@@ -514,7 +627,7 @@ export function useTriggerManualAudit() {
 export function useSetupFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: Record<string, unknown>) => financeApi.setupFeeStructure(payload),
+    mutationFn: (payload: FeeStructurePayload) => financeApi.setupFeeStructure(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
   })
 }
@@ -568,11 +681,76 @@ export function useSyncBalance() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (enrollmentId: number) => financeApi.syncBalance(enrollmentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+    },
+  })
+}
+
+export function usePaymentProfile() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'payment-profile'],
+    queryFn: () => financeApi.getPaymentProfile(),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useUpsertPaymentProfile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeApi.upsertPaymentProfile,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'payment-profile'] }),
+  })
+}
+
+export function useMarkVerificationProcessed() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ verificationId, notes }: { verificationId: number; notes?: string }) =>
+      financeApi.markVerificationProcessed(verificationId, notes),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] }),
+  })
+}
+
+export function useExportPendingVerifications() {
+  return useMutation({
+    mutationFn: (format: 'csv' | 'json' = 'csv') => financeApi.exportPendingVerifications(format),
   })
 }
 
 // ── Moratoriums ────────────────────────────────────────────────────
+
+export function useMoratoriumPolicy(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'moratoriums', 'policy'],
+    queryFn: () => financeApi.getMoratoriumPolicy(),
+    staleTime: 600_000,
+    gcTime: 1_800_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: (failureCount, error) => {
+      const status = (error as { response?: { status?: number } })?.response?.status
+      if (status === 429) return false
+      return failureCount < 1
+    },
+    enabled: options?.enabled ?? true,
+  })
+}
+
+export function useAllowedMoratoriumTypes(options?: { enabled?: boolean }) {
+  const { data: policy, isLoading, isError, error } = useMoratoriumPolicy(options)
+  const ALL: MoratoriumType[] = ['MONTHLY', 'QUARTERLY', 'EXCEPTIONAL', 'SCHOLARSHIP_REVIEW']
+  const allowedTypes: MoratoriumType[] = policy?.allowedTypes?.length
+    ? policy.allowedTypes.filter((t): t is MoratoriumType => ALL.includes(t as MoratoriumType))
+    : ['EXCEPTIONAL', 'MONTHLY']
+  const defaultType: MoratoriumType = allowedTypes.includes('EXCEPTIONAL')
+    ? 'EXCEPTIONAL'
+    : allowedTypes[0] ?? 'EXCEPTIONAL'
+  return { allowedTypes, defaultType, isLoading, isError, error, policy }
+}
 
 export function useMoratoriums(params?: { studentId?: number; status?: string }) {
   return useQuery({
@@ -596,7 +774,11 @@ export function useCreateMoratorium() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateMoratoriumPayload) => financeApi.createMoratorium(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+    },
   })
 }
 

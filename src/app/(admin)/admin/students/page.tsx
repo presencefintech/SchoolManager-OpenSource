@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   GraduationCap, Search, CheckCircle, XCircle, Clock,
   ChevronLeft, ChevronRight, User, AlertTriangle,
@@ -12,6 +13,10 @@ import {
   useStudents, useStudentDashboard,
   useStudentApplications, useApproveApplication, useRejectApplication,
 } from '@/lib/hooks/use-admin'
+import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
+import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
+import { useToast } from '@/providers/toast-provider'
+import type { StudentListItem } from '@/types/admin'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -33,6 +38,8 @@ const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
 type Tab = 'list' | 'applications'
 
 export default function StudentsPage() {
+  const router = useRouter()
+  const toast = useToast()
   const [tab, setTab] = useState<Tab>('list')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -47,6 +54,7 @@ export default function StudentsPage() {
     search: debouncedSearch, page, limit,
   })
   const { data: applications, isLoading: loadingApps } = useStudentApplications({ status: appFilter })
+  const applicationItems = applications?.data ?? []
   const approveMutation = useApproveApplication()
   const rejectMutation = useRejectApplication()
 
@@ -54,11 +62,10 @@ export default function StudentsPage() {
     if (e.key === 'Enter') { setDebouncedSearch(search); setPage(1) }
   }
 
-  const stats = (dashboard as any)?.stats as { total?: number; active?: number; inactive?: number; suspended?: number; pendingEnrollment?: number } | undefined
-  const students = studentsData as { data?: typeof studentsData extends { data: infer D } ? D : unknown[]; total?: number; totalPages?: number } | undefined
-
-  const totalPages = (students as { totalPages?: number })?.totalPages ?? 1
-  const total = (students as { total?: number })?.total ?? 0
+  const stats = dashboard?.stats
+  const students: StudentListItem[] = studentsData?.data ?? []
+  const totalPages = studentsData?.totalPages ?? 1
+  const total = studentsData?.total ?? 0
 
   async function handleApprove(id: number) {
     await approveMutation.mutateAsync(id)
@@ -146,7 +153,7 @@ export default function StudentsPage() {
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               {loadingStudents ? (
                 <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
-              ) : (studentsData as { data?: unknown[] } | undefined)?.data?.length ? (
+              ) : students.length > 0 ? (
                 <>
                   <table className="w-full">
                     <thead>
@@ -159,7 +166,7 @@ export default function StudentsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
-                      {((studentsData as { data?: Array<{ id: number; firstName: string; lastName: string; className?: string; status: string; matricule?: string; debtAmount?: number }> })?.data ?? []).map((s) => {
+                      {students.map((s) => {
                         const sc = STATUS_CFG[s.status] ?? { label: s.status, cls: 'bg-zinc-100 text-zinc-500' }
                         return (
                           <tr key={s.id} className="hover:bg-zinc-50 transition-colors">
@@ -170,9 +177,14 @@ export default function StudentsPage() {
                                 </div>
                                 <div>
                                   <p className="text-sm font-medium text-zinc-900">{s.firstName} {s.lastName}</p>
-                                  {(s.debtAmount ?? 0) > 0 && (
-                                    <p className="text-xs text-red-500">Dette: {s.debtAmount?.toLocaleString('fr-FR')} FCFA</p>
-                                  )}
+                                  <StudentFinanceBadges
+                                    className="mt-0.5"
+                                    debtAmount={s.debtAmount}
+                                    isPaymentLocked={s.isPaymentLocked}
+                                    activeMoratoriumId={s.activeMoratoriumId}
+                                    biometricStatus={s.biometricStatus}
+                                    scholarshipPercent={s.scholarshipPercent}
+                                  />
                                 </div>
                               </div>
                             </td>
@@ -182,12 +194,28 @@ export default function StudentsPage() {
                             </td>
                             <td className="px-5 py-3 text-sm text-zinc-400 font-mono">{s.matricule ?? '—'}</td>
                             <td className="px-5 py-3 text-right">
-                              <Link
-                                href={`/admin/students/${s.id}`}
-                                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                              >
-                                Voir
-                              </Link>
+                              <RowActionsMenu
+                                actions={[
+                                  {
+                                    id: 'view',
+                                    label: 'Voir fiche',
+                                    onClick: () => router.push(`/admin/students/${s.id}`),
+                                  },
+                                  {
+                                    id: 'balance',
+                                    label: 'Modifier solde',
+                                    onClick: () => router.push(`/admin/enrollments?studentId=${s.id}`),
+                                  },
+                                  {
+                                    id: 'card',
+                                    label: 'Imprimer carte',
+                                    onClick: () => {
+                                      router.push(`/admin/students/${s.id}`)
+                                      toast.info('Carte élève', 'Ouvrez la fiche et utilisez Imprimer (Ctrl+P) pour la carte.')
+                                    },
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         )
@@ -248,7 +276,7 @@ export default function StudentsPage() {
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               {loadingApps ? (
                 <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-16" />)}</div>
-              ) : ((applications as unknown[]) ?? []).length ? (
+              ) : applicationItems.length ? (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-zinc-100">
@@ -260,7 +288,7 @@ export default function StudentsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50">
-                    {((applications as Array<{ id: number; firstName: string; lastName: string; email?: string; phone?: string; submittedAt: string; status: string }>) ?? []).map((app) => {
+                    {applicationItems.map((app) => {
                       const cfg = APP_STATUS_CFG[app.status] ?? { label: app.status, cls: 'bg-zinc-100 text-zinc-500' }
                       return (
                         <tr key={app.id} className="hover:bg-zinc-50 transition-colors">

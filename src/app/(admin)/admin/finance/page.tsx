@@ -1,17 +1,22 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
+import Link from 'next/link'
 import {
   TrendingUp, DollarSign, AlertTriangle, Wallet, ClipboardList,
-  BarChart3, Clock, Users,
+  BarChart3, Clock, Users, Building2, ChevronRight,
 } from 'lucide-react'
 import {
   useFinanceDashboard, useFinanceTopPayers, useFinanceInsights,
   useFinanceEfficiency, useFinanceEndOfDay,
-  usePendingVerifications, useFinanceFraudAlerts,
+  usePendingVerifications, useFinanceFraudAlerts, usePaymentProfile,
 } from '@/lib/hooks/use-admin'
+import { KycStatusBadge } from '@/components/admin/students/student-finance-badges'
 
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
+} satisfies Variants
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 function Sk({ className }: { className?: string }) {
@@ -59,6 +64,7 @@ export default function FinanceDashboardPage() {
   const { data: efficiency } = useFinanceEfficiency()
   const { data: pending = [] } = usePendingVerifications()
   const { data: alerts = [] } = useFinanceFraudAlerts()
+  const { data: paymentProfile } = usePaymentProfile()
 
   const d = kpis as any
   const ins = insights as any
@@ -76,20 +82,36 @@ export default function FinanceDashboardPage() {
           <p className="text-sm text-zinc-500 mt-0.5">Tableau de bord financier et gestion des paiements</p>
         </div>
         <div className="flex items-center gap-3">
-          {(pending as any[]).length > 0 && (
+          {(pending).length > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100">
               <DollarSign size={13} className="text-amber-600" />
-              <span className="text-xs font-medium text-amber-700">{(pending as any[]).length} en attente</span>
+              <span className="text-xs font-medium text-amber-700">{pending.length} en attente</span>
             </div>
           )}
-          {(alerts as any[]).length > 0 && (
+          {(alerts).length > 0 && (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-100">
               <AlertTriangle size={13} className="text-red-600" />
-              <span className="text-xs font-medium text-red-700">{(alerts as any[]).length} alertes</span>
+              <span className="text-xs font-medium text-red-700">{alerts.length} alertes</span>
             </div>
           )}
         </div>
       </motion.div>
+
+      {paymentProfile && paymentProfile.kycStatus !== 'VERIFIED' && (
+        <Link
+          href="/admin/finance/payment-profile"
+          className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-amber-100 bg-amber-50/80 hover:bg-amber-50 transition-colors"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <Building2 size={18} className="text-amber-600 flex-shrink-0" />
+            <div>
+              <KycStatusBadge status={paymentProfile.kycStatus} onlineEnabled={paymentProfile.onlinePaymentsEnabled} />
+              <p className="text-xs text-amber-800/80 mt-1">Configurez le profil marchand pour activer les paiements en ligne parents.</p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-amber-600 flex-shrink-0" />
+        </Link>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
-  Settings, CreditCard, FileText, Clock, Shield,
+  Settings, CreditCard, FileText, Clock, Shield, Building2,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -31,6 +31,7 @@ const NAV_LINKS: NavLink[] = [
       { label: 'Paiements',        href: '/admin/finance/paiements',   icon: CreditCard },
       { label: 'Factures & Frais', href: '/admin/finance/factures',    icon: FileText },
       { label: 'Moratoires',       href: '/admin/finance/moratoriums', icon: Clock },
+      { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
       { label: 'Audit & Fraude',   href: '/admin/finance/audit',       icon: Shield },
     ],
   },
@@ -93,7 +94,7 @@ export function AdminNav() {
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">PresenceCollab</p>
+          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
           <p className="text-[11px] text-zinc-400 leading-tight">Administrateur</p>
         </div>
       </Link>

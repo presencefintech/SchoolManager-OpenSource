@@ -13,7 +13,8 @@ export function getCookie(name: string): string | null {
 }
 
 function setCookie(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax`
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax${secure}`
 }
 
 function deleteCookie(name: string) {
@@ -29,6 +30,28 @@ export function getAuthSchoolId(): string | null {
   if (typeof window === 'undefined') return null
   const schoolId = localStorage.getItem(AUTH_SCHOOL_ID_KEY)
   return schoolId && schoolId !== 'null' ? schoolId : null
+}
+
+export function getAuthRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return localStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
+}
+
+export function updateAuthTokens(token: string, refreshToken?: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(AUTH_TOKEN_KEY, token)
+  setCookie(AUTH_TOKEN_KEY, token)
+  if (refreshToken) {
+    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, refreshToken)
+  }
+}
+
+export function redirectToLogin(): void {
+  if (typeof window === 'undefined') return
+  clearAuthStorage()
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login'
+  }
 }
 
 export function clearAuthStorage(): void {

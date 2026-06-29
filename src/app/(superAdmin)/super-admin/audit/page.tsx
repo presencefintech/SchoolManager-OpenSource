@@ -15,6 +15,7 @@ import {
   useCoreAuditLogs,
 } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) =>
@@ -167,7 +168,7 @@ export default function AuditPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
             {/* Réconciliation */}
-            {loadingRecon ? <Sk className="h-44" /> : reconciliation && (
+            {loadingRecon ? <Skeleton className="h-44" /> : reconciliation && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <Activity size={14} className="text-zinc-400" />
@@ -188,7 +189,7 @@ export default function AuditPage() {
             )}
 
             {/* Gateways */}
-            {loadingProviders ? <Sk className="h-44" /> : providers && providers.length > 0 && (
+            {loadingProviders ? <Skeleton className="h-44" /> : providers && providers.length > 0 && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Wifi size={14} className="text-zinc-400" />
@@ -217,7 +218,7 @@ export default function AuditPage() {
             )}
 
             {/* Queue BullMQ */}
-            {loadingQueue ? <Sk className="h-44" /> : queue && (
+            {loadingQueue ? <Skeleton className="h-44" /> : queue && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   {queue.redisEnabled ? <Zap size={14} className="text-zinc-400" /> : <WifiOff size={14} className="text-zinc-400" />}
@@ -248,7 +249,7 @@ export default function AuditPage() {
             )}
 
             {/* Stockage Cloudinary */}
-            {loadingStorage ? <Sk className="h-44" /> : storage && (
+            {loadingStorage ? <Skeleton className="h-44" /> : storage && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   <HardDrive size={14} className="text-zinc-400" />
@@ -270,7 +271,7 @@ export default function AuditPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Sessions actives */}
-            {loadingSessions ? <Sk className="h-52" /> : sessions && (
+            {loadingSessions ? <Skeleton className="h-52" /> : sessions && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -297,7 +298,7 @@ export default function AuditPage() {
             )}
 
             {/* Audit sécurité */}
-            {loadingAudit ? <Sk className="h-52" /> : auditSnap && (
+            {loadingAudit ? <Skeleton className="h-52" /> : auditSnap && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -332,7 +333,7 @@ export default function AuditPage() {
             )}
 
             {/* Paiements suspects */}
-            {loadingAlerts ? <Sk className="h-52" /> : alerts && (
+            {loadingAlerts ? <Skeleton className="h-52" /> : alerts && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -357,7 +358,7 @@ export default function AuditPage() {
             )}
 
             {/* Anomalies présences */}
-            {loadingAnomalies ? <Sk className="h-52" /> : anomalies && (
+            {loadingAnomalies ? <Skeleton className="h-52" /> : anomalies && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -391,7 +392,7 @@ export default function AuditPage() {
           <SectionTitle>Mobile Money</SectionTitle>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-            {loadingMM ? <Sk className="h-52" /> : mmMetrics && (
+            {loadingMM ? <Skeleton className="h-52" /> : mmMetrics && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -416,7 +417,7 @@ export default function AuditPage() {
               </div>
             )}
 
-            {loadingFraud ? <Sk className="h-52" /> : fraudRadar && (
+            {loadingFraud ? <Skeleton className="h-52" /> : fraudRadar && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -604,9 +605,9 @@ export default function AuditPage() {
               <div className="divide-y divide-zinc-100">
                 {[...Array(6)].map((_, i) => (
                   <div key={i} className="px-6 py-4 flex gap-4">
-                    <Sk className="h-3 w-24 flex-shrink-0" />
-                    <Sk className="h-3 flex-1" />
-                    <Sk className="h-3 w-20 flex-shrink-0" />
+                    <Skeleton className="h-3 w-24 flex-shrink-0" />
+                    <Skeleton className="h-3 flex-1" />
+                    <Skeleton className="h-3 w-20 flex-shrink-0" />
                   </div>
                 ))}
               </div>

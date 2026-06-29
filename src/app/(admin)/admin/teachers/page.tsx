@@ -23,7 +23,7 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
   const stats = dashboard?.stats
 
   const handleForceValidate = (presenceId: number) => {
-    forceValidate.mutate({ presenceId, payload: { status: 'PRESENT' } })
+    forceValidate.mutate({ presenceId, status: 'PRESENT' })
   }
 
   const handleUpdateClasses = () => {

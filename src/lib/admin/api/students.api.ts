@@ -1,7 +1,9 @@
 import { apiClient } from '@/lib/api/client'
+import type { StudentSecurityAction } from '@/types/admin'
+import { normalizeStudentListItem, normalizeStudentDetail } from '@/lib/admin/normalizers'
 import type {
   StudentStats, StudentListItem, StudentDetail,
-  StudentActivity, DossierStatus, Debtor, StudentApplication, PaginatedResponse
+  StudentActivity, DossierStatus, Debtor, StudentApplication, PaginatedResponse,
 } from '@/types/admin'
 
 export const studentsApi = {
@@ -10,21 +12,18 @@ export const studentsApi = {
       .then(r => r.data.data),
 
   list: (params?: { page?: number; limit?: number; search?: string; classId?: number; status?: string }) =>
-    apiClient.get<{ success: boolean; data: PaginatedResponse<StudentListItem & { class?: { name: string } }> }>('/admin/students', { params })
-      .then(r => {
+    apiClient.get<{ success: boolean; data: PaginatedResponse<Record<string, unknown>> }>('/admin/students', { params })
+      .then((r) => {
         const d = r.data.data
         return {
           ...d,
-          data: (d?.data ?? []).map(s => ({
-            ...s,
-            className: s.className ?? (s as any).class?.name,
-          })) as StudentListItem[],
+          data: (d?.data ?? []).map((s) => normalizeStudentListItem(s)),
         } as PaginatedResponse<StudentListItem>
       }),
 
   getDetail: (id: number) =>
-    apiClient.get<{ success: boolean; data: StudentDetail }>(`/admin/students/${id}/detail`)
-      .then(r => r.data.data),
+    apiClient.get<{ success: boolean; data: Record<string, unknown> }>(`/admin/students/${id}/detail`)
+      .then(r => normalizeStudentDetail(r.data.data ?? {})),
 
   getActivity: (id: number) =>
     apiClient.get<{ success: boolean; data: StudentActivity[] }>(`/admin/students/${id}/activity`)
@@ -50,7 +49,7 @@ export const studentsApi = {
     apiClient.post<{ success: boolean }>(`/admin/students/applications/${id}/reject`, { reason })
       .then(r => r.data),
 
-  securityAction: (id: number, action: string, reason?: string) =>
+  securityAction: (id: number, action: StudentSecurityAction, reason?: string) =>
     apiClient.post<{ success: boolean }>(`/admin/students/${id}/security-action`, { action, reason })
       .then(r => r.data),
 

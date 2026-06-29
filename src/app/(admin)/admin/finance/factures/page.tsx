@@ -8,6 +8,8 @@ import {
   useApplyDiscount, useSyncBalance,
 } from '@/lib/hooks/use-admin'
 import type { FeeStructurePayload } from '@/types/admin'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -34,7 +36,7 @@ function GenerateInvoiceModal({ onClose }: { onClose: () => void }) {
     try {
       await mutateAsync({ studentId: form.studentId, feeStructureId: form.feeStructureId, dueDate: form.dueDate || undefined })
       setSuccess(true)
-    } catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    } catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -91,7 +93,7 @@ function DiscountModal({ invoiceId, onClose }: { invoiceId: number; onClose: () 
     e.preventDefault()
     setError(null)
     try { await mutateAsync({ invoiceId, discountAmount: form.discountAmount, reason: form.reason || undefined }); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -150,7 +152,7 @@ export default function FacturesPage() {
     setFeeError(null)
     setFeeSuccess(false)
     try { await createFee(feeForm); setFeeSuccess(true); setFeeForm({ label: '', totalAmount: 0 }) }
-    catch (err: any) { setFeeError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setFeeError(getApiErrorMessage(err)) }
   }
 
   return (
@@ -238,7 +240,7 @@ export default function FacturesPage() {
         </div>
         {activeStudentId ? (
           loadingInvoices ? (
-            <div className="p-6 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Sk key={i} className="h-12" />)}</div>
+            <div className="p-6 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
           ) : (invoices as any[]).length === 0 ? (
             <EmptyState icon={FileText} message="Aucune facture pour cet élève" />
           ) : (

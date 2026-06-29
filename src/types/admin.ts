@@ -1,4 +1,11 @@
 // Dashboard
+export interface WeeklyTrendPoint {
+  date: string
+  label: string
+  present: number
+  rate: number
+}
+
 export interface DashboardStats {
   totalStudents: number
   presentToday: number
@@ -6,6 +13,7 @@ export interface DashboardStats {
   lateToday: number
   attendanceRate: number
   fraudAlerts: number
+  weeklyTrend?: WeeklyTrendPoint[]
 }
 
 export interface LiveFeedEntry {
@@ -19,8 +27,7 @@ export interface LiveFeedEntry {
 }
 
 export interface HeatmapEntry {
-  hour: number
-  day: string
+  hour: string
   count: number
 }
 
@@ -87,6 +94,14 @@ export interface StudentListItem {
   createdAt: string
   hasBiometrics: boolean
   debtAmount?: number
+  isPaymentLocked?: boolean
+  biometricStatus?: string
+  scholarshipPercent?: number
+  activeMoratoriumId?: number
+  feesBalance?: number
+  tuitionBalance?: number
+  totalFees?: number
+  feesPaid?: number
 }
 
 export interface StudentDetail {
@@ -108,7 +123,26 @@ export interface StudentDetail {
   schoolId: number
   hasBiometrics: boolean
   isLocked: boolean
+  isPaymentLocked?: boolean
   reminderPaused: boolean
+  biometricStatus?: string
+  scholarshipPercent?: number
+  activeMoratoriumId?: number
+  feesBalance?: number
+  tuitionBalance?: number
+  totalFees?: number
+  feesPaid?: number
+  academicYear?: string
+  placeOfBirth?: string
+  nationality?: string
+  bloodGroup?: string
+  allergies?: string
+  medicalNotes?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  isVerifiedPhysically?: boolean
+  lastReminderSentAt?: string
+  reminderPausedUntil?: string
   createdAt: string
   updatedAt: string
   totalDue?: number
@@ -116,6 +150,7 @@ export interface StudentDetail {
   debtAmount?: number
   presenceCount?: number
   lastPresence?: string
+  enrollments?: SessionEnrollment[]
 }
 
 export interface StudentActivity {
@@ -163,6 +198,30 @@ export interface StudentApplication {
 }
 
 // Enrollments
+export interface AcademicSessionRef {
+  id: number
+  label: string
+  startDate: string
+  endDate: string
+  isCurrent: boolean
+  status: string
+}
+
+export interface SessionEnrollment {
+  id: number
+  studentId: number
+  classId: number
+  sessionId: number
+  status: string
+  type: string
+  totalAmount: number
+  paidAmount: number
+  balance: number
+  createdAt: string
+  updatedAt?: string
+  session?: AcademicSessionRef
+}
+
 export interface EnrollmentListItem {
   id: number
   firstName: string
@@ -170,11 +229,22 @@ export interface EnrollmentListItem {
   matricule?: string
   status: string
   className?: string
+  classId?: number
   email?: string
   phone?: string
   isLocked: boolean
+  isPaymentLocked?: boolean
+  reminderPaused?: boolean
+  biometricStatus?: string
+  scholarshipPercent?: number
+  feesBalance?: number
+  tuitionBalance?: number
+  totalFees?: number
+  feesPaid?: number
+  activeMoratoriumId?: number
+  academicYear?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface EnrollmentDetail {
@@ -194,23 +264,46 @@ export interface EnrollmentDetail {
   parentPhone?: string
   parentEmail?: string
   isLocked: boolean
+  isPaymentLocked?: boolean
   reminderPaused: boolean
   hasBiometrics: boolean
+  biometricStatus?: string
+  scholarshipPercent?: number
+  feesBalance?: number
+  tuitionBalance?: number
+  totalFees?: number
+  feesPaid?: number
+  activeMoratoriumId?: number
+  academicYear?: string
   createdAt: string
+  enrollments?: SessionEnrollment[]
+  dataIntegrity?: boolean
+  summary?: { enrollmentCount: number; currentStatus: string }
 }
 
 export interface CreateEnrollmentPayload {
   firstName: string
   lastName: string
-  email?: string
-  phone?: string
-  dateOfBirth?: string
-  gender?: 'M' | 'F'
-  address?: string
-  parentName?: string
-  parentPhone?: string
-  parentEmail?: string
-  classId?: number
+  gender: 'M' | 'F' | 'MALE' | 'FEMALE'
+  birthDate: string
+  classId: number
+  sectionId?: number
+  optionId?: number
+  placeOfBirth?: string
+  nationality?: string
+  academicYear?: string
+  matricule?: string
+  status?: 'ACTIVE' | 'PENDING_ENROLLMENT' | 'INACTIVE' | 'SUSPENDED'
+  scholarshipPercent?: number
+  totalFees?: number
+  feesPaid?: number
+  paymentNotes?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  bloodGroup?: string
+  allergies?: string
+  medicalNotes?: string
+  nfcTagId?: string
 }
 
 export interface PaginatedResponse<T> {
@@ -224,6 +317,9 @@ export interface PaginatedResponse<T> {
 // Presences
 export interface PresenceLiveFeedEntry {
   id: number
+  studentId?: number
+  sessionId?: number | null
+  enrollmentId?: number | null
   studentName: string
   matricule?: string
   className: string
@@ -271,13 +367,47 @@ export interface RecordPresencePayload {
   classId: number
   status: 'PRESENT' | 'ABSENT' | 'LATE'
   sessionDate?: string
+  idempotencyKey?: string
+  note?: string
 }
 
 export interface BulkPresencePayload {
-  studentIds: number[]
   classId: number
-  status: 'PRESENT' | 'ABSENT' | 'LATE'
   sessionDate?: string
+  idempotencyKey?: string
+  entries: Array<{
+    studentId: number
+    status: 'PRESENT' | 'ABSENT' | 'LATE'
+  }>
+}
+
+export interface AdminPresenceRecordResult {
+  id: number
+  status: 'PRESENT' | 'ABSENT' | 'LATE'
+  studentName: string
+  fraudScore?: number
+  idempotentReplay?: boolean
+  isSameDayDuplicate?: boolean
+}
+
+export interface BulkPresenceRecordResult {
+  succeeded: Array<{
+    studentId: number
+    presenceId: number
+    status: 'PRESENT' | 'ABSENT' | 'LATE'
+    studentName: string
+  }>
+  failed: Array<{
+    studentId: number
+    error: string
+    code?: string
+  }>
+  duplicates: Array<{
+    studentId: number
+    presenceId: number
+    status: 'PRESENT' | 'ABSENT' | 'LATE'
+    studentName: string
+  }>
 }
 
 // Classes
@@ -291,7 +421,27 @@ export interface ClassListItem {
   teacherId?: number
   isActive: boolean
   schoolId: number
+  sectionId?: number
+  optionId?: number
+  sectionName?: string
+  optionName?: string
+  academicYear?: string
   createdAt: string
+}
+
+export interface SectionRef {
+  id: number
+  name: string
+  code?: string | null
+  schoolId?: number
+}
+
+export interface OptionRef {
+  id: number
+  name: string
+  sectionId: number
+  code?: string | null
+  schoolId?: number
 }
 
 export interface ClassDetail extends ClassListItem {
@@ -319,6 +469,9 @@ export interface ClassAuditEntry {
 
 export interface CreateClassPayload {
   name: string
+  academicYear: string
+  sectionId: number
+  optionId: number
   level?: string
   capacity?: number
   teacherId?: number
@@ -341,7 +494,9 @@ export interface FinanceKpi {
   fraudAlerts: number
 }
 
+/** @deprecated Prefer PendingVerificationItem */
 export interface PendingPayment {
+  verificationId?: number
   id: number
   studentName: string
   amount: number
@@ -350,6 +505,68 @@ export interface PendingPayment {
   createdAt: string
   studentId?: number
   reference?: string
+}
+
+export interface PendingVerificationItem {
+  verificationId: number
+  paymentId: number
+  status: string
+  verificationStep: number
+  financeCheck: boolean
+  adminCheck: boolean
+  superAdminCheck: boolean
+  suspicion: boolean
+  fraudScore: number | null
+  queuedAt: string
+  studentName: string
+  amount: number
+  currency: string
+  method: string
+  reference?: string
+  providerRef?: string
+  receiptNumber?: string
+  receiptUrl?: string
+  createdAt: string
+  studentId?: number
+  studentMatricule?: string
+  studentClassName?: string
+  studentBalance?: number
+  /** Alias paymentId for legacy UI */
+  id: number
+}
+
+export type PaymentProfileKycStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'NOT_CONFIGURED'
+export type PaymentSettlementProvider = 'FLUTTERWAVE' | 'RAWBANK' | 'UBA'
+
+export interface PaymentProfile {
+  schoolId: number
+  schoolName?: string
+  provider: PaymentSettlementProvider
+  legalName: string
+  contactEmail?: string
+  contactPhone?: string
+  settlementBankCode?: string
+  settlementAccountMasked?: string
+  settlementAccountName?: string
+  mobileMoneyBusinessId?: string
+  flwSubaccountId?: string
+  kycStatus: PaymentProfileKycStatus
+  kycNote?: string
+  onlinePaymentsEnabled: boolean
+  verifiedAt?: string
+  rejectedAt?: string
+  updatedAt?: string
+}
+
+export interface UpsertPaymentProfilePayload {
+  legalName: string
+  contactEmail?: string
+  contactPhone?: string
+  settlementBankCode: string
+  settlementAccountNumber: string
+  settlementAccountName: string
+  mobileMoneyBusinessId?: string
+  provider?: PaymentSettlementProvider
 }
 
 export interface FinanceFraudAlert {
@@ -391,7 +608,7 @@ export interface ManualPaymentPayload {
 
 export interface BulkMoratoriumPayload {
   studentIds: number[]
-  type: string
+  type: MoratoriumType
   startDate: string
   endDate: string
   reason: string
@@ -428,23 +645,43 @@ export interface MobilePendingItem {
   id: number
   studentName: string
   amount: number
+  method?: string
   phone?: string
   operator?: string
   reference?: string
   createdAt: string
 }
 
-// Moratoriums
+export type StudentSecurityAction = 'BLOCK' | 'UNBLOCK'
+
+export type MoratoriumType = 'MONTHLY' | 'QUARTERLY' | 'EXCEPTIONAL' | 'SCHOLARSHIP_REVIEW'
+
+export interface MoratoriumRecoveryRate {
+  schoolId: number
+  sessionId: number | null
+  sessionLabel: string | null
+  recoveryRateGlobal: number
+  recoveryRateExcludingMoratorium: number
+  totalDebt: number
+  recoveredAmount: number
+  studentsUnderMoratorium: number
+  currency?: string
+  computedAt?: string
+}
+
 export interface Moratorium {
   id: number
   studentId: number
   enrollmentId?: number
-  type: string
+  type: MoratoriumType | string
   startDate: string
   endDate: string
   reason: string
   status: string
+  studentName?: string
   student?: { firstName: string; lastName: string }
+  grantedByName?: string
+  internalNote?: string | null
   createdAt: string
   updatedAt?: string
 }
@@ -452,10 +689,23 @@ export interface Moratorium {
 export interface CreateMoratoriumPayload {
   studentId: number
   enrollmentId?: number
-  type: string
+  type: MoratoriumType
   startDate: string
   endDate: string
   reason: string
+}
+
+export interface MoratoriumPolicy {
+  schoolId: number
+  maxDays: number
+  maxPerYear: number
+  allowedTypes: MoratoriumType[]
+  defaultNotifyBehavior?: string
+  parentRequestEnabled?: boolean
+  parentMaxRequestDays?: number
+  autoApproveMaxDays?: number
+  currency?: string
+  source?: 'database' | 'provisioned'
 }
 
 // Invitations

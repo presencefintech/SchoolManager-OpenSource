@@ -1,5 +1,13 @@
-import axios, { type AxiosError } from 'axios'
-import { clearAuthStorage, getAuthSchoolId, getAuthToken } from '@/lib/api/auth-storage'
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import {
+  getAuthRefreshToken,
+  getAuthSchoolId,
+  getAuthToken,
+  redirectToLogin,
+  updateAuthTokens,
+} from '@/lib/api/auth-storage'
+
+type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
 export const apiClient = axios.create({
   baseURL: '/api/v1',
@@ -16,24 +24,75 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+/** Une seule requête refresh en vol — les 401 concurrents partagent la même promesse. */
+let refreshPromise: Promise<string> | null = null
+
+async function refreshAccessToken(): Promise<string> {
+  const refreshToken = getAuthRefreshToken()
+  if (!refreshToken) throw new Error('NO_REFRESH_TOKEN')
+
+  const { data } = await axios.post<{ token?: string; refreshToken?: string }>(
+    '/api/v1/auth/refresh-token',
+    { refreshToken },
+    { headers: { 'Content-Type': 'application/json' } },
+  )
+
+  const newToken = data.token
+  if (!newToken) throw new Error('NO_TOKEN_IN_REFRESH_RESPONSE')
+
+  updateAuthTokens(newToken, data.refreshToken)
+  window.dispatchEvent(new CustomEvent('auth:token-refreshed', { detail: { token: newToken } }))
+  return newToken
+}
+
+function getOrRefreshToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = refreshAccessToken().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
+
 apiClient.interceptors.response.use(
   (res) => res,
-  (error: AxiosError) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token')
-      const url = error.config?.url ?? ''
-      // Ne déconnecter que si : pas de token (session expirée) ou c'est le endpoint d'auth lui-même
-      const isAuthEndpoint = url.includes('/auth/')
-      if (!token || isAuthEndpoint) {
-        localStorage.clear()
-        document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        document.cookie = 'auth_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      clearAuthStorage()
-      if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
-      }
+  async (error: AxiosError) => {
+    const originalRequest = error.config as RetryConfig | undefined
+
+    if (
+      error.response?.status !== 401 ||
+      typeof window === 'undefined' ||
+      !originalRequest
+    ) {
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+
+    const url = originalRequest.url ?? ''
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/refresh-token') ||
+      url.includes('/auth/logout')
+
+    if (isAuthEndpoint || originalRequest._retry) {
+      redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    if (!getAuthRefreshToken()) {
+      redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    originalRequest._retry = true
+
+    try {
+      const newToken = await getOrRefreshToken()
+      originalRequest.headers.Authorization = `Bearer ${newToken}`
+      return apiClient(originalRequest)
+    } catch {
+      redirectToLogin()
+      return Promise.reject(error)
+    }
   },
 )
 

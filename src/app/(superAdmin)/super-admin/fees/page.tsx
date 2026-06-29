@@ -15,6 +15,7 @@ import {
 import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import type { FeeType } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
 const fmt = (n: number) =>
@@ -435,7 +436,7 @@ export default function FeesPage() {
 
             {loadingStructures ? (
               <div className="p-6 space-y-2">
-                {[...Array(3)].map((_, i) => <Sk key={i} className="h-12" />)}
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}
               </div>
             ) : structures?.length ? (
               <div className="divide-y divide-zinc-100">
@@ -728,7 +729,7 @@ export default function FeesPage() {
               </div>
             ) : loadingInvoices ? (
               <div className="p-6 space-y-2">
-                {[...Array(4)].map((_, i) => <Sk key={i} className="h-12" />)}
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-12" />)}
               </div>
             ) : invoices?.length ? (
               <div className="divide-y divide-zinc-100">

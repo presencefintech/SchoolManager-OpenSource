@@ -10,13 +10,9 @@ import {
   useExecutiveDashboard, useDailyCashReport, useFinanceIntegrity,
   useDebtors, useHighRisk, useCollectionAnalytics,
 } from '@/lib/hooks/use-finance'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
-
-function Sk({ className }: { className?: string }) {
-  return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
-}
+import { fadeUp, stagger } from '@/lib/animations'
+import { Skeleton } from '@/components/ui/skeleton'
+import type { ExecutiveDashboard, IntegrityReport, DebtorEntry, RiskEntry, DailyCashEntry, CollectionReport } from '@/types/finance'
 
 function KpiCard({ label, value, sub, icon: Icon, color, bg }: {
   label: string; value: string | number; sub?: string
@@ -44,17 +40,21 @@ export default function FinanceDashboardPage() {
   const { data: highRisk } = useHighRisk()
   const { data: collection } = useCollectionAnalytics()
 
-  const d = kpis as any
+  const d = kpis as ExecutiveDashboard | undefined
   const perf = d?.performance
   const audit = d?.audit
   const treasury = d?.treasury
-  const integ = integrity as any
-  const coll = collection as any
-  const debtors: any[] = (debtorsData as any)?.data ?? (Array.isArray(debtorsData) ? debtorsData : [])
-  const risks: any[] = audit?.highRiskProfiles ?? (Array.isArray(highRisk) ? highRisk : (highRisk as any)?.data ?? [])
-  const cash: any[] = Array.isArray(dailyCash) ? dailyCash : []
+  const integ = integrity as IntegrityReport | undefined
+  const coll = collection as CollectionReport | undefined
+  const debtors: DebtorEntry[] = (debtorsData as { data?: DebtorEntry[] } | DebtorEntry[] | undefined) != null
+    ? ((debtorsData as { data?: DebtorEntry[] })?.data ?? (Array.isArray(debtorsData) ? (debtorsData as DebtorEntry[]) : []))
+    : []
+  const risks: RiskEntry[] = audit?.highRiskProfiles ?? (Array.isArray(highRisk) ? (highRisk as RiskEntry[]) : ((highRisk as { data?: RiskEntry[] } | undefined)?.data ?? []))
+  const cash: DailyCashEntry[] = Array.isArray(dailyCash) ? (dailyCash as DailyCashEntry[]) : []
 
-  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const today = typeof window !== 'undefined'
+    ? new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : ''
   const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
   const totalTx = cash.reduce((acc, r) => acc + (r._count?.id || 0), 0)
 
@@ -67,7 +67,7 @@ export default function FinanceDashboardPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Finance</h1>
-          <p className="text-sm text-zinc-500 mt-0.5 capitalize">{today}</p>
+          <p className="text-sm text-zinc-500 mt-0.5 capitalize" suppressHydrationWarning>{today}</p>
         </div>
         <div className="flex items-center gap-2">
           {integ && (
@@ -95,7 +95,7 @@ export default function FinanceDashboardPage() {
       {/* KPIs Performance */}
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => <Sk key={i} className="h-28" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)}
         </div>
       ) : (
         <>
@@ -143,7 +143,7 @@ export default function FinanceDashboardPage() {
                   label="Vérifications en attente"
                   value={audit?.pendingVerifications ?? '—'}
                   icon={ClipboardList} color="text-orange-600" bg="bg-orange-50"
-                  sub={audit?.pendingVerifications > 0 ? 'À traiter' : 'Aucune'}
+                  sub={(audit?.pendingVerifications ?? 0) > 0 ? 'À traiter' : 'Aucune'}
                 />
               </motion.div>
             </motion.div>
@@ -196,7 +196,7 @@ export default function FinanceDashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-zinc-50">
-              {cash.map((row: any, i: number) => (
+              {cash.map((row, i) => (
                 <div key={i} className="flex items-center justify-between px-5 py-3">
                   <div>
                     <p className="text-sm font-medium text-zinc-900">{row.method ?? '—'}</p>
@@ -232,7 +232,7 @@ export default function FinanceDashboardPage() {
             </div>
           ) : (
             <div className="divide-y divide-zinc-50">
-              {debtors.slice(0, 8).map((dbtr: any, i: number) => (
+              {debtors.slice(0, 8).map((dbtr, i) => (
                 <div key={dbtr.studentId ?? i} className="flex items-center justify-between px-5 py-3">
                   <div className="flex items-center gap-3">
                     <span className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-[10px] font-bold text-red-500">{i + 1}</span>
@@ -291,7 +291,7 @@ export default function FinanceDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {risks.map((r: any, i: number) => (
+                {risks.map((r, i) => (
                   <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-5 py-3.5 font-medium text-zinc-900">{r.firstName} {r.lastName}</td>
                     <td className="px-5 py-3.5 text-right font-semibold text-red-600">

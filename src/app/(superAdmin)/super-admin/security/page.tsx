@@ -11,6 +11,7 @@ import { securityApi } from '@/lib/superAdmin/api/security.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { FraudAnalysisResult } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 type FeedbackState = { type: 'success' | 'error'; message: string } | null
@@ -90,8 +91,8 @@ export default function SecurityPage() {
       await securityApi.suspendStudent({ studentId, schoolId, reason: suspendReason })
       setSuspendFeedback({ type: 'success', message: `Élève #${studentId} suspendu.` })
       setSuspendReason('')
-    } catch (e: any) {
-      setSuspendFeedback({ type: 'error', message: e?.response?.data?.message ?? 'Erreur lors de la suspension.' })
+    } catch (e) {
+      setSuspendFeedback({ type: 'error', message: getApiErrorMessage(e) })
     } finally { setSuspendLoading(false) }
   }
 
@@ -101,8 +102,8 @@ export default function SecurityPage() {
     try {
       await securityApi.unblockStudent(schoolId, studentId)
       setUnblockFeedback({ type: 'success', message: `Élève #${studentId} réactivé.` })
-    } catch (e: any) {
-      setUnblockFeedback({ type: 'error', message: e?.response?.data?.message ?? 'Erreur lors de la réactivation.' })
+    } catch (e) {
+      setUnblockFeedback({ type: 'error', message: getApiErrorMessage(e) })
     } finally { setUnblockLoading(false) }
   }
 
@@ -114,8 +115,8 @@ export default function SecurityPage() {
       setFraudFeedback({ type: 'success', message: 'Signalement de fraude enregistré.' })
       setFraudReason('')
       setFraudScore(50)
-    } catch (e: any) {
-      setFraudFeedback({ type: 'error', message: e?.response?.data?.message ?? 'Erreur lors du signalement.' })
+    } catch (e) {
+      setFraudFeedback({ type: 'error', message: getApiErrorMessage(e) })
     } finally { setFraudLoading(false) }
   }
 
@@ -125,8 +126,8 @@ export default function SecurityPage() {
     try {
       await securityApi.auditPIIAccess({ studentId, schoolId, dataType: piiDataType })
       setPiiFeedback({ type: 'success', message: 'Accès aux données PII enregistré dans l\'audit trail.' })
-    } catch (e: any) {
-      setPiiFeedback({ type: 'error', message: e?.response?.data?.message ?? 'Erreur lors de l\'audit.' })
+    } catch (e) {
+      setPiiFeedback({ type: 'error', message: getApiErrorMessage(e) })
     } finally { setPiiLoading(false) }
   }
 
@@ -142,8 +143,8 @@ export default function SecurityPage() {
     try {
       const r = await anomaliesApi.analyzeStudent(Number(anomalyStudentId))
       setAnomalyResult(r)
-    } catch (e: any) {
-      setAnomalyFeedback({ type: 'error', message: e?.response?.data?.message ?? 'Erreur lors de l\'analyse.' })
+    } catch (e) {
+      setAnomalyFeedback({ type: 'error', message: getApiErrorMessage(e) })
     } finally { setAnalyzingAnomaly(false) }
   }
 

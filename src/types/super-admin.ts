@@ -514,6 +514,46 @@ export interface StudentStats {
   currency: string
 }
 
+export interface SuperAdminCreateStudentInput {
+  firstName: string
+  lastName: string
+  schoolId: number
+  classId: number
+  birthDate: string
+  gender: 'MALE' | 'FEMALE' | 'M' | 'F'
+  overrideReason: string
+  placeOfBirth?: string
+  nationality?: string
+  academicYear?: string
+  totalFees?: number
+  feesPaid?: number
+  email?: string | null
+}
+
+export interface EnrollmentCreateStudent {
+  id: number
+  firstName: string
+  lastName: string
+  matricule?: string | null
+  schoolId?: number
+  classId?: number | null
+  placeOfBirth?: string | null
+  nationality?: string | null
+  academicYear?: string | null
+  totalFees?: number
+  feesPaid?: number
+  feesBalance?: number
+  photoUrl?: string | null
+}
+
+export interface EnrollmentCreateResult {
+  student: EnrollmentCreateStudent
+  qrcode?: string | null
+  pdfCard?: string
+  pdfWarning?: string
+  message?: string
+}
+
 export interface StudentProfile {
   id: number
   firstName: string

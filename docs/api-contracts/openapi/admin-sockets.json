@@ -1,0 +1,558 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Presence — API Web Admin & Finance (Temps réel)",
+    "version": "1.0.0",
+    "description": "**Contrat OpenAPI — événements Socket.io Admin & Finance**\n\nSource de vérité pour les clients **dashboard promoteur** (ADMIN / SUPER_ADMIN) et **comptabilité** (FINANCE).\n\n**Transport temps réel :** Socket.io 4.x — voir extension `x-socket-events` (pas de routes HTTP pour ces événements).\n\n**REST admin :** `swagger-docs/admin.json` (généré par `npm run docs:admin-openapi`) → `/api-docs/admin`\n\n**Auth Socket :** JWT identique au REST — `Authorization: Bearer <token>` passé dans `handshake.auth.token`.\n\n**Alignement code :** miroir de `src/gateway/events/payment-event.types.ts` et modules `modules/web/admin/realtime/`, `modules/web/finance/realtime/`.\n\n**Recette :** `npm run test:smoke:staging` (8 étapes · parent + admin + finance)."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Développement local (Socket.io — même host que l'API)"
+    },
+    {
+      "url": "https://staging-api.presence.cd",
+      "description": "Staging"
+    },
+    {
+      "url": "https://presence-app.onrender.com",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Real-time — Paiements",
+      "description": "Événements émis après webhook provider ou settlement — séparation Admin / Finance"
+    },
+    {
+      "name": "Real-time — Ops",
+      "description": "Dashboard contrôle, inscriptions, réconciliation (ADMIN uniquement)"
+    }
+  ],
+  "paths": {},
+  "x-socket-events": {
+    "protocol": "socket.io",
+    "version": "4.x",
+    "description": "Canal temps réel multi-rôles scopé par école (`schoolId`). Payloads typés dans `components.schemas`. Le serveur joint automatiquement les rooms à la connexion — le client n'appelle pas `join` manuellement.",
+    "connection": {
+      "url": "{host}",
+      "path": "/socket.io/",
+      "transports": ["websocket", "polling"],
+      "authentication": {
+        "description": "JWT obtenu via `POST /api/v1/auth/login` (ADMIN, FINANCE ou SUPER_ADMIN).",
+        "handshakeAuth": {
+          "token": "<JWT Bearer — même valeur que le header Authorization REST>"
+        },
+        "handshakeQueryFallback": {
+          "token": "<JWT — déconseillé en production, préférer auth.token>"
+        },
+        "jwtClaimsUsed": {
+          "userId": "integer — identifiant User",
+          "role": "string — ADMIN | SUPER_ADMIN | FINANCE",
+          "schoolId": "integer — établissement (tenant) ; requis pour les rooms `school:{id}:...`"
+        }
+      },
+      "clientExamples": {
+        "typescriptAdmin": "const socket = io(host, { auth: { token: jwt }, transports: ['websocket'] });\nsocket.on('payment.confirmed.admin', (e) => onPaymentAdmin(PaymentConfirmedAdminEvent.parse(e)));\nsocket.on('payment.failed.admin', (e) => onPaymentFailed(PaymentFailedAdminEvent.parse(e)));\nsocket.on('payment.confirmed.finance', (e) => onFinanceOversight(PaymentConfirmedFinanceEvent.parse(e)));",
+        "typescriptFinance": "const socket = io(host, { auth: { token: jwt }, transports: ['websocket'] });\nsocket.on('payment.confirmed.finance', (e) => onPaymentFinance(PaymentConfirmedFinanceEvent.parse(e)));\nsocket.on('refund.requested.finance', (e) => onRefundRequested(RefundFinanceEvent.parse(e)));\nsocket.on('refund.approved.finance', (e) => onRefundApproved(RefundFinanceEvent.parse(e)));\nsocket.on('refund.processed.finance', (e) => onRefundProcessed(RefundFinanceEvent.parse(e)));\nsocket.on('guichet.dashboard.refresh', (e) => refreshGuichetDashboard(GuichetDashboardRefreshEvent.parse(e)));"
+      }
+    },
+    "implementationStatus": {
+      "payment.confirmed.admin": "IMPLÉMENTÉ — admin-socket.service.ts",
+      "payment.confirmed.finance": "IMPLÉMENTÉ — finance-socket.service.ts",
+      "refund.requested.finance": "IMPLÉMENTÉ — finance-socket.service.ts",
+      "refund.approved.finance": "IMPLÉMENTÉ — finance-socket.service.ts",
+      "refund.processed.finance": "IMPLÉMENTÉ — finance-socket.service.ts",
+      "guichet.dashboard.refresh": "IMPLÉMENTÉ — finance-socket.service.ts",
+      "payment.failed.admin": "IMPLÉMENTÉ — admin-socket.service.ts",
+      "validatedAt": "2026-06-20",
+      "smokeTest": "npm run test:smoke:staging"
+    },
+    "subscriptionStrategy": {
+      "summary": "Rooms jointes côté serveur à la connexion selon le rôle JWT.",
+      "roomsByRole": {
+        "ADMIN": [
+          "user_{userId}",
+          "school:{schoolId}:control-dashboard",
+          "school:{schoolId}:finance",
+          "admin-monitoring"
+        ],
+        "SUPER_ADMIN": [
+          "user_{userId}",
+          "school:{schoolId}:control-dashboard",
+          "school:{schoolId}:finance",
+          "admin-monitoring"
+        ],
+        "FINANCE": [
+          "user_{userId}",
+          "school:{schoolId}:finance"
+        ]
+      },
+      "rooms": [
+        {
+          "name": "school:{schoolId}:control-dashboard",
+          "pattern": "school:{schoolId}:control-dashboard",
+          "joinedBy": "server",
+          "roles": ["ADMIN", "SUPER_ADMIN"],
+          "when": "Connexion Socket.io si JWT valide et schoolId > 0",
+          "purpose": "Pilotage ops + `payment.confirmed.admin` + `payment.failed.admin` + snapshots dashboard",
+          "identifierSource": "JWT claim `schoolId`"
+        },
+        {
+          "name": "school:{schoolId}:finance",
+          "pattern": "school:{schoolId}:finance",
+          "joinedBy": "server",
+          "roles": ["FINANCE", "ADMIN", "SUPER_ADMIN"],
+          "when": "Connexion Socket.io si JWT valide et schoolId > 0",
+          "purpose": "Flux comptable `payment.confirmed.finance` — ADMIN reçoit en supervision hiérarchique",
+          "identifierSource": "JWT claim `schoolId`"
+        },
+        {
+          "name": "admin-monitoring",
+          "pattern": "admin-monitoring",
+          "joinedBy": "server",
+          "roles": ["ADMIN", "SUPER_ADMIN"],
+          "when": "Connexion Socket.io (global multi-écoles pour monitoring ops)",
+          "purpose": "Réconciliation CRON, copies snapshots — hors scope paiement webhook direct"
+        },
+        {
+          "name": "user_{userId}",
+          "pattern": "user_{userId}",
+          "joinedBy": "server",
+          "roles": ["ALL"],
+          "purpose": "Canal personnel (`notification`) — complément REST NotificationService"
+        }
+      ],
+      "payloadIsolation": {
+        "description": "Les payloads Admin et Finance sont émis par des services distincts. Le payload Finance ne contient pas studentName, correlationId ni métriques présence.",
+        "adminService": "modules/web/admin/realtime/admin-socket.service.ts",
+        "financeService": "modules/web/finance/realtime/finance-socket.service.ts",
+        "schoolIdValidation": "config/school-room.util.ts — assertSchoolIdMatch avant chaque émission"
+      },
+      "reconnection": {
+        "description": "Reconnecter avec un JWT non expiré. Les événements manqués pendant la coupure ne sont pas rejoués — consulter les endpoints REST finance admin pour rattrapage.",
+        "recommendedFallback": "GET /api/v1/admin/finance/... ou rafraîchissement liste paiements"
+      }
+    },
+    "events": {
+      "payment.confirmed.admin": {
+        "tag": "Real-time — Paiements",
+        "direction": "server → client",
+        "description": "Paiement confirmé côté gateway — vue **promoteur / direction**. Payload opérationnel riche (élève, provider, traçabilité).",
+        "emittedTo": "room `school:{schoolId}:control-dashboard`",
+        "audienceRoles": ["ADMIN", "SUPER_ADMIN"],
+        "trigger": "Webhook `PAYMENT_CONFIRMED` → payment-event.handlers → adminSocketService.notifyPaymentConfirmed",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/PaymentConfirmedAdminEvent"
+        },
+        "example": {
+          "event": "payment.confirmed.admin",
+          "paymentId": 57,
+          "schoolId": 1,
+          "studentId": 110,
+          "studentName": "Jean Mukeba",
+          "amount": 50,
+          "currency": "USD",
+          "provider": "UBA",
+          "providerRef": "UBA_SMOKE_REF_001",
+          "reference": "INT-MQ558CCW-EB62D8F84A562B0C-ACA6AD18",
+          "correlationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+          "status": "CONFIRMED",
+          "confirmedAt": "2026-06-08T15:22:00.000Z",
+          "timestamp": "2026-06-08T15:22:00.120Z"
+        }
+      },
+      "payment.confirmed.finance": {
+        "tag": "Real-time — Paiements",
+        "direction": "server → client",
+        "description": "Paiement confirmé — vue **comptable / trésorerie**. Payload minimal pour réconciliation (sans données élève ni correlationId).",
+        "emittedTo": "room `school:{schoolId}:finance`",
+        "audienceRoles": ["FINANCE", "ADMIN", "SUPER_ADMIN"],
+        "trigger": "Webhook `PAYMENT_CONFIRMED` → payment-event.handlers → financeSocketService.notifyPaymentConfirmed",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/PaymentConfirmedFinanceEvent"
+        },
+        "example": {
+          "event": "payment.confirmed.finance",
+          "paymentId": 57,
+          "schoolId": 1,
+          "transactionRef": "INT-MQ558CCW-EB62D8F84A562B0C-ACA6AD18",
+          "providerRef": "UBA_SMOKE_REF_001",
+          "amount": 50,
+          "currency": "USD",
+          "confirmedAt": "2026-06-08T15:22:00.000Z",
+          "reconciliationStatus": "CONFIRMED",
+          "timestamp": "2026-06-08T15:22:00.125Z"
+        }
+      },
+      "refund.requested.finance": {
+        "tag": "Real-time — Remboursements",
+        "direction": "server → client",
+        "description": "Demande de remboursement créée au guichet — notification comptable.",
+        "emittedTo": "room `school:{schoolId}:finance`",
+        "audienceRoles": ["FINANCE", "ADMIN", "SUPER_ADMIN"],
+        "trigger": "POST /finance/refunds → RefundRequestService.create → financeSocketService.notifyRefundRequested",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/RefundFinanceEvent"
+        },
+        "example": {
+          "event": "refund.requested.finance",
+          "refundRequestId": 12,
+          "schoolId": 1,
+          "paymentId": 57,
+          "amount": 50,
+          "status": "PENDING",
+          "timestamp": "2026-06-20T10:00:00.000Z"
+        }
+      },
+      "refund.approved.finance": {
+        "tag": "Real-time — Remboursements",
+        "direction": "server → client",
+        "description": "Remboursement approuvé par l'admin — prêt pour exécution guichet.",
+        "emittedTo": "room `school:{schoolId}:finance`",
+        "audienceRoles": ["FINANCE", "ADMIN", "SUPER_ADMIN"],
+        "trigger": "POST /admin/finance/refunds/{id}/review (approve) → financeSocketService.notifyRefundApproved",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/RefundFinanceEvent"
+        },
+        "example": {
+          "event": "refund.approved.finance",
+          "refundRequestId": 12,
+          "schoolId": 1,
+          "paymentId": 57,
+          "amount": 50,
+          "status": "APPROVED",
+          "timestamp": "2026-06-20T10:15:00.000Z"
+        }
+      },
+      "refund.processed.finance": {
+        "tag": "Real-time — Remboursements",
+        "direction": "server → client",
+        "description": "Remboursement exécuté au guichet — reverse settlement comptable appliqué.",
+        "emittedTo": "room `school:{schoolId}:finance`",
+        "audienceRoles": ["FINANCE", "ADMIN", "SUPER_ADMIN"],
+        "trigger": "POST /finance/refunds/{id}/process → financeSocketService.notifyRefundProcessed",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/RefundFinanceEvent"
+        },
+        "example": {
+          "event": "refund.processed.finance",
+          "refundRequestId": 12,
+          "schoolId": 1,
+          "paymentId": 57,
+          "amount": 50,
+          "status": "PROCESSED",
+          "timestamp": "2026-06-20T10:30:00.000Z"
+        }
+      },
+      "guichet.dashboard.refresh": {
+        "tag": "Real-time — Dashboard guichet",
+        "direction": "server → client",
+        "description": "Signal de rafraîchissement KPIs guichet — consulter GET /finance/dashboard/guichet.",
+        "emittedTo": "room `school:{schoolId}:finance`",
+        "audienceRoles": ["FINANCE", "ADMIN", "SUPER_ADMIN"],
+        "trigger": "Après process remboursement ou événement métier guichet",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/GuichetDashboardRefreshEvent"
+        },
+        "example": {
+          "event": "guichet.dashboard.refresh",
+          "schoolId": 1,
+          "timestamp": "2026-06-20T10:30:00.100Z"
+        }
+      },
+      "payment.failed.admin": {
+        "tag": "Real-time — Paiements",
+        "direction": "server → client",
+        "description": "Échec de settlement provider — alerte direction. Émis sur webhook `PAYMENT_FAILED`.",
+        "emittedTo": "room `school:{schoolId}:control-dashboard`",
+        "audienceRoles": ["ADMIN", "SUPER_ADMIN"],
+        "trigger": "Webhook `PAYMENT_FAILED` → payment-event.handlers → adminSocketService.notifyPaymentFailed",
+        "payloadSchema": {
+          "$ref": "#/components/schemas/PaymentFailedAdminEvent"
+        },
+        "example": {
+          "event": "payment.failed.admin",
+          "paymentId": 58,
+          "schoolId": 1,
+          "provider": "UBA",
+          "correlationId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "reason": "PROVIDER_DECLINED",
+          "message": "Solde insuffisant sur le compte mobile money",
+          "timestamp": "2026-06-08T15:30:00.000Z"
+        }
+      },
+      "control_dashboard": {
+        "tag": "Real-time — Ops",
+        "direction": "server → client",
+        "description": "Snapshot périodique du dashboard contrôle (performance, sécurité, workers). Hors scope paiement.",
+        "emittedTo": "room `school:{schoolId}:control-dashboard` + copie `admin-monitoring`",
+        "audienceRoles": ["ADMIN", "SUPER_ADMIN"],
+        "payloadSchema": {
+          "type": "object",
+          "description": "ControlDashboardSnapshot — voir dashboard.types.ts"
+        }
+      },
+      "reconciliation_event": {
+        "tag": "Real-time — Ops",
+        "direction": "server → client",
+        "description": "Résultat job réconciliation nocturne (CRON 02h00 Kinshasa).",
+        "emittedTo": "room `admin-monitoring`",
+        "audienceRoles": ["ADMIN", "SUPER_ADMIN"]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PaymentConfirmedAdminEvent": {
+        "type": "object",
+        "description": "Événement Socket.io `payment.confirmed.admin`. Aligné sur `PaymentConfirmedAdminPayload` (payment-event.types.ts). Émis vers `school:{schoolId}:control-dashboard`.",
+        "required": [
+          "event",
+          "paymentId",
+          "schoolId",
+          "studentId",
+          "studentName",
+          "amount",
+          "currency",
+          "provider",
+          "reference",
+          "correlationId",
+          "status",
+          "timestamp"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "payment.confirmed.admin",
+            "description": "Identifiant d'événement Socket.io"
+          },
+          "paymentId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 57
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Tenant — doit correspondre à la room cible",
+            "example": 1
+          },
+          "studentId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 110
+          },
+          "studentName": {
+            "type": "string",
+            "description": "Nom complet élève (prénom + nom)",
+            "example": "Jean Mukeba"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 50
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "example": "USD"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderCode"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true,
+            "description": "Référence externe provider",
+            "example": "UBA_SMOKE_REF_001"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Référence métier interne du paiement",
+            "example": "INT-MQ558CCW-EB62D8F84A562B0C-ACA6AD18"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Traçabilité gateway webhook"
+          },
+          "status": {
+            "type": "string",
+            "const": "CONFIRMED"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Horodatage métier confirmation provider"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Horodatage d'émission Socket.io (ISO 8601 UTC)"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentConfirmedFinanceEvent": {
+        "type": "object",
+        "description": "Événement Socket.io `payment.confirmed.finance`. Aligné sur `PaymentConfirmedFinancePayload`. Payload comptable minimal — **sans** studentName ni correlationId.",
+        "required": [
+          "event",
+          "paymentId",
+          "schoolId",
+          "transactionRef",
+          "amount",
+          "currency",
+          "reconciliationStatus",
+          "timestamp"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "payment.confirmed.finance"
+          },
+          "paymentId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 57
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "transactionRef": {
+            "type": "string",
+            "description": "Référence métier / référence de transaction pour la comptabilité",
+            "example": "INT-MQ558CCW-EB62D8F84A562B0C-ACA6AD18"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true,
+            "example": "UBA_SMOKE_REF_001"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "example": 50
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "example": "USD"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reconciliationStatus": {
+            "type": "string",
+            "enum": ["CONFIRMED", "RECONCILED"],
+            "description": "Statut comptable au moment de l'émission"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PaymentFailedAdminEvent": {
+        "type": "object",
+        "description": "Événement Socket.io `payment.failed.admin`. Aligné sur `PaymentFailedAdminPayload`.",
+        "required": [
+          "event",
+          "paymentId",
+          "schoolId",
+          "provider",
+          "correlationId",
+          "reason",
+          "message",
+          "timestamp"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "payment.failed.admin"
+          },
+          "paymentId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 58
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderCode"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Code ou statut d'échec (ex. PROVIDER_DECLINED, FAILED)",
+            "example": "PROVIDER_DECLINED"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message lisible pour le dashboard admin",
+            "example": "Solde insuffisant sur le compte mobile money"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RefundFinanceEvent": {
+        "type": "object",
+        "description": "Événements Socket.io remboursement guichet — aligné sur `RefundFinancePayload` (payment-event.types.ts).",
+        "required": ["event", "refundRequestId", "schoolId", "paymentId", "amount", "timestamp"],
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": ["refund.requested.finance", "refund.approved.finance", "refund.processed.finance"]
+          },
+          "refundRequestId": { "type": "integer" },
+          "schoolId": { "type": "integer" },
+          "paymentId": { "type": "integer" },
+          "amount": { "type": "number" },
+          "status": {
+            "type": "string",
+            "description": "PENDING | APPROVED | PROCESSED selon l'événement"
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      },
+      "GuichetDashboardRefreshEvent": {
+        "type": "object",
+        "description": "Signal de rafraîchissement dashboard guichet — aligné sur `GuichetDashboardRefreshPayload`.",
+        "required": ["event", "schoolId", "timestamp"],
+        "properties": {
+          "event": { "type": "string", "enum": ["guichet.dashboard.refresh"] },
+          "schoolId": { "type": "integer" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "additionalProperties": false
+      },
+      "ProviderCode": {
+        "type": "string",
+        "description": "Code provider gateway. Exemples : UBA, RAWBANK, MPESA, FLUTTERWAVE.",
+        "minLength": 2,
+        "maxLength": 32,
+        "example": "UBA"
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
@@ -46,7 +47,7 @@ function FinanceNav() {
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">PresenceCollab</p>
+          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
           <p className="text-[11px] text-zinc-400 leading-tight">Finance</p>
         </div>
       </Link>
@@ -111,7 +112,7 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
     <div className="flex min-h-screen">
       <FinanceNav />
       <main className="flex-1 ml-64 min-h-screen bg-zinc-50">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </main>
     </div>
   )

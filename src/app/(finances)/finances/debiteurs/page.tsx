@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users, AlertTriangle, Search, Filter, DollarSign, TrendingDown, ChevronDown } from 'lucide-react'
 import { useDebtors, useHighRisk, useStudentFinanceProfile } from '@/lib/hooks/use-finance'
-
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
+import { fadeUp, stagger } from '@/lib/animations'
+import { Skeleton } from '@/components/ui/skeleton'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -87,7 +86,7 @@ export default function DebiteursPage() {
 
         {loadingDebtors ? (
           <div className="p-5 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => <Sk key={i} className="h-11" />)}
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-11" />)}
           </div>
         ) : debtors.length === 0 ? (
           <div className="py-12 text-center">
@@ -166,7 +165,7 @@ export default function DebiteursPage() {
             )}
           </div>
           {loadingRisk ? (
-            <div className="p-5 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Sk key={i} className="h-10" />)}</div>
+            <div className="p-5 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
           ) : risks.length === 0 ? (
             <div className="py-10 text-center">
               <AlertTriangle size={22} className="mx-auto text-zinc-300 mb-2" />
@@ -228,7 +227,7 @@ export default function DebiteursPage() {
             </div>
 
             {loadingProfile && (
-              <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Sk key={i} className="h-8" />)}</div>
+              <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
             )}
 
             {profile && !loadingProfile && (

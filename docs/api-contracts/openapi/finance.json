@@ -1,0 +1,3479 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Presence — API Finance (Web Guichet)",
+    "version": "1.0.0",
+    "description": "Documentation OpenAPI 3.0 du module `src/modules/web/finance`.\n\n**Rôles:** `FINANCE`, `ADMIN` (selon route).\n\n**Policy:** `FinancePolicy` + isolation `schoolId` (JWT).\n\n**Profil règlement KYC (juin 2026):** le guichet peut consulter le statut des paiements en ligne parent via `GET /admin/finance/payment-profile` (lecture seule, compte masqué). Les parents ne paient en ligne que si `kycStatus=VERIFIED` — voir `src/docs/school-payment-profile.md`.\n\n**Complément admin (écriture):** moratoires CRUD, validation remboursements → `swagger-docs/admin.json` (`/admin/finance/*`).\n\n**Temps réel:** `payment.confirmed.finance`, `refund.*.finance` — voir `src/docs/openapi-admin.json`.\n\n**Passation front web:** `src/docs/web-admin-payment-handoff.md`.\n\n**Source de vérité REST** — régénérer via `npm run docs:finance-openapi`.\n\n**Base URL:** `{host}/api/v1`\n\n**Réponse standard:** `{ success, message, data?, timestamp, statusCode }`."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Développement local"
+    },
+    {
+      "url": "https://presence-app.onrender.com/api/v1",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Finance",
+      "description": "Module finance web guichet"
+    },
+    {
+      "name": "Settlement",
+      "description": "Profil règlement KYC — paiements en ligne parent"
+    },
+    {
+      "name": "Payments",
+      "description": "Encaissement et vérification"
+    },
+    {
+      "name": "Analytics",
+      "description": "KPIs et recouvrement"
+    },
+    {
+      "name": "Reports",
+      "description": "Rapports trésorerie"
+    },
+    {
+      "name": "Transactions",
+      "description": "Recherche paiements"
+    },
+    {
+      "name": "Students",
+      "description": "Profil financier élève"
+    },
+    {
+      "name": "Documents",
+      "description": "Reçus PDF / thermique"
+    },
+    {
+      "name": "Audit",
+      "description": "Intégrité et conformité"
+    },
+    {
+      "name": "Catalog",
+      "description": "Barèmes et moratoires (lecture)"
+    },
+    {
+      "name": "Classes",
+      "description": "Reporting par classe"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/admin/finance/payment-profile": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Settlement"
+        ],
+        "summary": "Profil de règlement école (lecture KYC)",
+        "description": "Rôles: FINANCE, ADMIN, SUPER_ADMIN. Policy: `read FinanceReport`.\n\n**Route admin** — incluse ici car c’est le contrat principal du rôle FINANCE pour le statut paiements en ligne parent.\n\nRetourne `kycStatus`, `onlinePaymentsEnabled`, `settlementAccountMasked` (jamais le RIB complet). La modification (`PUT`) est réservée aux **ADMIN** — voir `swagger-docs/admin.json`.\n\nGuide: `src/docs/school-payment-profile.md`",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentProfileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/payments/process": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Payments"
+        ],
+        "summary": "Encaisser un paiement guichet",
+        "description": "Rôles: FINANCE. Policy: `create Payment`.\n\nRéférence obligatoire si `method` ≠ `CASH`. Recommandé: `feeStructureId` — le serveur recalcule le montant depuis le barème. Si `PAYMENT_STRICT_AMOUNT=true`, `feeStructureId` est **obligatoire**. Si `FINANCE_REQUIRE_CASH_SESSION=true`, une session caisse ouverte est **obligatoire** pour `method=CASH`. Réponse enrichie: `{ payment, serverAmount, feeStructureId, resolvedFrom }`. Header optionnel `X-Idempotency-Key` pour éviter les doublons.",
+        "responses": {
+          "201": {
+            "description": "Ressource créée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessProcessPayment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "description": "Clé d'idempotence (évite double encaissement)",
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessPaymentBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/payments/verify/{providerRef}": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Payments"
+        ],
+        "summary": "Vérifier paiement externe (gateway)",
+        "description": "Rôles: FINANCE. Policy: `verify Payment`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessPayment"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "providerRef",
+            "in": "path",
+            "required": true,
+            "description": "Référence opérateur",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/pending": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Payments"
+        ],
+        "summary": "File paiements en attente de vérification",
+        "description": "Rôles: FINANCE. Policy: `read Payment`.\n\nFiltres: `method`, `suspicion`, `page`, `limit`. Réponse paginée `{ items, total, page, limit }`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessPendingVerifications"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "method",
+            "in": "query",
+            "required": false,
+            "description": "Méthode paiement",
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            }
+          },
+          {
+            "name": "suspicion",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer suspicion fraude",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/{id}/verify-step": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Payments"
+        ],
+        "summary": "Valider ou rejeter une étape de vérification",
+        "description": "Rôles: FINANCE. Policy: `verify Payment`.\n\n`:id` = ID paiement. Body: `{ action: \"approve\"|\"reject\", notes? }`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID paiement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyPaymentStepBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/fee-structures": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Catalog"
+        ],
+        "summary": "Catalogue barèmes (lecture seule)",
+        "description": "Rôles: FINANCE. Policy: `read FeeStructure`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par classe",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par session",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/finance/moratoriums": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Catalog"
+        ],
+        "summary": "Lister les moratoires (lecture seule)",
+        "description": "Rôles: FINANCE. Policy: `read Moratorium`.\n\nSans `internalNote` (données sensibles).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessMoratoriumList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Statut",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "EXPIRED",
+                "REVOKED",
+                "PENDING_APPROVAL"
+              ]
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/finance/cash-sessions/open": {
+      "post": {
+        "tags": [
+          "Finance",
+          "CashSession"
+        ],
+        "summary": "Ouvrir une session caisse",
+        "description": "Rôles: FINANCE. Policy: `create CashSession`.\n\nUne seule session OPEN par guichetier. Si `FINANCE_REQUIRE_CASH_SESSION=true`, obligatoire avant tout encaissement CASH.",
+        "responses": {
+          "201": {
+            "description": "Ressource créée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessCashSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenCashSessionBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/cash-sessions/current": {
+      "get": {
+        "tags": [
+          "Finance",
+          "CashSession"
+        ],
+        "summary": "Session caisse ouverte du guichetier",
+        "description": "Rôles: FINANCE. Policy: `read CashSession`.\n\nRetourne `null` si aucune session ouverte.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessCashSessionNullable"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/cash-sessions/{id}/summary": {
+      "get": {
+        "tags": [
+          "Finance",
+          "CashSession"
+        ],
+        "summary": "Récapitulatif avant clôture",
+        "description": "Rôles: FINANCE. Policy: `read CashSession`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashSessionSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID session caisse",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/cash-sessions/{id}/close": {
+      "post": {
+        "tags": [
+          "Finance",
+          "CashSession"
+        ],
+        "summary": "Clôturer la session caisse",
+        "description": "Rôles: FINANCE. Policy: `update CashSession`.\n\nCalcule `expectedCash = openingFloat + cashCollected` et `variance = closingCounted - expectedCash`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessCashSessionClose"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID session caisse",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseCashSessionBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/closing/preview": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Closing"
+        ],
+        "summary": "Aperçu clôture journalière",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/closing/finalize": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Closing"
+        ],
+        "summary": "Finaliser clôture journalière",
+        "description": "Rôles: FINANCE. Policy: `reconcile FinanceReport`.\n\nPersiste un `FinancialSnapshot` FINALIZED.",
+        "responses": {
+          "201": {
+            "description": "Ressource créée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeClosingBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/refunds": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Refunds"
+        ],
+        "summary": "Lister demandes de remboursement",
+        "description": "Rôles: FINANCE. Policy: `read RefundRequest`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Statut",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "REJECTED",
+                "PROCESSED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Finance",
+          "Refunds"
+        ],
+        "summary": "Créer demande de remboursement",
+        "description": "Rôles: FINANCE. Policy: `create RefundRequest`.\n\nValidation admin via `/admin/finance/refunds/{id}/review`.",
+        "responses": {
+          "201": {
+            "description": "Ressource créée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/refunds/{id}": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Refunds"
+        ],
+        "summary": "Détail demande remboursement",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID demande",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/refunds/{id}/process": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Refunds"
+        ],
+        "summary": "Exécuter remboursement approuvé",
+        "description": "Rôles: FINANCE. Policy: `update RefundRequest`.\n\nStatut requis: `APPROVED`. Phase 4 : appel gateway MM/BANK si `providerRef` présent, puis reverse settlement. Retourne `PROCESSING` si l'opérateur confirme de façon asynchrone.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID demande",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProcessRefundBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/refunds/{id}/sync-gateway": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Refunds"
+        ],
+        "summary": "Synchroniser remboursement gateway en attente",
+        "description": "Rôles: FINANCE. Policy: `update RefundRequest`.\n\nStatut requis: `PROCESSING`. Polling statut opérateur → finalise si `COMPLETED`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID demande",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/dashboard/guichet": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Dashboard"
+        ],
+        "summary": "Tableau de bord guichet (KPIs jour)",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.\n\nEncaissements, pending verifications/refunds, session caisse, clôture. Si `onlinePaymentsEnabled` (profil KYC VERIFIED), les paiements parent Flutterwave arrivent aussi via `payment.confirmed.finance`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuichetDashboard"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/debt-reminders/trigger": {
+      "post": {
+        "tags": [
+          "Finance",
+          "Operations"
+        ],
+        "summary": "Déclencher relances dette manuelles",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.\n\nRequiert Redis (BullMQ).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/exports/payments": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Exports"
+        ],
+        "summary": "Export CSV paiements confirmés",
+        "description": "Rôles: FINANCE. Policy: `export FinanceReport`.\n\nRéponse **text/csv**.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "description": "Date début",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "description": "Date fin",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "method",
+            "in": "query",
+            "required": false,
+            "description": "Méthode",
+            "schema": {
+              "$ref": "#/components/schemas/PaymentMethod"
+            }
+          }
+        ]
+      }
+    },
+    "/finance/exports/debtors": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Exports"
+        ],
+        "summary": "Export CSV débiteurs",
+        "description": "Rôles: FINANCE. Policy: `export FinanceReport`.\n\nRéponse **text/csv**.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "minDebt",
+            "in": "query",
+            "required": false,
+            "description": "Seuil dette",
+            "schema": {
+              "type": "number",
+              "default": 10
+            }
+          }
+        ]
+      }
+    },
+    "/finance/exports/cash-sessions/{id}": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Exports"
+        ],
+        "summary": "Export CSV session caisse",
+        "description": "Rôles: FINANCE. Policy: `export FinanceReport`.\n\nRéponse **text/csv**.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID session caisse",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/students/search": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Students"
+        ],
+        "summary": "Recherche élève guichet",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.\n\nNom, matricule ou référence paiement.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessStudentSearch"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Terme de recherche",
+            "schema": {
+              "type": "string",
+              "minLength": 2
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/finance/students/{id}/wallet": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Students"
+        ],
+        "summary": "Portefeuille élève (finance-only, sans PII)",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentWallet"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/reports/daily-cash": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Reports"
+        ],
+        "summary": "Rapport clôture journalière (cash flow)",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/payments/analytics/executive": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Analytics"
+        ],
+        "summary": "Dashboard exécutif",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/payments/analytics/collection": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Analytics"
+        ],
+        "summary": "Analytics recouvrement",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": true,
+            "description": "Session académique",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "description": "Classe (optionnel)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/debtors/list": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Analytics"
+        ],
+        "summary": "Liste des débiteurs",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessDebtors"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "minDebt",
+            "in": "query",
+            "required": false,
+            "description": "Seuil dette minimum",
+            "schema": {
+              "type": "number",
+              "default": 10
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "description": "Session (optionnel)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/risks/high-risk": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Analytics"
+        ],
+        "summary": "Profils financiers à haut risque",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/payments/student/{id}/profile": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Students"
+        ],
+        "summary": "Profil financier 360° élève",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessStudentProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/transactions/search": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Transactions"
+        ],
+        "summary": "Recherche multicritères transactions",
+        "description": "Rôles: FINANCE. Policy: `read Payment`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Statut",
+            "schema": {
+              "$ref": "#/components/schemas/PaymentStatus"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "required": false,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "description": "Date début",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "description": "Date fin",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/receipts/{paymentId}/download": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Documents"
+        ],
+        "summary": "Télécharger reçu PDF",
+        "description": "Rôles: FINANCE. Policy: `print Receipt`.\n\n**Réponse binaire** `application/pdf` — pas de wrapper JSON.",
+        "responses": {
+          "200": {
+            "description": "Fichier PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "description": "ID paiement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "A4",
+                "Thermal"
+              ],
+              "default": "A4"
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/receipts/{paymentId}/thermal": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Documents"
+        ],
+        "summary": "Impression reçu thermique",
+        "description": "Rôles: FINANCE. Policy: `read Receipt`.\n\nRéponse JSON `{ url, whatsapp }`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThermalReceiptResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "description": "ID paiement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/payments/audit/integrity": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Audit"
+        ],
+        "summary": "Contrôle intégrité financière (HMAC)",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `audit`.\n\nNe renvoie **pas** `financialSignature` (secret interne).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessIntegrity"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/finance/classes": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Classes"
+        ],
+        "summary": "Lister classes (vue recouvrement)",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `list class`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ]
+      }
+    },
+    "/finance/classes/{id}": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Classes"
+        ],
+        "summary": "Détails classe",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `read class`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID classe",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/classes/{id}/financial-status": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Classes"
+        ],
+        "summary": "Statut financier classe",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `read_analytics class`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID classe",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/classes/{id}/export-payments": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Classes"
+        ],
+        "summary": "Export solvabilité (PDF/CSV)",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `export class`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID classe",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/classes/{id}/audit": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Classes"
+        ],
+        "summary": "Audit trail classe",
+        "description": "Rôles: FINANCE, ADMIN. Policy: `read_audit class`.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID classe",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token JWT — POST /api/v1/auth/login"
+      }
+    },
+    "schemas": {
+      "ApiSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "timestamp",
+          "statusCode"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusCode": {
+            "type": "integer",
+            "example": 200
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusCode": {
+            "type": "integer"
+          }
+        }
+      },
+      "PaginationQuery": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 50
+          }
+        }
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "ADMIN",
+          "SUPER_ADMIN",
+          "FINANCE",
+          "TEACHER",
+          "PARENT",
+          "STUDENT"
+        ]
+      },
+      "PaymentMethod": {
+        "type": "string",
+        "enum": [
+          "CASH",
+          "ORANGE_MONEY",
+          "MPESA",
+          "AIRTEL_MONEY",
+          "BANK",
+          "CARD"
+        ],
+        "description": "Aligné sur enum Prisma PaymentMethod (schema.prisma)"
+      },
+      "PaymentStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "CONFIRMED",
+          "FAILED",
+          "RECONCILED",
+          "REFUNDED",
+          "SUSPICIOUS"
+        ],
+        "description": "Aligné sur enum Prisma PaymentStatus (schema.prisma)"
+      },
+      "ProcessPaymentBody": {
+        "type": "object",
+        "required": [
+          "amount",
+          "studentId",
+          "sessionId",
+          "method"
+        ],
+        "properties": {
+          "amount": {
+            "type": "number",
+            "minimum": 0.01,
+            "description": "Ignoré si feeStructureId fourni — montant serveur appliqué"
+          },
+          "studentId": {
+            "type": "integer"
+          },
+          "sessionId": {
+            "type": "integer"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "feeStructureId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Barème serveur (PaymentCreateAmountResolver). Obligatoire si PAYMENT_STRICT_AMOUNT=true."
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 3,
+            "description": "Obligatoire si method ≠ CASH"
+          },
+          "fees": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "feeId": {
+                  "type": "integer"
+                },
+                "amount": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 255
+          }
+        }
+      },
+      "PaymentRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "studentId": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PaymentMethod"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PaymentStatus"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentAmountResolvedFrom": {
+        "type": "string",
+        "enum": [
+          "payment_intent",
+          "fee_structure",
+          "existing_payment"
+        ]
+      },
+      "ProcessPaymentResult": {
+        "type": "object",
+        "required": [
+          "payment",
+          "serverAmount"
+        ],
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/PaymentRecord"
+          },
+          "serverAmount": {
+            "type": "number",
+            "description": "Montant appliqué côté serveur (source de vérité)"
+          },
+          "feeStructureId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "resolvedFrom": {
+            "$ref": "#/components/schemas/PaymentAmountResolvedFrom"
+          }
+        }
+      },
+      "ApiSuccessProcessPayment": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/ProcessPaymentResult"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessPayment": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PaymentRecord"
+              }
+            }
+          }
+        ]
+      },
+      "DebtorItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "feesBalance": {
+            "type": "number"
+          },
+          "class": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ApiSuccessDebtors": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/DebtorItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "IntegrityAnomaly": {
+        "type": "object",
+        "description": "Élève dont les totaux ne matchent pas la signature HMAC (secret non exposé)",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "totalFees": {
+            "type": "number"
+          },
+          "feesPaid": {
+            "type": "number"
+          },
+          "tuitionBalance": {
+            "type": "number"
+          },
+          "version": {
+            "type": "integer"
+          }
+        }
+      },
+      "ApiSuccessIntegrity": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "INTEGRITY_OK",
+                      "ALERT_FRAUD"
+                    ]
+                  },
+                  "anomalies": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/IntegrityAnomaly"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessStudentProfile": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "profile": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "stats": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "ledger": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "history": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PaymentRecord"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ThermalReceiptResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL Cloudinary reçu thermique"
+          },
+          "whatsapp": {
+            "type": "string",
+            "description": "Lien WhatsApp pré-rempli (optionnel)"
+          }
+        }
+      },
+      "VerifyPaymentStepBody": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "default": "approve"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "StudentWallet": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string",
+            "nullable": true
+          },
+          "balance": {
+            "type": "number"
+          },
+          "totalFees": {
+            "type": "number"
+          },
+          "feesPaid": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "moratorium": {
+            "type": "object",
+            "properties": {
+              "active": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string",
+                "nullable": true
+              },
+              "endDate": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              }
+            }
+          },
+          "recentPayments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentRecord"
+            }
+          },
+          "applicableFeeStructures": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "StudentSearchHit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ApiSuccessStudentSearch": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/StudentSearchHit"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessMoratoriumList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          }
+        ]
+      },
+      "OpenCashSessionBody": {
+        "type": "object",
+        "required": [
+          "openingFloat"
+        ],
+        "properties": {
+          "openingFloat": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Fond de caisse à l'ouverture"
+          },
+          "openNotes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "example": "USD"
+          }
+        }
+      },
+      "CloseCashSessionBody": {
+        "type": "object",
+        "required": [
+          "closingCounted"
+        ],
+        "properties": {
+          "closingCounted": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Montant physiquement compté en caisse"
+          },
+          "closeNotes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "CashSessionStatus": {
+        "type": "string",
+        "enum": [
+          "OPEN",
+          "CLOSED"
+        ]
+      },
+      "CashSessionRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "openedById": {
+            "type": "integer"
+          },
+          "closedById": {
+            "type": "integer",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/CashSessionStatus"
+          },
+          "openingFloat": {
+            "type": "number"
+          },
+          "closingCounted": {
+            "type": "number",
+            "nullable": true
+          },
+          "expectedCash": {
+            "type": "number",
+            "nullable": true
+          },
+          "variance": {
+            "type": "number",
+            "nullable": true
+          },
+          "cashCollected": {
+            "type": "number"
+          },
+          "transactionCount": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "openNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "closeNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CashSessionSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CashSessionStatus"
+          },
+          "openingFloat": {
+            "type": "number"
+          },
+          "cashCollected": {
+            "type": "number"
+          },
+          "transactionCount": {
+            "type": "integer"
+          },
+          "expectedCash": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ApiSuccessCashSession": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/CashSessionRecord"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessCashSessionNullable": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/CashSessionRecord"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessCashSessionClose": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CashSessionRecord"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "summary": {
+                        "$ref": "#/components/schemas/CashSessionSummary"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "PendingVerificationItem": {
+        "type": "object",
+        "properties": {
+          "verificationId": {
+            "type": "integer"
+          },
+          "paymentId": {
+            "type": "integer"
+          },
+          "suspicion": {
+            "type": "boolean"
+          },
+          "fraudScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PaymentRecord"
+          },
+          "student": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "matricule": {
+                "type": "string"
+              },
+              "className": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "ApiSuccessPendingVerifications": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PendingVerificationItem"
+                    }
+                  },
+                  "total": {
+                    "type": "integer"
+                  },
+                  "page": {
+                    "type": "integer"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "FinalizeClosingBody": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "CreateRefundBody": {
+        "type": "object",
+        "required": [
+          "paymentId",
+          "amount",
+          "reason"
+        ],
+        "properties": {
+          "paymentId": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0.01
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 500
+          }
+        }
+      },
+      "RefundRequestStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "APPROVED",
+          "REJECTED",
+          "PROCESSED"
+        ]
+      },
+      "ProcessRefundBody": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "GuichetDashboard": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "collectionsToday": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "count": {
+                "type": "integer"
+              },
+              "byMethod": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "pendingVerifications": {
+            "type": "integer"
+          },
+          "pendingRefunds": {
+            "type": "integer"
+          },
+          "approvedRefundsAwaitingProcess": {
+            "type": "integer"
+          },
+          "gatewayRefundsProcessing": {
+            "type": "integer",
+            "description": "Remboursements gateway en statut PROCESSING (polling sync-gateway)"
+          },
+          "openCashSession": {
+            "type": "object",
+            "nullable": true
+          },
+          "closingFinalizedToday": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PaymentSettlementProvider": {
+        "type": "string",
+        "enum": [
+          "FLUTTERWAVE",
+          "RAWBANK",
+          "UBA"
+        ],
+        "default": "FLUTTERWAVE"
+      },
+      "PaymentProfileKycStatus": {
+        "type": "string",
+        "enum": [
+          "NOT_CONFIGURED",
+          "PENDING",
+          "VERIFIED",
+          "REJECTED"
+        ],
+        "description": "NOT_CONFIGURED = aucun profil en base"
+      },
+      "PaymentProfileDto": {
+        "type": "object",
+        "required": [
+          "schoolId",
+          "provider",
+          "legalName",
+          "kycStatus",
+          "onlinePaymentsEnabled",
+          "updatedAt"
+        ],
+        "properties": {
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schoolName": {
+            "type": "string",
+            "description": "Présent dans les listes superadmin"
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentSettlementProvider"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "contactPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "settlementBankCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "settlementAccountMasked": {
+            "type": "string",
+            "nullable": true,
+            "example": "****6789"
+          },
+          "settlementAccountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "mobileMoneyBusinessId": {
+            "type": "string",
+            "nullable": true
+          },
+          "flwSubaccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kycStatus": {
+            "$ref": "#/components/schemas/PaymentProfileKycStatus"
+          },
+          "kycNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "onlinePaymentsEnabled": {
+            "type": "boolean"
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "rejectedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PaymentProfileResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PaymentProfileDto"
+              }
+            }
+          }
+        ]
+      },
+      "PaymentProfileListResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "items",
+                  "total"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/PaymentProfileDto"
+                    }
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UpsertSchoolPaymentProfileBody": {
+        "type": "object",
+        "required": [
+          "legalName",
+          "settlementBankCode",
+          "settlementAccountNumber",
+          "settlementAccountName"
+        ],
+        "properties": {
+          "legalName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "contactEmail": {
+            "type": "string",
+            "format": "email"
+          },
+          "contactPhone": {
+            "type": "string",
+            "minLength": 9,
+            "maxLength": 20
+          },
+          "settlementBankCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 10,
+            "example": "044"
+          },
+          "settlementAccountNumber": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 34
+          },
+          "settlementAccountName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "mobileMoneyBusinessId": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50
+          },
+          "provider": {
+            "$ref": "#/components/schemas/PaymentSettlementProvider"
+          }
+        }
+      },
+      "VerifyPaymentProfileBody": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "RejectPaymentProfileBody": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "JWT manquant ou invalide",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Session expirée ou non autorisée",
+              "statusCode": 401
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Accès refusé (rôle ou policy)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "FORBIDDEN",
+              "statusCode": 403
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Erreur serveur interne",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Erreur interne",
+              "statusCode": 500
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Erreur de validation Zod (400)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Données invalides",
+              "statusCode": 400,
+              "errors": [
+                {
+                  "location": "body",
+                  "field": "email",
+                  "message": "Format invalide"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Ressource introuvable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Ressource introuvable",
+              "statusCode": 404
+            }
+          }
+        }
+      }
+    }
+  }
+}
