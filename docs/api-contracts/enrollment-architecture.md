@@ -101,3 +101,24 @@ Avant de tester l'inscription super-admin sur une école :
 | `DELETE` | `/superadmin/enrollment/{id}/purge` | Purge RGPD |
 
 OpenAPI détaillé : [`openapi/superadmin.json`](./openapi/superadmin.json).
+
+---
+
+## Admin école — actions métier (juin 2026)
+
+Routes complémentaires pour le directeur d'école (inscription session, profil admin, paiements, alertes présence).
+
+**Guide détaillé :** [`admin-business-actions.md`](./admin-business-actions.md)
+
+| Méthode | Route | Usage UI |
+|---------|-------|----------|
+| `GET` | `/admin/enrollments/sessions` | Liste sessions (drawer inscription) |
+| `POST` | `/admin/enrollments/{studentId}/sessions` | Inscrire à une session |
+| `PATCH` | `/admin/enrollments/{studentId}/admin-profile` | Profil administratif / médical |
+| `GET` | `/admin/finance/payments/pending-verifications/export` | Export CSV vérifications |
+| `POST` | `/admin/finance/payments/verifications/{verificationId}/mark-processed` | Clôturer vérification |
+| `PATCH` | `/admin/presences/security-events/{eventId}/dismiss` | Ignorer alerte |
+| `PATCH` | `/admin/presences/security-events/{eventId}/validate` | Valider présence |
+| `POST` | `/admin/presences/security-events/{eventId}/notify` | Notifier parent |
+
+Schémas Zod : `EnrollSessionSchema`, `AdminAdministrativeProfileSchema` dans [`types/enrollment.validation.ts`](./types/enrollment.validation.ts).

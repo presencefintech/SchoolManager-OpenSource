@@ -11,11 +11,15 @@ Régénérer avant partage collaborateur : `npm run docs:openapi`
 
 > **Inscription :** schéma `SuperAdminCreateStudentBody` sur `POST /superadmin/enrollment` — voir [enrollment-architecture.md](../enrollment-architecture.md).
 
+> **Dashboard admin :** `DashboardQuickStats` (`GET /admin/stats`, champ `weeklyTrend`) · `HeatmapHourBucket` (`GET /admin/heatmap`) — types TS : [types/dashboard.types.ts](../types/dashboard.types.ts).
+
+> **Structure scolaire :** `GET/POST /admin/structure/sections` · `GET/POST /admin/structure/options` — schémas `SectionRef`, `OptionRef`.
+
 > **Une seule app front** : copier les **3 JSON** dans le repo web. Le login est unique ; le routing UI se fait par `user.role` après `POST /auth/login`.
 
 > **KYC :** `PUT` payment-profile → `admin.json` · `GET` (lecture FINANCE) → aussi dans `finance.json` · `verify`/`reject` → `superadmin.json`. Schémas partagés : `paymentProfileSchemas` dans `scripts/swagger-openapi-shared.js`.
 
-**Compteur ops (juin 2026) :** admin ~130 · superadmin **112** · finance **40**
+**Compteur ops (juin 2026) :** admin **136** · superadmin **112** · finance **40**
 
 > **Admin & SuperAdmin :** une seule spec REST chacun — `admin.json` et `superadmin.json`. Schémas KYC partagés via `scripts/swagger-openapi-shared.js` → `paymentProfileSchemas`.
 

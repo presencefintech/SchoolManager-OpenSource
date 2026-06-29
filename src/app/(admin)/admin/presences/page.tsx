@@ -1,18 +1,26 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
   QrCode, Plus, Users, RefreshCw, CheckCheck, Trash2, X,
+  EyeOff, Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   usePresenceStats, usePresenceLiveFeed, usePresenceHeatmap, usePresenceAlerts,
-  useRecordPresence, useBulkRecordPresence, useValidatePresence, useDeletePresence,
-  useGenerateSessionQR, useStudents, useClasses,
+  useValidatePresence, useDeletePresence,
+  useGenerateSessionQR, useClasses,
+  useDismissSecurityAlert, useValidateSecurityAlert, useNotifySecurityAlert,
 } from '@/lib/hooks/use-admin'
-import type { RecordPresencePayload, BulkPresencePayload } from '@/types/admin'
+import type { PresenceSecurityAlert, ClassListItem } from '@/types/admin'
+import { ManualRecordModal } from '@/components/admin/presences/ManualRecordModal'
+import { BulkPresenceGrid } from '@/components/admin/presences/BulkPresenceGrid'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/providers/toast-provider'
+import { labelFraudScore } from '@/lib/business-labels'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -25,270 +33,6 @@ const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> 
 }
 
 // ── Modals ─────────────────────────────────────────────────────────
-
-function SearchCombobox<T extends { id: number }>({
-  label, placeholder, value, onSelect, displayValue, items, onSearch, loading,
-}: {
-  label: string
-  placeholder: string
-  value: number
-  onSelect: (item: T) => void
-  displayValue: (item: T) => string
-  items: T[]
-  onSearch: (q: string) => void
-  loading: boolean
-}) {
-  const [query, setQuery] = useState('')
-  const [open, setOpen] = useState(false)
-  const [selectedLabel, setSelectedLabel] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [])
-
-  function handleInput(q: string) {
-    setQuery(q)
-    setSelectedLabel('')
-    onSelect({ id: 0 } as T)
-    onSearch(q)
-    setOpen(q.length > 0)
-  }
-
-  function pick(item: T) {
-    setSelectedLabel(displayValue(item))
-    setQuery('')
-    setOpen(false)
-    onSelect(item)
-  }
-
-  return (
-    <div ref={ref}>
-      <label className="block text-xs font-medium text-zinc-600 mb-1.5">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          value={selectedLabel || query}
-          onChange={e => handleInput(e.target.value)}
-          onFocus={() => { if (query.length > 0) setOpen(true) }}
-          placeholder={placeholder}
-          className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-          autoComplete="off"
-        />
-        {value > 0 && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">#{value}</span>
-        )}
-        {open && (
-          <div className="absolute z-50 mt-1 w-full bg-white rounded-lg border border-zinc-200 shadow-lg max-h-48 overflow-y-auto">
-            {loading && <div className="px-3 py-2 text-xs text-zinc-400">Recherche…</div>}
-            {!loading && items.length === 0 && <div className="px-3 py-2 text-xs text-zinc-400">Aucun résultat</div>}
-            {items.map(item => (
-              <button
-                key={item.id}
-                type="button"
-                onMouseDown={() => pick(item)}
-                className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50 transition-colors"
-              >
-                {displayValue(item)}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function ManualRecordModal({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState<RecordPresencePayload>({ studentId: 0, classId: 0, status: 'PRESENT' })
-  const record = useRecordPresence()
-
-  const { data: classesData, isFetching: classesLoading } = useClasses()
-  const { data: studentsData, isFetching: studentsLoading } = useStudents(
-    form.classId ? { classId: form.classId, limit: 200 } : undefined
-  )
-
-  const classes = classesData ?? []
-  const students = studentsData?.data ?? []
-
-  const selectCls = 'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 bg-white disabled:bg-zinc-50 disabled:text-zinc-400'
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!form.studentId || !form.classId) return
-    await record.mutateAsync(form)
-    onClose()
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <h2 className="text-base font-semibold text-zinc-900">Enregistrement manuel</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
-        </div>
-        <form onSubmit={submit} className="p-6 space-y-4">
-          {/* Étape 1 — Classe */}
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">
-              Classe {classesLoading && <span className="text-zinc-400">(chargement…)</span>}
-            </label>
-            <select
-              value={form.classId || ''}
-              onChange={e => setForm(f => ({ ...f, classId: Number(e.target.value), studentId: 0 }))}
-              className={selectCls}
-            >
-              <option value="">— Choisir une classe —</option>
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>{(c as any).name ?? `Classe #${c.id}`}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Étape 2 — Élève (actif seulement si classe choisie) */}
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">
-              Élève {form.classId && studentsLoading && <span className="text-zinc-400">(chargement…)</span>}
-            </label>
-            <select
-              value={form.studentId || ''}
-              onChange={e => setForm(f => ({ ...f, studentId: Number(e.target.value) }))}
-              disabled={!form.classId}
-              className={selectCls}
-            >
-              <option value="">
-                {!form.classId ? '— Choisir d\'abord une classe —' : students.length === 0 && !studentsLoading ? 'Aucun élève dans cette classe' : '— Choisir un élève —'}
-              </option>
-              {students.map(s => (
-                <option key={s.id} value={s.id}>
-                  {`${(s as any).firstName ?? ''} ${(s as any).lastName ?? ''}`.trim() || `Élève #${s.id}`}
-                  {s.matricule ? ` (${s.matricule})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Statut */}
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Statut</label>
-            <select
-              value={form.status}
-              onChange={e => setForm(f => ({ ...f, status: e.target.value as RecordPresencePayload['status'] }))}
-              className={selectCls}
-            >
-              <option value="PRESENT">Présent</option>
-              <option value="ABSENT">Absent</option>
-              <option value="LATE">Retard</option>
-            </select>
-          </div>
-
-          {/* Date optionnelle */}
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Date de session (optionnel)</label>
-            <input
-              type="datetime-local"
-              value={form.sessionDate ?? ''}
-              onChange={e => setForm(f => ({ ...f, sessionDate: e.target.value || undefined }))}
-              className={selectCls}
-            />
-          </div>
-
-          {record.isError && <p className="text-xs text-red-600 text-center">Erreur lors de l'enregistrement</p>}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors">
-              Annuler
-            </button>
-            <button type="submit" disabled={record.isPending || !form.studentId || !form.classId}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-              {record.isPending ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function BulkRecordModal({ onClose }: { onClose: () => void }) {
-  const [classId, setClassId] = useState('')
-  const [status, setStatus] = useState<'PRESENT' | 'ABSENT' | 'LATE'>('PRESENT')
-  const [studentIdsRaw, setStudentIdsRaw] = useState('')
-  const [sessionDate, setSessionDate] = useState('')
-  const bulk = useBulkRecordPresence()
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    const studentIds = studentIdsRaw.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n) && n > 0)
-    if (!studentIds.length || !classId) return
-    const payload: BulkPresencePayload = { studentIds, classId: Number(classId), status, sessionDate: sessionDate || undefined }
-    await bulk.mutateAsync(payload)
-    onClose()
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <h2 className="text-base font-semibold text-zinc-900">Enregistrement groupé</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
-        </div>
-        <form onSubmit={submit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">IDs Élèves (séparés par virgule)</label>
-            <input
-              type="text" required
-              value={studentIdsRaw} onChange={e => setStudentIdsRaw(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-              placeholder="ex: 12, 15, 22, 34"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">ID Classe</label>
-            <input
-              type="number" required min={1}
-              value={classId} onChange={e => setClassId(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-              placeholder="ex: 5"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Statut</label>
-            <select value={status} onChange={e => setStatus(e.target.value as typeof status)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400">
-              <option value="PRESENT">Présent</option>
-              <option value="ABSENT">Absent</option>
-              <option value="LATE">Retard</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-600 mb-1.5">Date de session (optionnel)</label>
-            <input
-              type="datetime-local"
-              value={sessionDate} onChange={e => setSessionDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-            />
-          </div>
-          {bulk.isError && <p className="text-xs text-red-600 text-center">Erreur lors de l'enregistrement groupé</p>}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors">
-              Annuler
-            </button>
-            <button type="submit" disabled={bulk.isPending}
-              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-              {bulk.isPending ? 'Enregistrement…' : 'Enregistrer tout'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
 
 function QRKioskModal({ onClose }: { onClose: () => void }) {
   const [classId, setClassId] = useState('')
@@ -397,17 +141,28 @@ const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transi
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 export default function PresencesPage() {
+  const toast = useToast()
   const [tab, setTab] = useState<Tab>('live')
+  const [filterClassId, setFilterClassId] = useState<number | undefined>(undefined)
   const [showManual, setShowManual] = useState(false)
   const [showBulk, setShowBulk] = useState(false)
   const [showQR, setShowQR] = useState(false)
+  const [alertAction, setAlertAction] = useState<{ type: 'dismiss' | 'validate' | 'notify'; alert: PresenceSecurityAlert } | null>(null)
 
   const { data: stats, isLoading: loadingStats } = usePresenceStats()
-  const { data: feed, isLoading: loadingFeed, refetch: refetchFeed } = usePresenceLiveFeed({ limit: 50 })
+  const { data: feed, isLoading: loadingFeed, refetch: refetchFeed } = usePresenceLiveFeed({
+    limit: 50,
+    ...(filterClassId ? { classId: filterClassId } : {}),
+  })
   const { data: alerts, isLoading: loadingAlerts } = usePresenceAlerts()
+  const { data: classesData } = useClasses()
+  const classes = classesData ?? []
 
   const validate = useValidatePresence()
   const del = useDeletePresence()
+  const dismissAlert = useDismissSecurityAlert()
+  const validateAlert = useValidateSecurityAlert()
+  const notifyAlert = useNotifySecurityAlert()
 
   const STAT_CARDS = [
     { label: 'Présents',         value: stats?.present       ?? '—', color: 'emerald', Icon: CheckCircle2 },
@@ -427,8 +182,31 @@ export default function PresencesPage() {
   const TABS: { key: Tab; label: string }[] = [
     { key: 'live',    label: 'Flux en direct' },
     { key: 'heatmap', label: 'Heatmap' },
-    { key: 'alerts',  label: `Alertes fraude${alerts?.length ? ` (${alerts.length})` : ''}` },
+    { key: 'alerts',  label: `Alertes${alerts?.length ? ` (${alerts.length})` : ''}` },
   ]
+
+  async function confirmAlertAction() {
+    if (!alertAction) return
+    const { type, alert } = alertAction
+    try {
+      if (type === 'dismiss') {
+        await dismissAlert.mutateAsync({ eventId: alert.id })
+        toast.success('Alerte ignorée', 'Elle n\'apparaîtra plus dans le feed actif.')
+      } else if (type === 'validate') {
+        await validateAlert.mutateAsync(alert.id)
+        toast.success('Présence validée', 'L\'alerte a été levée après contrôle.')
+      } else {
+        await notifyAlert.mutateAsync({ eventId: alert.id })
+        toast.success('Notification envoyée', 'Le parent ou l\'élève sera informé.')
+      }
+    } catch (err) {
+      toast.error('Action impossible', getApiErrorMessage(err))
+    } finally {
+      setAlertAction(null)
+    }
+  }
+
+  const alertActionLoading = dismissAlert.isPending || validateAlert.isPending || notifyAlert.isPending
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -507,6 +285,24 @@ export default function PresencesPage() {
             </span>
           </motion.div>
         )}
+
+        {/* Filtre classe (flux + heatmap) */}
+        <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-3">
+          <label className="text-xs font-medium text-zinc-500">Classe</label>
+          <select
+            value={filterClassId ?? ''}
+            onChange={(e) => {
+              const value = e.target.value
+              setFilterClassId(value ? Number(value) : undefined)
+            }}
+            className="px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          >
+            <option value="">Toutes les classes</option>
+            {classes.map((c: ClassListItem) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </motion.div>
 
         {/* Tabs */}
         <motion.div variants={fadeUp}>
@@ -643,7 +439,7 @@ export default function PresencesPage() {
               <h3 className="text-sm font-medium text-zinc-700 mb-6">
                 Distribution horaire des présences — aujourd'hui
               </h3>
-              <HeatmapChart />
+              <HeatmapChart classId={filterClassId} />
               <p className="text-xs text-zinc-300 mt-4 text-center">
                 Survolez les barres pour voir le nombre de pointages par heure
               </p>
@@ -692,27 +488,37 @@ export default function PresencesPage() {
                         </div>
                         <div className="flex flex-col items-end gap-2 flex-shrink-0">
                           <span className={cn(
-                            'text-xs font-semibold px-2 py-0.5 rounded-full',
-                            alert.fraudScore >= 70 ? 'bg-red-50 text-red-700' : alert.fraudScore >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-zinc-100 text-zinc-500',
+                            'text-xs font-semibold px-2 py-0.5 rounded-full max-w-[160px] text-right leading-tight',
+                            alert.isSuspectedFraud || alert.fraudScore >= 70 ? 'bg-red-50 text-red-700'
+                            : alert.fraudScore >= 40 ? 'bg-amber-50 text-amber-700'
+                            : 'bg-zinc-100 text-zinc-600',
                           )}>
-                            Score {alert.fraudScore}
+                            {labelFraudScore(alert.fraudScore, alert.isSuspectedFraud)}
                           </span>
                           <div className="flex items-center gap-1">
                             <button
-                              onClick={() => { if (alert.presence?.id) validate.mutate({ id: alert.presence.id }) }}
-                              disabled={validate.isPending || !alert.presence?.id}
-                              title="Valider la présence"
-                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-40 transition-colors"
+                              onClick={() => setAlertAction({ type: 'dismiss', alert })}
+                              disabled={alertActionLoading}
+                              title="Ignorer l'alerte"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
                             >
-                              <CheckCheck size={14} />
+                              <EyeOff size={12} /> Ignorer
                             </button>
                             <button
-                              onClick={() => { if (alert.presence?.id) del.mutate({ id: alert.presence.id, reason: 'Fraude avérée' }) }}
-                              disabled={del.isPending || !alert.presence?.id}
-                              title="Supprimer (fraude)"
-                              className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-40 transition-colors"
+                              onClick={() => setAlertAction({ type: 'validate', alert })}
+                              disabled={alertActionLoading}
+                              title="Valider après contrôle"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
                             >
-                              <Trash2 size={14} />
+                              <CheckCheck size={12} /> Valider
+                            </button>
+                            <button
+                              onClick={() => setAlertAction({ type: 'notify', alert })}
+                              disabled={alertActionLoading}
+                              title="Notifier parent / élève"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-40"
+                            >
+                              <Bell size={12} /> Notifier
                             </button>
                           </div>
                         </div>
@@ -732,8 +538,37 @@ export default function PresencesPage() {
       </motion.div>
 
       {showManual && <ManualRecordModal onClose={() => setShowManual(false)} />}
-      {showBulk   && <BulkRecordModal  onClose={() => setShowBulk(false)}   />}
+      {showBulk   && <BulkPresenceGrid  onClose={() => setShowBulk(false)}   />}
       {showQR     && <QRKioskModal     onClose={() => setShowQR(false)}      />}
+
+      <ConfirmDialog
+        open={alertAction != null}
+        title={
+          alertAction?.type === 'dismiss' ? 'Ignorer cette alerte ?'
+          : alertAction?.type === 'validate' ? 'Valider cette présence ?'
+          : 'Envoyer une notification ?'
+        }
+        description={
+          alertAction?.type === 'dismiss'
+            ? 'L\'alerte sera archivée sans action sur la présence.'
+            : alertAction?.type === 'validate'
+              ? 'La présence sera confirmée et l\'alerte de sécurité levée.'
+              : 'Un message sera envoyé au contact enregistré pour cet élève.'
+        }
+        impact={alertAction ? [
+          `Élève : ${alertAction.alert.presence?.student?.firstName} ${alertAction.alert.presence?.student?.lastName}`,
+          labelFraudScore(alertAction.alert.fraudScore, alertAction.alert.isSuspectedFraud),
+        ] : []}
+        confirmLabel={
+          alertAction?.type === 'dismiss' ? 'Ignorer'
+          : alertAction?.type === 'validate' ? 'Valider'
+          : 'Notifier'
+        }
+        variant={alertAction?.type === 'dismiss' ? 'default' : 'default'}
+        loading={alertActionLoading}
+        onConfirm={confirmAlertAction}
+        onCancel={() => setAlertAction(null)}
+      />
     </div>
   )
 }

@@ -49,6 +49,7 @@ La plateforme repose sur une architecture **multi-tenant** : chaque école (`sch
 | Document | Contenu |
 |----------|---------|
 | **[enrollment-architecture.md](./enrollment-architecture.md)** | **Inscription** — schéma unifié, défauts tenant, super-admin vs admin |
+| **[admin-business-actions.md](./admin-business-actions.md)** | **Actions métier admin (juin 2026)** — sessions, profil admin, export vérifications, alertes présence |
 | **[frontend-integration-guide.md](./frontend-integration-guide.md)** | **Guide équipes Flutter / web** — URLs Render, flux paiement, `serverAmount`, sockets, reçus |
 | **[school-payment-profile.md](./school-payment-profile.md)** | **Profil règlement multitenant (KYC)** — admin, superadmin, gate parent |
 | **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** | **Passation collègue web** — écrans, OpenAPI, message Slack |

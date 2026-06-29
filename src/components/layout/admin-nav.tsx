@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
-  Settings, CreditCard, FileText, Clock, Shield,
+  Settings, CreditCard, FileText, Clock, Shield, Building2,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -31,6 +31,7 @@ const NAV_LINKS: NavLink[] = [
       { label: 'Paiements',        href: '/admin/finance/paiements',   icon: CreditCard },
       { label: 'Factures & Frais', href: '/admin/finance/factures',    icon: FileText },
       { label: 'Moratoires',       href: '/admin/finance/moratoriums', icon: Clock },
+      { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
       { label: 'Audit & Fraude',   href: '/admin/finance/audit',       icon: Shield },
     ],
   },

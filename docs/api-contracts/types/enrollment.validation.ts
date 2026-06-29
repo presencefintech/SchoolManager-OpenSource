@@ -37,6 +37,7 @@ const adminEnrollmentExtensions = {
   faceImageBase64: z.string().min(32).optional(),
   nfcTagId: z.string().min(8).optional(),
   sectionId: z.coerce.number().int().optional(),
+  optionId: z.coerce.number().int().optional(),
   academicYear: z
     .string()
     .regex(/^\d{4}-\d{4}$/, 'Format requis: 2024-2025')
@@ -91,3 +92,41 @@ export type SuperAdminEnrollmentMinimalInput = Pick<
   SuperAdminEnrollmentInput,
   'firstName' | 'lastName' | 'birthDate' | 'gender' | 'schoolId' | 'classId'
 >;
+
+/** Inscrire un élève existant à une session académique — POST /admin/enrollments/{studentId}/sessions */
+export const EnrollSessionSchema = z.object({
+  sessionId: z.coerce.number().int().positive('Session académique requise'),
+  classId: z.coerce.number().int().positive().optional(),
+  type: z.enum(['NEW', 'RE_ENROLLMENT', 'TRANSFER']).default('RE_ENROLLMENT'),
+});
+
+/** Profil administratif / médical — PATCH /admin/enrollments/{studentId}/admin-profile */
+export const AdminAdministrativeProfileSchema = z.object({
+  placeOfBirth: z.string().min(2).max(120).optional(),
+  nationality: z.string().min(2).max(80).optional(),
+  emergencyContactName: z.string().min(2).max(120).optional(),
+  emergencyContactPhone: z.string().min(6).max(20).optional(),
+  bloodGroup: z.string().max(10).optional(),
+  allergies: z.string().max(500).optional(),
+  medicalNotes: z.string().max(1000).optional(),
+  paymentNotes: z.string().max(500).optional(),
+  scholarshipPercent: z.coerce.number().min(0).max(100).optional(),
+});
+
+/** Clôture vérification — POST …/verifications/{verificationId}/mark-processed */
+export const MarkVerificationProcessedSchema = z.object({
+  notes: z.string().max(500).optional(),
+});
+
+/** Alertes présence */
+export const DismissSecurityAlertSchema = z.object({
+  note: z.string().max(500).optional(),
+});
+
+export const NotifySecurityAlertSchema = z.object({
+  message: z.string().max(1000).optional(),
+});
+
+export type EnrollSessionInput = z.infer<typeof EnrollSessionSchema>;
+export type AdminAdministrativeProfileInput = z.infer<typeof AdminAdministrativeProfileSchema>;
+export type MarkVerificationProcessedInput = z.infer<typeof MarkVerificationProcessedSchema>;

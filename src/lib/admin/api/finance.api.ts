@@ -1,5 +1,45 @@
 import { apiClient } from '@/lib/api/client'
-import type { FinanceKpi, PendingPayment, FinanceFraudAlert, AuditLogEntry, TopPayer, ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams } from '@/types/admin'
+import {
+  normalizePendingVerification,
+  normalizePaymentProfile,
+  normalizeSessionEnrollment,
+  normalizeStudentListItem,
+  normalizeMoratorium,
+  normalizeMoratoriumRecoveryRate,
+} from '@/lib/admin/normalizers'
+import type {
+  FinanceKpi, PendingVerificationItem, FinanceFraudAlert, AuditLogEntry, TopPayer,
+  ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
+  BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams,
+  PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
+  MoratoriumRecoveryRate,
+} from '@/types/admin'
+
+function asItemList<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[]
+  if (data && typeof data === 'object' && Array.isArray((data as { items?: unknown }).items)) {
+    return (data as { items: T[] }).items
+  }
+  return []
+}
+
+function normalizeMobilePending(row: Record<string, unknown>): MobilePendingItem {
+  const student = row.student as Record<string, unknown> | undefined
+  const studentName = student
+    ? [student.firstName, student.lastName].filter(Boolean).join(' ').trim() || '—'
+    : (row.studentName as string | undefined) ?? '—'
+
+  return {
+    id: Number(row.id),
+    studentName,
+    amount: Number(row.amount ?? 0),
+    method: String(row.method ?? row.operator ?? ''),
+    phone: (row.payerPhone ?? row.phone) as string | undefined,
+    operator: String(row.method ?? row.operator ?? 'MOBILE'),
+    reference: (row.reference ?? row.providerRef) as string | undefined,
+    createdAt: String(row.createdAt ?? ''),
+  }
+}
 
 export const financeApi = {
   // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -60,15 +100,19 @@ export const financeApi = {
 
   // ── Paiements ──────────────────────────────────────────────────────────────
   getPendingVerifications: () =>
-    apiClient.get('/admin/finance/payments/pending-verifications').then(r => (r.data.data ?? []) as PendingPayment[]),
+    apiClient
+      .get('/admin/finance/payments/pending-verifications')
+      .then((r) => asItemList<Record<string, unknown>>(r.data.data).map(normalizePendingVerification)),
 
   getMobilePending: () =>
-    apiClient.get('/admin/finance/payments/mobile/pending').then(r => (r.data.data ?? []) as MobilePendingItem[]),
+    apiClient
+      .get('/admin/finance/payments/mobile/pending')
+      .then((r) => asItemList<Record<string, unknown>>(r.data.data).map(normalizeMobilePending)),
 
   processManualPayment: (payload: ManualPaymentPayload) =>
     apiClient.post('/admin/finance/payments/manual', payload).then(r => r.data.data),
 
-  verifyPaymentStep: (payload: { paymentId: number; step: string; note?: string }) =>
+  verifyPaymentStep: (payload: { verificationId: number; action: 'ADMIN' | 'FINANCE' | 'REJECT'; notes?: string }) =>
     apiClient.post('/admin/finance/payments/verify-step', payload).then(r => r.data.data),
 
   confirmBankTransaction: (paymentId: number) =>
@@ -106,20 +150,52 @@ export const financeApi = {
     apiClient.delete(`/admin/finance/fee-structure/${feeId}`).then(r => r.data),
 
   syncBalance: (enrollmentId: number) =>
-    apiClient.post(`/admin/finance/enrollments/${enrollmentId}/sync-balance`).then(r => r.data.data),
+    apiClient.post(`/admin/finance/enrollments/${enrollmentId}/sync-balance`)
+      .then((r) => normalizeSessionEnrollment(r.data.data as Record<string, unknown>)),
+
+  getPaymentProfile: () =>
+    apiClient.get('/admin/finance/payment-profile')
+      .then((r) => normalizePaymentProfile((r.data.data ?? {}) as Record<string, unknown>)),
+
+  upsertPaymentProfile: (payload: UpsertPaymentProfilePayload) =>
+    apiClient.put('/admin/finance/payment-profile', payload)
+      .then((r) => normalizePaymentProfile((r.data.data ?? {}) as Record<string, unknown>)),
+
+  markVerificationProcessed: (verificationId: number, notes?: string) =>
+    apiClient.post(`/admin/finance/payments/verifications/${verificationId}/mark-processed`, { notes })
+      .then((r) => r.data.data),
+
+  exportPendingVerifications: async (format: 'csv' | 'json' = 'csv') => {
+    const res = await apiClient.get('/admin/finance/payments/pending-verifications/export', {
+      params: { format },
+      responseType: format === 'csv' ? 'blob' : 'json',
+    })
+    return res.data
+  },
 
   // ── Moratoires ─────────────────────────────────────────────────────────────
+  getMoratoriumPolicy: () =>
+    apiClient.get('/admin/finance/moratoriums/policy').then(r => r.data.data as MoratoriumPolicy),
+
   getMoratoriumRecoveryRate: () =>
-    apiClient.get('/admin/finance/moratoriums/recovery-rate').then(r => r.data.data),
+    apiClient.get('/admin/finance/moratoriums/recovery-rate').then(r =>
+      normalizeMoratoriumRecoveryRate(r.data.data as Record<string, unknown>),
+    ),
 
   listMoratoriums: (params?: { studentId?: number; status?: string }) =>
-    apiClient.get('/admin/finance/moratoriums', { params }).then(r => (r.data.data ?? []) as Moratorium[]),
+    apiClient.get('/admin/finance/moratoriums', { params }).then(r =>
+      asItemList<Record<string, unknown>>(r.data.data).map(normalizeMoratorium),
+    ),
 
   getMoratorium: (id: number) =>
-    apiClient.get(`/admin/finance/moratoriums/${id}`).then(r => r.data.data as Moratorium),
+    apiClient.get(`/admin/finance/moratoriums/${id}`).then(r =>
+      normalizeMoratorium(r.data.data as Record<string, unknown>),
+    ),
 
   createMoratorium: (payload: CreateMoratoriumPayload) =>
-    apiClient.post('/admin/finance/moratoriums', payload).then(r => r.data.data as Moratorium),
+    apiClient.post('/admin/finance/moratoriums', payload).then(r =>
+      normalizeMoratorium(r.data.data as Record<string, unknown>),
+    ),
 
   createBulkMoratoriums: (payload: BulkMoratoriumPayload) =>
     apiClient.post('/admin/finance/moratoriums/bulk', payload).then(r => r.data.data),
