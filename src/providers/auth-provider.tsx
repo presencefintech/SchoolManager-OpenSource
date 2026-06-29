@@ -27,6 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (syncedToken) setToken(syncedToken)
     if (syncedUser) setUser(syncedUser)
     setIsLoading(false)
+
+    function onTokenRefreshed(e: Event) {
+      const detail = (e as CustomEvent<{ token: string }>).detail
+      if (detail?.token) setToken(detail.token)
+    }
+    window.addEventListener('auth:token-refreshed', onTokenRefreshed)
+    return () => window.removeEventListener('auth:token-refreshed', onTokenRefreshed)
   }, [])
 
   const login = useCallback(

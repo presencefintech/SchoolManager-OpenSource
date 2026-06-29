@@ -1,17 +1,111 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   DollarSign, Search, RefreshCw, Filter, CheckCircle, XCircle,
-  Shield, Send, Ban, Smartphone,
+  Shield, Send, Ban, Smartphone, Download, CheckCheck, Eye,
 } from 'lucide-react'
 import {
   usePendingVerifications, useMobilePending, useVerifyPayment,
   useConfirmMobilePayment, useConfirmBankTransaction, useResendReceipt,
   useLinkOrphanTransaction, useAdvancedSearch, useProcessManualPayment,
+  useStudents, useMarkVerificationProcessed, useExportPendingVerifications,
 } from '@/lib/hooks/use-admin'
-import type { ManualPaymentPayload, AdvancedSearchParams } from '@/types/admin'
+import type { ManualPaymentPayload, AdvancedSearchParams, StudentListItem, PendingVerificationItem } from '@/types/admin'
+import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer } from '@/components/admin/finance/verification-ui'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/providers/toast-provider'
+
+const MOBILE_MONEY_METHODS = new Set(['MOBILE_MONEY', 'ORANGE_MONEY', 'MPESA', 'AIRTEL_MONEY'])
+
+function isMobileMoneyMethod(method?: string) {
+  return method ? MOBILE_MONEY_METHODS.has(method.toUpperCase()) : false
+}
+
+function StudentSearchField({
+  studentId,
+  onSelect,
+  label = 'Élève',
+}: {
+  studentId: number
+  onSelect: (id: number) => void
+  label?: string
+}) {
+  const [query, setQuery] = useState('')
+  const [debounced, setDebounced] = useState('')
+  const [selected, setSelected] = useState<StudentListItem | null>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 350)
+    return () => clearTimeout(t)
+  }, [query])
+
+  const { data, isFetching } = useStudents(
+    debounced.length >= 2 ? { search: debounced, limit: 15 } : undefined,
+  )
+  const results = data?.data ?? []
+  const display = selected ?? (studentId > 0 ? results.find((s) => s.id === studentId) : null)
+
+  function pick(student: StudentListItem) {
+    setSelected(student)
+    onSelect(student.id)
+    setQuery('')
+    setDebounced('')
+  }
+
+  function clear() {
+    setSelected(null)
+    onSelect(0)
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-medium text-zinc-500 mb-1">{label} *</label>
+      {display && studentId > 0 ? (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50/80">
+          <p className="text-sm text-emerald-900">
+            {display.firstName} {display.lastName}
+            {display.matricule ? ` · ${display.matricule}` : ''}
+          </p>
+          <button type="button" onClick={clear} className="text-xs text-emerald-700 hover:underline">Changer</button>
+        </div>
+      ) : (
+        <>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Nom, prénom ou matricule (min. 2 caractères)"
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+          />
+          {debounced.length >= 2 && (
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
+              {isFetching ? (
+                <p className="px-3 py-2 text-xs text-zinc-400">Recherche…</p>
+              ) : results.length ? (
+                results.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => pick(s)}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50"
+                  >
+                    <span className="font-medium text-zinc-900">{s.firstName} {s.lastName}</span>
+                    {s.matricule && <span className="text-zinc-400 ml-1">({s.matricule})</span>}
+                    {s.className && <span className="block text-xs text-zinc-400">{s.className}</span>}
+                  </button>
+                ))
+              ) : (
+                <p className="px-3 py-2 text-xs text-zinc-400">Aucun élève trouvé</p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
 
@@ -32,6 +126,10 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.studentId) {
+      setError('Sélectionnez un élève dans la liste.')
+      return
+    }
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
     catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur lors de l\'enregistrement') }
@@ -51,12 +149,10 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Élève *</label>
-              <input type="number" required min={1} value={form.studentId || ''}
-                onChange={e => setForm(p => ({ ...p, studentId: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
+            <StudentSearchField
+              studentId={form.studentId}
+              onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
+            />
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (FCFA) *</label>
               <input type="number" required min={1} value={form.amount || ''}
@@ -105,6 +201,10 @@ function LinkOrphanModal({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.studentId) {
+      setError('Sélectionnez un élève.')
+      return
+    }
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
     catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
@@ -129,12 +229,10 @@ function LinkOrphanModal({ onClose }: { onClose: () => void }) {
                 placeholder="REF-XXXX"
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Élève *</label>
-              <input type="number" required min={1} value={form.studentId || ''}
-                onChange={e => setForm(p => ({ ...p, studentId: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-            </div>
+            <StudentSearchField
+              studentId={form.studentId}
+              onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
+            />
             {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">Annuler</button>
@@ -150,23 +248,64 @@ function LinkOrphanModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function PaiementsPage() {
+  const toast = useToast()
   const { data: pending = [], refetch: refetchPending } = usePendingVerifications()
   const { data: mobilePending = [], refetch: refetchMobile } = useMobilePending()
   const { mutate: verify, isPending: verifying } = useVerifyPayment()
   const { mutate: confirmMobile, isPending: confirming } = useConfirmMobilePayment()
   const { mutate: confirmBank } = useConfirmBankTransaction()
   const { mutate: resendReceipt } = useResendReceipt()
+  const markProcessed = useMarkVerificationProcessed()
+  const exportReport = useExportPendingVerifications()
   const [showManual, setShowManual] = useState(false)
   const [showLinkOrphan, setShowLinkOrphan] = useState(false)
+  const [mobileActionError, setMobileActionError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [searchParams, setSearchParams] = useState<AdvancedSearchParams>({})
   const [searchDraft, setSearchDraft] = useState<AdvancedSearchParams>({})
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [processConfirm, setProcessConfirm] = useState<PendingVerificationItem | null>(null)
+  const [detailItem, setDetailItem] = useState<PendingVerificationItem | null>(null)
+  const [resendingId, setResendingId] = useState<number | null>(null)
   const { data: searchResults } = useAdvancedSearch(searchParams)
 
-  const filteredPending = pending.filter(p =>
+  const filteredPending = pending.filter((p: PendingVerificationItem) =>
     !search || p.studentName?.toLowerCase().includes(search.toLowerCase()) || p.reference?.toLowerCase().includes(search.toLowerCase())
   )
+
+  function nextVerifyAction(p: PendingVerificationItem): 'FINANCE' | 'ADMIN' | null {
+    if (!p.financeCheck) return 'FINANCE'
+    if (!p.adminCheck) return 'ADMIN'
+    return null
+  }
+
+  async function handleExportReport() {
+    try {
+      const blob = await exportReport.mutateAsync('csv')
+      const url = URL.createObjectURL(blob as Blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `verifications-en-attente-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Rapport exporté', 'Le fichier CSV a été téléchargé.')
+    } catch {
+      toast.error('Export impossible', 'Réessayez dans quelques instants.')
+    }
+  }
+
+  async function confirmMarkProcessed() {
+    if (!processConfirm) return
+    try {
+      await markProcessed.mutateAsync({ verificationId: processConfirm.verificationId })
+      toast.success('Paiement traité', `${processConfirm.studentName} — dossier clôturé.`)
+    } catch (err) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Action impossible'
+      toast.error('Échec', msg)
+    } finally {
+      setProcessConfirm(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -204,6 +343,13 @@ export default function PaiementsPage() {
           <button onClick={() => setShowLinkOrphan(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50">
             <Ban size={12} /> Lier orpheline
+          </button>
+          <button
+            onClick={handleExportReport}
+            disabled={exportReport.isPending || pending.length === 0}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+          >
+            <Download size={12} /> Exporter le rapport
           </button>
           <button onClick={() => setShowManual(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 shadow-sm">
@@ -327,42 +473,90 @@ export default function PaiementsPage() {
                 <tr className="border-b border-zinc-100 bg-zinc-50/50">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Élève</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Montant</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Workflow</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Risque</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Méthode</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Référence</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Réf. / Reçu</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Date</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody>
-                {filteredPending.map((p) => (
-                  <tr key={p.verificationId ?? p.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-5 py-3.5 font-medium text-zinc-900">{p.studentName}</td>
-                    <td className="px-5 py-3.5 text-zinc-700 font-medium">{Number(p.amount).toLocaleString('fr-FR')} F</td>
+                {filteredPending.map((p) => {
+                  const action = nextVerifyAction(p)
+                  return (
+                  <tr key={p.verificationId} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                    <td className="px-5 py-3.5">
+                      <p className="font-medium text-zinc-900">{p.studentName}</p>
+                      {p.studentClassName && <p className="text-[11px] text-zinc-400">{p.studentClassName}</p>}
+                      {p.studentBalance != null && p.studentBalance > 0 && (
+                        <p className="text-[10px] text-red-500 tabular-nums">Solde élève · {fmtMoney(p.studentBalance, p.currency)}</p>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-zinc-700 font-medium tabular-nums">{fmtMoney(p.amount, p.currency)}</td>
+                    <td className="px-5 py-3.5"><VerificationStepper item={p} /></td>
+                    <td className="px-5 py-3.5"><FraudScoreBadge score={p.fraudScore} suspicion={p.suspicion} /></td>
                     <td className="px-5 py-3.5"><span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">{p.method}</span></td>
-                    <td className="px-5 py-3.5 text-zinc-400 font-mono text-xs">{p.reference ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-zinc-400 font-mono text-xs">
+                      {p.receiptNumber ?? p.reference ?? p.providerRef ?? '—'}
+                    </td>
                     <td className="px-5 py-3.5 text-zinc-400 text-xs">{new Date(p.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
-                        <button disabled={verifying} onClick={() => verify({ verificationId: p.verificationId ?? p.id, action: 'ADMIN' })}
-                          className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 transition-colors" title="Valider">
-                          <CheckCircle size={14} />
+                        <button
+                          type="button"
+                          onClick={() => setDetailItem(p)}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors"
+                          title="Voir le détail"
+                        >
+                          <Eye size={14} />
                         </button>
-                        <button disabled={verifying} onClick={() => verify({ verificationId: p.verificationId ?? p.id, action: 'REJECT' })}
+                        {action && (
+                          <button
+                            disabled={verifying}
+                            onClick={() => verify({ verificationId: p.verificationId, action }, {
+                              onSuccess: () => toast.success(
+                                action === 'FINANCE' ? 'Validation finance enregistrée' : 'Validation direction enregistrée',
+                              ),
+                            })}
+                            className="px-2 py-1 rounded-lg text-[10px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                            title={action === 'FINANCE' ? 'Validation finance' : 'Validation admin'}
+                          >
+                            {action === 'FINANCE' ? 'Finance ✓' : 'Admin ✓'}
+                          </button>
+                        )}
+                        {p.financeCheck && p.adminCheck && (
+                          <button
+                            disabled={markProcessed.isPending}
+                            onClick={() => setProcessConfirm(p)}
+                            className="px-2 py-1 rounded-lg text-[10px] font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+                            title="Marquer comme traité"
+                          >
+                            <CheckCheck size={12} className="inline" /> Traité
+                          </button>
+                        )}
+                        <button disabled={verifying} onClick={() => verify({ verificationId: p.verificationId, action: 'REJECT' })}
                           className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors" title="Rejeter">
                           <XCircle size={14} />
                         </button>
-                        <button onClick={() => confirmBank(p.id)}
+                        <button onClick={() => confirmBank(p.paymentId)}
                           className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors" title="Confirmer banque">
                           <Shield size={14} />
                         </button>
-                        <button onClick={() => resendReceipt(p.id)}
+                        {p.receiptUrl && (
+                          <a href={p.receiptUrl} target="_blank" rel="noopener noreferrer"
+                            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors" title="Reçu">
+                            <Send size={14} />
+                          </a>
+                        )}
+                        <button onClick={() => resendReceipt(p.paymentId)}
                           className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors" title="Renvoyer reçu">
                           <Send size={14} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -374,32 +568,95 @@ export default function PaiementsPage() {
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Smartphone size={14} className="text-zinc-400" />
-              <h3 className="text-sm font-semibold text-zinc-900">Mobile Money en attente</h3>
+              <h3 className="text-sm font-semibold text-zinc-900">Transactions en attente (opérateur)</h3>
             </div>
             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{mobilePending.length}</span>
           </div>
+          {mobileActionError && (
+            <p className="mx-5 mt-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{mobileActionError}</p>
+          )}
           <div className="divide-y divide-zinc-50">
-            {mobilePending.map((m) => (
-              <div key={m.id} className="flex items-center justify-between px-5 py-3.5">
-                <div>
+            {mobilePending.map((m) => {
+              const mobile = isMobileMoneyMethod(m.method ?? m.operator)
+              return (
+              <div key={m.id} className="flex items-center justify-between px-5 py-3.5 gap-4">
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-zinc-900">{m.studentName}</p>
-                  <p className="text-xs text-zinc-400">{m.operator} · {m.phone} · réf: {m.reference ?? '—'}</p>
+                  <p className="text-xs text-zinc-400 truncate">
+                    {m.method ?? m.operator}
+                    {m.phone ? ` · ${m.phone}` : ''}
+                    {m.reference ? ` · réf: ${m.reference}` : ''}
+                  </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   <span className="text-sm font-semibold text-zinc-900">{Number(m.amount).toLocaleString('fr-FR')} F</span>
-                  <button disabled={confirming} onClick={() => confirmMobile(m.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs text-white font-medium hover:bg-blue-700 disabled:opacity-50">
-                    <CheckCircle size={11} /> Confirmer
-                  </button>
+                  {mobile ? (
+                    <button
+                      disabled={confirming}
+                      onClick={() => {
+                        setMobileActionError(null)
+                        confirmMobile(m.id, {
+                          onError: (error) => {
+                            const err = error as { response?: { data?: { message?: string } } }
+                            setMobileActionError(
+                              err.response?.data?.message
+                                ?? 'Confirmation impossible — vérifiez que le paiement est bien Mobile Money.',
+                            )
+                          },
+                        })
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <CheckCircle size={11} /> Confirmer mobile
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => confirmBank(m.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50"
+                      title="Carte / virement — confirmation bancaire"
+                    >
+                      <Shield size={11} /> Confirmer banque
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       )}
 
       {showManual && <ManualPaymentModal onClose={() => setShowManual(false)} />}
       {showLinkOrphan && <LinkOrphanModal onClose={() => setShowLinkOrphan(false)} />}
+
+      {detailItem && (
+        <VerificationDetailDrawer
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          resending={resendingId === detailItem.paymentId}
+          onResendReceipt={(paymentId) => {
+            setResendingId(paymentId)
+            resendReceipt(paymentId, {
+              onSuccess: () => toast.success('Reçu renvoyé'),
+              onSettled: () => setResendingId(null),
+            })
+          }}
+        />
+      )}
+
+      <ConfirmDialog
+        open={processConfirm != null}
+        title="Marquer comme traité ?"
+        description="Le paiement sera archivé comme traité et retiré de la file de vérification."
+        impact={processConfirm ? [
+          `Élève : ${processConfirm.studentName}`,
+          `Montant : ${fmtMoney(processConfirm.amount, processConfirm.currency)}`,
+        ] : []}
+        confirmLabel="Marquer traité"
+        loading={markProcessed.isPending}
+        onConfirm={confirmMarkProcessed}
+        onCancel={() => setProcessConfirm(null)}
+      />
     </div>
   )
 }

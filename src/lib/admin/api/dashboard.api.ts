@@ -1,9 +1,11 @@
 import { apiClient } from '@/lib/api/client'
+import { mapControlDashboardSnapshot } from '@/lib/admin/control-dashboard.utils'
+import { mapPresenceSecurityEventToFraudAlert } from '@/lib/admin/fraud-alert.utils'
 import type { DashboardStats, LiveFeedEntry, HeatmapEntry, FraudAlert, ControlDashboardStats } from '@/types/admin'
 
 export const dashboardApi = {
   getStats: () =>
-    apiClient.get<{ success: boolean; data: any }>('/admin/stats')
+    apiClient.get<{ success: boolean; data: any }>('/admin/presences/stats')
       .then(r => {
         const d = r.data.data
         return {
@@ -13,16 +15,17 @@ export const dashboardApi = {
           lateToday:      d?.overview?.late           ?? 0,
           attendanceRate: d?.attendanceRate           ?? 0,
           fraudAlerts:    d?.alerts?.criticalFraud    ?? 0,
+          weeklyTrend:    d?.weeklyTrend              ?? [],
         } satisfies DashboardStats
       }),
 
   getLiveFeed: (params?: { classId?: number; page?: number; limit?: number }) =>
-    apiClient.get<{ success: boolean; data: any }>('/admin/live-feed', { params })
+    apiClient.get<{ success: boolean; data: any }>('/admin/presences/live', { params })
       .then(r => {
         const d = r.data.data
         const entries: LiveFeedEntry[] = (d?.data ?? []).map((p: any) => ({
           id:          p.id,
-          studentId:   p.id,
+          studentId:   p.studentId ?? p.id,
           studentName: p.studentName,
           className:   p.className,
           status:      p.status,
@@ -33,22 +36,23 @@ export const dashboardApi = {
       }),
 
   getHeatmap: (classId?: number) =>
-    apiClient.get<{ success: boolean; data: HeatmapEntry[] }>('/admin/heatmap', {
+    apiClient.get<{ success: boolean; data: HeatmapEntry[] }>('/admin/presences/heatmap', {
       params: classId ? { classId } : undefined,
-    }).then(r => r.data.data),
+    }).then(r => {
+      const raw = r.data.data ?? []
+      return raw.map((h) => ({
+        hour: typeof h.hour === 'number' ? `${h.hour}h` : String(h.hour),
+        count: h.count ?? 0,
+      })) as HeatmapEntry[]
+    }),
 
   getFraudAlerts: () =>
-    apiClient.get<{ success: boolean; data: any }>('/admin/fraud-alerts')
-      .then(r => {
-        const raw = r.data.data
-        if (Array.isArray(raw)) return raw as FraudAlert[]
-        if (Array.isArray(raw?.alerts)) return raw.alerts as FraudAlert[]
-        return [] as FraudAlert[]
-      }),
+    apiClient.get<{ success: boolean; data: any[] }>('/admin/presences/alerts')
+      .then(r => (r.data.data ?? []).map((row) => mapPresenceSecurityEventToFraudAlert(row))),
 
   getControlStats: () =>
-    apiClient.get<{ success: boolean; data: ControlDashboardStats }>('/admin/dashboard/stats')
-      .then(r => r.data.data),
+    apiClient.get<{ success: boolean; data: Record<string, unknown> }>('/admin/dashboard/stats')
+      .then(r => mapControlDashboardSnapshot(r.data.data) satisfies ControlDashboardStats),
 
   triggerWeeklyReport: () =>
     apiClient.post<{ success: boolean; message: string }>('/admin/dashboard/reports/weekly')

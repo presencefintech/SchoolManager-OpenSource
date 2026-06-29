@@ -2,7 +2,7 @@
 
 Document de référence pour les équipes d'intégration (mobile, web admin, finance) et les partenaires techniques.
 
-**Dernière mise à jour :** 24 juin 2026 — profil règlement multitenant (KYC) · allowlist provider parent · reçus sécurisés · moratoires · tenant ADR-002
+**Dernière mise à jour :** 26 juin 2026 — dashboard admin ERP (weeklyTrend, heatmap), structure scolaire, refresh JWT
 
 **ADR :** [`docs/ADR-002-tenant-context.md`](../../docs/ADR-002-tenant-context.md)
 
@@ -65,7 +65,10 @@ Détail flux Flutter : **[frontend-integration-guide.md](./frontend-integration-
 | SMS / OTP | **`openapi-auth.json`** | OpenAPI 3 | Validé staging | Africa's Talking + mock |
 | **Temps réel — Parent** | **`openapi-parent-mobile.json`** → `x-socket-events` | Hybride | Validé staging | Catalog v0 : `payment.settled`, `attendance.recorded` |
 | **Temps réel — Admin / Finance** | `openapi-admin.json` → **`x-socket-events`** | OpenAPI 3 + TypeScript | **Validé staging** | `payment.confirmed.*`, `payment.failed.admin` |
-| Admin / superadmin REST | **`swagger-docs/admin.json`**, **`swagger-docs/superadmin.json`** | OpenAPI 3 | Complet | `/api/v1/admin/*` · `/api/v1/superadmin/*` |
+| Admin / superadmin REST | **`openapi/admin.json`** | `/api/v1/admin/*` | ADMIN, SUPER_ADMIN, FINANCE | REST complet — moratoires, finance admin, **dashboard juin 2026** |
+| **Admin — dashboard présence** | **`openapi/admin.json`** · `types/dashboard.types.ts` | `/admin/stats`, `/admin/heatmap`, `/admin/live-feed` | Guide + OpenAPI | `DashboardQuickStats.weeklyTrend` · graphiques Recharts |
+| **Admin — structure scolaire** | **`openapi/admin.json`** | `/admin/structure/sections`, `/admin/structure/options` | OpenAPI 3 | Inscription + création classes |
+| **Admin — actions métier UX** | **[admin-business-actions.md](./admin-business-actions.md)** | `/admin/enrollments/sessions`, `…/admin-profile`, export pending, alertes présence | Guide REST | Complet |
 | Finance web (guichet) | **`swagger-docs/finance.json`** | OpenAPI 3 | Complet | `/api/v1/finance/*` + **lecture KYC** `GET /admin/finance/payment-profile` (**40 ops**) |
 | **Reçus — vérification publique** | **`flutter-parent-receipt.md`** | Guide | Complet | `GET /api/v1/receipts/verify/{token}` — sans auth |
 
@@ -89,7 +92,7 @@ Guide intégration : **[flutter-parent-receipt.md](./flutter-parent-receipt.md)*
 
 | Fichier | Préfixe API | Rôles | Contenu principal |
 |---------|-------------|-------|-------------------|
-| **`swagger-docs/admin.json`** | `/api/v1/admin/*` | ADMIN, SUPER_ADMIN, FINANCE | REST complet (128 ops) — moratoires, finance admin, etc. |
+| **`swagger-docs/admin.json`** | `/api/v1/admin/*` | ADMIN, SUPER_ADMIN, FINANCE | REST complet (**136 ops**) — dashboard, structure, moratoires, finance admin, etc. |
 | **`swagger-docs/superadmin.json`** | `/api/v1/superadmin/*` | SUPER_ADMIN | Plateforme SaaS (108 ops) |
 | **`swagger-docs/finance.json`** | `/api/v1/finance/*` + lecture KYC admin | FINANCE, ADMIN | Guichet trésorerie (**40 ops**) — inclut `PaymentProfileDto` |
 | **`openapi-admin.json`** | — (Socket.io) | ADMIN, FINANCE, SUPER_ADMIN | **Temps réel paiements** — `x-socket-events` |

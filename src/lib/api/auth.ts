@@ -16,4 +16,9 @@ export const authApi = {
 
   logout: (refreshToken?: string) =>
     apiClient.post('/auth/logout', { refreshToken }).catch(() => null),
+
+  refreshToken: (refreshToken: string) =>
+    apiClient
+      .post<LoginResponse & { status: string }>('/auth/refresh-token', { refreshToken })
+      .then((r) => r.data),
 }

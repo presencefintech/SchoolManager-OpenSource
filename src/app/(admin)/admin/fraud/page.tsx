@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/api/client'
 
-const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
+} satisfies Variants
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 function useAdminFraudAlerts() {
