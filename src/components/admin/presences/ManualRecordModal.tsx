@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { useRecordPresence, useStudents, useClasses } from '@/lib/hooks/use-admin'
 import type { RecordPresencePayload } from '@/types/admin'
+import { isSingleDuplicateResult, presenceStatusLabel } from '@/lib/presence/presence-response.utils'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 
@@ -47,20 +48,20 @@ export function ManualRecordModal({ onClose }: { onClose: () => void }) {
 
     setSubmitting(true)
     try {
-      const result = await record.mutateAsync({
+      const { data: result, statusCode } = await record.mutateAsync({
         ...form,
         idempotencyKey: createIdempotencyKey(),
       })
 
-      if (result.isSameDayDuplicate || result.idempotentReplay) {
+      if (isSingleDuplicateResult(result) || statusCode === 202) {
         toast.warning(
           'Déjà enregistré',
-          `${result.studentName} a déjà une présence aujourd'hui (${result.status}).`
+          `${result.studentName} a déjà une présence aujourd'hui (${presenceStatusLabel(result.status)}).`
         )
       } else {
         toast.success(
           'Présence enregistrée',
-          `${result.studentName} — ${result.status === 'PRESENT' ? 'Présent' : result.status === 'ABSENT' ? 'Absent' : 'Retard'}`
+          `${result.studentName} — ${presenceStatusLabel(result.status)}`
         )
         onClose()
       }
@@ -171,6 +172,22 @@ export function ManualRecordModal({ onClose }: { onClose: () => void }) {
               }
               disabled={busy}
               className={selectCls}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+              Note (optionnel, max 500 car.)
+            </label>
+            <textarea
+              value={form.note ?? ''}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, note: e.target.value.slice(0, 500) || undefined }))
+              }
+              disabled={busy}
+              rows={2}
+              className={selectCls}
+              placeholder="Motif d'absence, remarque…"
             />
           </div>
 

@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api/client'
 import { parseFraudReasons } from '@/lib/admin/fraud-alert.utils'
+import type { PresenceMutationResult } from '@/lib/presence/presence-response.utils'
 import type {
   PresenceLiveFeedEntry, PresenceStats, PresenceHeatmapEntry,
   PresenceSecurityAlert, SessionQR, RecordPresencePayload, BulkPresencePayload,
@@ -62,16 +63,20 @@ export const presencesApi = {
     }).then(r => r.data.data),
 
   record: (payload: RecordPresencePayload) =>
-    apiClient.post<{ success: boolean; data: AdminPresenceRecordResult; statusCode?: number }>(
+    apiClient.post<{ success: boolean; data: AdminPresenceRecordResult; message?: string }>(
       '/admin/presences/record',
       payload
-    ).then(r => r.data.data),
+    ).then((r): PresenceMutationResult<AdminPresenceRecordResult> => ({
+      data: r.data.data,
+      message: r.data.message,
+      statusCode: r.status,
+    })),
 
   bulkRecord: (payload: BulkPresencePayload) =>
-    apiClient.post<{ success: boolean; data: BulkPresenceRecordResult; message?: string; statusCode?: number }>(
+    apiClient.post<{ success: boolean; data: BulkPresenceRecordResult; message?: string }>(
       '/admin/presences/bulk',
       payload
-    ).then(r => ({
+    ).then((r): PresenceMutationResult<BulkPresenceRecordResult> => ({
       data: r.data.data,
       message: r.data.message,
       statusCode: r.status,
