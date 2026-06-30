@@ -2,14 +2,14 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+
 import { useRouter } from 'next/navigation'
 import {
   GraduationCap, Search, CheckCircle, XCircle, Clock,
   ChevronLeft, ChevronRight, User, AlertTriangle, TrendingUp,
-  Users, BookOpen,
-} from 'lucide-react'
+  Users, BookOpen} from 'lucide-react'
 import {
-  RadialBarChart, RadialBar, ResponsiveContainer, Tooltip,
+  ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, Cell,
 } from 'recharts'
 import { cn } from '@/lib/utils'
@@ -91,10 +91,9 @@ export default function StudentsPage() {
   const totalPages = studentsData?.totalPages ?? 1
   const total = studentsData?.total ?? 0
 
-  // Données pour le bar chart statuts
   const statusBarData = s ? [
-    { label: 'Actifs',       value: s.activeCount   ?? 0, color: '#10b981' },
-    { label: 'Inactifs',     value: s.inactiveCount ?? 0, color: '#a1a1aa' },
+    { label: 'Actifs',       value: s.activeCount    ?? 0, color: '#10b981' },
+    { label: 'Inactifs',     value: s.inactiveCount  ?? 0, color: '#a1a1aa' },
     { label: 'Suspendus',    value: s.suspendedCount ?? 0, color: '#ef4444' },
     { label: 'Pré-inscrits', value: s.preEnrollCount ?? 0, color: '#6366f1' },
   ] : []
