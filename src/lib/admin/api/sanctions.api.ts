@@ -1,11 +1,15 @@
 import { apiClient } from '@/lib/api/client'
 
 export const adminSanctionsApi = {
-  analyze: (payload: { studentId: number; absenceCount?: number; lateCount?: number }) =>
+  analyze: (payload: {
+    studentId: number
+    fraudScore: number
+    currentScan?: { deviceId?: string; location?: string; timestamp?: string }
+  }) =>
     apiClient
-      .post<{ success: boolean; data: { sanctionApplied: boolean; sanctionType?: string } }>(
+      .post<{ success: boolean; data: Record<string, unknown> }>(
         '/admin/sanctions/analyze',
         payload,
       )
-      .then((r) => r.data.data),
+      .then((r) => r.data.data ?? {}),
 }

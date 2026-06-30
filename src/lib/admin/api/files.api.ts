@@ -1,11 +1,14 @@
 import { apiClient } from '@/lib/api/client'
+import { getAuthSchoolId } from '@/lib/api/auth-storage'
 
 export const adminFilesApi = {
-  upload: (file: File, metadata?: { label?: string; category?: string }) => {
+  upload: (file: File, metadata?: { folder?: string; studentId?: number }) => {
     const fd = new FormData()
     fd.append('file', file)
-    if (metadata?.label) fd.append('label', metadata.label)
-    if (metadata?.category) fd.append('category', metadata.category)
+    const schoolId = getAuthSchoolId()
+    if (schoolId) fd.append('schoolId', String(schoolId))
+    fd.append('folder', metadata?.folder ?? 'documents')
+    if (metadata?.studentId) fd.append('studentId', String(metadata.studentId))
     return apiClient
       .post<{ success: boolean; data: { url: string; publicId: string } }>('/admin/files/upload', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },

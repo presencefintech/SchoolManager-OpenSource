@@ -6,6 +6,7 @@ import { Bell, Send, Users, User, History, RefreshCw, CheckCircle, X } from 'luc
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { adminNotificationsApi } from '@/lib/admin/api'
+import { useStaff } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } }
@@ -47,7 +48,7 @@ function useHistory() {
 export default function NotificationsPage() {
   const [tab, setTab] = useState<'group' | 'direct'>('group')
   const [groupForm, setGroupForm] = useState({ title: '', message: '', roles: [] as string[] })
-  const [directForm, setDirectForm] = useState({ recipientId: '', title: '', message: '' })
+  const [directForm, setDirectForm] = useState({ targetUserId: '', title: '', message: '' })
   const [groupErr, setGroupErr] = useState('')
   const [directErr, setDirectErr] = useState('')
   const [groupOk, setGroupOk] = useState(false)
@@ -56,8 +57,9 @@ export default function NotificationsPage() {
   const broadcastGroup = useBroadcastGroup()
   const sendDirect = useSendDirect()
   const { data: history, isLoading: histLoading, refetch } = useHistory()
+  const { data: staffList = [] } = useStaff()
 
-  const histList: any[] = Array.isArray(history) ? history : []
+  const histList = (history ?? []) as any[]
 
   function toggleRole(role: string) {
     setGroupForm(f => ({
@@ -85,14 +87,14 @@ export default function NotificationsPage() {
     e.preventDefault()
     setDirectErr('')
     setDirectOk(false)
-    if (!directForm.recipientId || !directForm.title || !directForm.message) {
+    if (!directForm.targetUserId || !directForm.title || !directForm.message) {
       setDirectErr('Tous les champs sont requis')
       return
     }
     try {
-      await sendDirect.mutateAsync({ ...directForm, recipientId: Number(directForm.recipientId) })
+      await sendDirect.mutateAsync({ ...directForm, targetUserId: Number(directForm.targetUserId) })
       setDirectOk(true)
-      setDirectForm({ recipientId: '', title: '', message: '' })
+      setDirectForm({ targetUserId: '', title: '', message: '' })
     } catch (err) { setDirectErr(getApiErrorMessage(err)) }
   }
 
@@ -213,10 +215,20 @@ export default function NotificationsPage() {
 
               <form onSubmit={submitDirect} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1.5">ID du destinataire</label>
-                  <input type="number" value={directForm.recipientId}
-                    onChange={e => setDirectForm(f => ({ ...f, recipientId: e.target.value }))}
-                    placeholder="Identifiant utilisateur" className={inputCls} />
+                  <label className="block text-xs font-medium text-zinc-500 mb-1.5">Destinataire</label>
+                  <select
+                    value={directForm.targetUserId}
+                    onChange={e => setDirectForm(f => ({ ...f, targetUserId: e.target.value }))}
+                    className={inputCls}
+                  >
+                    <option value="">— Sélectionner un membre —</option>
+                    {staffList.map(s => (
+                      <option key={s.id} value={String(s.id)}>
+                        {[s.firstName, s.lastName].filter(Boolean).join(' ') || s.email || `#${s.id}`}
+                        {s.role ? ` · ${s.role}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-zinc-500 mb-1.5">Titre</label>
