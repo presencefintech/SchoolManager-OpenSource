@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import Link from 'next/link'
-import { Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, Search, ChevronRight } from 'lucide-react'
+import { Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, Search, ChevronRight, BarChart2 } from 'lucide-react'
 import { useClasses, useCreateClass, useToggleClassStatus, useRollover, useSections, useOptions, useAcademicSessions } from '@/lib/hooks/use-admin'
 import type { CreateClassPayload, RolloverPayload } from '@/types/admin'
 
@@ -247,6 +247,8 @@ export default function ClassesPage() {
 
   const active = classes.filter(c => c.isActive).length
   const totalStudents = classes.reduce((acc, c) => acc + (c.studentCount ?? 0), 0)
+  const totalCapacity = classes.reduce((acc, c) => acc + (c.capacity ?? 0), 0)
+  const fillRate = totalCapacity > 0 ? Math.round((totalStudents / totalCapacity) * 100) : 0
 
   return (
     <div className="min-h-screen bg-zinc-50/50">
@@ -281,15 +283,16 @@ export default function ClassesPage() {
         </motion.div>
 
         {/* Stats */}
-        <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
+        <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-4" variants={stagger} initial="hidden" animate="show">
           {[
-            { label: 'Total classes', value: classes.length, icon: BookOpen, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Élèves inscrits', value: totalStudents, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'Classes actives', value: active, icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50' },
+            { label: 'Total classes',   value: classes.length,                                icon: BookOpen,  color: 'text-blue-600',    bg: 'bg-blue-50' },
+            { label: 'Élèves inscrits', value: totalStudents,                                 icon: Users,     color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'Classes actives', value: active,                                        icon: TrendingUp, color: 'text-violet-600', bg: 'bg-violet-50' },
+            { label: 'Remplissage',     value: totalCapacity > 0 ? `${fillRate} %` : '—', icon: BarChart2, color: 'text-amber-600',   bg: 'bg-amber-50' },
           ].map(({ label, value, icon: Icon, color, bg }) => (
             <motion.div key={label} variants={fadeUp} className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center`}>
+                <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={16} className={color} />
                 </div>
                 <div>
@@ -297,6 +300,18 @@ export default function ClassesPage() {
                   <p className="text-2xl font-bold text-zinc-900">{value}</p>
                 </div>
               </div>
+              {label === 'Classes actives' && classes.length > 0 && (
+                <div className="mt-3 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full bg-violet-400 transition-all"
+                    style={{ width: `${Math.min(100, Math.round((active / classes.length) * 100))}%` }} />
+                </div>
+              )}
+              {label === 'Remplissage' && totalCapacity > 0 && (
+                <div className="mt-3 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(100, fillRate)}%`, backgroundColor: fillRate >= 90 ? '#ef4444' : fillRate >= 70 ? '#f59e0b' : '#10b981' }} />
+                </div>
+              )}
             </motion.div>
           ))}
         </motion.div>

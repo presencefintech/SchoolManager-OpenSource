@@ -208,4 +208,16 @@ export const financeApi = {
 
   revokeMoratorium: (id: number) =>
     apiClient.delete(`/admin/finance/moratoriums/${id}`).then(r => r.data),
+
+  updateMoratoriumPolicy: (payload: Record<string, unknown>) =>
+    apiClient.patch('/admin/finance/moratoriums/policy', payload).then(r => r.data.data as MoratoriumPolicy),
+
+  approveMoratorium: (id: number) =>
+    apiClient.post(`/admin/finance/moratoriums/${id}/approve`).then(r => r.data.data),
+
+  rejectMoratorium: (id: number, reason?: string) =>
+    apiClient.post(`/admin/finance/moratoriums/${id}/reject`, { reason }).then(r => r.data.data),
+
+  reviewRefund: (id: number, payload: { action: 'APPROVE' | 'REJECT'; notes?: string }) =>
+    apiClient.post(`/admin/finance/refunds/${id}/review`, payload).then(r => r.data.data),
 }

@@ -9,6 +9,6 @@ export const bankApi = {
 
   inspect: (reference: string) =>
     apiClient
-      .get<{ success: boolean; data: BankInspectResult }>('/superadmin/bank/inspect', { params: { reference } })
+      .post<{ success: boolean; data: BankInspectResult }>('/superadmin/bank/inspect', { reference })
       .then((r) => r.data.data),
 }

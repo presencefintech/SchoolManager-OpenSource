@@ -57,4 +57,6 @@ export const dashboardApi = {
   triggerWeeklyReport: () =>
     apiClient.post<{ success: boolean; message: string }>('/admin/dashboard/reports/weekly')
       .then(r => r.data),
+
+  streamStats: () => new EventSource(`${apiClient.defaults.baseURL}/admin/dashboard/stream`),
 }

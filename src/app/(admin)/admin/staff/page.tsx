@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Plus, Trash2, Loader2, X, Mail, Phone } from 'lucide-react'
+import { Users, Plus, Trash2, Loader2, X, Mail, Phone, BookOpen, CheckCircle, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStaff, useCreateStaff, useDisableStaff } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -67,7 +67,27 @@ export default function StaffPage() {
         </div>
       </motion.div>
 
-      <div className="max-w-5xl mx-auto px-8 py-8">
+      <div className="max-w-5xl mx-auto px-8 py-8 space-y-5">
+        {!isLoading && staff && staff.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total membres', value: staff.length,                                     icon: Users,       bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
+              { label: 'Enseignants',   value: staff.filter(m => m.role === 'TEACHER').length,   icon: BookOpen,    bg: 'bg-emerald-50', iconCls: 'text-emerald-600' },
+              { label: 'Finance',       value: staff.filter(m => m.role === 'FINANCE').length,   icon: TrendingUp,  bg: 'bg-amber-50',   iconCls: 'text-amber-600' },
+              { label: 'Actifs',        value: staff.filter(m => m.status === 'ACTIVE').length,  icon: CheckCircle, bg: 'bg-blue-50',    iconCls: 'text-blue-600' },
+            ].map(({ label, value, icon: Icon, bg, iconCls }) => (
+              <div key={label} className="bg-white rounded-2xl border border-zinc-100 px-4 py-4 flex items-center gap-3 shadow-sm">
+                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', bg)}>
+                  <Icon size={15} className={iconCls} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-zinc-400 uppercase tracking-wide">{label}</p>
+                  <p className="text-xl font-bold text-zinc-900 leading-none tabular-nums mt-0.5">{value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           {isLoading ? (
             <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14" />)}</div>

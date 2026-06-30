@@ -8,26 +8,66 @@ import {
 } from 'lucide-react'
 import {
   useExecutiveDashboard, useDailyCashReport, useFinanceIntegrity,
-  useDebtors, useHighRisk, useCollectionAnalytics,
+  useDebtors, useHighRisk, useCollectionAnalytics, useWeeklyRevenueTrend,
 } from '@/lib/hooks/use-finance'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { ExecutiveDashboard, IntegrityReport, DebtorEntry, RiskEntry, DailyCashEntry, CollectionReport } from '@/types/finance'
 
-function KpiCard({ label, value, sub, icon: Icon, color, bg }: {
+function Sparkline({ data, hex }: { data: number[]; hex: string }) {
+  if (data.length < 2 || data.every(v => v === 0)) return null
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const W = 72, H = 28
+  const pts = data.map((v, i) => {
+    const x = ((i / (data.length - 1)) * W).toFixed(1)
+    const y = (H - ((v - min) / range) * H * 0.8 - H * 0.1).toFixed(1)
+    return `${x},${y}`
+  }).join(' ')
+  const lastV = data[data.length - 1]
+  const lastX = W
+  const lastY = (H - ((lastV - min) / range) * H * 0.8 - H * 0.1).toFixed(1)
+  return (
+    <svg width={W} height={H} className="overflow-visible opacity-75">
+      <polyline points={pts} fill="none" stroke={hex} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lastX} cy={lastY} r="2.5" fill={hex} />
+    </svg>
+  )
+}
+
+function MiniGauge({ value, hex }: { value: number; hex: string }) {
+  const pct = Math.min(Math.max(value, 0), 100)
+  return (
+    <div className="mt-3 h-1 rounded-full bg-zinc-100 overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: hex }} />
+    </div>
+  )
+}
+
+function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeValue, hex = '#6366f1' }: {
   label: string; value: string | number; sub?: string
   icon: React.ElementType; color: string; bg: string
+  sparkData?: number[]
+  gaugeValue?: number
+  hex?: string
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
-          <Icon size={16} className={color} />
+    <div className="bg-white rounded-2xl border border-zinc-200/70 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">{label}</p>
+          <p className="text-3xl font-bold text-zinc-900 tabular-nums leading-none">{value}</p>
+          {sub && <p className="text-xs text-zinc-400 mt-1.5">{sub}</p>}
+          {gaugeValue !== undefined && <MiniGauge value={gaugeValue} hex={hex} />}
         </div>
-        <p className="text-xs text-zinc-500">{label}</p>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
+            <Icon size={18} className={color} />
+          </div>
+          {sparkData && <Sparkline data={sparkData} hex={hex} />}
+        </div>
       </div>
-      <p className="text-2xl font-bold text-zinc-900">{value}</p>
-      {sub && <p className="text-xs text-zinc-400 mt-1">{sub}</p>}
     </div>
   )
 }
@@ -39,6 +79,7 @@ export default function FinanceDashboardPage() {
   const { data: debtorsData } = useDebtors(10)
   const { data: highRisk } = useHighRisk()
   const { data: collection } = useCollectionAnalytics()
+  const { data: revenueTrend } = useWeeklyRevenueTrend()
 
   const d = kpis as ExecutiveDashboard | undefined
   const perf = d?.performance
@@ -59,7 +100,7 @@ export default function FinanceDashboardPage() {
   const totalTx = cash.reduce((acc, r) => acc + (r._count?.id || 0), 0)
 
   return (
-    <div className="px-8 py-8 space-y-6">
+    <div className="min-h-full bg-[#f5f7fb] px-8 py-8 space-y-6">
       {/* Header */}
       <motion.div
         className="flex items-center justify-between"
@@ -107,6 +148,7 @@ export default function FinanceDashboardPage() {
                   label="Revenus du mois"
                   value={perf?.monthlyRevenue != null ? `${Number(perf.monthlyRevenue).toLocaleString('fr-FR')} F` : '—'}
                   icon={DollarSign} color="text-emerald-600" bg="bg-emerald-50"
+                  sparkData={revenueTrend} hex="#059669"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -114,6 +156,7 @@ export default function FinanceDashboardPage() {
                   label="Revenus projetés"
                   value={perf?.projectedRevenue != null ? `${Number(perf.projectedRevenue).toLocaleString('fr-FR')} F` : '—'}
                   icon={TrendingUp} color="text-blue-600" bg="bg-blue-50"
+                  hex="#2563eb"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -122,6 +165,8 @@ export default function FinanceDashboardPage() {
                   value={perf?.collectionEfficiency != null ? `${Number(perf.collectionEfficiency).toFixed(1)}%` : '—'}
                   icon={BarChart3} color="text-violet-600" bg="bg-violet-50"
                   sub={perf?.collectionEfficiency != null ? (Number(perf.collectionEfficiency) >= 80 ? 'Bon niveau' : 'À améliorer') : undefined}
+                  gaugeValue={perf?.collectionEfficiency != null ? Number(perf.collectionEfficiency) : undefined}
+                  hex="#7c3aed"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -129,6 +174,7 @@ export default function FinanceDashboardPage() {
                   label="ARPU (revenu/élève)"
                   value={perf?.arpu != null ? `${Number(perf.arpu).toLocaleString('fr-FR')} F` : '—'}
                   icon={Users} color="text-indigo-600" bg="bg-indigo-50"
+                  hex="#4f46e5"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -136,6 +182,8 @@ export default function FinanceDashboardPage() {
                   label="Adoption digitale"
                   value={perf?.digitalAdoption != null ? `${Number(perf.digitalAdoption).toFixed(1)}%` : '—'}
                   icon={Target} color="text-cyan-600" bg="bg-cyan-50"
+                  gaugeValue={perf?.digitalAdoption != null ? Number(perf.digitalAdoption) : undefined}
+                  hex="#0891b2"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -144,6 +192,7 @@ export default function FinanceDashboardPage() {
                   value={audit?.pendingVerifications ?? '—'}
                   icon={ClipboardList} color="text-orange-600" bg="bg-orange-50"
                   sub={(audit?.pendingVerifications ?? 0) > 0 ? 'À traiter' : 'Aucune'}
+                  hex="#ea580c"
                 />
               </motion.div>
             </motion.div>
@@ -165,6 +214,8 @@ export default function FinanceDashboardPage() {
                   label="Estimation créances irrécouvrables"
                   value={treasury?.badDebtEstimate != null ? `${Number(treasury.badDebtEstimate).toFixed(1)}%` : '—'}
                   icon={TrendingDown} color="text-amber-600" bg="bg-amber-50"
+                  gaugeValue={treasury?.badDebtEstimate != null ? Number(treasury.badDebtEstimate) : undefined}
+                  hex="#d97706"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -182,7 +233,7 @@ export default function FinanceDashboardPage() {
 
       {/* Rapport journalier + Top débiteurs */}
       <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900">Encaissements du jour</h3>
             {totalCash > 0 && (
@@ -215,7 +266,7 @@ export default function FinanceDashboardPage() {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users size={14} className="text-zinc-400" />
@@ -253,7 +304,7 @@ export default function FinanceDashboardPage() {
 
       {/* Analytics de recouvrement */}
       {coll && Object.keys(coll).length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
             <TrendingUp size={14} className="text-zinc-400" />
             <h3 className="text-sm font-semibold text-zinc-900">Analytics de recouvrement</h3>
@@ -273,7 +324,7 @@ export default function FinanceDashboardPage() {
 
       {/* Profils à risque */}
       {risks.length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle size={14} className="text-amber-500" />
@@ -310,7 +361,7 @@ export default function FinanceDashboardPage() {
 
       {/* Audit Benford */}
       {audit && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
           <div className="flex items-center gap-2 mb-4">
             <Shield size={14} className="text-zinc-400" />
             <h3 className="text-sm font-semibold text-zinc-900">Audit d'intégrité financière</h3>

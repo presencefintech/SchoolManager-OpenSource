@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { RefreshCw, BookOpen, QrCode, CheckCircle, XCircle, Clock } from 'lucide-react'
-import { useTeacherDashboard, useTeacherScans, useForceValidatePresence, useUpdateTeacherClasses } from '@/lib/hooks/use-admin'
+import { useTeacherDashboard, useTeacherScans, useForceValidatePresence, useUpdateTeacherClasses, useStaff } from '@/lib/hooks/use-admin'
 
 function ScanStatusIcon({ status }: { status: string }) {
   if (status === 'PRESENT') return <CheckCircle size={14} className="text-emerald-500" />
@@ -179,18 +179,20 @@ function TeacherCard({ teacher, onSelect }: { teacher: { id: number; userId: num
 
 export default function TeachersPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [searchId, setSearchId] = useState('')
+  const [selectValue, setSelectValue] = useState('')
+  const { data: staff, isLoading: staffLoading } = useStaff()
+  const teachers = (staff ?? []).filter(s => s.role === 'TEACHER')
 
   if (selectedId) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <TeacherDetail teacherId={selectedId} onBack={() => setSelectedId(null)} />
+        <TeacherDetail teacherId={selectedId} onBack={() => { setSelectedId(null); setSelectValue('') }} />
       </div>
     )
   }
 
-  const handleSearch = () => {
-    const id = Number(searchId)
+  const handleLoad = () => {
+    const id = Number(selectValue)
     if (id) setSelectedId(id)
   }
 
@@ -209,17 +211,24 @@ export default function TeachersPage() {
       >
         <h3 className="text-sm font-semibold text-zinc-700 mb-3">Accéder au dashboard d'un enseignant</h3>
         <div className="flex gap-2">
-          <input
-            type="number"
-            value={searchId}
-            onChange={e => setSearchId(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="ID enseignant (teacherId)"
-            className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+          <select
+            value={selectValue}
+            onChange={e => setSelectValue(e.target.value)}
+            disabled={staffLoading}
+            className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="">
+              {staffLoading ? 'Chargement…' : teachers.length === 0 ? 'Aucun enseignant' : '— Sélectionner un enseignant —'}
+            </option>
+            {teachers.map(t => (
+              <option key={t.id} value={String(t.id)}>
+                {t.firstName ?? ''} {t.lastName ?? ''}{t.email ? ` (${t.email})` : ''}
+              </option>
+            ))}
+          </select>
           <button
-            onClick={handleSearch}
-            disabled={!searchId}
+            onClick={handleLoad}
+            disabled={!selectValue}
             className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
           >
             <RefreshCw size={14} />
@@ -228,15 +237,17 @@ export default function TeachersPage() {
         </div>
       </motion.div>
 
-      <motion.div
-        className="bg-zinc-50 rounded-xl border border-zinc-200 p-6 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.16 }}
-      >
-        <BookOpen size={32} className="mx-auto text-zinc-300 mb-2" />
-        <p className="text-sm text-zinc-500">Entrez un ID enseignant pour consulter son tableau de bord, ses scans et gérer ses classes.</p>
-      </motion.div>
+      {teachers.length === 0 && !staffLoading && (
+        <motion.div
+          className="bg-zinc-50 rounded-xl border border-zinc-200 p-6 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.16 }}
+        >
+          <BookOpen size={32} className="mx-auto text-zinc-300 mb-2" />
+          <p className="text-sm text-zinc-500">Aucun enseignant trouvé dans l'établissement.</p>
+        </motion.div>
+      )}
     </div>
   )
 }

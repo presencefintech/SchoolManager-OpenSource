@@ -63,6 +63,33 @@ export function useProcessPayment() {
   })
 }
 
+export function useWeeklyRevenueTrend() {
+  return useQuery({
+    queryKey: ['finance', 'weekly-revenue-trend'],
+    queryFn: async () => {
+      const end = new Date()
+      const start = new Date(end.getTime() - 6 * 86400_000)
+      const raw = await financeRoleApi.searchTransactions({
+        status: 'CONFIRMED',
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        limit: 300,
+      })
+      const items: Array<Record<string, unknown>> = Array.isArray(raw) ? raw : (raw as { data?: unknown[] })?.data ?? []
+      const map = new Map<string, number>()
+      for (const tx of items) {
+        const day = String(tx.confirmedAt ?? tx.createdAt ?? '').slice(0, 10)
+        if (day) map.set(day, (map.get(day) ?? 0) + (Number(tx.amount) || 0))
+      }
+      return Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(end.getTime() - (6 - i) * 86400_000).toISOString().slice(0, 10)
+        return map.get(d) ?? 0
+      })
+    },
+    staleTime: 120_000,
+  })
+}
+
 export function useSearchTransactions(params: Parameters<typeof financeRoleApi.searchTransactions>[0]) {
   const hasParams = Object.values(params).some(v => v !== undefined && v !== '')
   return useQuery({

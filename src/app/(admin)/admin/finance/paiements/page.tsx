@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   DollarSign, Search, RefreshCw, Filter, CheckCircle, XCircle,
-  Shield, Send, Ban, Smartphone, Download, CheckCheck, Eye,
+  Shield, Send, Ban, Smartphone, Download, CheckCheck, Eye, FileDown,
 } from 'lucide-react'
+import { adminPdfApi } from '@/lib/admin/api'
 import {
   usePendingVerifications, useMobilePending, useVerifyPayment,
   useConfirmMobilePayment, useConfirmBankTransaction, useResendReceipt,
@@ -469,6 +470,21 @@ export default function PaiementsPage() {
                         <button onClick={() => resendReceipt(p.paymentId)}
                           className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors" title="Renvoyer reçu">
                           <Send size={14} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const blob = await adminPdfApi.getReceipt(p.paymentId)
+                              const url = URL.createObjectURL(blob)
+                              const a = document.createElement('a')
+                              a.href = url
+                              a.download = `recu-${p.paymentId}.pdf`
+                              a.click()
+                              URL.revokeObjectURL(url)
+                            } catch {}
+                          }}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors" title="Télécharger reçu PDF">
+                          <FileDown size={14} />
                         </button>
                       </div>
                     </td>

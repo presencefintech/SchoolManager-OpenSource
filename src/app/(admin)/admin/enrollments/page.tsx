@@ -6,12 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   UserPlus, Plus, Lock, CheckCircle, Flag,
   Loader2, ChevronLeft, ChevronRight, Search, XCircle,
-  PauseCircle, RefreshCw,
+  PauseCircle, RefreshCw, GraduationCap, AlertTriangle, Clock, Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useEnrollments, useEnrollmentDetail,
   useApproveEnrollment, useFinalizeEnrollment, useToggleLock, useSyncBalance,
+  useStudentDashboard,
 } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
@@ -65,6 +66,8 @@ export default function EnrollmentsPage() {
   const enrollments = enrollmentsData?.data ?? []
   const totalPages = enrollmentsData?.totalPages ?? 1
   const total = enrollmentsData?.total ?? 0
+  const { data: studentDash } = useStudentDashboard()
+  const s = (studentDash as any)?.stats as any
 
   useEffect(() => {
     const q = searchParams.get('search')
@@ -148,6 +151,26 @@ export default function EnrollmentsPage() {
       </motion.div>
 
       <div className="max-w-7xl mx-auto px-8 py-6 space-y-4">
+        {s && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total inscrits',  value: s.totalStudents  ?? '—', icon: GraduationCap, bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
+              { label: 'Actifs',          value: s.activeCount    ?? '—', icon: CheckCircle,   bg: 'bg-emerald-50', iconCls: 'text-emerald-600' },
+              { label: 'Pré-inscrits',    value: s.preEnrollCount ?? '—', icon: Clock,         bg: 'bg-amber-50',   iconCls: 'text-amber-600' },
+              { label: 'Suspendus',       value: s.suspendedCount ?? '—', icon: AlertTriangle, bg: 'bg-red-50',     iconCls: 'text-red-600' },
+            ].map(({ label, value, icon: Icon, bg, iconCls }) => (
+              <div key={label} className="bg-white rounded-2xl border border-zinc-100 px-4 py-4 flex items-center gap-3 shadow-sm">
+                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', bg)}>
+                  <Icon size={15} className={iconCls} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-zinc-400 uppercase tracking-wide">{label}</p>
+                  <p className="text-xl font-bold text-zinc-900 leading-none tabular-nums mt-0.5">{value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="relative max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input

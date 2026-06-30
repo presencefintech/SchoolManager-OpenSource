@@ -67,6 +67,10 @@ export const enrollmentsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data),
 
+  updateFingerprintBiometrics: (studentId: number, payload: { fingerprintVector: number[] }) =>
+    apiClient.put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics/fingerprint`, payload)
+      .then((r) => r.data),
+
   toggleLock: (studentId: number) =>
     apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/toggle-lock`)
       .then((r) => r.data),
