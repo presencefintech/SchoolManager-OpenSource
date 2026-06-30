@@ -14,7 +14,7 @@ export const notificationsApi = {
 
   cleanup: () =>
     apiClient
-      .post<{ success: boolean; data: { deleted: number } }>('/superadmin/notifications/cleanup')
+      .delete<{ success: boolean; data: { deleted: number } }>('/superadmin/notifications/cleanup')
       .then((r) => r.data.data),
 
   getQueueStatus: () =>

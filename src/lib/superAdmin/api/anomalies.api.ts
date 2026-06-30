@@ -12,13 +12,13 @@ export const anomaliesApi = {
       .post<{ success: boolean; data: FraudAnalysisResult }>(`/superadmin/anomalies/analyze/${studentId}`)
       .then((r) => r.data.data),
 
-  getThresholds: () =>
+  getThresholds: (schoolId: number) =>
     apiClient
-      .get<{ success: boolean; data: AnomalyThresholds }>('/superadmin/anomalies/thresholds')
+      .get<{ success: boolean; data: AnomalyThresholds }>('/superadmin/anomalies/thresholds', { params: { schoolId } })
       .then((r) => r.data.data),
 
   updateThresholds: (thresholds: AnomalyThresholds) =>
     apiClient
-      .put<{ success: boolean; data: AnomalyThresholds }>('/superadmin/anomalies/thresholds', thresholds)
+      .patch<{ success: boolean; data: AnomalyThresholds }>('/superadmin/anomalies/thresholds', thresholds)
       .then((r) => r.data.data),
 }
