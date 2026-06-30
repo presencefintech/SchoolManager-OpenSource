@@ -73,8 +73,8 @@ export const enrollmentApi = {
   testFaceId: (studentId: number, imageBase64: string) =>
     apiClient
       .post<{ success: boolean; data: { match: boolean; score: number } }>(
-        `/superadmin/enrollment/${studentId}/test-face-id`,
-        { imageBase64 },
+        '/superadmin/enrollment/audit/test-face-id',
+        { studentId, imageBase64 },
       )
       .then((r) => r.data.data),
 

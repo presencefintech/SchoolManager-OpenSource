@@ -1009,7 +1009,7 @@ export function useInviteStaff() {
 export function useRevokeStaffInvitation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (email: string) => invitationsApi.revokeStaffInvitation(email),
+    mutationFn: (targetUserId: number) => invitationsApi.revokeStaffInvitation(targetUserId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invitations'] }),
   })
 }

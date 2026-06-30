@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Mail, UserPlus, Trash2, RefreshCw, Copy, Check } from 'lucide-react'
-import { useInvitationStatus, useGenerateParentCode, useRevokeParentCode, useInviteStaff, useRevokeStaffInvitation } from '@/lib/hooks/use-admin'
+import { useInvitationStatus, useGenerateParentCode, useRevokeParentCode, useInviteStaff, useRevokeStaffInvitation, useStudents } from '@/lib/hooks/use-admin'
 import type { InviteStaffPayload } from '@/types/admin'
 
 function CopyButton({ text }: { text: string }) {
@@ -24,8 +24,10 @@ function ParentCodesTab() {
   const generateCode = useGenerateParentCode()
   const revokeCode = useRevokeParentCode()
   const [studentId, setStudentId] = useState('')
+  const { data: studentsData, isLoading: studentsLoading } = useStudents({ limit: 200, status: 'ACTIVE' })
 
   const codes = data?.parentCodes ?? []
+  const students = studentsData?.data ?? []
 
   const handleGenerate = () => {
     const id = Number(studentId)
@@ -38,13 +40,19 @@ function ParentCodesTab() {
       <div className="bg-white rounded-xl border border-zinc-200 p-4">
         <h3 className="text-sm font-semibold text-zinc-700 mb-3">Générer un code</h3>
         <div className="flex gap-2">
-          <input
-            type="number"
-            placeholder="ID de l'élève"
+          <select
             value={studentId}
             onChange={e => setStudentId(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
+            disabled={studentsLoading}
+            className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
+          >
+            <option value="">— Sélectionner un élève —</option>
+            {students.map(s => (
+              <option key={s.id} value={String(s.id)}>
+                {s.firstName} {s.lastName}{s.className ? ` · ${s.className}` : ''}{s.matricule ? ` (${s.matricule})` : ''}
+              </option>
+            ))}
+          </select>
           <button
             onClick={handleGenerate}
             disabled={!studentId || generateCode.isPending}
@@ -203,7 +211,7 @@ function StaffInvitationsTab() {
                   <td className="px-4 py-2.5 text-right">
                     {inv.status === 'PENDING' && (
                       <button
-                        onClick={() => revokeInvitation.mutate(inv.email)}
+                        onClick={() => revokeInvitation.mutate((inv as any).userId ?? inv.id)}
                         disabled={revokeInvitation.isPending}
                         className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                         title="Révoquer"

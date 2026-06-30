@@ -13,20 +13,60 @@ import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
 
-function KpiCard({ label, value, sub, icon: Icon, color, bg }: {
+function Sparkline({ data, hex }: { data: number[]; hex: string }) {
+  if (data.length < 2 || data.every(v => v === 0)) return null
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const W = 72, H = 28
+  const pts = data.map((v, i) => {
+    const x = ((i / (data.length - 1)) * W).toFixed(1)
+    const y = (H - ((v - min) / range) * H * 0.8 - H * 0.1).toFixed(1)
+    return `${x},${y}`
+  }).join(' ')
+  const lastV = data[data.length - 1]
+  const lastX = W
+  const lastY = (H - ((lastV - min) / range) * H * 0.8 - H * 0.1).toFixed(1)
+  return (
+    <svg width={W} height={H} className="overflow-visible opacity-75">
+      <polyline points={pts} fill="none" stroke={hex} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lastX} cy={lastY} r="2.5" fill={hex} />
+    </svg>
+  )
+}
+
+function MiniGauge({ value, hex }: { value: number; hex: string }) {
+  const pct = Math.min(Math.max(value, 0), 100)
+  return (
+    <div className="mt-3 h-1 rounded-full bg-zinc-100 overflow-hidden">
+      <div className="h-full rounded-full transition-all duration-700" style={{ width: `${pct}%`, backgroundColor: hex }} />
+    </div>
+  )
+}
+
+function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeValue, hex = '#6366f1' }: {
   label: string; value: string | number; sub?: string
   icon: React.ElementType; color: string; bg: string
+  sparkData?: number[]
+  gaugeValue?: number
+  hex?: string
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 p-5 shadow-sm">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
-          <Icon size={16} className={color} />
+    <div className="bg-white rounded-2xl border border-zinc-200/70 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">{label}</p>
+          <p className="text-3xl font-bold text-zinc-900 tabular-nums leading-none">{value}</p>
+          {sub && <p className="text-xs text-zinc-400 mt-1.5">{sub}</p>}
+          {gaugeValue !== undefined && <MiniGauge value={gaugeValue} hex={hex} />}
         </div>
-        <p className="text-xs text-zinc-500">{label}</p>
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
+            <Icon size={18} className={color} />
+          </div>
+          {sparkData && <Sparkline data={sparkData} hex={hex} />}
+        </div>
       </div>
-      <p className="text-2xl font-bold text-zinc-900">{value}</p>
-      {sub && <p className="text-xs text-zinc-400 mt-1">{sub}</p>}
     </div>
   )
 }
@@ -55,7 +95,7 @@ export default function FinanceDashboardPage() {
     : ''
 
   return (
-    <div className="px-8 py-8 space-y-6">
+    <div className="min-h-full bg-[#f5f7fb] px-8 py-8 space-y-6">
       {/* Header */}
       <motion.div
         className="flex items-center justify-between"
@@ -98,6 +138,7 @@ export default function FinanceDashboardPage() {
                   value={g?.collectionsToday?.total != null ? `${Number(g.collectionsToday.total).toLocaleString('fr-FR')} F` : '—'}
                   sub={`${g?.collectionsToday?.count ?? 0} transaction(s)`}
                   icon={DollarSign} color="text-emerald-600" bg="bg-emerald-50"
+                  sparkData={revenueTrend} hex="#059669"
                 />
               </motion.div>
               <motion.div variants={fadeUp}>
@@ -147,7 +188,7 @@ export default function FinanceDashboardPage() {
 
       {/* Encaissements par méthode + Top débiteurs */}
       <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900">Encaissements du jour</h3>
             {totalCash > 0 && (
@@ -180,7 +221,7 @@ export default function FinanceDashboardPage() {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users size={14} className="text-zinc-400" />
@@ -237,7 +278,7 @@ export default function FinanceDashboardPage() {
 
       {/* Analytics de recouvrement */}
       {coll && Object.keys(coll).length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
             <AlertTriangle size={14} className="text-zinc-400" />
             <h3 className="text-sm font-semibold text-zinc-900">Analytics de recouvrement</h3>

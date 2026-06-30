@@ -68,7 +68,9 @@ export default function PaiementsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.studentId) { setErrorMsg('Sélectionnez un élève'); setStatus('error'); return }
-    if (!hasSession) { setErrorMsg('Aucune session de caisse ouverte — ouvrez une session dans Caisse avant d\'encaisser.'); setStatus('error'); return }
+    if (!hasSession) { setErrorMsg("Aucune session de caisse ouverte — ouvrez une session dans Caisse avant d'encaisser."); setStatus('error'); return }
+    if (!form.amount || Number(form.amount) <= 0) { setErrorMsg('Montant invalide'); setStatus('error'); return }
+    if ((feeStructures as any[]).length > 0 && !form.feeStructureId) { setErrorMsg('Veuillez sélectionner une structure de frais.'); setStatus('error'); return }
     setStatus('idle')
     try {
       const result = await processPayment({
@@ -210,17 +212,20 @@ export default function PaiementsPage() {
 
             {(feeStructures as any[]).length > 0 && (
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Structure de frais</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">
+                  Structure de frais <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={form.feeStructureId}
                   onChange={e => setForm(p => ({ ...p, feeStructureId: e.target.value }))}
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 >
-                  <option value="">— Aucune —</option>
+                  <option value="">— Sélectionner —</option>
                   {(feeStructures as any[]).map((fs: any) => (
                     <option key={fs.id} value={fs.id}>{fs.label} · {Number(fs.amount).toLocaleString('fr-FR')} F</option>
                   ))}
                 </select>
+                <p className="text-xs text-zinc-400 mt-1">Le montant est calculé depuis le barème sélectionné</p>
               </div>
             )}
 
