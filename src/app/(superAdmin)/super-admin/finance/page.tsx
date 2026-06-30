@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   Building2, TrendingUp, TrendingDown, ShieldAlert, ShieldCheck,
   Star, Banknote, CheckCircle2, AlertTriangle, XCircle,
-  ChevronRight, Activity,
+  ChevronRight, Activity, Loader2,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
@@ -17,6 +18,7 @@ import {
   useFinanceAnomalies, useFinanceAuditFull, useEndOfDaySnapshot,
   usePaymentSecurityAudit, useHighRiskProfiles,
 } from '@/lib/hooks/use-super-admin'
+import { financeApi } from '@/lib/superAdmin/api/finance.api'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -45,6 +47,34 @@ export default function FinancePage() {
   const { data: schools } = useSchools()
   const [schoolId, setSchoolId] = useState<number | null>(null)
   const id = schoolId ?? 0
+  const qc = useQueryClient()
+
+  /* KYC payment profiles */
+  const { data: kycProfiles = [], isLoading: loadingKyc } = useQuery({
+    queryKey: ['superadmin', 'finance', 'payment-profiles'],
+    queryFn: financeApi.getPaymentProfiles,
+  })
+  const [kycAction, setKycAction] = useState<{ schoolId: number; action: 'verify' | 'reject' } | null>(null)
+  const [kycFeedback, setKycFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const verifyMut = useMutation({
+    mutationFn: (sid: number) => financeApi.verifyKycProfile(sid),
+    onSuccess: () => {
+      setKycFeedback({ type: 'success', message: 'Profil KYC validé.' })
+      setKycAction(null)
+      qc.invalidateQueries({ queryKey: ['superadmin', 'finance', 'payment-profiles'] })
+    },
+    onError: () => setKycFeedback({ type: 'error', message: 'Erreur lors de la validation.' }),
+  })
+  const rejectMut = useMutation({
+    mutationFn: (sid: number) => financeApi.rejectKycProfile(sid),
+    onSuccess: () => {
+      setKycFeedback({ type: 'success', message: 'Profil KYC rejeté.' })
+      setKycAction(null)
+      qc.invalidateQueries({ queryKey: ['superadmin', 'finance', 'payment-profiles'] })
+    },
+    onError: () => setKycFeedback({ type: 'error', message: 'Erreur lors du rejet.' }),
+  })
 
   const { data: perf,        isLoading: loadingPerf }       = useFinancePerformance(id)
   const { data: levels,      isLoading: loadingLevels }     = useFinanceEfficiency(id)
@@ -543,6 +573,86 @@ export default function FinancePage() {
             ) : (
               <div className="px-7 py-10 text-center text-sm text-zinc-400">
                 {highRisk ? 'Aucun profil à risque élevé' : 'Sélectionnez un établissement'}
+              </div>
+            )}
+          </div>
+
+          {/* ══ 7. KYC PROFILS DE RÈGLEMENT ═════════════════════════════════ */}
+          <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="px-7 py-5 border-b border-zinc-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Banknote size={14} className="text-emerald-600" />
+                <h2 className="text-base font-semibold text-zinc-900">Profils de règlement KYC</h2>
+              </div>
+              {kycFeedback && (
+                <span className={cn(
+                  'text-xs font-semibold px-3 py-1.5 rounded-full',
+                  kycFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                )}>
+                  {kycFeedback.message}
+                </span>
+              )}
+            </div>
+            {loadingKyc ? (
+              <div className="px-7 py-6 space-y-3">
+                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+              </div>
+            ) : (kycProfiles as Record<string, unknown>[]).length === 0 ? (
+              <div className="px-7 py-10 text-center text-sm text-zinc-400">Aucun profil enregistré</div>
+            ) : (
+              <div className="divide-y divide-zinc-100">
+                {(kycProfiles as Record<string, unknown>[]).map((profile) => {
+                  const sid = profile.schoolId as number
+                  const name = (profile.school as Record<string, unknown> | undefined)?.name as string | undefined ?? `École #${sid}`
+                  const status = profile.kycStatus as string | undefined
+                  const isActing = kycAction?.schoolId === sid
+                  const STATUS_COLORS: Record<string, string> = {
+                    VERIFIED:     'bg-emerald-50 text-emerald-700',
+                    PENDING:      'bg-amber-50 text-amber-700',
+                    NOT_CONFIGURED: 'bg-zinc-100 text-zinc-500',
+                    REJECTED:     'bg-red-50 text-red-600',
+                  }
+                  return (
+                    <div key={sid} className="flex items-center justify-between px-7 py-4 hover:bg-zinc-50 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Building2 size={14} className="text-zinc-400 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-zinc-800 truncate">{name}</p>
+                          {!!profile.legalName && (
+                            <p className="text-xs text-zinc-400 truncate">{String(profile.legalName)}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {status && (
+                          <span className={cn('text-[10px] font-bold px-2.5 py-0.5 rounded-full', STATUS_COLORS[status] ?? 'bg-zinc-100 text-zinc-500')}>
+                            {status}
+                          </span>
+                        )}
+                        {status !== 'VERIFIED' && (
+                          <button
+                            onClick={() => { setKycAction({ schoolId: sid, action: 'verify' }); setKycFeedback(null); verifyMut.mutate(sid) }}
+                            disabled={isActing && verifyMut.isPending}
+                            className="flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                          >
+                            {isActing && verifyMut.isPending ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                            Valider
+                          </button>
+                        )}
+                        {status !== 'REJECTED' && status !== 'NOT_CONFIGURED' && (
+                          <button
+                            onClick={() => { setKycAction({ schoolId: sid, action: 'reject' }); setKycFeedback(null); rejectMut.mutate(sid) }}
+                            disabled={isActing && rejectMut.isPending}
+                            className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-40"
+                          >
+                            {isActing && rejectMut.isPending ? <Loader2 size={10} className="animate-spin" /> : <XCircle size={10} />}
+                            Rejeter
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

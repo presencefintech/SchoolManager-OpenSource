@@ -2,10 +2,21 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, AlertTriangle, Search, Filter, DollarSign, TrendingDown, ChevronDown } from 'lucide-react'
-import { useDebtors, useHighRisk, useStudentFinanceProfile } from '@/lib/hooks/use-finance'
+import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet } from 'lucide-react'
+import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet } from '@/lib/hooks/use-finance'
+import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { RiskEntry, StudentWallet } from '@/types/finance'
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -14,19 +25,34 @@ function Sk({ className }: { className?: string }) {
 export default function DebiteursPage() {
   const [minDebt, setMinDebt] = useState(10)
   const [minDebtInput, setMinDebtInput] = useState('10')
-  const [studentIdInput, setStudentIdInput] = useState('')
   const [searchedId, setSearchedId] = useState(0)
   const [expandedDebtor, setExpandedDebtor] = useState<number | null>(null)
+  const [reminderDone, setReminderDone] = useState(false)
 
   const { data: debtorsData, isLoading: loadingDebtors } = useDebtors(minDebt)
-  const { data: highRisk, isLoading: loadingRisk } = useHighRisk()
   const { data: studentProfile, isLoading: loadingProfile } = useStudentFinanceProfile(searchedId)
+  const { data: walletData, isLoading: loadingWallet } = useStudentWallet(searchedId)
+  const { data: highRiskData, isLoading: loadingRisk } = useHighRisk()
+  const exportDebtors = useExportDebtors()
+  const { mutateAsync: triggerReminders, isPending: triggering } = useTriggerDebtReminders()
+
+  async function handleExport() {
+    try {
+      const blob = await exportDebtors.mutateAsync()
+      downloadBlob(blob, `debiteurs-${new Date().toISOString().slice(0, 10)}.csv`)
+    } catch {}
+  }
+
+  async function handleReminders() {
+    try { await triggerReminders(); setReminderDone(true) } catch {}
+  }
 
   const debtors: any[] = (debtorsData as any)?.data ?? (Array.isArray(debtorsData) ? debtorsData : [])
-  const risks: any[] = Array.isArray(highRisk) ? highRisk : (highRisk as any)?.data ?? []
   const profile = studentProfile as any
+  const wallet = walletData as StudentWallet | undefined
+  const highRisk: RiskEntry[] = (highRiskData as any)?.data ?? (Array.isArray(highRiskData) ? highRiskData : [])
 
-  const totalDebt = debtors.reduce((acc, d) => acc + (Number(d.balance) || 0), 0)
+  const totalDebt = debtors.reduce((acc, d) => acc + (Number(d.feesBalance) || 0), 0)
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -39,18 +65,28 @@ export default function DebiteursPage() {
           <h1 className="text-2xl font-bold text-zinc-900">Débiteurs & Risques</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Suivi des impayés et profils à risque</p>
         </div>
-        {debtors.length > 0 && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-100 bg-red-50 text-xs font-medium text-red-700">
-              <TrendingDown size={13} />
-              {debtors.length} débiteur(s)
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-100 bg-white text-xs font-medium text-zinc-700 shadow-sm">
-              <DollarSign size={13} className="text-red-500" />
-              {totalDebt.toLocaleString('fr-FR')} F de dette cumulée
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {debtors.length > 0 && (
+            <>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-100 bg-red-50 text-xs font-medium text-red-700">
+                <TrendingDown size={13} />
+                {debtors.length} débiteur(s)
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-100 bg-white text-xs font-medium text-zinc-700 shadow-sm">
+                <DollarSign size={13} className="text-red-500" />
+                {totalDebt.toLocaleString('fr-FR')} F
+              </div>
+            </>
+          )}
+          <button onClick={handleExport} disabled={exportDebtors.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40">
+            <Download size={12} /> Export CSV
+          </button>
+          <button onClick={handleReminders} disabled={triggering || reminderDone}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs disabled:opacity-40 ${reminderDone ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
+            <Bell size={12} /> {reminderDone ? 'Relances envoyées' : 'Relancer'}
+          </button>
+        </div>
       </motion.div>
 
       {/* Filtre */}
@@ -99,52 +135,41 @@ export default function DebiteursPage() {
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Élève</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Matricule</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Classe</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Total dû</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Payé</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Balance</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Dernier paiement</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Solde dû</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody>
                 {debtors.map((dbtr: any, i: number) => (
                   <tr
-                    key={dbtr.studentId ?? i}
+                    key={dbtr.id ?? i}
                     className="border-b border-zinc-50 hover:bg-zinc-50/50 cursor-pointer"
                     onClick={() => {
-                      setSearchedId(dbtr.studentId)
-                      setStudentIdInput(String(dbtr.studentId))
-                      setExpandedDebtor(expandedDebtor === dbtr.studentId ? null : dbtr.studentId)
+                      setSearchedId(dbtr.id)
+                      setExpandedDebtor(expandedDebtor === dbtr.id ? null : dbtr.id)
                     }}
                   >
                     <td className="px-5 py-3.5 font-medium text-zinc-900">{dbtr.firstName} {dbtr.lastName}</td>
-                    <td className="px-5 py-3.5 text-zinc-500">{dbtr.className ?? '—'}</td>
-                    <td className="px-5 py-3.5 text-right text-zinc-700">{dbtr.totalDue != null ? `${Number(dbtr.totalDue).toLocaleString('fr-FR')} F` : '—'}</td>
-                    <td className="px-5 py-3.5 text-right text-emerald-700 font-medium">{dbtr.totalPaid != null ? `${Number(dbtr.totalPaid).toLocaleString('fr-FR')} F` : '—'}</td>
-                    <td className="px-5 py-3.5 text-right font-semibold text-red-600">{dbtr.balance != null ? `${Number(dbtr.balance).toLocaleString('fr-FR')} F` : '—'}</td>
-                    <td className="px-5 py-3.5 text-xs text-zinc-400">
-                      {dbtr.lastPaymentDate ? new Date(dbtr.lastPaymentDate).toLocaleDateString('fr-FR') : '—'}
+                    <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">{dbtr.matricule ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-zinc-500">{dbtr.class?.name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-right font-semibold text-red-600">
+                      {dbtr.feesBalance != null ? `${Number(dbtr.feesBalance).toLocaleString('fr-FR')} F` : '—'}
                     </td>
                     <td className="px-5 py-3.5">
-                      <ChevronDown size={14} className={`text-zinc-400 transition-transform ${expandedDebtor === dbtr.studentId ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={14} className={`text-zinc-400 transition-transform ${expandedDebtor === dbtr.id ? 'rotate-180' : ''}`} />
                     </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="bg-zinc-50/50 border-t border-zinc-100">
-                  <td colSpan={2} className="px-5 py-3 text-xs font-semibold text-zinc-500">Total ({debtors.length} débiteurs)</td>
-                  <td className="px-5 py-3 text-right text-xs font-semibold text-zinc-700">
-                    {debtors.reduce((a, d) => a + (Number(d.totalDue) || 0), 0).toLocaleString('fr-FR')} F
-                  </td>
-                  <td className="px-5 py-3 text-right text-xs font-semibold text-emerald-700">
-                    {debtors.reduce((a, d) => a + (Number(d.totalPaid) || 0), 0).toLocaleString('fr-FR')} F
-                  </td>
+                  <td colSpan={3} className="px-5 py-3 text-xs font-semibold text-zinc-500">Total ({debtors.length} débiteurs)</td>
                   <td className="px-5 py-3 text-right text-xs font-bold text-red-600">
                     {totalDebt.toLocaleString('fr-FR')} F
                   </td>
-                  <td colSpan={2} />
+                  <td />
                 </tr>
               </tfoot>
             </table>
@@ -152,78 +177,75 @@ export default function DebiteursPage() {
         )}
       </motion.div>
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Profils à haut risque */}
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
-          <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-amber-500" />
-              <h2 className="text-sm font-semibold text-zinc-900">Profils à haut risque</h2>
-            </div>
-            {risks.length > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{risks.length}</span>
-            )}
+      {/* Profils à haut risque */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className="text-red-400" />
+            <h2 className="text-sm font-semibold text-zinc-900">Profils à haut risque</h2>
           </div>
-          {loadingRisk ? (
-            <div className="p-5 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
-          ) : risks.length === 0 ? (
-            <div className="py-10 text-center">
-              <AlertTriangle size={22} className="mx-auto text-zinc-300 mb-2" />
-              <p className="text-sm text-zinc-400">Aucun profil à risque</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-zinc-50 max-h-96 overflow-y-auto">
-              {risks.map((r: any, i: number) => (
-                <div key={r.studentId ?? i} className="px-5 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-900">{r.firstName ?? r.studentName} {r.lastName ?? ''}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {r.className && <span className="text-xs text-zinc-400">{r.className}</span>}
-                      {r.riskLevel && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                          r.riskLevel === 'HIGH' ? 'bg-red-50 text-red-700' :
-                          r.riskLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
-                          'bg-zinc-100 text-zinc-500'
-                        }`}>{r.riskLevel}</span>
-                      )}
-                      {r.riskScore != null && (
-                        <span className="text-xs text-zinc-400">score: {r.riskScore}</span>
-                      )}
-                    </div>
-                  </div>
-                  {r.balance != null && (
-                    <span className="text-sm font-semibold text-red-600">{Number(r.balance).toLocaleString('fr-FR')} F</span>
-                  )}
-                </div>
-              ))}
-            </div>
+          {highRisk.length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{highRisk.length}</span>
           )}
         </div>
+        {loadingRisk ? (
+          <div className="p-5 space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+          </div>
+        ) : highRisk.length === 0 ? (
+          <div className="py-8 text-center">
+            <AlertTriangle size={20} className="mx-auto text-zinc-200 mb-2" />
+            <p className="text-sm text-zinc-400">Aucun profil à haut risque</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Élève</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Classe</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Solde dû</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Risque</th>
+                </tr>
+              </thead>
+              <tbody>
+                {highRisk.map((r, i) => (
+                  <tr key={r.studentId ?? i} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                    <td className="px-5 py-3.5 font-medium text-zinc-900">{r.firstName} {r.lastName}</td>
+                    <td className="px-5 py-3.5 text-zinc-500 text-xs">{r.className ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-right font-semibold text-red-600">
+                      {Number(r.tuitionBalance ?? r.balance ?? 0).toLocaleString('fr-FR')} F
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        r.riskLevel === 'HIGH' ? 'bg-red-100 text-red-700' :
+                        r.riskLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
+                        'bg-zinc-100 text-zinc-500'
+                      }`}>
+                        {r.riskLevel ?? 'HIGH'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-        {/* Profil financier élève */}
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+      {/* Profil financier élève */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm max-w-xl">
           <div className="px-5 py-4 border-b border-zinc-100">
             <h2 className="text-sm font-semibold text-zinc-900">Profil financier 360°</h2>
             <p className="text-xs text-zinc-400 mt-0.5">Cliquez sur un débiteur ou saisissez un ID</p>
           </div>
           <div className="p-5">
-            <div className="flex gap-2 mb-5">
-              <div className="relative flex-1">
-                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="number" min={1}
-                  value={studentIdInput}
-                  onChange={e => setStudentIdInput(e.target.value)}
-                  placeholder="ID de l'élève"
-                  className="w-full pl-8 pr-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                />
-              </div>
-              <button
-                onClick={() => setSearchedId(Number(studentIdInput) || 0)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700"
-              >
-                Chercher
-              </button>
+            <div className="mb-5">
+              <FinanceStudentSearchField
+                studentId={searchedId}
+                onSelect={(id) => setSearchedId(id)}
+                label="Rechercher un élève"
+              />
             </div>
 
             {loadingProfile && (
@@ -316,12 +338,53 @@ export default function DebiteursPage() {
               </motion.div>
             )}
 
+            {/* Portefeuille élève */}
+            {searchedId > 0 && (loadingWallet || wallet) && (
+              <div className="mt-4 pt-4 border-t border-zinc-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <Wallet size={13} className="text-zinc-400" />
+                  <p className="text-xs font-semibold text-zinc-700">Portefeuille</p>
+                </div>
+                {loadingWallet ? (
+                  <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-6" />)}</div>
+                ) : wallet ? (
+                  <div className="space-y-1.5">
+                    {[
+                      ['Solde', `${Number(wallet.balance).toLocaleString('fr-FR')} F`, Number(wallet.balance) < 0 ? 'text-red-600' : 'text-zinc-800'],
+                      ['Total payé', `${Number(wallet.totalPaid).toLocaleString('fr-FR')} F`, 'text-emerald-700'],
+                      ['Total dû', `${Number(wallet.totalDue).toLocaleString('fr-FR')} F`, 'text-zinc-800'],
+                      ...(wallet.lastPaymentAt ? [['Dernier paiement', new Date(wallet.lastPaymentAt).toLocaleDateString('fr-FR'), 'text-zinc-500']] : []),
+                    ].map(([k, v, cls]) => (
+                      <div key={k} className="flex items-center justify-between py-1 border-b border-zinc-50 last:border-0">
+                        <span className="text-xs text-zinc-500">{k}</span>
+                        <span className={`text-xs font-semibold ${cls}`}>{v}</span>
+                      </div>
+                    ))}
+                    {wallet.transactions && wallet.transactions.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-zinc-50">
+                        <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide mb-1.5">Récents</p>
+                        <div className="space-y-1 max-h-24 overflow-y-auto">
+                          {wallet.transactions.slice(0, 5).map((t) => (
+                            <div key={t.id} className="flex items-center justify-between text-xs">
+                              <span className="text-zinc-500">{t.method} · {new Date(t.createdAt).toLocaleDateString('fr-FR')}</span>
+                              <span className={`font-medium ${t.status === 'CONFIRMED' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {Number(t.amount).toLocaleString('fr-FR')} F
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             {searchedId > 0 && !loadingProfile && !profile && (
               <p className="text-sm text-zinc-400 text-center py-4">Profil introuvable</p>
             )}
           </div>
         </div>
-      </div>
     </div>
   )
 }

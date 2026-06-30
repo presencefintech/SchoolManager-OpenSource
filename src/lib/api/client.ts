@@ -98,8 +98,20 @@ apiClient.interceptors.response.use(
 
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { message?: string } | undefined
-    return data?.message ?? 'Une erreur inattendue est survenue'
+    const data = error.response?.data as {
+      message?: string | string[]
+      errors?: { field?: string; message?: string }[]
+    } | undefined
+    if (data?.errors?.length) {
+      const fieldErrors = data.errors
+        .map(e => (e.field ? `${e.field}: ${e.message}` : e.message))
+        .filter(Boolean)
+        .join(' · ')
+      if (fieldErrors) return fieldErrors
+    }
+    const msg = data?.message
+    if (Array.isArray(msg)) return msg.join(' · ')
+    return msg ?? 'Une erreur inattendue est survenue'
   }
   return 'Une erreur inattendue est survenue'
 }

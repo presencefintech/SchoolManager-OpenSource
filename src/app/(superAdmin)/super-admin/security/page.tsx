@@ -150,19 +150,29 @@ export default function SecurityPage() {
 
   /* Thresholds */
   const { data: thresholds } = useAnomalyThresholds()
-  const [thresholdForm, setThresholdForm] = useState<AnomalyThresholds>({})
+  const [thresholdForm, setThresholdForm] = useState({ fraudScoreMin: '', absenceRateMax: '', devianceMax: '' })
   const [savingThresholds, setSavingThresholds] = useState(false)
   const [thresholdFeedback, setThresholdFeedback] = useState<FeedbackState>(null)
 
   useEffect(() => {
-    if (thresholds) setThresholdForm(thresholds)
+    if (thresholds) {
+      setThresholdForm({
+        fraudScoreMin: thresholds.fraudScoreMin !== undefined ? String(thresholds.fraudScoreMin) : '',
+        absenceRateMax: thresholds.absenceRateMax !== undefined ? String(thresholds.absenceRateMax) : '',
+        devianceMax: thresholds.devianceMax !== undefined ? String(thresholds.devianceMax) : '',
+      })
+    }
   }, [thresholds])
 
   const handleSaveThresholds = async () => {
     setSavingThresholds(true); setThresholdFeedback(null)
     try {
-      await anomaliesApi.updateThresholds(thresholdForm)
-      setThresholdFeedback({ type: 'success', message: 'Seuils mis à jour.' })
+      const payload: Record<string, number | undefined> = {}
+      if (thresholdForm.fraudScoreMin !== '') payload.fraudScoreMin = Number(thresholdForm.fraudScoreMin)
+      if (thresholdForm.absenceRateMax !== '') payload.absenceRateMax = Number(thresholdForm.absenceRateMax)
+      if (thresholdForm.devianceMax !== '') payload.devianceMax = Number(thresholdForm.devianceMax)
+      await anomaliesApi.updateThresholds(payload)
+      setThresholdFeedback({ type: 'success', message: 'Seuils mis à jour avec succès.' })
     } catch (e) {
       setThresholdFeedback({ type: 'error', message: getApiErrorMessage(e) })
     } finally { setSavingThresholds(false) }
@@ -447,41 +457,47 @@ export default function SecurityPage() {
           {/* Seuils d'anomalies */}
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
             <SectionHeader icon={Settings} title="Seuils d'anomalies" desc="Modifier les paramètres de détection" />
-            {!thresholds ? (
-              <div className="py-8 text-center text-sm text-zinc-400">
-                <Settings size={24} className="mx-auto text-zinc-200 mb-2" />
-                Chargement des seuils…
+            <div className="space-y-3">
+              <div>
+                <label className={LABEL_CLS}>Score fraude minimum (0–100)</label>
+                <input
+                  type="number" min={0} max={100}
+                  value={thresholdForm.fraudScoreMin}
+                  onChange={e => setThresholdForm(p => ({ ...p, fraudScoreMin: e.target.value }))}
+                  placeholder={thresholds?.fraudScoreMin !== undefined ? String(thresholds.fraudScoreMin) : '—'}
+                  className={INPUT_CLS}
+                />
               </div>
-            ) : (
-              <div className="space-y-3">
-                {([
-                  { key: 'fraudScoreMin',  label: 'Score fraude min.',    unit: '0–1' },
-                  { key: 'absenceRateMax', label: 'Taux absence max.',     unit: '0–1' },
-                  { key: 'devianceMax',    label: 'Déviance max.',         unit: 'valeur' },
-                ] as const).map(({ key, label, unit }) => (
-                  <div key={key}>
-                    <label className={LABEL_CLS}>{label} <span className="text-zinc-300 font-normal">({unit})</span></label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={thresholdForm[key] ?? ''}
-                      onChange={(e) => setThresholdForm((f) => ({ ...f, [key]: e.target.value === '' ? undefined : Number(e.target.value) }))}
-                      className={INPUT_CLS}
-                    />
-                  </div>
-                ))}
-                <button
-                  onClick={handleSaveThresholds}
-                  disabled={savingThresholds}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 transition-colors mt-1"
-                >
-                  {savingThresholds ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  Enregistrer les seuils
-                </button>
-                <Feedback state={thresholdFeedback} />
+              <div>
+                <label className={LABEL_CLS}>Taux d'absence maximum (0–1)</label>
+                <input
+                  type="number" min={0} max={1} step={0.01}
+                  value={thresholdForm.absenceRateMax}
+                  onChange={e => setThresholdForm(p => ({ ...p, absenceRateMax: e.target.value }))}
+                  placeholder={thresholds?.absenceRateMax !== undefined ? String(thresholds.absenceRateMax) : '—'}
+                  className={INPUT_CLS}
+                />
               </div>
-            )}
+              <div>
+                <label className={LABEL_CLS}>Déviance max</label>
+                <input
+                  type="number" min={0}
+                  value={thresholdForm.devianceMax}
+                  onChange={e => setThresholdForm(p => ({ ...p, devianceMax: e.target.value }))}
+                  placeholder={thresholds?.devianceMax !== undefined ? String(thresholds.devianceMax) : '—'}
+                  className={INPUT_CLS}
+                />
+              </div>
+              <button
+                onClick={handleSaveThresholds}
+                disabled={savingThresholds}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+              >
+                {savingThresholds ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Sauvegarder les seuils
+              </button>
+              <Feedback state={thresholdFeedback} />
+            </div>
           </div>
 
         </div>
