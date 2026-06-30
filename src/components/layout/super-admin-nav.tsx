@@ -28,6 +28,9 @@ const NAV_LINKS = [
   { label: 'Exports',         href: '/super-admin/export',           icon: Download },
   { label: 'Notifications',   href: '/super-admin/notifications',    icon: Bell },
   { label: 'Outils SA',       href: '/super-admin/outils',           icon: Wrench },
+  { label: 'Monitoring',      href: '/super-admin/monitoring',       icon: Activity },
+  { label: 'Fraude',          href: '/super-admin/fraud',            icon: AlertTriangle },
+  { label: 'Mobile Money',    href: '/super-admin/mobile-money',     icon: Smartphone },
 ]
 
 export function SuperAdminNav() {

@@ -9,7 +9,7 @@ import {
 import { useSchools, useAnomalyThresholds } from '@/lib/hooks/use-super-admin'
 import { securityApi } from '@/lib/superAdmin/api/security.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
-import type { FraudAnalysisResult } from '@/types/super-admin'
+import type { FraudAnalysisResult, AnomalyThresholds } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 

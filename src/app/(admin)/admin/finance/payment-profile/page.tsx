@@ -49,8 +49,18 @@ export default function PaymentProfilePage() {
       setError('Saisissez le numéro de compte settlement (requis à chaque enregistrement).')
       return
     }
+    const payload: UpsertPaymentProfilePayload = {
+      legalName: form.legalName,
+      settlementBankCode: form.settlementBankCode,
+      settlementAccountNumber: form.settlementAccountNumber,
+      settlementAccountName: form.settlementAccountName,
+      provider: form.provider,
+      ...(form.contactEmail?.trim() ? { contactEmail: form.contactEmail.trim() } : {}),
+      ...(form.contactPhone?.trim() ? { contactPhone: form.contactPhone.trim() } : {}),
+      ...(form.mobileMoneyBusinessId?.trim() ? { mobileMoneyBusinessId: form.mobileMoneyBusinessId.trim() } : {}),
+    }
     try {
-      await save(form)
+      await save(payload)
       setSuccess(true)
       setForm((f) => ({ ...f, settlementAccountNumber: '' }))
     } catch (err) {

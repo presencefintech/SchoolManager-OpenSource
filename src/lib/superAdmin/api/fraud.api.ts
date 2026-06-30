@@ -2,9 +2,9 @@ import { apiClient } from '@/lib/api/client'
 import type { FraudFlag, FraudAnalysisResult } from '@/types/super-admin'
 
 export const fraudApi = {
-  analyze: (studentId: number) =>
+  analyze: (payload: { schoolId: number; studentId: number; amount: number; method: 'CARD' | 'MOBILE_MONEY' | 'CASH' | 'BANK_TRANSFER' }) =>
     apiClient
-      .post<{ success: boolean; data: FraudAnalysisResult }>(`/superadmin/fraud/analyze/${studentId}`)
+      .post<{ success: boolean; data: FraudAnalysisResult }>('/superadmin/fraud/analyze', payload)
       .then((r) => r.data.data),
 
   getFlags: (params?: { schoolId?: number; page?: number; limit?: number }) =>

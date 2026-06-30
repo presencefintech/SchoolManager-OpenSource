@@ -36,9 +36,10 @@ const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> 
 
 // ── Modals ─────────────────────────────────────────────────────────
 
-function QRKioskModal({ onClose }: { onClose: () => void }) {
+function QRKioskModal({ onClose, classes }: { onClose: () => void; classes: ClassListItem[] }) {
   const [classId, setClassId] = useState('')
   const generate = useGenerateSessionQR()
+  const selected = classes.find(c => String(c.id) === classId)
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -51,12 +52,17 @@ function QRKioskModal({ onClose }: { onClose: () => void }) {
           {!generate.data ? (
             <>
               <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">ID Classe</label>
-                <input
-                  type="number" min={1} value={classId} onChange={e => setClassId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-                  placeholder="ex: 5"
-                />
+                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Classe</label>
+                <select
+                  value={classId}
+                  onChange={e => setClassId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+                >
+                  <option value="">Sélectionner une classe…</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
               <button
                 onClick={() => classId && generate.mutate(Number(classId))}
@@ -69,6 +75,11 @@ function QRKioskModal({ onClose }: { onClose: () => void }) {
             </>
           ) : (
             <div className="text-center space-y-4">
+              {selected && (
+                <p className="text-xs font-semibold text-zinc-500 bg-zinc-50 rounded-lg px-3 py-1.5">
+                  {selected.name}
+                </p>
+              )}
               <img
                 src={generate.data.qrCode}
                 alt="QR Code Kiosque"
@@ -538,7 +549,7 @@ export default function PresencesPage() {
 
       {showManual && <ManualRecordModal onClose={() => setShowManual(false)} />}
       {showBulk   && <BulkPresenceGrid  onClose={() => setShowBulk(false)}   />}
-      {showQR     && <QRKioskModal     onClose={() => setShowQR(false)}      />}
+      {showQR     && <QRKioskModal     onClose={() => setShowQR(false)} classes={classes}  />}
 
       <ConfirmDialog
         open={alertAction != null}

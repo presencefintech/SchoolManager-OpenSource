@@ -4,8 +4,8 @@ import { useMemo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-  GraduationCap, CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
-  TrendingUp, TrendingDown, ArrowRight, AlertTriangle, Server, Zap, RefreshCw,
+  GraduationCap, CheckCircle2, XCircle, Clock,
+  TrendingUp, TrendingDown, ArrowRight, AlertTriangle, Server, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -31,7 +31,7 @@ const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> 
 }
 
 const SEVERITY_CFG: Record<string, string> = {
-  LOW: 'bg-slate-100 text-slate-600',
+  LOW: 'bg-zinc-100 text-zinc-600',
   MEDIUM: 'bg-amber-50 text-amber-700',
   HIGH: 'bg-red-50 text-red-700',
 }
@@ -46,7 +46,7 @@ const KPI_COLORS = {
 } as const
 
 function Sk({ className }: { className?: string }) {
-  return <div className={cn('rounded-xl bg-slate-200/60 animate-pulse', className)} />
+  return <div className={cn('rounded-xl bg-zinc-200/60 animate-pulse', className)} />
 }
 
 function fmtKpi(value: number | undefined, loading: boolean): string | number {
@@ -69,13 +69,13 @@ function Panel({
 }) {
   return (
     <div className={cn(
-      'rounded-xl border border-slate-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden',
+      'rounded-xl border border-zinc-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden',
       className,
     )}>
-      <div className="flex items-start justify-between gap-3 px-5 py-3.5 border-b border-slate-100/90 bg-slate-50/50">
+      <div className="flex items-start justify-between gap-3 px-5 py-3.5 border-b border-zinc-100/90 bg-zinc-50/50">
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-          {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+          <h3 className="text-sm font-semibold text-zinc-800">{title}</h3>
+          {subtitle && <p className="text-xs text-zinc-500 mt-0.5">{subtitle}</p>}
         </div>
         {action}
       </div>
@@ -106,13 +106,13 @@ function KpiCard({
   return (
     <motion.div
       variants={fadeUp}
-      className="bg-white/90 backdrop-blur-sm rounded-xl border border-slate-200/80 shadow-[0_1px_4px_rgba(15,23,42,0.05)] px-5 py-5 min-h-[7rem]"
+      className="bg-white/90 backdrop-blur-sm rounded-xl border border-zinc-200/80 shadow-[0_1px_4px_rgba(15,23,42,0.05)] px-5 py-5 min-h-[7rem]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5">{label}</p>
-          <p className="text-3xl font-bold text-slate-900 tabular-nums leading-none">{value}</p>
-          {sub && <p className="text-sm text-slate-500 mt-1.5">{sub}</p>}
+          <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1.5">{label}</p>
+          <p className="text-3xl font-bold text-zinc-900 tabular-nums leading-none">{value}</p>
+          {sub && <p className="text-sm text-zinc-500 mt-1.5">{sub}</p>}
           {trend && (
             <div className={cn(
               'inline-flex items-center gap-1 mt-2 text-[11px] font-medium',
@@ -171,7 +171,24 @@ export function AdminDashboardView() {
   )
 
   return (
-    <div className="min-h-full bg-[#e8ecf4]">
+    <div className="min-h-full bg-[#f5f7fb]">
+      <div className="bg-white border-b border-zinc-200">
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 py-5">
+          <div>
+            <h1 className="text-2xl font-semibold text-zinc-900">Tableau de bord</h1>
+            <p className="text-sm text-zinc-400 mt-0.5 capitalize" suppressHydrationWarning>
+              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => refetchStats()}
+            className="p-2.5 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50 transition-colors"
+          >
+            <RefreshCw size={15} />
+          </button>
+        </div>
+      </div>
       <motion.div
         className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-5"
         variants={stagger}
@@ -192,7 +209,53 @@ export function AdminDashboardView() {
           </div>
         )}
 
-        {/* KPI — dimensions originales h-28 */}
+        {/* Hero metric */}
+        {loadingStats ? (
+          <Sk className="h-28 rounded-2xl" />
+        ) : (
+          <motion.div
+            variants={fadeUp}
+            className={cn(
+              'relative overflow-hidden rounded-2xl px-8 py-6 text-white',
+              attendanceRate >= 80
+                ? 'bg-gradient-to-br from-indigo-500 to-indigo-600'
+                : attendanceRate >= 60
+                  ? 'bg-gradient-to-br from-amber-500 to-amber-600'
+                  : 'bg-gradient-to-br from-rose-500 to-rose-600',
+            )}
+          >
+            <div className="relative z-10 flex items-center justify-between gap-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60 mb-2">
+                  Taux de présence · Aujourd'hui
+                </p>
+                <div className="flex items-end gap-4">
+                  <p className="text-[64px] font-bold tabular-nums leading-none">{attendanceRate.toFixed(1)}%</p>
+                  {rateDelta && (
+                    <div className={cn(
+                      'flex items-center gap-1 mb-2 text-sm font-semibold',
+                      rateDelta.delta >= 0 ? 'text-white/80' : 'text-white/60',
+                    )}>
+                      {rateDelta.delta >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                      {rateDelta.delta >= 0 ? '+' : ''}{rateDelta.delta.toFixed(1)}% vs hier
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-white/60 mt-2">
+                  {stats?.presentToday ?? 0} présents · {stats?.absentToday ?? 0} absents · {stats?.lateToday ?? 0} retards
+                </p>
+              </div>
+              <div className="text-right hidden lg:block flex-shrink-0">
+                <p className="text-5xl font-bold tabular-nums text-white/25">{stats?.totalStudents ?? 0}</p>
+                <p className="text-xs text-white/40 mt-1 uppercase tracking-wide">élèves inscrits</p>
+              </div>
+            </div>
+            <div className="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
+            <div className="absolute -right-4 -bottom-8 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
+            <div className="absolute right-36 -top-4 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
+          </motion.div>
+        )}
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
             label="Élèves total"
@@ -227,38 +290,6 @@ export function AdminDashboardView() {
           />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
-            label="Taux de présence"
-            value={loadingStats ? '…' : `${attendanceRate.toFixed(1)}%`}
-            icon={Activity}
-            color="violet"
-            loading={loadingStats}
-          />
-          <KpiCard
-            label="Fraudes détectées"
-            value={fmtKpi(stats?.fraudAlerts, loadingStats)}
-            icon={ShieldAlert}
-            color="rose"
-            loading={loadingStats}
-          />
-          <KpiCard
-            label="Alertes sécurité"
-            value={fmtKpi(control?.security?.alerts, loadingControl)}
-            icon={AlertTriangle}
-            color="amber"
-            loading={loadingControl}
-          />
-          <KpiCard
-            label="Workers actifs"
-            value={fmtKpi(control?.workers?.active, loadingControl)}
-            sub={control?.pipeline?.healthy !== false ? 'Pipeline OK' : 'Pipeline dégradé'}
-            icon={Zap}
-            color="indigo"
-            loading={loadingControl}
-          />
-        </div>
-
         {/* Graphiques */}
         <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <Panel title="Tendance de présence" subtitle="7 derniers jours (%)" className="lg:col-span-5">
@@ -289,33 +320,33 @@ export function AdminDashboardView() {
           </Panel>
 
           {/* Live feed */}
-          <div className="lg:col-span-4 rounded-xl border border-slate-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+          <div className="lg:col-span-4 rounded-xl border border-zinc-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-semibold text-slate-800">Flux en direct</span>
+                <span className="text-sm font-semibold text-zinc-800">Flux en direct</span>
               </div>
-              <span className="text-[10px] text-slate-400">15s</span>
+              <span className="text-[10px] text-zinc-400">15s</span>
             </div>
             <div className="flex-1 overflow-y-auto max-h-80">
               {loadingFeed ? (
                 <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Sk key={i} className="h-10" />)}</div>
               ) : feed?.entries?.length ? (
-                <ul className="divide-y divide-slate-50">
+                <ul className="divide-y divide-zinc-50">
                   {feed.entries.map((entry) => {
                     const cfg = STATUS_CFG[entry.status] ?? STATUS_CFG.ABSENT
                     return (
-                      <li key={entry.id} className="flex items-center justify-between px-5 py-2.5 hover:bg-slate-50/80">
+                      <li key={entry.id} className="flex items-center justify-between px-5 py-2.5 hover:bg-zinc-50/80">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <span className={cn('w-2 h-2 rounded-full flex-shrink-0', cfg.dot)} />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-slate-800 truncate">{entry.studentName}</p>
-                            <p className="text-xs text-slate-400 truncate">{entry.className}</p>
+                            <p className="text-sm font-medium text-zinc-800 truncate">{entry.studentName}</p>
+                            <p className="text-xs text-zinc-400 truncate">{entry.className}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', cfg.badge)}>{cfg.label}</span>
-                          <span className="text-[10px] text-slate-400 tabular-nums">
+                          <span className="text-[10px] text-zinc-400 tabular-nums">
                             {new Date(entry.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -324,7 +355,7 @@ export function AdminDashboardView() {
                   })}
                 </ul>
               ) : (
-                <div className="px-5 py-12 text-center text-sm text-slate-400">Aucun enregistrement</div>
+                <div className="px-5 py-12 text-center text-sm text-zinc-400">Aucun enregistrement</div>
               )}
             </div>
           </div>
@@ -336,19 +367,19 @@ export function AdminDashboardView() {
               ) : alerts?.length ? (
                 <ul className="space-y-2 max-h-44 overflow-y-auto">
                   {alerts.slice(0, 4).map((alert) => (
-                    <li key={alert.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <li key={alert.id} className="p-2.5 rounded-lg bg-zinc-50 border border-zinc-100">
                       <div className="flex justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800">{alert.type}</span>
+                        <span className="text-xs font-semibold text-zinc-800">{alert.type}</span>
                         <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', SEVERITY_CFG[alert.severity])}>
                           {alert.severity}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{alert.description}</p>
+                      <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-2">{alert.description}</p>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-xs text-slate-400 text-center py-6">Aucune alerte</p>
+                <p className="text-xs text-zinc-400 text-center py-6">Aucune alerte</p>
               )}
               <Link href="/admin/fraud" className="mt-3 flex items-center justify-center gap-1 text-xs text-indigo-600 font-medium">
                 Centre fraude <ArrowRight size={12} />
@@ -361,20 +392,20 @@ export function AdminDashboardView() {
               ) : control ? (
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Workers</span>
-                    <span className="font-semibold text-slate-800 tabular-nums">{control.workers?.active ?? 0}</span>
+                    <span className="text-zinc-600">Workers</span>
+                    <span className="font-semibold text-zinc-800 tabular-nums">{control.workers?.active ?? 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-600">Alertes sécurité</span>
+                    <span className="text-zinc-600">Alertes sécurité</span>
                     <span className="font-semibold tabular-nums">{control.security?.alerts ?? 0}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 pt-1 text-slate-600">
+                  <div className="flex items-center gap-1.5 pt-1 text-zinc-600">
                     <Server size={13} className={control.pipeline?.healthy ? 'text-emerald-500' : 'text-amber-500'} />
                     Pipeline {control.pipeline?.healthy ? 'OK' : 'dégradé'}
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-slate-400 text-center py-4">Indisponible</p>
+                <p className="text-xs text-zinc-400 text-center py-4">Indisponible</p>
               )}
             </Panel>
           </div>
