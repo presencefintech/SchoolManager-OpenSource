@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench, Activity, AlertTriangle, Smartphone } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -25,6 +25,9 @@ const NAV_LINKS = [
   { label: 'Exports',         href: '/super-admin/export',           icon: Download },
   { label: 'Notifications',   href: '/super-admin/notifications',    icon: Bell },
   { label: 'Outils SA',       href: '/super-admin/outils',           icon: Wrench },
+  { label: 'Monitoring',      href: '/super-admin/monitoring',       icon: Activity },
+  { label: 'Fraude',          href: '/super-admin/fraud',            icon: AlertTriangle },
+  { label: 'Mobile Money',    href: '/super-admin/mobile-money',     icon: Smartphone },
 ]
 
 export function SuperAdminNav() {

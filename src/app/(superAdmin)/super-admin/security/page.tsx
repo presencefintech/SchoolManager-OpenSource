@@ -1,15 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   ShieldOff, ShieldCheck, AlertTriangle, Eye,
-  CheckCircle2, AlertCircle, Loader2, Building2, User, Activity, Settings,
+  CheckCircle2, AlertCircle, Loader2, Building2, User, Activity, Settings, Save,
 } from 'lucide-react'
 import { useSchools, useAnomalyThresholds } from '@/lib/hooks/use-super-admin'
 import { securityApi } from '@/lib/superAdmin/api/security.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
-import type { FraudAnalysisResult } from '@/types/super-admin'
+import type { FraudAnalysisResult, AnomalyThresholds } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 
@@ -150,6 +150,23 @@ export default function SecurityPage() {
 
   /* Thresholds */
   const { data: thresholds } = useAnomalyThresholds()
+  const [thresholdForm, setThresholdForm] = useState<AnomalyThresholds>({})
+  const [savingThresholds, setSavingThresholds] = useState(false)
+  const [thresholdFeedback, setThresholdFeedback] = useState<FeedbackState>(null)
+
+  useEffect(() => {
+    if (thresholds) setThresholdForm(thresholds)
+  }, [thresholds])
+
+  const handleSaveThresholds = async () => {
+    setSavingThresholds(true); setThresholdFeedback(null)
+    try {
+      await anomaliesApi.updateThresholds(thresholdForm)
+      setThresholdFeedback({ type: 'success', message: 'Seuils mis à jour.' })
+    } catch (e) {
+      setThresholdFeedback({ type: 'error', message: getApiErrorMessage(e) })
+    } finally { setSavingThresholds(false) }
+  }
 
   const fraudColor = fraudScore >= 75 ? 'text-red-600' : fraudScore >= 50 ? 'text-amber-500' : 'text-emerald-600'
   const fraudBg = fraudScore >= 75 ? 'bg-red-500' : fraudScore >= 50 ? 'bg-amber-400' : 'bg-emerald-500'
@@ -429,22 +446,40 @@ export default function SecurityPage() {
 
           {/* Seuils d'anomalies */}
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
-            <SectionHeader icon={Settings} title="Seuils d'anomalies" desc="Paramètres de détection configurés" />
-            {thresholds ? (
-              <div className="space-y-2.5">
-                {Object.entries(thresholds)
-                  .filter(([, v]) => v !== undefined)
-                  .map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between py-2.5 border-b border-zinc-50 last:border-0">
-                    <span className="text-sm text-zinc-500 capitalize">{key.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
-                    <span className="font-mono text-sm font-semibold text-zinc-800 tabular-nums">{value}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
+            <SectionHeader icon={Settings} title="Seuils d'anomalies" desc="Modifier les paramètres de détection" />
+            {!thresholds ? (
               <div className="py-8 text-center text-sm text-zinc-400">
                 <Settings size={24} className="mx-auto text-zinc-200 mb-2" />
                 Chargement des seuils…
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {([
+                  { key: 'fraudScoreMin',  label: 'Score fraude min.',    unit: '0–1' },
+                  { key: 'absenceRateMax', label: 'Taux absence max.',     unit: '0–1' },
+                  { key: 'devianceMax',    label: 'Déviance max.',         unit: 'valeur' },
+                ] as const).map(({ key, label, unit }) => (
+                  <div key={key}>
+                    <label className={LABEL_CLS}>{label} <span className="text-zinc-300 font-normal">({unit})</span></label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={thresholdForm[key] ?? ''}
+                      onChange={(e) => setThresholdForm((f) => ({ ...f, [key]: e.target.value === '' ? undefined : Number(e.target.value) }))}
+                      className={INPUT_CLS}
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={handleSaveThresholds}
+                  disabled={savingThresholds}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 transition-colors mt-1"
+                >
+                  {savingThresholds ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Enregistrer les seuils
+                </button>
+                <Feedback state={thresholdFeedback} />
               </div>
             )}
           </div>
