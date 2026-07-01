@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2,
-  Bell, Monitor, FolderOpen, Gavel,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -20,34 +20,54 @@ import {
 
 type SubLink = { label: string; href: string; icon: React.ElementType }
 type NavLink = { label: string; href: string; icon: React.ElementType; children?: SubLink[] }
+type NavSection = { title?: string; links: NavLink[] }
 
-const NAV_LINKS: NavLink[] = [
-  { label: 'Dashboard',    href: '/admin/dashboard',   icon: LayoutDashboard },
-  { label: 'Présences',    href: '/admin/presences',   icon: Activity },
-  { label: 'Classes',      href: '/admin/classes',     icon: BookOpen },
+const NAV_SECTIONS: NavSection[] = [
   {
-    label: 'Finance', href: '/admin/finance', icon: Wallet,
-    children: [
-      { label: 'Dashboard',        href: '/admin/finance',             icon: LayoutDashboard },
-      { label: 'Paiements',        href: '/admin/finance/paiements',   icon: CreditCard },
-      { label: 'Factures & Frais', href: '/admin/finance/factures',    icon: FileText },
-      { label: 'Moratoires',       href: '/admin/finance/moratoriums', icon: Clock },
-      { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
-      { label: 'Audit & Fraude',   href: '/admin/finance/audit',       icon: Shield },
+    links: [
+      { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Présences', href: '/admin/presences', icon: Activity },
     ],
   },
-  { label: 'Personnel',    href: '/admin/staff',       icon: Users },
-  { label: 'Enseignants',  href: '/admin/teachers',    icon: School },
-  { label: 'Élèves',       href: '/admin/students',    icon: GraduationCap },
-  { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
-  { label: 'Invitations',    href: '/admin/invitations',  icon: Mail },
-  { label: 'Fraude',         href: '/admin/fraud',        icon: ShieldAlert },
-  { label: 'Notifications',  href: '/admin/notifications', icon: Bell },
-  { label: 'Sanctions',      href: '/admin/sanctions',    icon: Gavel },
-  { label: 'Emails',         href: '/admin/email',        icon: Mail },
-  { label: 'Fichiers',       href: '/admin/files',        icon: FolderOpen },
-  { label: 'Monitoring',     href: '/admin/monitoring',   icon: Monitor },
-  { label: 'Paramètres',     href: '/admin/settings',     icon: Settings },
+  {
+    title: 'Gestion',
+    links: [
+      { label: 'Élèves',       href: '/admin/students',    icon: GraduationCap },
+      { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
+      { label: 'Classes',      href: '/admin/classes',     icon: BookOpen },
+      { label: 'Enseignants',  href: '/admin/teachers',    icon: School },
+      { label: 'Personnel',    href: '/admin/staff',       icon: Users },
+    ],
+  },
+  {
+    title: 'Finances',
+    links: [
+      {
+        label: 'Finance', href: '/admin/finance', icon: Wallet,
+        children: [
+          { label: 'Dashboard',         href: '/admin/finance',                 icon: LayoutDashboard },
+          { label: 'Paiements',         href: '/admin/finance/paiements',       icon: CreditCard },
+          { label: 'Factures & Frais',  href: '/admin/finance/factures',        icon: FileText },
+          { label: 'Moratoires',        href: '/admin/finance/moratoriums',     icon: Clock },
+          { label: 'Profil règlement',  href: '/admin/finance/payment-profile', icon: Building2 },
+          { label: 'Audit & Fraude',    href: '/admin/finance/audit',           icon: Shield },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Outils',
+    links: [
+      { label: 'Invitations',   href: '/admin/invitations',   icon: Mail },
+      { label: 'Emails',        href: '/admin/email',         icon: Mail },
+      { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+      { label: 'Fraude',        href: '/admin/fraud',         icon: ShieldAlert },
+      { label: 'Sanctions',     href: '/admin/sanctions',     icon: Gavel },
+      { label: 'Fichiers',      href: '/admin/files',         icon: FolderOpen },
+      { label: 'Monitoring',    href: '/admin/monitoring',    icon: Monitor },
+      { label: 'Paramètres',    href: '/admin/settings',      icon: Settings },
+    ],
+  },
 ]
 
 export function AdminNav() {
@@ -88,120 +108,144 @@ export function AdminNav() {
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'AD'
 
+  const totalLinks = NAV_SECTIONS.flatMap(s => s.links).length
+  let linkIndex = 0
+
   return (
-    <aside className={cn(
-      'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col',
-      'bg-white/92 backdrop-blur-md',
-      'border-r border-zinc-200/80',
-      'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
-    )}>
-      <Link href="/admin/dashboard" className="flex items-center gap-3.5 px-6 py-4 flex-shrink-0 group">
-        <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0 group-hover:bg-emerald-500 transition-colors">
+    <aside className="fixed top-0 left-0 h-screen w-60 z-50 flex flex-col bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]">
+
+      {/* Brand */}
+      <Link href="/admin/dashboard" className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-200 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
-          <p className="text-[11px] text-zinc-400 leading-tight">Administrateur</p>
+          <p className="text-sm font-bold text-zinc-900 leading-tight truncate tracking-tight">presenceFintech</p>
+          <span className="inline-block text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none mt-0.5">
+            Admin
+          </span>
         </div>
       </Link>
 
-      <div className="mx-5 h-px bg-zinc-100" />
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-3 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+        {NAV_SECTIONS.map(({ title, links }) => (
+          <div key={title ?? '__root__'}>
+            {title && (
+              <p className="px-2 pb-1 text-[9px] font-semibold text-zinc-400 uppercase tracking-widest select-none">
+                {title}
+              </p>
+            )}
+            <div className="space-y-0.5">
+              {links.map(({ label, href, icon: Icon, children }) => {
+                const i = linkIndex++
+                const expanded = !!children && pathname.startsWith(href)
+                const active = !children && pathname.startsWith(href)
+                const shouldAnimate = mounted && !hasAnimated.current
+                if (i === totalLinks - 1) hasAnimated.current = true
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-        {NAV_LINKS.map(({ label, href, icon: Icon, children }, i) => {
-          const expanded = !!children && pathname.startsWith(href)
-          const active = !children && pathname.startsWith(href)
-          const shouldAnimate = mounted && !hasAnimated.current
-          if (i === NAV_LINKS.length - 1) hasAnimated.current = true
-
-          return (
-            <motion.div
-              key={href}
-              initial={shouldAnimate ? { opacity: 0, x: -10 } : false}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: shouldAnimate ? 0.04 + i * 0.03 : 0, duration: 0.2 }}
-            >
-              {/* Parent link — always a real link */}
-              <Link
-                href={href}
-                onMouseEnter={() => prefetch(href)}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
-                  expanded
-                    ? 'text-emerald-700'
-                    : active
-                      ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
-                      : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
-                )}
-              >
-                <Icon size={16} className={cn(
-                  'flex-shrink-0 transition-colors',
-                  expanded || active ? 'text-emerald-600' : 'text-zinc-400',
-                )} />
-                {label}
-              </Link>
-
-              {/* Sub-links (Finance) */}
-              {children && (
-                <AnimatePresence initial={false}>
-                  {expanded && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.18, ease: 'easeInOut' }}
-                      className="overflow-hidden"
+                return (
+                  <motion.div
+                    key={href}
+                    initial={shouldAnimate ? { opacity: 0, x: -8 } : false}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: shouldAnimate ? 0.03 + i * 0.022 : 0, duration: 0.18 }}
+                  >
+                    <Link
+                      href={href}
+                      onMouseEnter={() => prefetch(href)}
+                      className={cn(
+                        'group flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-[13px] font-medium transition-all duration-150',
+                        expanded
+                          ? 'bg-zinc-50 text-zinc-800'
+                          : active
+                            ? 'bg-zinc-900 text-white shadow-sm'
+                            : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900',
+                      )}
                     >
-                      <div className="ml-3 pl-3 border-l border-zinc-100 mt-0.5 mb-1 space-y-0.5">
-                        {children.map(({ label: sub, href: subHref, icon: SubIcon }) => {
-                          const subActive = subHref === href
-                            ? pathname === subHref
-                            : pathname.startsWith(subHref)
-                          return (
-                            <Link
-                              key={subHref}
-                              href={subHref}
-                              className={cn(
-                                'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                                subActive
-                                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
-                                  : 'text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50',
-                              )}
-                            >
-                              <SubIcon size={13} className={cn('flex-shrink-0', subActive ? 'text-emerald-600' : 'text-zinc-300')} />
-                              {sub}
-                            </Link>
-                          )
-                        })}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              )}
-            </motion.div>
-          )
-        })}
+                      <Icon
+                        size={15}
+                        className={cn(
+                          'flex-shrink-0 transition-colors',
+                          active ? 'text-emerald-400' : expanded ? 'text-zinc-500' : 'text-zinc-400 group-hover:text-zinc-600',
+                        )}
+                      />
+                      <span className="flex-1 leading-none">{label}</span>
+                      {children && (
+                        <ChevronDown
+                          size={12}
+                          className={cn('text-zinc-400 transition-transform duration-200', expanded && 'rotate-180')}
+                        />
+                      )}
+                    </Link>
+
+                    {children && (
+                      <AnimatePresence initial={false}>
+                        {expanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.18, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                          >
+                            <div className="ml-4 pl-3 border-l-2 border-zinc-100 mt-1 mb-1 space-y-0.5">
+                              {children.map(({ label: sub, href: subHref, icon: SubIcon }) => {
+                                const subActive = subHref === href
+                                  ? pathname === subHref
+                                  : pathname.startsWith(subHref)
+                                return (
+                                  <Link
+                                    key={subHref}
+                                    href={subHref}
+                                    className={cn(
+                                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                                      subActive
+                                        ? 'bg-zinc-900 text-white'
+                                        : 'text-zinc-400 hover:text-zinc-800 hover:bg-zinc-50',
+                                    )}
+                                  >
+                                    <SubIcon
+                                      size={12}
+                                      className={cn('flex-shrink-0', subActive ? 'text-emerald-400' : 'text-zinc-300')}
+                                    />
+                                    {sub}
+                                  </Link>
+                                )
+                              })}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    )}
+                  </motion.div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="mx-5 h-px bg-zinc-100" />
-
-      <div className="px-4 py-4 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center ring-1 ring-emerald-200/80 flex-shrink-0">
-            <span className="text-xs font-bold text-emerald-700">{initials}</span>
+      {/* User footer */}
+      <div className="px-3 pb-3 flex-shrink-0 border-t border-zinc-100 pt-2.5">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-zinc-50 transition-colors group">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white">
+            <span className="text-[10px] font-bold text-white">{initials}</span>
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-700 truncate leading-tight">{user?.firstName} {user?.lastName}</p>
-            <p className="text-[11px] text-zinc-400 truncate leading-tight">{user?.email}</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-zinc-700 truncate leading-tight">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-[10px] text-zinc-400 truncate leading-tight">{user?.email}</p>
           </div>
+          <button
+            onClick={logout}
+            title="Déconnexion"
+            className="p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+          >
+            <LogOut size={13} />
+          </button>
         </div>
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
-        >
-          <LogOut size={15} />
-          Déconnexion
-        </button>
       </div>
     </aside>
   )
