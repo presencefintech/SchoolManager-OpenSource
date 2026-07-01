@@ -133,6 +133,7 @@ export default function FinanceDashboardPage() {
   const { data: paymentProfile } = usePaymentProfile()
 
   const d = kpis as Record<string, unknown> | undefined
+  const perf = (d?.performance ?? {}) as Record<string, unknown>
   const eod = endOfDay as Record<string, unknown> | undefined
   const eff = efficiency as Record<string, unknown> | undefined
   const ins = insights as Record<string, unknown> | undefined
