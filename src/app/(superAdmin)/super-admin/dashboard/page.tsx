@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { motion, type Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   Building2, GraduationCap, Users,
   ArrowRight, Activity, ChevronRight, ChevronLeft, UserCheck, ScrollText,
@@ -16,6 +16,8 @@ import {
   usePlatformStats, useSchools, useActiveSessions,
   useProviderStats, useFinanceReport, useWorkerHealth,
 } from '@/lib/hooks/use-super-admin'
+import { useQueryLoading } from '@/lib/hooks/use-auth-query'
+import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -127,15 +129,6 @@ function DonutTooltip({ active, payload }: {
   )
 }
 
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.36, ease: 'easeOut' as const } },
-}
-const stagger: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
-}
-
 const PER_PAGE = 15
 
 function Pager({ page, total, onPrev, onNext }: { page: number; total: number; onPrev: () => void; onNext: () => void }) {
@@ -157,11 +150,12 @@ function Pager({ page, total, onPrev, onNext }: { page: number; total: number; o
 }
 
 export default function SuperAdminDashboardPage() {
-  const { data: stats, isLoading, isError, refetch } = usePlatformStats()
-  const { data: schools, isLoading: loadingSchools } = useSchools()
-  const { data: sessions, isLoading: loadingSessions } = useActiveSessions()
+  const { isLoading: authLoading } = useAuth()
+  const { data: stats, isPending: statsPending, isError, refetch } = usePlatformStats()
+  const { data: schools, isPending: schoolsPending } = useSchools()
+  const { data: sessions, isPending: sessionsPending } = useActiveSessions()
 
-  const { data: providers, isLoading: loadingProviders } = useProviderStats()
+  const { data: providers, isPending: providersPending } = useProviderStats()
 
   // Area Chart — encaissements par école
   const today = new Date().toISOString().slice(0, 10)
@@ -173,7 +167,7 @@ export default function SuperAdminDashboardPage() {
   const revenueParams = revenueSchoolId
     ? { schoolId: revenueSchoolId, startDate: revenueFrom + 'T00:00:00.000Z', endDate: revenueTo + 'T23:59:59.999Z' }
     : null
-  const { data: financeReport, isLoading: loadingRevenue } = useFinanceReport(revenueParams)
+  const { data: financeReport, isPending: revenuePending } = useFinanceReport(revenueParams)
 
   const dailyData = useMemo(() => {
     if (!financeReport?.details?.length) return []
@@ -194,7 +188,14 @@ export default function SuperAdminDashboardPage() {
 
   // Pipeline — file d'inscription par école
   const [pipelineSchoolId, setPipelineSchoolId] = useState<number | null>(null)
-  const { data: workerHealth, isLoading: loadingPipeline } = useWorkerHealth(pipelineSchoolId ?? 0)
+  const { data: workerHealth, isPending: pipelinePending } = useWorkerHealth(pipelineSchoolId ?? 0)
+
+  const loadingSchools = useQueryLoading(authLoading || schoolsPending)
+  const loadingSessions = useQueryLoading(authLoading || sessionsPending)
+  const loadingProviders = useQueryLoading(authLoading || providersPending)
+  const loadingRevenue = useQueryLoading(authLoading || revenuePending)
+  const loadingPipeline = useQueryLoading(authLoading || pipelinePending)
+  const loadingStats = useQueryLoading(authLoading || statsPending)
 
   const providerTotal = (providers ?? []).reduce((s, p) => s + p.volume, 0)
   const chartData = (providers ?? []).map(p => ({
@@ -248,14 +249,11 @@ export default function SuperAdminDashboardPage() {
         </div>
       </motion.div>
 
-      <motion.div
+      <div
         className="max-w-7xl mx-auto px-8 py-8 space-y-6"
-        variants={stagger}
-        initial="hidden"
-        animate="show"
       >
 
-        {isError && (
+        {isError && !loadingStats && (
           <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             <span>Impossible de charger les statistiques.</span>
             <button onClick={() => refetch()} className="font-medium underline underline-offset-2">Réessayer</button>
@@ -263,7 +261,7 @@ export default function SuperAdminDashboardPage() {
         )}
 
         {/* ══ 1. GRAPHIQUES HERO ═════════════════════════════════════════════ */}
-        <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Area Chart — Encaissements par école (col-span-2) */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-7">
@@ -376,10 +374,10 @@ export default function SuperAdminDashboardPage() {
               <div className="flex-1 flex items-center justify-center text-sm text-zinc-400">Aucune donnée</div>
             )}
           </div>
-        </motion.div>
+        </div>
 
         {/* ══ 2. RÉPARTITION DES ÉLÈVES PAR ÉCOLE ════════════════════════════ */}
-        <motion.div variants={fadeUp} className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-7">
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-7">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-base font-semibold text-zinc-900">Répartition des élèves</h2>
@@ -457,10 +455,10 @@ export default function SuperAdminDashboardPage() {
           })() : (
             <div className="flex items-center justify-center py-8 text-sm text-zinc-400">Aucune donnée disponible</div>
           )}
-        </motion.div>
+        </div>
 
         {/* ══ 3. SANTÉ ÉTABLISSEMENTS ════════════════════════════════════════ */}
-        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
+        <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
           <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-5">Santé des établissements</p>
           {loadingSchools
             ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
@@ -475,10 +473,10 @@ export default function SuperAdminDashboardPage() {
                 ))}
               </div>
             )}
-        </motion.div>
+        </div>
 
         {/* ══ 4. SESSIONS ACTIVES ════════════════════════════════════════════ */}
-        <motion.div variants={fadeUp} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+        <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
             <div className="flex items-center gap-2.5">
               <ScrollText size={15} className="text-zinc-400" />
@@ -493,12 +491,9 @@ export default function SuperAdminDashboardPage() {
             <Skeleton className="h-20 rounded-none" />
           ) : sessions?.length ? (
             <div className="divide-y divide-zinc-50">
-              {sessions.slice(0, 5).map((s, i) => (
-                <motion.div
+              {sessions.slice(0, 5).map((s) => (
+                <div
                   key={s.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.05, duration: 0.22 }}
                   className="flex items-center justify-between px-6 py-3.5"
                 >
                   <div className="flex items-center gap-3">
@@ -506,7 +501,7 @@ export default function SuperAdminDashboardPage() {
                     <span className="text-sm text-zinc-700">{s.user.firstName} {s.user.lastName}</span>
                   </div>
                   <span className="text-xs font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-lg">{s.user.role}</span>
-                </motion.div>
+                </div>
               ))}
               {sessions.length > 5 && (
                 <div className="px-6 py-3 text-xs text-zinc-400">+ {sessions.length - 5} autres sessions</div>
@@ -515,10 +510,10 @@ export default function SuperAdminDashboardPage() {
           ) : (
             <div className="px-6 py-5 text-sm text-zinc-400">Aucune session active</div>
           )}
-        </motion.div>
+        </div>
 
         {/* ══ 7. ÉTABLISSEMENTS ══════════════════════════════════════════════ */}
-        <motion.div variants={fadeUp}>
+        <div>
           {(loadingSchools || (schools && schools.length > 0)) && (
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-50">
@@ -530,11 +525,7 @@ export default function SuperAdminDashboardPage() {
               {loadingSchools ? <Skeleton className="h-56 rounded-none" /> : schools && (
                 <div className="divide-y divide-zinc-50">
                   {schools.slice(0, 6).map((school) => (
-                    <motion.div
-                      key={school.id}
-                      whileHover={{ x: 3 }}
-                      transition={{ duration: 0.15 }}
-                    >
+                    <div key={school.id}>
                       <Link
                         href={`/super-admin/schools/${school.id}`}
                         className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 transition-colors group"
@@ -553,7 +544,7 @@ export default function SuperAdminDashboardPage() {
                           <ChevronRight size={14} className="text-zinc-200 group-hover:text-zinc-500 transition-colors" />
                         </div>
                       </Link>
-                    </motion.div>
+                    </div>
                   ))}
                   {schools.length > 6 && (
                     <div className="px-6 py-4">
@@ -566,9 +557,9 @@ export default function SuperAdminDashboardPage() {
               )}
             </div>
           )}
-        </motion.div>
+        </div>
 
-      </motion.div>
+      </div>
     </div>
   )
 }

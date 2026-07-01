@@ -73,7 +73,9 @@ export function interpretBulkPresenceResult(
     return {
       kind: 'all_duplicates',
       title: 'Aucun nouvel enregistrement',
-      detail: message ?? `${duplicates.length} élève(s) déjà pointé(s) aujourd'hui.`,
+      detail:
+        message ??
+        `${duplicates.length} élève(s) déjà pointé(s) aujourd'hui — aucune nouvelle ligne créée.`,
       failedStudentIds,
       duplicateStudentIds,
       succeededStudentIds,

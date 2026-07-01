@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
+import { getAuthToken } from '@/lib/api/auth-storage'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { useToast } from '@/providers/toast-provider'
 import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType, StudentSecurityAction } from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -8,18 +11,25 @@ export function useAdminStats() {
   return useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: dashboardApi.getStats,
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchInterval: 60_000,
+    refetchOnMount: 'always',
   })
 }
 
+const LIVE_FEED_DEFAULT_PARAMS = { limit: 25 }
+
 export function useLiveFeed(params?: { classId?: number; page?: number; limit?: number }) {
+  const resolved = params ?? LIVE_FEED_DEFAULT_PARAMS
   return useQuery({
-    queryKey: ['admin', 'live-feed', params],
-    queryFn: () => dashboardApi.getLiveFeed(params),
+    queryKey: ['admin', 'live-feed', resolved],
+    queryFn: () => dashboardApi.getLiveFeed(resolved),
+    enabled: !!getAuthToken(),
     staleTime: 0,
     refetchInterval: 15_000,
     refetchOnWindowFocus: false,
+    refetchOnMount: 'always',
   })
 }
 
@@ -27,6 +37,7 @@ export function useHeatmap(classId?: number) {
   return useQuery({
     queryKey: ['admin', 'heatmap', classId],
     queryFn: () => dashboardApi.getHeatmap(classId),
+    enabled: !!getAuthToken(),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
   })
@@ -36,6 +47,7 @@ export function useFraudAlerts() {
   return useQuery({
     queryKey: ['admin', 'fraud-alerts'],
     queryFn: dashboardApi.getFraudAlerts,
+    enabled: !!getAuthToken(),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   })
@@ -45,8 +57,11 @@ export function useControlStats() {
   return useQuery({
     queryKey: ['admin', 'control-stats'],
     queryFn: dashboardApi.getControlStats,
+    enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchInterval: 30_000,
+    retry: 1,
+    refetchOnMount: 'always',
   })
 }
 
@@ -172,7 +187,7 @@ export function useSecurityAction() {
 }
 
 // ── Enrollments ─────────────────────────────────────────────────────
-export function useEnrollments(params?: { page?: number; limit?: number; search?: string }) {
+export function useEnrollments(params?: { page?: number; limit?: number; search?: string; status?: string }) {
   return useQuery({
     queryKey: ['admin', 'enrollments', 'list', params],
     queryFn: () => enrollmentsApi.list(params),
@@ -388,12 +403,67 @@ export function useNotifySecurityAlert() {
   })
 }
 
+export function usePresenceReasonCodes() {
+  return useQuery({
+    queryKey: ['admin', 'presences', 'reason-codes'],
+    queryFn: presencesApi.getReasonCodes,
+    staleTime: 3600_000,
+  })
+}
+
+export function useAttendanceSheetDraft(classId: number, sessionDate?: string) {
+  return useQuery({
+    queryKey: ['admin', 'presences', 'sheet-draft', classId, sessionDate ?? ''],
+    queryFn: () => presencesApi.getSheetDraft(classId, sessionDate),
+    enabled: classId > 0,
+    staleTime: 0,
+  })
+}
+
+export function usePendingAttendanceSheets(params?: {
+  sessionDate?: string
+  classId?: number
+  status?: import('@/types/admin').AttendanceSheetStatus
+}) {
+  return useQuery({
+    queryKey: ['admin', 'presences', 'sheets-pending', params],
+    queryFn: () => presencesApi.listPendingSheets(params),
+    staleTime: 30_000,
+    refetchInterval: params?.status === 'SEALED' ? false : 60_000,
+  })
+}
+
+export function useExportAttendanceSheet() {
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({ sheetId, format }: { sheetId: number; format: 'pdf' | 'csv' }) =>
+      presencesApi.exportSheetRegister(sheetId, format),
+    onSuccess: (filename) => {
+      toast.success('Téléchargement prêt', filename)
+    },
+    onError: (err) => {
+      toast.error('Export impossible', getApiErrorMessage(err))
+    },
+  })
+}
+
+export function useSealAttendanceSheet() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (sheetId: number) => presencesApi.sealSheet(sheetId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
+    },
+  })
+}
+
 // ── Classes ────────────────────────────────────────────────────────
 
 export function useClasses(params?: { search?: string; isActive?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'classes', 'list', params],
     queryFn: () => classesApi.list(params),
+    enabled: !!getAuthToken(),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   })

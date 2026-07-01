@@ -12,6 +12,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
+import { getAuthToken } from '@/lib/api/auth-storage'
 import {
   dashboardApi, staffApi, studentsApi, enrollmentsApi,
   presencesApi, classesApi, financeApi, invitationsApi, schoolsApi,
@@ -54,6 +55,7 @@ export function AdminNav() {
   useEffect(() => { setMounted(true) }, [])
 
   const prefetch = useCallback((href: string) => {
+    if (!getAuthToken()) return
     if (href === '/admin/dashboard') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'stats'], queryFn: dashboardApi.getStats, staleTime: 30_000 })
       queryClient.prefetchQuery({ queryKey: ['admin', 'fraud-alerts'], queryFn: dashboardApi.getFraudAlerts, staleTime: 60_000 })
@@ -85,7 +87,7 @@ export function AdminNav() {
 
   return (
     <aside className={cn(
-      'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col',
+      'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden',
       'bg-white/92 backdrop-blur-md',
       'border-r border-zinc-200/80',
       'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
@@ -102,7 +104,7 @@ export function AdminNav() {
 
       <div className="mx-5 h-px bg-zinc-100" />
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-3 py-2 space-y-0.5 overflow-y-auto overscroll-contain">
         {NAV_LINKS.map(({ label, href, icon: Icon, children }, i) => {
           const expanded = !!children && pathname.startsWith(href)
           const active = !children && pathname.startsWith(href)

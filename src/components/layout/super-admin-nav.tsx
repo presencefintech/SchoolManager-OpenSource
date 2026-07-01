@@ -3,8 +3,7 @@
 import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { motion } from 'framer-motion'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench, Upload } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -20,18 +19,11 @@ const NAV_LINKS = [
   { label: 'Finance',         href: '/super-admin/finance',          icon: Banknote },
   { label: 'Frais',           href: '/super-admin/fees',             icon: Receipt },
   { label: 'Accès',           href: '/super-admin/auth-management',  icon: KeyRound },
-  { label: 'Monitoring',       href: '/super-admin/monitoring',       icon: Activity },
-  { label: 'Fraude',          href: '/super-admin/fraud',            icon: AlertTriangle },
-  { label: 'Mobile Money',    href: '/super-admin/mobile-money',     icon: Smartphone },
   { label: 'Sécurité',        href: '/super-admin/security',         icon: Shield },
   { label: 'Audit',           href: '/super-admin/audit',            icon: ShieldAlert },
   { label: 'Exports',         href: '/super-admin/export',           icon: Download },
-  { label: 'Import',          href: '/super-admin/import',           icon: Upload },
   { label: 'Notifications',   href: '/super-admin/notifications',    icon: Bell },
   { label: 'Outils SA',       href: '/super-admin/outils',           icon: Wrench },
-  { label: 'Monitoring',      href: '/super-admin/monitoring',       icon: Activity },
-  { label: 'Fraude',          href: '/super-admin/fraud',            icon: AlertTriangle },
-  { label: 'Mobile Money',    href: '/super-admin/mobile-money',     icon: Smartphone },
 ]
 
 export function SuperAdminNav() {
@@ -60,7 +52,7 @@ export function SuperAdminNav() {
 
   return (
     <aside className={cn(
-      'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col',
+      'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden',
       'bg-white/92 backdrop-blur-md',
       'border-r border-zinc-200/80',
       'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
@@ -82,35 +74,29 @@ export function SuperAdminNav() {
 
       <div className="mx-5 h-px bg-zinc-100" />
 
-      {/* Nav links */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
+      {/* Nav links — scroll si la liste dépasse la hauteur écran */}
+      <nav className="flex-1 min-h-0 px-3 py-2 space-y-0.5 overflow-y-auto overscroll-contain">
         {NAV_LINKS.map(({ label, href, icon: Icon }) => {
           const active = pathname.startsWith(href)
 
           return (
-            <motion.div
+            <Link
               key={href}
-              initial={false}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2 }}
+              href={href}
+              onMouseEnter={() => prefetch(href)}
+              className={cn(
+                'flex items-center gap-3 px-3 py-1.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap',
+                active
+                  ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
+                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
+              )}
             >
-              <Link
-                href={href}
-                onMouseEnter={() => prefetch(href)}
-                className={cn(
-                  'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
-                  active
-                    ? 'bg-indigo-50 text-indigo-700 shadow-sm ring-1 ring-indigo-100'
-                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
-                )}
-              >
-                <Icon
-                  size={16}
-                  className={cn('flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
-                />
-                {label}
-              </Link>
-            </motion.div>
+              <Icon
+                size={16}
+                className={cn('flex-shrink-0 transition-colors', active ? 'text-indigo-600' : 'text-zinc-400')}
+              />
+              <span className="truncate">{label}</span>
+            </Link>
           )
         })}
       </nav>

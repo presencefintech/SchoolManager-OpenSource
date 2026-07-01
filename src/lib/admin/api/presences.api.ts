@@ -1,10 +1,19 @@
+import axios from 'axios'
 import { apiClient } from '@/lib/api/client'
+import {
+  isExportContentType,
+  parseContentDispositionFilename,
+  readBlobErrorMessage,
+  triggerBlobDownload,
+} from '@/lib/download-blob'
 import { parseFraudReasons } from '@/lib/admin/fraud-alert.utils'
 import type { PresenceMutationResult } from '@/lib/presence/presence-response.utils'
 import type {
   PresenceLiveFeedEntry, PresenceStats, PresenceHeatmapEntry,
   PresenceSecurityAlert, SessionQR, RecordPresencePayload, BulkPresencePayload,
   AdminPresenceRecordResult, BulkPresenceRecordResult,
+  AttendanceSheetDraft, PendingAttendanceSheetSummary, SealedAttendanceSheetResult,
+  PresenceReasonCodeEntry, AttendanceSheetStatus,
 } from '@/types/admin'
 
 function normalizeSecurityAlert(raw: Record<string, unknown>): PresenceSecurityAlert {
@@ -103,4 +112,68 @@ export const presencesApi = {
   notifySecurityAlert: (eventId: number, message?: string) =>
     apiClient.post(`/admin/presences/security-events/${eventId}/notify`, { message })
       .then((r) => r.data),
+
+  /** Motifs standardisés DfE/CEDS */
+  getReasonCodes: () =>
+    apiClient
+      .get<{ success: boolean; data: PresenceReasonCodeEntry[] }>('/admin/presences/reason-codes')
+      .then((r) => r.data.data ?? []),
+
+  /** Ouvre ou récupère le brouillon du cahier d'appel (pré-rempli enrollments) */
+  getSheetDraft: (classId: number, sessionDate?: string) =>
+    apiClient
+      .get<{ success: boolean; data: AttendanceSheetDraft }>('/admin/presences/sheets/draft', {
+        params: { classId, ...(sessionDate ? { sessionDate } : {}) },
+      })
+      .then((r) => r.data.data),
+
+  /** Feuilles non clôturées ou archives scellées */
+  listPendingSheets: (params?: {
+    sessionDate?: string
+    classId?: number
+    status?: AttendanceSheetStatus
+  }) =>
+    apiClient
+      .get<{ success: boolean; data: PendingAttendanceSheetSummary[] }>(
+        '/admin/presences/sheets/pending',
+        { params },
+      )
+      .then((r) => r.data.data ?? []),
+
+  /** Registre officiel — feuille SEALED (PDF ou CSV) */
+  exportSheetRegister: async (sheetId: number, format: 'pdf' | 'csv') => {
+    try {
+      const r = await apiClient.get<Blob>(`/admin/presences/sheets/${sheetId}/export`, {
+        params: { format },
+        responseType: 'blob',
+        timeout: 90_000,
+      })
+
+      const contentType = r.headers['content-type'] as string | undefined
+      if (!isExportContentType(contentType, format)) {
+        throw new Error(await readBlobErrorMessage(r.data))
+      }
+
+      const filename = parseContentDispositionFilename(
+        r.headers['content-disposition'] as string | undefined,
+        `registre-feuille-${sheetId}.${format}`,
+      )
+      triggerBlobDownload(r.data, filename)
+      return filename
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+        throw new Error(await readBlobErrorMessage(error.response.data))
+      }
+      throw error
+    }
+  },
+
+  /** Clôture et scelle une feuille soumise */
+  sealSheet: (sheetId: number) =>
+    apiClient
+      .post<{ success: boolean; data: SealedAttendanceSheetResult; message?: string }>(
+        `/admin/presences/sheets/${sheetId}/seal`,
+        {},
+      )
+      .then((r) => ({ data: r.data.data, message: r.data.message })),
 }
