@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AUTH_COOKIE } from '@/lib/auth/session-cookies'
 
-const BACKEND = process.env.API_URL ?? 'http://localhost:4000'
+const BACKEND = process.env.API_URL ?? 'http://localhost:5000'
 
-const SKIP_HEADERS = new Set(['host', 'origin', 'referer', 'connection', 'transfer-encoding', 'cookie'])
+const SKIP_HEADERS = new Set(['host', 'origin', 'referer', 'connection', 'transfer-encoding', 'cookie', 'authorization'])
 
 async function proxy(req: NextRequest, path: string[]) {
   const search = req.nextUrl.search
@@ -15,13 +16,23 @@ async function proxy(req: NextRequest, path: string[]) {
     }
   })
 
+  const accessToken = req.cookies.get(AUTH_COOKIE.access)?.value
+  if (accessToken && !headers.Authorization && !headers.authorization) {
+    headers.Authorization = `Bearer ${accessToken}`
+  }
+
+  const schoolId = req.cookies.get(AUTH_COOKIE.school)?.value
+  if (schoolId && !headers['x-school-id']) {
+    headers['x-school-id'] = schoolId
+  }
+
   const hasBody = !['GET', 'HEAD'].includes(req.method)
 
   const upstream = await fetch(target, {
     method: req.method,
     headers,
     body: hasBody ? req.body : undefined,
-    // @ts-ignore — needed for streaming body passthrough in Node.js
+    // @ts-expect-error duplex required for streaming body in Node fetch
     duplex: 'half',
   })
 

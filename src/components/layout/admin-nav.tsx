@@ -13,6 +13,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
+import { getAuthToken } from '@/lib/api/auth-storage'
 import {
   dashboardApi, staffApi, studentsApi, enrollmentsApi,
   presencesApi, classesApi, financeApi, invitationsApi, schoolsApi,
@@ -79,6 +80,7 @@ export function AdminNav() {
   useEffect(() => { setMounted(true) }, [])
 
   const prefetch = useCallback((href: string) => {
+    if (!getAuthToken()) return
     if (href === '/admin/dashboard') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'stats'], queryFn: dashboardApi.getStats, staleTime: 30_000 })
       queryClient.prefetchQuery({ queryKey: ['admin', 'fraud-alerts'], queryFn: dashboardApi.getFraudAlerts, staleTime: 60_000 })

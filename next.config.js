@@ -5,23 +5,31 @@ const nextConfig = {
     config.resolve.alias.canvas = false
     return config
   },
+  async headers() {
+    const isProd = process.env.NODE_ENV === 'production'
+    const securityHeaders = [
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+      { key: 'X-DNS-Prefetch-Control', value: 'on' },
+    ]
+    if (isProd) {
+      securityHeaders.push({
+        key: 'Strict-Transport-Security',
+        value: 'max-age=63072000; includeSubDomains; preload',
+      })
+    }
+    return [{ source: '/(.*)', headers: securityHeaders }]
+  },
   async redirects() {
     return [
       { source: '/favicon.ico', destination: '/favicon.svg', permanent: false },
     ]
   },
   async rewrites() {
-    const backendUrl = process.env.API_URL ?? 'http://localhost:4000'
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${backendUrl}/api/:path*`,
-      },
-      {
-        source: '/uploads/:path*',
-        destination: `${backendUrl}/uploads/:path*`,
-      },
-    ]
+    // API + uploads : Route Handlers Next (/api/[...path], /api/auth/*, /api/uploads/*)
+    return []
   },
 }
 

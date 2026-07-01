@@ -5,17 +5,21 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut } from 'lucide-react'
+import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 
 const NAV_LINKS = [
-  { label: 'Dashboard',    href: '/finances/dashboard',     icon: LayoutDashboard },
-  { label: 'Paiements',    href: '/finances/paiements',     icon: DollarSign },
-  { label: 'Débiteurs',    href: '/finances/debiteurs',     icon: Users },
-  { label: 'Transactions', href: '/finances/transactions',  icon: Search },
-  { label: 'Classes',      href: '/finances/classes',       icon: BookOpen },
+  { label: 'Dashboard',        href: '/finances/dashboard',       icon: LayoutDashboard },
+  { label: 'Caisse',           href: '/finances/caisse',          icon: Banknote },
+  { label: 'Paiements',        href: '/finances/paiements',       icon: DollarSign },
+  { label: 'Vérifications',   href: '/finances/verifications',   icon: ClipboardCheck },
+  { label: 'Débiteurs',        href: '/finances/debiteurs',       icon: Users },
+  { label: 'Remboursements',   href: '/finances/remboursements',  icon: RotateCcw },
+  { label: 'Transactions',     href: '/finances/transactions',    icon: Search },
+  { label: 'Classes',          href: '/finances/classes',         icon: BookOpen },
+  { label: 'Clôture',          href: '/finances/cloture',         icon: CalendarCheck },
 ]
 
 function FinanceNav() {

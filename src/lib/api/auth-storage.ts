@@ -1,10 +1,16 @@
 import type { AuthUser, LoginResponse } from '@/types/auth'
 
-const AUTH_TOKEN_KEY = 'auth_token'
-const AUTH_ROLE_KEY = 'auth_role'
-const AUTH_REFRESH_TOKEN_KEY = 'auth_refresh_token'
 const AUTH_USER_KEY = 'auth_user'
-const AUTH_SCHOOL_ID_KEY = 'auth_school_id'
+export const AUTH_SCHOOL_ID_KEY = 'auth_school_id'
+
+/** Session active côté client (tokens en cookies HttpOnly uniquement). */
+const SESSION_MARKER = 'http-only-session'
+
+let authHydrated = false
+
+export function markAuthHydrated() {
+  authHydrated = true
+}
 
 export function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null
@@ -12,87 +18,76 @@ export function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null
 }
 
-function setCookie(name: string, value: string) {
-  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; SameSite=Lax${secure}`
-}
-
-function deleteCookie(name: string) {
-  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-}
-
+/** Indique qu'une session est active (pas le JWT — inaccessible en JS). */
 export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(AUTH_TOKEN_KEY) ?? getCookie(AUTH_TOKEN_KEY)
+  if (typeof window === 'undefined' || !authHydrated) return null
+  const user = localStorage.getItem(AUTH_USER_KEY)
+  return user ? SESSION_MARKER : null
 }
 
 export function getAuthSchoolId(): string | null {
-  if (typeof window === 'undefined') return null
-  const schoolId = localStorage.getItem(AUTH_SCHOOL_ID_KEY)
-  return schoolId && schoolId !== 'null' ? schoolId : null
+  if (typeof window === 'undefined' || !authHydrated) return null
+  const fromStorage = localStorage.getItem(AUTH_SCHOOL_ID_KEY)
+  if (fromStorage && fromStorage !== 'null') return fromStorage
+  const fromCookie = getCookie('auth_school_id')
+  return fromCookie && fromCookie !== 'null' ? fromCookie : null
 }
 
 export function getAuthRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(AUTH_REFRESH_TOKEN_KEY)
+  return null
 }
 
-export function updateAuthTokens(token: string, refreshToken?: string): void {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(AUTH_TOKEN_KEY, token)
-  setCookie(AUTH_TOKEN_KEY, token)
-  if (refreshToken) {
-    localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, refreshToken)
-  }
+export function updateAuthTokens(_token: string, _refreshToken?: string): void {
+  // Tokens gérés par cookies HttpOnly via /api/auth/*
 }
 
 export function redirectToLogin(): void {
   if (typeof window === 'undefined') return
-  clearAuthStorage()
-  if (!window.location.pathname.startsWith('/login')) {
-    window.location.href = '/login'
-  }
+  void fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).finally(() => {
+    clearAuthStorage()
+    if (!window.location.pathname.startsWith('/login')) {
+      window.location.href = '/login'
+    }
+  })
 }
 
 export function clearAuthStorage(): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(AUTH_TOKEN_KEY)
-  localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY)
   localStorage.removeItem(AUTH_USER_KEY)
   localStorage.removeItem(AUTH_SCHOOL_ID_KEY)
-  deleteCookie(AUTH_TOKEN_KEY)
-  deleteCookie(AUTH_ROLE_KEY)
+  localStorage.removeItem('auth_token')
+  localStorage.removeItem('auth_refresh_token')
+  localStorage.removeItem('auth_role')
 }
 
 export function persistAuthSession(data: LoginResponse): void {
-  localStorage.setItem(AUTH_TOKEN_KEY, data.token)
-  localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, data.refreshToken)
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
   if (data.user.schoolId != null) {
     localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(data.user.schoolId))
   } else {
     localStorage.removeItem(AUTH_SCHOOL_ID_KEY)
   }
-  setCookie(AUTH_TOKEN_KEY, data.token)
-  setCookie(AUTH_ROLE_KEY, data.user.role)
+  markAuthHydrated()
 }
 
 export function resyncAuthFromCookies(): { token: string | null; user: AuthUser | null } {
   if (typeof window === 'undefined') return { token: null, user: null }
 
-  const cookieToken = getCookie(AUTH_TOKEN_KEY)
-  if (cookieToken && !localStorage.getItem(AUTH_TOKEN_KEY)) {
-    localStorage.setItem(AUTH_TOKEN_KEY, cookieToken)
-  }
-
-  const token = getAuthToken()
   const storedUser = localStorage.getItem(AUTH_USER_KEY)
-  if (!storedUser) return { token, user: null }
+  if (!storedUser) return { token: null, user: null }
 
   try {
-    return { token, user: JSON.parse(storedUser) as AuthUser }
+    const user = JSON.parse(storedUser) as AuthUser
+    return { token: SESSION_MARKER, user }
   } catch {
     localStorage.removeItem(AUTH_USER_KEY)
-    return { token, user: null }
+    return { token: null, user: null }
+  }
+}
+
+export function persistUserProfile(user: AuthUser): void {
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
+  if (user.schoolId != null) {
+    localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(user.schoolId))
   }
 }

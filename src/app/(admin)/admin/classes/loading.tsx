@@ -1,30 +1,30 @@
 export default function ClassesLoading() {
   return (
-    <div className="min-h-screen bg-zinc-50/50">
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="h-7 w-32 bg-zinc-200 rounded-lg animate-pulse" />
-            <div className="h-4 w-48 bg-zinc-100 rounded animate-pulse" />
-          </div>
+    <div className="min-h-full bg-[#e8ecf4]">
+      <div className="w-full bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-4">
+          <div className="h-3 w-32 bg-white/10 rounded animate-pulse" />
+          <div className="h-9 w-48 bg-white/10 rounded-lg animate-pulse" />
           <div className="flex gap-2">
-            <div className="h-9 w-36 bg-zinc-100 rounded-xl animate-pulse" />
-            <div className="h-9 w-36 bg-zinc-200 rounded-xl animate-pulse" />
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-9 w-28 bg-white/10 rounded-lg animate-pulse" />
+            ))}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-zinc-100 p-5 h-20 animate-pulse" />
+        <div className="border-t border-white/10 grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-5">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 w-20 bg-white/10 rounded animate-pulse" />
+              <div className="h-9 w-12 bg-white/10 rounded animate-pulse" />
+            </div>
           ))}
         </div>
-        <div className="h-10 bg-white border border-zinc-200 rounded-xl animate-pulse" />
-        <div className="bg-white rounded-2xl border border-zinc-100 overflow-hidden">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex gap-4 px-5 py-4 border-b border-zinc-50">
-              <div className="h-4 w-24 bg-zinc-100 rounded animate-pulse" />
-              <div className="h-4 w-16 bg-zinc-100 rounded animate-pulse" />
-              <div className="h-4 w-10 bg-zinc-100 rounded animate-pulse" />
-            </div>
+      </div>
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-4">
+        <div className="h-14 bg-white rounded-xl border border-zinc-200 animate-pulse" />
+        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden p-4 space-y-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
           ))}
         </div>
       </div>

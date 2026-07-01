@@ -66,4 +66,24 @@ export const financeApi = {
     apiClient
       .get<{ success: boolean; data: HighRiskProfile[] }>(`/superadmin/payment-stats/high-risk/${schoolId}`)
       .then((r) => r.data.data),
+
+  getPaymentProfiles: () =>
+    apiClient
+      .get<{ success: boolean; data: unknown[] }>('/superadmin/finance/payment-profiles')
+      .then((r) => r.data.data),
+
+  getSchoolPaymentProfileSA: (schoolId: number) =>
+    apiClient
+      .get<{ success: boolean; data: unknown }>(`/superadmin/finance/payment-profiles/${schoolId}`)
+      .then((r) => r.data.data),
+
+  verifyKycProfile: (schoolId: number) =>
+    apiClient
+      .post<{ success: boolean; data: unknown }>(`/superadmin/finance/payment-profiles/${schoolId}/verify`)
+      .then((r) => r.data.data),
+
+  rejectKycProfile: (schoolId: number, reason?: string) =>
+    apiClient
+      .post<{ success: boolean; data: unknown }>(`/superadmin/finance/payment-profiles/${schoolId}/reject`, { reason })
+      .then((r) => r.data.data),
 }

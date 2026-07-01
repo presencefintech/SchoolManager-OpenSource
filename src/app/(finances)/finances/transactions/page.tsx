@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Search, RefreshCw } from 'lucide-react'
 import { useSearchTransactions } from '@/lib/hooks/use-finance'
+import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp } from '@/lib/animations'
 
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
@@ -22,7 +23,7 @@ type SearchParams = {
 }
 
 export default function TransactionsPage() {
-  const [draft, setDraft] = useState({ status: '', studentId: '', startDate: '', endDate: '', limit: '20' })
+  const [draft, setDraft] = useState({ status: '', studentId: 0, startDate: '', endDate: '', limit: '20' })
   const [params, setParams] = useState<SearchParams>({ limit: 20, page: 1 })
   const [searched, setSearched] = useState(false)
 
@@ -35,7 +36,7 @@ export default function TransactionsPage() {
     e.preventDefault()
     setParams({
       status: draft.status || undefined,
-      studentId: draft.studentId ? Number(draft.studentId) : undefined,
+      studentId: draft.studentId > 0 ? draft.studentId : undefined,
       startDate: draft.startDate || undefined,
       endDate: draft.endDate || undefined,
       limit: Number(draft.limit) || 20,
@@ -58,7 +59,7 @@ export default function TransactionsPage() {
       {/* Formulaire de recherche */}
       <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
         <form onSubmit={handleSearch} className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Statut</label>
               <select
@@ -68,19 +69,10 @@ export default function TransactionsPage() {
               >
                 <option value="">Tous</option>
                 <option value="PENDING">En attente</option>
+                <option value="CONFIRMED">Confirmé</option>
                 <option value="VALIDATED">Validé</option>
                 <option value="REJECTED">Rejeté</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Élève</label>
-              <input
-                type="number" min={1}
-                value={draft.studentId}
-                onChange={e => setDraft(p => ({ ...p, studentId: e.target.value }))}
-                placeholder="Optionnel"
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Date début</label>
@@ -101,6 +93,11 @@ export default function TransactionsPage() {
               />
             </div>
           </div>
+          <FinanceStudentSearchField
+            studentId={draft.studentId}
+            onSelect={(id) => setDraft(p => ({ ...p, studentId: id }))}
+            label="Élève (optionnel)"
+          />
           <div className="flex items-center gap-3">
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Résultats par page</label>

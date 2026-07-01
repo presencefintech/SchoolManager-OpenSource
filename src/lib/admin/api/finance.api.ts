@@ -209,9 +209,6 @@ export const financeApi = {
   revokeMoratorium: (id: number) =>
     apiClient.delete(`/admin/finance/moratoriums/${id}`).then(r => r.data),
 
-  updateMoratoriumPolicy: (payload: Record<string, unknown>) =>
-    apiClient.patch('/admin/finance/moratoriums/policy', payload).then(r => r.data.data as MoratoriumPolicy),
-
   approveMoratorium: (id: number) =>
     apiClient.post(`/admin/finance/moratoriums/${id}/approve`).then(r => r.data.data),
 

@@ -368,6 +368,7 @@ export interface RecordPresencePayload {
   status: 'PRESENT' | 'ABSENT' | 'LATE'
   sessionDate?: string
   idempotencyKey?: string
+  reasonCode?: string
   note?: string
 }
 
@@ -378,6 +379,8 @@ export interface BulkPresencePayload {
   entries: Array<{
     studentId: number
     status: 'PRESENT' | 'ABSENT' | 'LATE'
+    reasonCode?: string
+    note?: string
   }>
 }
 
@@ -409,6 +412,79 @@ export interface BulkPresenceRecordResult {
   succeeded: BulkPresenceRecordItem[]
   failed: BulkPresenceRecordFailure[]
   duplicates: BulkPresenceRecordItem[]
+  /** Présent quand la soumission passe par le workflow cahier d'appel (Phase B) */
+  sheetId?: number
+  sheetStatus?: AttendanceSheetStatus
+}
+
+export type AttendanceSheetStatus = 'DRAFT' | 'SUBMITTED' | 'SEALED'
+
+export interface AttendanceSheetLineView {
+  studentId: number
+  studentName: string
+  matricule: string
+  enrollmentId: number | null
+  status: 'PRESENT' | 'ABSENT' | 'LATE'
+  reasonCode: string | null
+  note: string | null
+  presenceId: number | null
+}
+
+export interface AttendanceSheetDraft {
+  id: number
+  schoolId: number
+  classId: number
+  className: string
+  sessionId: number
+  sessionDate: string
+  status: AttendanceSheetStatus
+  recordingMethod: string | null
+  lines: AttendanceSheetLineView[]
+  submittedAt: string | null
+  sealedAt: string | null
+}
+
+export interface PendingAttendanceSheetSummary {
+  sheetId: number
+  classId: number
+  className: string
+  sessionDate: string
+  status: AttendanceSheetStatus
+  createdByName: string
+  lineCount: number
+  exceptionCount: number
+  submittedAt: string | null
+}
+
+export interface SealedAttendanceSheetResult {
+  sheetId: number
+  status: AttendanceSheetStatus
+  sealedAt: string
+  sheetAuditSeal: string
+  lineCount: number
+  presenceCount: number
+}
+
+export type PresenceReasonGroup =
+  | 'PRESENT'
+  | 'LATE'
+  | 'ABSENCE_HEALTH'
+  | 'ABSENCE_AUTHORIZED'
+  | 'ABSENCE_DISCIPLINARY'
+  | 'ABSENCE_UNAUTHORIZED'
+  | 'OTHER'
+
+export interface PresenceReasonCodeEntry {
+  code: string
+  labelFr: string
+  labelEn?: string
+  dfeSymbol: string | null
+  appliesTo: readonly ('PRESENT' | 'LATE' | 'ABSENT')[]
+  group: PresenceReasonGroup
+  groupLabelFr: string
+  groupLabelEn?: string
+  requiresNote: boolean
+  sortOrder: number
 }
 
 // Classes

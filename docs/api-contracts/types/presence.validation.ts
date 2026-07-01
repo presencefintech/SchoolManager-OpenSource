@@ -45,6 +45,15 @@ export const AdminSessionDateSchema = z
     return val instanceof Date ? val : new Date(String(val));
   });
 
+export const PRESENCE_REASON_CODE_VALUES = [
+  'PRESENT_ON_TIME', 'PRESENT_REMOTE', 'LATE_BEFORE_REGISTER', 'LATE_AFTER_REGISTER',
+  'ABSENCE_ILLNESS', 'ABSENCE_MEDICAL', 'ABSENCE_AUTHORIZED', 'ABSENCE_RELIGIOUS',
+  'ABSENCE_FAMILY', 'ABSENCE_EDUCATION_OFF_SITE', 'ABSENCE_EXCLUDED', 'ABSENCE_HOLIDAY',
+  'ABSENCE_TRANSPORT', 'ABSENCE_UNAUTHORIZED', 'OTHER',
+] as const;
+
+export const PresenceReasonCodeSchema = z.enum(PRESENCE_REASON_CODE_VALUES);
+
 export const RecordPresenceRequestSchema = z
   .object({
     studentId: z.coerce.number().int().positive(),
@@ -52,6 +61,7 @@ export const RecordPresenceRequestSchema = z
     status: PresenceStatusSchema.default('PRESENT'),
     sessionDate: AdminSessionDateSchema,
     idempotencyKey: PresenceIdempotencyKeySchema.optional(),
+    reasonCode: PresenceReasonCodeSchema.optional(),
     note: z.string().max(500).optional(),
   })
   .strict();
@@ -59,6 +69,8 @@ export const RecordPresenceRequestSchema = z
 export const BulkPresenceEntrySchema = z.object({
   studentId: z.coerce.number().int().positive(),
   status: PresenceStatusSchema,
+  reasonCode: PresenceReasonCodeSchema.optional(),
+  note: z.string().max(500).optional(),
 });
 
 export const BulkRecordPresenceRequestSchema = z
@@ -73,6 +85,46 @@ export const BulkRecordPresenceRequestSchema = z
 export type RecordPresenceRequest = z.infer<typeof RecordPresenceRequestSchema>;
 export type BulkRecordPresenceRequest = z.infer<typeof BulkRecordPresenceRequestSchema>;
 export type BulkPresenceEntry = z.infer<typeof BulkPresenceEntrySchema>;
+
+/** Cahier d'appel numérique (Phase B) — voir attendance-sheet.types.ts pour les types étendus */
+export type AttendanceSheetStatus = 'DRAFT' | 'SUBMITTED' | 'SEALED';
+
+export interface AttendanceSheetLineView {
+  studentId: number;
+  studentName: string;
+  matricule: string;
+  enrollmentId: number | null;
+  status: 'PRESENT' | 'ABSENT' | 'LATE';
+  reasonCode: string | null;
+  note: string | null;
+  presenceId: number | null;
+}
+
+export interface AttendanceSheetDraft {
+  id: number;
+  schoolId: number;
+  classId: number;
+  className: string;
+  sessionId: number;
+  sessionDate: string;
+  status: AttendanceSheetStatus;
+  recordingMethod: string | null;
+  lines: AttendanceSheetLineView[];
+  submittedAt: string | null;
+  sealedAt: string | null;
+}
+
+export interface PendingAttendanceSheetSummary {
+  sheetId: number;
+  classId: number;
+  className: string;
+  sessionDate: string;
+  status: AttendanceSheetStatus;
+  createdByName: string;
+  lineCount: number;
+  exceptionCount: number;
+  submittedAt: string | null;
+}
 
 export interface AdminPresenceRecordResult {
   id: number

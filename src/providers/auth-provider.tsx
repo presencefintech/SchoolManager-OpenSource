@@ -3,8 +3,14 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { authApi } from '@/lib/api/auth'
-import { clearAuthStorage, persistAuthSession, resyncAuthFromCookies } from '@/lib/api/auth-storage'
-import { ROLE_HOME, type AuthUser, type LoginPayload, type LoginResponse } from '@/types/auth'
+import {
+  clearAuthStorage,
+  persistAuthSession,
+  persistUserProfile,
+  markAuthHydrated,
+  AUTH_SCHOOL_ID_KEY,
+} from '@/lib/api/auth-storage'
+import { ROLE_HOME, type AuthUser, type LoginPayload } from '@/types/auth'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -23,14 +29,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const { token: syncedToken, user: syncedUser } = resyncAuthFromCookies()
-    if (syncedToken) setToken(syncedToken)
-    if (syncedUser) setUser(syncedUser)
-    setIsLoading(false)
+    async function bootstrap() {
+      try {
+        const res = await fetch('/api/auth/session', { credentials: 'include' })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.user) {
+            persistUserProfile(data.user)
+            setUser(data.user)
+            setToken('http-only')
+            if (data.user.schoolId != null) {
+              localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(data.user.schoolId))
+            }
+          }
+        } else {
+          clearAuthStorage()
+        }
+      } catch {
+        clearAuthStorage()
+      } finally {
+        setIsLoading(false)
+        markAuthHydrated()
+      }
+    }
+    void bootstrap()
 
-    function onTokenRefreshed(e: Event) {
-      const detail = (e as CustomEvent<{ token: string }>).detail
-      if (detail?.token) setToken(detail.token)
+    function onTokenRefreshed() {
+      setToken('http-only')
     }
     window.addEventListener('auth:token-refreshed', onTokenRefreshed)
     return () => window.removeEventListener('auth:token-refreshed', onTokenRefreshed)
@@ -38,9 +63,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (payload: LoginPayload) => {
-      const data: LoginResponse = await authApi.login(payload)
+      const data = await authApi.login(payload)
       persistAuthSession(data)
-      setToken(data.token)
+      setToken('http-only')
       setUser(data.user)
       router.push(ROLE_HOME[data.user.role])
     },
@@ -48,8 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   const logout = useCallback(async () => {
-    const refreshToken = localStorage.getItem('auth_refresh_token') ?? undefined
-    await authApi.logout(refreshToken)
+    await authApi.logout()
     clearAuthStorage()
     setToken(null)
     setUser(null)
