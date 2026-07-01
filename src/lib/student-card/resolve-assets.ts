@@ -45,10 +45,13 @@ export function createInitialsAvatarDataUrl(firstName: string, lastName: string)
   return canvas.toDataURL('image/png')
 }
 
-/** Résout une URL relative backend (/uploads/…) vers l'origine Next (proxy rewrite) */
+/** Résout une URL relative backend (/uploads/…) vers le proxy authentifié Next */
 export function normalizeAssetUrl(url: string): string {
   if (url.startsWith('data:') || url.startsWith('blob:')) return url
   if (/^https?:\/\//i.test(url)) return url
+  if (typeof window !== 'undefined' && url.startsWith('/uploads/')) {
+    return `${window.location.origin}/api${url}`
+  }
   if (typeof window !== 'undefined' && url.startsWith('/')) {
     return `${window.location.origin}${url}`
   }
@@ -75,7 +78,7 @@ export async function resolveImageDataUrl(
     const resolved = normalizeAssetUrl(url.trim())
     if (resolved.startsWith('data:')) return resolved
 
-    const response = await fetch(resolved)
+    const response = await fetch(resolved, { credentials: 'include' })
     if (!response.ok) return fallback()
 
     const blob = await response.blob()

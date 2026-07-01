@@ -5050,6 +5050,335 @@
         }
       }
     },
+    "/admin/presences/reason-codes": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Présences"
+        ],
+        "summary": "Catalogue motifs DfE/CEDS (absences et retards)",
+        "responses": {
+          "200": {
+            "description": "Liste des codes motif",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PresenceReasonCodeEntry"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/presences/sheets/draft": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Présences"
+        ],
+        "summary": "Ouvrir ou récupérer le brouillon du cahier d'appel",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "query",
+            "required": true,
+            "description": "Classe (requis)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sessionDate",
+            "in": "query",
+            "required": false,
+            "description": "Date de session (défaut: jour courant)",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Brouillon pré-rempli depuis les inscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AttendanceSheetDraft"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/presences/sheets/pending": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Présences"
+        ],
+        "summary": "Lister les cahiers d'appel (en cours ou archives scellées)",
+        "parameters": [
+          {
+            "name": "sessionDate",
+            "in": "query",
+            "required": false,
+            "description": "Filtre date de session",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "description": "Filtre classe",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Sans filtre: DRAFT + SUBMITTED. `SEALED` = archives téléchargeables",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "SUBMITTED",
+                "SEALED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des feuilles",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/PendingAttendanceSheetSummary"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/presences/sheets/{sheetId}/seal": {
+      "post": {
+        "tags": [
+          "Admin",
+          "Présences"
+        ],
+        "summary": "Clôturer et sceller le cahier d'appel",
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "description": "ID feuille d'appel",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feuille scellée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SealedAttendanceSheetResult"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/presences/sheets/{sheetId}/export": {
+      "get": {
+        "tags": [
+          "Admin",
+          "Présences"
+        ],
+        "summary": "Télécharger le registre officiel (PDF ou CSV)",
+        "description": "Export réservé aux feuilles **SEALED** avec `sheetAuditSeal`.\n\n**PDF** : registre imprimable (classe, date, élèves, statuts, motifs, sceau).\n\n**CSV** : une ligne par élève + métadonnées feuille (compta / direction).\n\nAudit : `ATTENDANCE_SHEET_EXPORTED`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sheetId",
+            "in": "path",
+            "required": true,
+            "description": "ID feuille d'appel",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Format du fichier",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pdf",
+                "csv"
+              ],
+              "default": "pdf"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fichier registre",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "attachment; filename=\"registre-{classe}-{date}-{id}.pdf|csv\""
+              }
+            },
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/admin/presences/{id}/validate": {
       "patch": {
         "tags": [
@@ -7131,6 +7460,19 @@
             "items": {
               "$ref": "#/components/schemas/BulkPresenceRecordItem"
             }
+          },
+          "sheetId": {
+            "type": "integer",
+            "description": "ID feuille d'appel (workflow Phase B)"
+          },
+          "sheetStatus": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "SEALED"
+            ],
+            "description": "Statut feuille après soumission"
           }
         }
       },
@@ -7167,6 +7509,235 @@
           },
           "code": {
             "type": "string"
+          }
+        }
+      },
+      "AttendanceSheetLineView": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "enrollmentId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "ABSENT"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "presenceId": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "AttendanceSheetDraft": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "classId": {
+            "type": "integer"
+          },
+          "className": {
+            "type": "string"
+          },
+          "sessionId": {
+            "type": "integer"
+          },
+          "sessionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "SEALED"
+            ]
+          },
+          "recordingMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttendanceSheetLineView"
+            }
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sealedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "PendingAttendanceSheetSummary": {
+        "type": "object",
+        "properties": {
+          "sheetId": {
+            "type": "integer"
+          },
+          "classId": {
+            "type": "integer"
+          },
+          "className": {
+            "type": "string"
+          },
+          "sessionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "SUBMITTED",
+              "SEALED"
+            ]
+          },
+          "createdByName": {
+            "type": "string"
+          },
+          "lineCount": {
+            "type": "integer"
+          },
+          "exceptionCount": {
+            "type": "integer"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "SealedAttendanceSheetResult": {
+        "type": "object",
+        "properties": {
+          "sheetId": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SEALED"
+            ]
+          },
+          "sealedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sheetAuditSeal": {
+            "type": "string",
+            "description": "HMAC-SHA256 du registre"
+          },
+          "lineCount": {
+            "type": "integer"
+          },
+          "presenceCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "PresenceReasonCodeEntry": {
+        "type": "object",
+        "required": [
+          "code",
+          "labelFr",
+          "dfeSymbol",
+          "appliesTo",
+          "group",
+          "groupLabelFr",
+          "requiresNote",
+          "sortOrder"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "ABSENCE_ILLNESS"
+          },
+          "labelFr": {
+            "type": "string",
+            "example": "Maladie"
+          },
+          "labelEn": {
+            "type": "string",
+            "example": "Illness"
+          },
+          "dfeSymbol": {
+            "type": "string",
+            "nullable": true,
+            "example": "I"
+          },
+          "appliesTo": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "PRESENT",
+                "LATE",
+                "ABSENT"
+              ]
+            }
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "PRESENT",
+              "LATE",
+              "ABSENCE_HEALTH",
+              "ABSENCE_AUTHORIZED",
+              "ABSENCE_DISCIPLINARY",
+              "ABSENCE_UNAUTHORIZED",
+              "OTHER"
+            ]
+          },
+          "groupLabelFr": {
+            "type": "string",
+            "example": "Santé"
+          },
+          "groupLabelEn": {
+            "type": "string",
+            "example": "Health"
+          },
+          "requiresNote": {
+            "type": "boolean",
+            "example": false
+          },
+          "sortOrder": {
+            "type": "integer",
+            "example": 30
           }
         }
       },

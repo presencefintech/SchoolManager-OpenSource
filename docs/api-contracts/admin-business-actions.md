@@ -202,6 +202,8 @@ Clôture une vérification après validation Finance **et** Admin. Équivalent �
 
 ## 3. Présences — Actions alertes sécurité
 
+> **Périmètre rôles :** tout le routeur `/api/v1/admin/presences/*` est réservé à `ADMIN` et `SUPER_ADMIN` (`permitRoles`). Le rôle `FINANCE` n'y a pas accès.
+
 Ces routes opèrent sur `PresenceSecurityEvent` (feed `GET /admin/presences/alerts`), pas directement sur la présence seule.
 
 ### `PATCH /admin/presences/security-events/{eventId}/dismiss`
@@ -210,8 +212,8 @@ Archive une alerte sans valider la présence.
 
 | | |
 |--|--|
-| **Rôles** | `ADMIN`, `SUPER_ADMIN`, `FINANCE` |
-| **Policy** | `PresencePolicy.update` → `fraud_alerts` |
+| **Rôles** | `ADMIN`, `SUPER_ADMIN` |
+| **Policy** | `PresencePolicy.update` → `FraudAlert` |
 | **Params** | `eventId` (integer, path) |
 
 **Corps (JSON) :**
@@ -234,8 +236,8 @@ Valide la présence liée et lève l'alerte.
 
 | | |
 |--|--|
-| **Rôles** | `ADMIN`, `SUPER_ADMIN`, `FINANCE` |
-| **Policy** | `PresencePolicy.update` → `presence` |
+| **Rôles** | `ADMIN`, `SUPER_ADMIN` |
+| **Policy** | `PresencePolicy.validate` → `Presence` |
 | **Params** | `eventId` (integer, path) |
 | **Corps** | `{}` (vide accepté) |
 
@@ -253,8 +255,8 @@ Envoie une notification aux parents et un rappel interne admin/finance.
 
 | | |
 |--|--|
-| **Rôles** | `ADMIN`, `SUPER_ADMIN`, `FINANCE` |
-| **Policy** | `PresencePolicy.update` → `fraud_alerts` |
+| **Rôles** | `ADMIN`, `SUPER_ADMIN` |
+| **Policy** | `PresencePolicy.update` → `FraudAlert` |
 | **Params** | `eventId` (integer, path) |
 
 **Corps (JSON) :**
@@ -272,6 +274,31 @@ Envoie une notification aux parents et un rappel interne admin/finance.
 **Réponse `200` :** `data: null`, message « Notification envoyée. »
 
 **Frontend :** `presencesApi.dismissSecurityAlert` · `validateSecurityAlert` · `notifySecurityAlert` · hooks `useDismissSecurityAlert`, `useValidateSecurityAlert`, `useNotifySecurityAlert`.
+
+---
+
+## Cahier d'appel — export registre scellé
+
+### `GET /admin/presences/sheets/{sheetId}/export?format=pdf|csv`
+
+**Prérequis :** feuille `SEALED` avec `sheetAuditSeal` (après `POST …/sheets/{sheetId}/seal`).
+
+| Format | `Content-Type` | Usage |
+|--------|----------------|-------|
+| `pdf` (défaut) | `application/pdf` | Inspection terrain, archives papier |
+| `csv` | `text/csv; charset=utf-8` | Compta / direction (Excel) |
+
+**Réponse `200` :** fichier binaire — **pas** de wrapper JSON. Header `Content-Disposition: attachment`.
+
+**Erreurs :** `SHEET_NOT_SEALED` · `SHEET_SEAL_INCOMPLETE` (400) · 404 feuille hors école.
+
+**Audit :** `ATTENDANCE_SHEET_EXPORTED`.
+
+**Archives :** `GET /admin/presences/sheets/pending?status=SEALED` liste les feuilles téléchargeables.
+
+**Frontend :** `presencesApi.exportSheetRegister` · `useExportAttendanceSheet` · `AttendanceSheetExportButtons` (modale scellée + onglet Archives).
+
+Voir aussi : `docs/ATTENDANCE_SHEET_WORKFLOW.md` · `frontend_web/docs/ADMIN_PRESENCE_INTEGRATION.md`.
 
 ---
 
@@ -297,7 +324,9 @@ Le frontend ne doit **pas** exposer `fraudScore`, `isLocked`, `isPaymentLocked` 
 | `PATCH …/enrollments/{id}/admin-profile` | ✓ | ✓ | — |
 | `GET …/pending-verifications/export` | ✓ | ✓ | ✓ |
 | `POST …/verifications/{id}/mark-processed` | ✓ | ✓ | — |
-| `PATCH/POST …/security-events/{id}/*` | ✓ | ✓ | ✓ |
+| `PATCH/POST …/security-events/{id}/*` | ✓ | ✓ | — |
+| `GET/POST …/admin/presences/*` (module) | ✓ | ✓ | — |
+| `GET …/presences/sheets/{id}/export` | ✓ | ✓ | — |
 
 ---
 
@@ -308,7 +337,7 @@ Le frontend ne doit **pas** exposer `fraudScore`, `isLocked`, `isPaymentLocked` 
 | API | `src/lib/admin/api/enrollments.api.ts`, `finance.api.ts`, `presences.api.ts` |
 | Hooks | `src/lib/hooks/use-admin.ts` |
 | Schémas UI | `src/lib/schemas/enrollment-actions.ts` |
-| Composants | `enrollment-business-drawers.tsx`, `admin-profile-modal.tsx` |
+| Composants | `enrollment-business-drawers.tsx`, `admin-profile-modal.tsx`, `AttendanceSheetExportButtons.tsx` |
 | Pages | `admin/enrollments`, `admin/students/[id]`, `admin/finance/paiements`, `admin/presences` |
 
 ---

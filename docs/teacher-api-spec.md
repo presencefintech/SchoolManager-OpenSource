@@ -91,11 +91,13 @@ Erreurs de validation (**400**) :
   "failed": [
     { "studentId": 99, "error": "Élève introuvable", "code": "BAD_REQUEST" }
   ],
-  "duplicates": []
+  "duplicates": [],
+  "sheetId": 12,
+  "sheetStatus": "SUBMITTED"
 }
 ```
 
-> Même forme que l’admin `POST /api/v1/admin/presences/bulk`. Le frontend web admin consomme ce contrat via `src/lib/presence/presence-response.utils.ts`.
+> Même forme que l’admin `POST /api/v1/admin/presences/bulk`. Workflow **Phase B** : chaque bulk crée ou met à jour une `AttendanceSheet` (`DRAFT` → `SUBMITTED` → `SEALED`).
 
 ---
 
@@ -162,6 +164,38 @@ Alias acceptés : `qrPayload`, `scanData`.
 
 ---
 
+### `GET /classes/{classId}/attendance-sheet/draft` — Brouillon cahier
+
+Pré-remplit la feuille depuis les inscriptions actives (tous `PRESENT` par défaut), puis **hydrate** les lignes avec les présences déjà enregistrées ce jour (`presenceId`, statut réel).
+
+**Query :** `sessionDate` (optionnel, ISO)
+
+**Réponse 200 :** `data: AttendanceSheetDraft`
+
+```json
+{
+  "id": 12,
+  "classId": 7,
+  "className": "3ème A",
+  "sessionDate": "2026-06-29T00:00:00.000Z",
+  "status": "DRAFT",
+  "lines": [
+    {
+      "studentId": 42,
+      "studentName": "Jean Mukendi",
+      "matricule": "ELV-001",
+      "status": "PRESENT",
+      "reasonCode": "PRESENT_ON_TIME",
+      "presenceId": 101
+    }
+  ]
+}
+```
+
+> `presenceId` non null = élève déjà pointé aujourd'hui (live, QR, saisie antérieure ou soumission précédente).
+
+---
+
 ### `POST /classes/{classId}/attendance-sheet` — Cahier d’appel
 
 Enregistrement groupé manuel par classe (équivalent admin bulk, `scanMethod: MANUAL`).
@@ -176,30 +210,39 @@ Enregistrement groupé manuel par classe (équivalent admin bulk, `scanMethod: M
   "idempotencyKey": "batch-uuid-optionnel",
   "entries": [
     { "studentId": 42, "status": "PRESENT" },
-    { "studentId": 43, "status": "LATE" },
-    { "studentId": 44, "status": "ABSENT" }
+    { "studentId": 43, "status": "LATE", "reasonCode": "LATE_BEFORE_REGISTER" },
+    { "studentId": 44, "status": "ABSENT", "reasonCode": "ABSENCE_UNAUTHORIZED" }
   ]
 }
 ```
 
 | Champ | Règles |
 |-------|--------|
-| `entries` | 1 à 200 lignes `{ studentId, status }` |
+| `entries` | 1 à 200 lignes `{ studentId, status, reasonCode?, note? }` |
+| `reasonCode` | **obligatoire** si `status` = `ABSENT` ou `LATE` (codes DfE/CEDS) |
 | `sessionDate` | optionnel, max 30 jours rétroactif |
-| `idempotencyKey` | optionnel ; clé par élève = `{key}:{studentId}` |
+| `idempotencyKey` | optionnel ; idempotence **par feuille** |
 
 **Réponses**
 
-- **201** → `data: BulkPresenceRecordResult` (tout nouveau)
-- **202** → `data` avec `failed` et/ou `duplicates` non vides
+- **201** → `data: BulkPresenceRecordResult` + `sheetId`, `sheetStatus: SUBMITTED` (y compris replay sur lignes déjà liées)
+- **202** → `data` avec `failed` et/ou `duplicates` non vides (tentative de recréation même jour)
 - **400** → validation
 
 **Exemple UI Flutter**
 
-1. Charger les élèves : `GET /classes/{classId}/students`
-2. Construire `entries` depuis la grille PRESENT / LATE / ABSENT
-3. Envoyer le batch ; afficher le résumé `{ succeeded, failed, duplicates }`
-4. Sur **202**, surligner les lignes en échec (rouge) et doublons (ambre) — même logique que `BulkPresenceGrid` admin
+1. `GET /classes/{classId}/attendance-sheet/draft` — pré-remplissage + hydratation
+2. Modifier exceptions (ABSENT/LATE + `reasonCode`) ; ignorer les lignes déjà `presenceId` si lecture seule
+3. `POST /classes/{classId}/attendance-sheet` — soumettre (une fois)
+4. `POST .../attendance-sheet/{sheetId}/seal` — clôturer la séance (ne pas re-soumettre si `SUBMITTED`)
+
+---
+
+### `POST /classes/{classId}/attendance-sheet/{sheetId}/seal` — Clôturer
+
+Scelle la feuille (`SEALED`) + `sheetAuditSeal`. Lecture seule ensuite.
+
+**Réponse 200 :** `data: { sheetId, status, sealedAt, sheetAuditSeal, lineCount, presenceCount }`
 
 ---
 

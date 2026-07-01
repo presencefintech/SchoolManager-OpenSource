@@ -1,143 +1,89 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { fadeUp, stagger } from '@/lib/animations'
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
-  QrCode, Plus, Users, RefreshCw, CheckCheck, Trash2, X,
-  EyeOff, Bell,
+  QrCode, Plus, ClipboardList, RefreshCw, CheckCheck, Trash2,
+  EyeOff, Bell, Settings2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   usePresenceStats, usePresenceLiveFeed, usePresenceHeatmap, usePresenceAlerts,
   useValidatePresence, useDeletePresence,
-  useGenerateSessionQR, useClasses,
+  useClasses,
   useDismissSecurityAlert, useValidateSecurityAlert, useNotifySecurityAlert,
 } from '@/lib/hooks/use-admin'
 import type { PresenceSecurityAlert, ClassListItem } from '@/types/admin'
 import { ManualRecordModal } from '@/components/admin/presences/ManualRecordModal'
 import { BulkPresenceGrid } from '@/components/admin/presences/BulkPresenceGrid'
+import { PendingSheetsPanel, type OpenAttendanceSheetParams } from '@/components/admin/presences/PendingSheetsPanel'
+import { QRKioskModal } from '@/components/admin/presences/QRKioskModal'
+import { PresenceStatusBadge } from '@/components/admin/presences/PresenceStatusBadge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { labelFraudScore } from '@/lib/business-labels'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
+import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 
-function Sk({ className }: { className?: string }) {
-  return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
-}
+const PRESENCE_FILTER_DEFAULTS = { search: '', classId: '', status: '' }
 
-const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> = {
-  PRESENT: { label: 'Présent', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
-  ABSENT:  { label: 'Absent',  dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700' },
-  LATE:    { label: 'Retard',  dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700' },
-}
+type Tab = 'live' | 'heatmap' | 'alerts' | 'sheets'
 
-// ── Modals ─────────────────────────────────────────────────────────
-
-function QRKioskModal({ onClose, classes }: { onClose: () => void; classes: ClassListItem[] }) {
-  const [classId, setClassId] = useState('')
-  const generate = useGenerateSessionQR()
-  const selected = classes.find(c => String(c.id) === classId)
-
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <h2 className="text-base font-semibold text-zinc-900">QR Code Kiosque</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 transition-colors"><X size={18} /></button>
-        </div>
-        <div className="p-6 space-y-4">
-          {!generate.data ? (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-zinc-600 mb-1.5">Classe</label>
-                <select
-                  value={classId}
-                  onChange={e => setClassId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-                >
-                  <option value="">Sélectionner une classe…</option>
-                  {classes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={() => classId && generate.mutate(Number(classId))}
-                disabled={!classId || generate.isPending}
-                className="w-full px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-              >
-                {generate.isPending ? 'Génération…' : 'Générer le QR'}
-              </button>
-              {generate.isError && <p className="text-xs text-red-600 text-center">Erreur lors de la génération</p>}
-            </>
-          ) : (
-            <div className="text-center space-y-4">
-              {selected && (
-                <p className="text-xs font-semibold text-zinc-500 bg-zinc-50 rounded-lg px-3 py-1.5">
-                  {selected.name}
-                </p>
-              )}
-              <img
-                src={generate.data.qrCode}
-                alt="QR Code Kiosque"
-                className="mx-auto w-48 h-48 rounded-xl border border-zinc-200"
-              />
-              <p className="text-xs text-zinc-400">Expire dans {Math.round(generate.data.expiresAt / 60)} minutes</p>
-              <button onClick={() => generate.reset()} className="text-xs text-emerald-600 hover:underline">
-                Générer un nouveau QR
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Heatmap ─────────────────────────────────────────────────────────
+type BulkModalState = {
+  classId?: number
+  sessionDate?: string
+} | null
 
 function HeatmapChart({ classId }: { classId?: number }) {
   const { data, isLoading } = usePresenceHeatmap(classId)
 
   if (isLoading) {
     return (
-      <div className="flex items-end gap-1 h-40">
-        {[...Array(24)].map((_, i) => <div key={i} className="flex-1 rounded-xl bg-zinc-100 animate-pulse" style={{ height: `${30 + Math.random() * 70}%` }} />)}
+      <div className="flex h-44 items-end gap-1">
+        {[...Array(24)].map((_, i) => (
+          <div
+            key={i}
+            className="flex-1 animate-pulse rounded-t-md bg-zinc-100"
+            style={{ height: `${30 + (i % 5) * 14}%` }}
+          />
+        ))}
       </div>
     )
   }
 
   if (!data?.length) {
-    return <p className="text-sm text-zinc-400 text-center py-10">Aucune donnée disponible</p>
+    return <p className="py-10 text-center text-sm text-zinc-400">Aucune donnée disponible</p>
   }
 
-  const max = Math.max(...data.map(d => d.count), 1)
+  const max = Math.max(...data.map((d) => d.count), 1)
   return (
     <div className="space-y-3">
-      <div className="flex items-end gap-1 h-40">
+      <div className="flex h-44 items-end gap-1">
         {data.map((d) => (
-          <div key={d.hour} className="flex-1 flex flex-col items-center gap-1 group relative">
+          <div key={d.hour} className="group relative flex flex-1 flex-col items-center gap-1">
             {d.count > 0 && (
-              <span className="absolute bottom-full mb-1 text-[10px] bg-zinc-800 text-white px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                {d.count}
+              <span className="pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                {d.count} pointage{d.count > 1 ? 's' : ''}
               </span>
             )}
             <div
               className={cn(
-                'w-full rounded-t-sm transition-colors',
-                d.count > 0 ? 'bg-emerald-400 group-hover:bg-emerald-500' : 'bg-zinc-100'
+                'w-full rounded-t-md transition-colors',
+                d.count > 0 ? 'bg-emerald-400 group-hover:bg-emerald-500' : 'bg-zinc-100',
               )}
-              style={{ height: `${Math.max((d.count / max) * 140, d.count > 0 ? 4 : 2)}px` }}
+              style={{ height: `${Math.max((d.count / max) * 160, d.count > 0 ? 6 : 3)}px` }}
             />
           </div>
         ))}
       </div>
       <div className="flex gap-1">
         {data.map((d) => (
-          <div key={d.hour} className="flex-1 text-center text-[9px] text-zinc-300">
+          <div key={d.hour} className="flex-1 text-center text-[9px] text-zinc-400">
             {d.hour.replace('h', '')}h
           </div>
         ))}
@@ -146,18 +92,26 @@ function HeatmapChart({ classId }: { classId?: number }) {
   )
 }
 
-// ── Page ─────────────────────────────────────────────────────────────
-
-type Tab = 'live' | 'heatmap' | 'alerts'
-
 export default function PresencesPage() {
   const toast = useToast()
   const [tab, setTab] = useState<Tab>('live')
-  const [filterClassId, setFilterClassId] = useState<number | undefined>(undefined)
+  const {
+    draft: filterDraft,
+    applied: filters,
+    setField: setFilterField,
+    apply: applyFilters,
+    reset: resetFilters,
+    removeFilter,
+  } = useMultiCriteriaSearch(PRESENCE_FILTER_DEFAULTS)
+  const filterClassId = filters.classId ? Number(filters.classId) : undefined
   const [showManual, setShowManual] = useState(false)
-  const [showBulk, setShowBulk] = useState(false)
+  const [bulkModal, setBulkModal] = useState<BulkModalState>(null)
   const [showQR, setShowQR] = useState(false)
-  const [alertAction, setAlertAction] = useState<{ type: 'dismiss' | 'validate' | 'notify'; alert: PresenceSecurityAlert } | null>(null)
+  const [alertAction, setAlertAction] = useState<{
+    type: 'dismiss' | 'validate' | 'notify'
+    alert: PresenceSecurityAlert
+  } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; studentName: string } | null>(null)
 
   const { data: stats, isLoading: loadingStats } = usePresenceStats()
   const { data: feed, isLoading: loadingFeed, refetch: refetchFeed } = usePresenceLiveFeed({
@@ -175,25 +129,60 @@ export default function PresencesPage() {
   const notifyAlert = useNotifySecurityAlert()
 
   const STAT_CARDS = [
-    { label: 'Présents',         value: stats?.present       ?? '—', color: 'emerald', Icon: CheckCircle2 },
-    { label: 'Absents',          value: stats?.absent        ?? '—', color: 'rose',    Icon: XCircle },
-    { label: 'Retards',          value: stats?.late          ?? '—', color: 'amber',   Icon: Clock },
-    { label: 'Total élèves',     value: stats?.totalStudents ?? '—', color: 'indigo',  Icon: Activity },
-    { label: 'Fraudes critiques',value: stats?.criticalFraud ?? '—', color: 'rose',    Icon: ShieldAlert },
+    { label: 'Présents', value: stats?.present ?? '—', color: 'emerald', Icon: CheckCircle2 },
+    { label: 'Absents', value: stats?.absent ?? '—', color: 'rose', Icon: XCircle },
+    { label: 'Retards', value: stats?.late ?? '—', color: 'amber', Icon: Clock },
+    { label: 'Total élèves', value: stats?.totalStudents ?? '—', color: 'indigo', Icon: Activity },
+    { label: 'Fraudes critiques', value: stats?.criticalFraud ?? '—', color: 'rose', Icon: ShieldAlert },
   ] as const
 
   const COLORS: Record<string, string> = {
-    emerald: 'bg-emerald-50 text-emerald-600',
-    rose:    'bg-rose-50 text-rose-600',
-    amber:   'bg-amber-50 text-amber-600',
-    indigo:  'bg-indigo-50 text-indigo-600',
+    emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-600/10',
+    rose: 'bg-rose-50 text-rose-600 ring-rose-600/10',
+    amber: 'bg-amber-50 text-amber-600 ring-amber-600/10',
+    indigo: 'bg-indigo-50 text-indigo-600 ring-indigo-600/10',
   }
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: 'live',    label: 'Flux en direct' },
+  const filteredFeedEntries = useMemo(() => {
+    const entries = feed?.entries ?? []
+    const q = String(filters.search ?? '').toLowerCase().trim()
+    const status = String(filters.status ?? '')
+    return entries.filter((entry) => {
+      if (status && entry.status !== status) return false
+      if (!q) return true
+      return (
+        entry.studentName?.toLowerCase().includes(q) ||
+        entry.matricule?.toLowerCase().includes(q) ||
+        entry.className?.toLowerCase().includes(q)
+      )
+    })
+  }, [feed?.entries, filters.search, filters.status])
+
+  const filterChips = useMemo(() => {
+    const chips: { id: string; label: string }[] = []
+    if (filters.search) chips.push({ id: 'search', label: `Texte : ${filters.search}` })
+    if (filters.classId) {
+      const name = classes.find((c) => c.id === Number(filters.classId))?.name ?? filters.classId
+      chips.push({ id: 'classId', label: `Classe : ${name}` })
+    }
+    if (filters.status) chips.push({ id: 'status', label: `Statut : ${filters.status}` })
+    return chips
+  }, [filters, classes])
+
+  const TABS: { key: Tab; label: string; icon?: typeof Activity }[] = [
+    { key: 'live', label: 'Flux en direct', icon: Activity },
     { key: 'heatmap', label: 'Heatmap' },
-    { key: 'alerts',  label: `Alertes${alerts?.length ? ` (${alerts.length})` : ''}` },
+    { key: 'sheets', label: 'Cahiers d\'appel', icon: ClipboardList },
+    { key: 'alerts', label: `Alertes${alerts?.length ? ` (${alerts.length})` : ''}`, icon: ShieldAlert },
   ]
+
+  function openBulkSheet(params?: OpenAttendanceSheetParams) {
+    setBulkModal({
+      classId: params?.classId,
+      sessionDate: params?.sessionDate,
+    })
+    setTab('sheets')
+  }
 
   async function confirmAlertAction() {
     if (!alertAction) return
@@ -216,63 +205,110 @@ export default function PresencesPage() {
     }
   }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    try {
+      await del.mutateAsync({ id: deleteTarget.id, reason: 'Suppression administrative' })
+      toast.success('Présence supprimée', deleteTarget.studentName)
+    } catch (err) {
+      toast.error('Suppression impossible', getApiErrorMessage(err))
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
   const alertActionLoading = dismissAlert.isPending || validateAlert.isPending || notifyAlert.isPending
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100/80">
       <motion.div
-        className="bg-white border-b border-zinc-200"
-        initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+        className="border-b border-zinc-200/80 bg-white/90 backdrop-blur-md"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 px-8 py-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-6 lg:px-8">
           <div>
-            <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Présences</h1>
-            <p className="text-sm text-zinc-400 mt-1 capitalize" suppressHydrationWarning>
-              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">
+              Registre d&apos;assiduité
+            </p>
+            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900">Présences</h1>
+            <p className="mt-1 text-sm text-zinc-500" suppressHydrationWarning>
+              {new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+              {' · '}
+              Flux live, cahiers d&apos;appel et alertes fraude
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/admin/settings"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700"
+            >
+              <Settings2 size={14} />
+              Paramètres
+            </Link>
             <button
+              type="button"
               onClick={() => setShowQR(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
             >
               <QrCode size={15} />
               QR Kiosque
             </button>
             <button
-              onClick={() => setShowBulk(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-colors"
+              type="button"
+              onClick={() => openBulkSheet()}
+              className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-2 text-sm font-medium text-indigo-800 transition-colors hover:bg-indigo-50"
             >
-              <Users size={15} />
-              Enreg. groupé
+              <ClipboardList size={15} />
+              Cahier d&apos;appel
             </button>
             <button
+              type="button"
               onClick={() => setShowManual(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
             >
               <Plus size={15} />
-              Enregistrement manuel
+              Saisie manuelle
             </button>
           </div>
         </div>
       </motion.div>
 
-      <motion.div className="max-w-7xl mx-auto px-8 py-8 space-y-6" variants={stagger} initial="hidden" animate="show">
-
-        {/* Stats Cards */}
-        <motion.div variants={fadeUp} className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <motion.div
+        className="mx-auto max-w-7xl space-y-6 px-6 py-8 lg:px-8"
+        variants={stagger}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.div variants={fadeUp} className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           {STAT_CARDS.map(({ label, value, color, Icon }) => (
-            <div key={label} className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-5 py-4">
+            <div
+              key={label}
+              className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+            >
               {loadingStats ? (
                 <Skeleton className="h-12" />
               ) : (
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-1 leading-tight">{label}</p>
-                    <p className="text-2xl font-bold text-zinc-900 tabular-nums">{value}</p>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                      {label}
+                    </p>
+                    <p className="text-2xl font-bold tabular-nums text-zinc-900">{value}</p>
                   </div>
-                  <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', COLORS[color])}>
-                    <Icon size={16} />
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset',
+                      COLORS[color],
+                    )}
+                  >
+                    <Icon size={18} />
                   </div>
                 </div>
               )}
@@ -280,73 +316,93 @@ export default function PresencesPage() {
           ))}
         </motion.div>
 
-        {/* Attendance rate bar */}
         {!loadingStats && (
-          <motion.div variants={fadeUp} className="bg-white rounded-xl border border-zinc-200 px-6 py-4 flex items-center gap-5">
-            <span className="text-sm font-medium text-zinc-600 w-32 flex-shrink-0">Taux de présence</span>
-            <div className="flex-1 bg-zinc-100 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 rounded-full transition-all duration-700"
+          <motion.div
+            variants={fadeUp}
+            className="rounded-2xl border border-zinc-200/80 bg-white px-6 py-4 shadow-sm"
+          >
+            <div className="flex items-center gap-5">
+              <span className="w-28 shrink-0 text-sm font-medium text-zinc-600">Taux du jour</span>
+              <div className="h-3 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
                 style={{ width: `${stats?.attendanceRate ?? 0}%` }}
               />
             </div>
-            <span className="text-sm font-bold text-emerald-700 flex-shrink-0 tabular-nums w-12 text-right">
+              <span className="w-14 shrink-0 text-right text-sm font-bold tabular-nums text-emerald-700">
               {(stats?.attendanceRate ?? 0).toFixed(1)}%
             </span>
+            </div>
           </motion.div>
         )}
 
-        {/* Filtre classe (flux + heatmap) */}
-        <motion.div variants={fadeUp} className="flex flex-wrap items-center gap-3">
-          <label className="text-xs font-medium text-zinc-500">Classe</label>
-          <select
-            value={filterClassId ?? ''}
-            onChange={(e) => {
-              const value = e.target.value
-              setFilterClassId(value ? Number(value) : undefined)
-            }}
-            className="px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-          >
-            <option value="">Toutes les classes</option>
-            {classes.map((c: ClassListItem) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </motion.div>
+        <AdminMultiCriteriaSearch
+          title="Filtrer les présences"
+          primaryPlaceholder="Élève, matricule, classe…"
+          values={filterDraft}
+          onChange={(id, value) => setFilterField(id as keyof typeof PRESENCE_FILTER_DEFAULTS, value)}
+          onApply={applyFilters}
+          onReset={resetFilters}
+          activeChips={filterChips}
+          onRemoveChip={(id) => removeFilter(id as keyof typeof PRESENCE_FILTER_DEFAULTS)}
+          resultCount={tab === 'live' ? filteredFeedEntries.length : undefined}
+          loading={loadingFeed}
+          fields={[
+            {
+              id: 'classId',
+              type: 'select',
+              label: 'Classe',
+              options: classes.map((c: ClassListItem) => ({ value: String(c.id), label: c.name })),
+            },
+            {
+              id: 'status',
+              type: 'select',
+              label: 'Statut pointage',
+              options: [
+                { value: 'PRESENT', label: 'Présent' },
+                { value: 'LATE', label: 'Retard' },
+                { value: 'ABSENT', label: 'Absent' },
+              ],
+            },
+          ]}
+        />
 
-        {/* Tabs */}
         <motion.div variants={fadeUp}>
-          <div className="flex items-center gap-1 bg-white border border-zinc-200 rounded-xl p-1 w-fit mb-5">
-            {TABS.map(({ key, label }) => (
+          <div className="mb-5 inline-flex items-center gap-1 rounded-2xl border border-zinc-200 bg-white p-1 shadow-sm">
+            {TABS.map(({ key, label, icon: TabIcon }) => (
               <button
                 key={key}
+                type="button"
                 onClick={() => setTab(key)}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                  'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all',
                   tab === key
                     ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50',
+                    : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800',
                 )}
               >
+                {TabIcon && <TabIcon size={14} />}
                 {label}
               </button>
             ))}
           </div>
 
-          {/* ── Live feed ── */}
           {tab === 'live' && (
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-sm font-medium text-zinc-700">Flux en direct</span>
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                  <span className="text-sm font-medium text-zinc-800">Flux en direct</span>
                   {feed && (
-                    <span className="text-xs text-zinc-400">({feed.total} enregistrements)</span>
+                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
+                      {feed.total} enregistrements
+                    </span>
                   )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => refetchFeed()}
-                  className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-zinc-400 transition-colors hover:text-zinc-600"
                 >
                   <RefreshCw size={12} />
                   Actualiser
@@ -354,74 +410,112 @@ export default function PresencesPage() {
               </div>
 
               {loadingFeed ? (
-                <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-              ) : feed?.entries?.length ? (
+                <div className="space-y-3 p-4">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-12" />
+                  ))}
+                </div>
+              ) : filteredFeedEntries.length ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-zinc-100">
-                        <th className="px-6 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wide">Élève</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wide">Classe</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wide">Statut</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wide">Méthode</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wide">Heure</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400 uppercase tracking-wide">Risque</th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-zinc-400 uppercase tracking-wide">Actions</th>
+                      <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Élève
+                        </th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Classe
+                        </th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Statut
+                        </th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Méthode
+                        </th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Heure
+                        </th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Risque
+                        </th>
+                        <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
-                      {feed.entries.map((entry) => {
-                        const cfg = STATUS_CFG[entry.status] ?? STATUS_CFG.ABSENT
+                      {filteredFeedEntries.map((entry) => {
                         const risk = entry.security?.riskScore ?? 0
                         const isSuspicious = entry.security?.isSuspicious
                         return (
-                          <tr key={entry.id} className={cn('hover:bg-zinc-50/60 transition-colors', isSuspicious && 'bg-red-50/30')}>
+                          <tr
+                            key={entry.id}
+                            className={cn(
+                              'transition-colors hover:bg-zinc-50/60',
+                              isSuspicious && 'bg-red-50/20',
+                            )}
+                          >
                             <td className="px-6 py-3">
-                              <p className="font-medium text-zinc-800 leading-tight">{entry.studentName}</p>
-                              {entry.matricule && <p className="text-xs text-zinc-400">{entry.matricule}</p>}
+                              <p className="font-medium leading-tight text-zinc-800">{entry.studentName}</p>
+                              {entry.matricule && (
+                                <p className="text-xs text-zinc-400">{entry.matricule}</p>
+                              )}
                             </td>
-                            <td className="px-4 py-3 text-zinc-600 text-xs">{entry.className}</td>
+                            <td className="px-4 py-3 text-xs text-zinc-600">{entry.className}</td>
                             <td className="px-4 py-3">
-                              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', cfg.badge)}>{cfg.label}</span>
+                              <PresenceStatusBadge status={entry.status} />
                             </td>
-                            <td className="px-4 py-3 text-xs text-zinc-400 uppercase tracking-wide">{entry.method ?? '—'}</td>
-                            <td className="px-4 py-3 text-xs text-zinc-400 tabular-nums">
-                              {new Date(entry.scannedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            <td className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-400">
+                              {entry.method ?? '—'}
+                            </td>
+                            <td className="px-4 py-3 text-xs tabular-nums text-zinc-500">
+                              {new Date(entry.scannedAt).toLocaleTimeString('fr-FR', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
                             </td>
                             <td className="px-4 py-3">
                               {risk > 0 ? (
-                                <span className={cn(
-                                  'text-xs font-medium px-2 py-0.5 rounded-full',
-                                  risk >= 70 ? 'bg-red-50 text-red-700' : risk >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-zinc-100 text-zinc-500',
-                                )}>
+                                <span
+                                  className={cn(
+                                    'rounded-full px-2 py-0.5 text-xs font-medium',
+                                    risk >= 70
+                                      ? 'bg-red-50 text-red-700'
+                                      : risk >= 40
+                                        ? 'bg-amber-50 text-amber-700'
+                                        : 'bg-zinc-100 text-zinc-500',
+                                  )}
+                                >
                                   {risk}%
                                 </span>
-                              ) : <span className="text-xs text-zinc-200">—</span>}
+                              ) : (
+                                <span className="text-xs text-zinc-200">—</span>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-end gap-1">
                                 {isSuspicious && (
                                   <button
+                                    type="button"
                                     onClick={() => validate.mutate({ id: entry.id })}
                                     disabled={validate.isPending}
                                     title="Valider"
-                                    className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 transition-colors"
+                                    className="rounded-lg p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-50"
                                   >
                                     <CheckCheck size={14} />
                                   </button>
                                 )}
                                 <button
-                                  onClick={() => {
-                                    if (window.confirm('Supprimer cette présence ?')) {
-                                      del.mutate({ id: entry.id, reason: 'Suppression administrative' })
-                                    }
-                                  }}
+                                  type="button"
+                                  onClick={() =>
+                                    setDeleteTarget({
+                                      id: entry.id,
+                                      studentName: entry.studentName,
+                                    })
+                                  }
                                   disabled={del.isPending}
-                                  title={del.isError ? 'Erreur — voir console' : 'Supprimer'}
-                                  className={cn(
-                                    'p-1.5 rounded-lg disabled:opacity-50 transition-colors',
-                                    del.isError ? 'text-orange-500 hover:bg-orange-50' : 'text-red-500 hover:bg-red-50'
-                                  )}
+                                  title="Supprimer"
+                                  className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 disabled:opacity-50"
                                 >
                                   <Trash2 size={14} />
                                 </button>
@@ -434,99 +528,113 @@ export default function PresencesPage() {
                   </table>
                 </div>
               ) : (
-                <div className="px-6 py-14 text-center">
-                  <Activity size={28} className="mx-auto mb-3 text-zinc-200" />
-                  <p className="text-sm text-zinc-400">Aucun enregistrement pour l'instant</p>
-                  <p className="text-xs text-zinc-300 mt-1">Actualisation automatique toutes les 15 secondes</p>
+                <div className="px-6 py-16 text-center">
+                  <Activity size={32} className="mx-auto mb-3 text-zinc-200" />
+                  <p className="text-sm text-zinc-500">Aucun enregistrement pour l&apos;instant</p>
+                  <p className="mt-1 text-xs text-zinc-400">Actualisation automatique toutes les 15 secondes</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* ── Heatmap ── */}
           {tab === 'heatmap' && (
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
-              <h3 className="text-sm font-medium text-zinc-700 mb-6">
-                Distribution horaire des présences — aujourd'hui
+            <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+              <h3 className="mb-6 text-sm font-semibold text-zinc-800">
+                Distribution horaire — aujourd&apos;hui
               </h3>
               <HeatmapChart classId={filterClassId} />
-              <p className="text-xs text-zinc-300 mt-4 text-center">
-                Survolez les barres pour voir le nombre de pointages par heure
-              </p>
             </div>
           )}
 
-          {/* ── Alerts ── */}
+          {tab === 'sheets' && (
+            <PendingSheetsPanel classId={filterClassId} onOpenSheet={openBulkSheet} />
+          )}
+
           {tab === 'alerts' && (
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-              <div className="flex items-center gap-2 px-6 py-4 border-b border-zinc-100">
-                <ShieldAlert size={14} className="text-red-500" />
-                <span className="text-sm font-medium text-zinc-700">Alertes de sécurité</span>
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="flex items-center gap-2 border-b border-zinc-100 px-6 py-4">
+                <ShieldAlert size={16} className="text-red-500" />
+                <span className="text-sm font-semibold text-zinc-800">Alertes de sécurité</span>
                 {alerts && alerts.length > 0 && (
-                  <span className="ml-auto text-xs font-semibold bg-red-50 text-red-600 px-2 py-0.5 rounded-full">
+                  <span className="ml-auto rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600">
                     {alerts.length}
                   </span>
                 )}
               </div>
 
               {loadingAlerts ? (
-                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
+                <div className="space-y-3 p-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-20" />
+                  ))}
+                </div>
               ) : alerts?.length ? (
                 <div className="divide-y divide-zinc-50">
                   {alerts.map((alert) => (
-                    <div key={alert.id} className="px-6 py-4 hover:bg-zinc-50/60 transition-colors">
+                    <div key={alert.id} className="px-6 py-4 transition-colors hover:bg-zinc-50/60">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
+                          <div className="mb-0.5 flex items-center gap-2">
                             <span className="text-sm font-semibold text-zinc-800">
                               {alert.presence?.student?.firstName} {alert.presence?.student?.lastName}
                             </span>
                             {alert.presence?.student?.matricule && (
-                              <span className="text-xs text-zinc-400 font-mono">{alert.presence.student.matricule}</span>
+                              <span className="font-mono text-xs text-zinc-400">
+                                {alert.presence.student.matricule}
+                              </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-500 mb-2">Classe : {alert.presence?.class?.name ?? '—'}</p>
+                          <p className="mb-2 text-xs text-zinc-500">
+                            Classe : {alert.presence?.class?.name ?? '—'}
+                          </p>
                           {Array.isArray(alert.fraudReasons) && alert.fraudReasons.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {alert.fraudReasons.map((reason, i) => (
-                                <span key={i} className="text-[10px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-full">
+                                <span
+                                  key={i}
+                                  className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] text-red-600"
+                                >
                                   {reason}
                                 </span>
                               ))}
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                          <span className={cn(
-                            'text-xs font-semibold px-2 py-0.5 rounded-full max-w-[160px] text-right leading-tight',
-                            alert.isSuspectedFraud || alert.fraudScore >= 70 ? 'bg-red-50 text-red-700'
-                            : alert.fraudScore >= 40 ? 'bg-amber-50 text-amber-700'
+                        <div className="flex shrink-0 flex-col items-end gap-2">
+                          <span
+                            className={cn(
+                              'max-w-[160px] rounded-full px-2 py-0.5 text-right text-xs font-semibold leading-tight',
+                              alert.isSuspectedFraud || alert.fraudScore >= 70
+                                ? 'bg-red-50 text-red-700'
+                                : alert.fraudScore >= 40
+                                  ? 'bg-amber-50 text-amber-700'
                             : 'bg-zinc-100 text-zinc-600',
-                          )}>
+                            )}
+                          >
                             {labelFraudScore(alert.fraudScore, alert.isSuspectedFraud)}
                           </span>
                           <div className="flex items-center gap-1">
                             <button
+                              type="button"
                               onClick={() => setAlertAction({ type: 'dismiss', alert })}
                               disabled={alertActionLoading}
-                              title="Ignorer l'alerte"
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
                             >
                               <EyeOff size={12} /> Ignorer
                             </button>
                             <button
+                              type="button"
                               onClick={() => setAlertAction({ type: 'validate', alert })}
                               disabled={alertActionLoading}
-                              title="Valider après contrôle"
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
                             >
                               <CheckCheck size={12} /> Valider
                             </button>
                             <button
+                              type="button"
                               onClick={() => setAlertAction({ type: 'notify', alert })}
                               disabled={alertActionLoading}
-                              title="Notifier parent / élève"
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-40"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-50 disabled:opacity-40"
                             >
                               <Bell size={12} /> Notifier
                             </button>
@@ -537,9 +645,9 @@ export default function PresencesPage() {
                   ))}
                 </div>
               ) : (
-                <div className="px-6 py-14 text-center">
-                  <ShieldAlert size={28} className="mx-auto mb-3 text-zinc-200" />
-                  <p className="text-sm text-zinc-400">Aucune alerte de sécurité active</p>
+                <div className="px-6 py-16 text-center">
+                  <ShieldAlert size={32} className="mx-auto mb-3 text-zinc-200" />
+                  <p className="text-sm text-zinc-500">Aucune alerte de sécurité active</p>
                 </div>
               )}
             </div>
@@ -548,36 +656,61 @@ export default function PresencesPage() {
       </motion.div>
 
       {showManual && <ManualRecordModal onClose={() => setShowManual(false)} />}
-      {showBulk   && <BulkPresenceGrid  onClose={() => setShowBulk(false)}   />}
-      {showQR     && <QRKioskModal     onClose={() => setShowQR(false)} classes={classes}  />}
+      {bulkModal && (
+        <BulkPresenceGrid
+          initialClassId={bulkModal.classId}
+          initialSessionDate={bulkModal.sessionDate}
+          onClose={() => setBulkModal(null)}
+        />
+      )}
+      {showQR && <QRKioskModal onClose={() => setShowQR(false)} />}
 
       <ConfirmDialog
         open={alertAction != null}
         title={
-          alertAction?.type === 'dismiss' ? 'Ignorer cette alerte ?'
-          : alertAction?.type === 'validate' ? 'Valider cette présence ?'
+          alertAction?.type === 'dismiss'
+            ? 'Ignorer cette alerte ?'
+            : alertAction?.type === 'validate'
+              ? 'Valider cette présence ?'
           : 'Envoyer une notification ?'
         }
         description={
           alertAction?.type === 'dismiss'
-            ? 'L\'alerte sera archivée sans action sur la présence.'
+            ? "L'alerte sera archivée sans action sur la présence."
             : alertAction?.type === 'validate'
-              ? 'La présence sera confirmée et l\'alerte de sécurité levée.'
+              ? "La présence sera confirmée et l'alerte de sécurité levée."
               : 'Un message sera envoyé au contact enregistré pour cet élève.'
         }
-        impact={alertAction ? [
+        impact={
+          alertAction
+            ? [
           `Élève : ${alertAction.alert.presence?.student?.firstName} ${alertAction.alert.presence?.student?.lastName}`,
           labelFraudScore(alertAction.alert.fraudScore, alertAction.alert.isSuspectedFraud),
-        ] : []}
+              ]
+            : []
+        }
         confirmLabel={
-          alertAction?.type === 'dismiss' ? 'Ignorer'
-          : alertAction?.type === 'validate' ? 'Valider'
+          alertAction?.type === 'dismiss'
+            ? 'Ignorer'
+            : alertAction?.type === 'validate'
+              ? 'Valider'
           : 'Notifier'
         }
-        variant={alertAction?.type === 'dismiss' ? 'default' : 'default'}
         loading={alertActionLoading}
         onConfirm={confirmAlertAction}
         onCancel={() => setAlertAction(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Supprimer cette présence ?"
+        description="Cette action est irréversible. La ligne sera retirée du registre du jour."
+        impact={deleteTarget ? [`Élève : ${deleteTarget.studentName}`] : []}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={del.isPending}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

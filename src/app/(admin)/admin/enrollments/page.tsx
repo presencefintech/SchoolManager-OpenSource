@@ -1,19 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   UserPlus, Plus, Lock, CheckCircle, Flag,
-  Loader2, ChevronLeft, ChevronRight, Search, XCircle,
-  PauseCircle, RefreshCw, GraduationCap, AlertTriangle, Clock, Users,
+  Loader2, ChevronLeft, ChevronRight, XCircle,
+  PauseCircle, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useEnrollments, useEnrollmentDetail,
   useApproveEnrollment, useFinalizeEnrollment, useToggleLock, useSyncBalance,
-  useStudentDashboard,
 } from '@/lib/hooks/use-admin'
+import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
+import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
 import { EnrollSessionDrawer, MoratoriumDrawer } from '@/components/admin/enrollments/enrollment-business-drawers'
@@ -39,12 +40,21 @@ const STATUS_CFG: Record<string, { label: string; cls: string }> = {
   SUSPENDED:    { label: 'Suspendu',     cls: 'bg-red-50 text-red-700' },
 }
 
+const ENROLLMENT_FILTER_DEFAULTS = { search: '', status: '', balance: '' }
+
 export default function EnrollmentsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const {
+    draft: filterDraft,
+    applied: filters,
+    setField: setFilterField,
+    apply: applyFilters,
+    reset: resetFilters,
+    removeFilter,
+    applyValues,
+  } = useMultiCriteriaSearch(ENROLLMENT_FILTER_DEFAULTS)
   const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -55,7 +65,12 @@ export default function EnrollmentsPage() {
   const [syncConfirm, setSyncConfirm] = useState<{ studentId: number; name: string } | null>(null)
 
   const limit = 20
-  const { data: enrollmentsData, isLoading } = useEnrollments({ search: debouncedSearch, page, limit })
+  const { data: enrollmentsData, isLoading } = useEnrollments({
+    search: filters.search ? String(filters.search) : undefined,
+    status: filters.status ? String(filters.status) : undefined,
+    page,
+    limit,
+  })
   const { data: detail, isLoading: detailLoading } = useEnrollmentDetail(selectedId ?? 0)
   const { data: syncDetail } = useEnrollmentDetail(syncConfirm?.studentId ?? 0)
   const approveMutation = useApproveEnrollment()
@@ -63,22 +78,50 @@ export default function EnrollmentsPage() {
   const toggleLockMutation = useToggleLock()
   const syncMutation = useSyncBalance()
 
-  const enrollments = enrollmentsData?.data ?? []
+  const enrollmentsRaw = enrollmentsData?.data ?? []
+  const enrollments = useMemo(() => {
+    const bal = String(filters.balance ?? '')
+    if (!bal) return enrollmentsRaw
+    return enrollmentsRaw.filter((en) => {
+      const balance = en.feesBalance ?? (en.totalFees ?? 0) - (en.feesPaid ?? 0)
+      if (bal === 'debt') return balance > 0
+      if (bal === 'clear') return balance <= 0
+      if (bal === 'locked') return en.isLocked
+      return true
+    })
+  }, [enrollmentsRaw, filters.balance])
   const totalPages = enrollmentsData?.totalPages ?? 1
   const total = enrollmentsData?.total ?? 0
-  const { data: studentDash } = useStudentDashboard()
-  const s = (studentDash as any)?.stats as any
 
   useEffect(() => {
     const q = searchParams.get('search')
     const studentId = searchParams.get('studentId')
-    if (q) { setSearch(q); setDebouncedSearch(q) }
+    if (q) applyValues({ ...ENROLLMENT_FILTER_DEFAULTS, search: q })
     if (studentId) setSelectedId(Number(studentId))
-  }, [searchParams])
+  }, [searchParams, applyValues])
 
-  function handleSearchKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') { setDebouncedSearch(search); setPage(1) }
+  function handleApplyFilters() {
+    applyFilters()
+    setPage(1)
   }
+
+  function handleResetFilters() {
+    resetFilters()
+    setPage(1)
+  }
+
+  const filterChips = useMemo(() => {
+    const chips: { id: string; label: string }[] = []
+    if (filters.search) chips.push({ id: 'search', label: `Texte : ${filters.search}` })
+    if (filters.status) {
+      const label = STATUS_CFG[filters.status as string]?.label ?? filters.status
+      chips.push({ id: 'status', label: `Statut : ${label}` })
+    }
+    if (filters.balance === 'debt') chips.push({ id: 'balance', label: 'Avec solde dû' })
+    if (filters.balance === 'clear') chips.push({ id: 'balance', label: 'Soldé' })
+    if (filters.balance === 'locked') chips.push({ id: 'balance', label: 'Dossier verrouillé' })
+    return chips
+  }, [filters])
 
   async function handleSync(enrollmentId: number) {
     setSyncingId(enrollmentId)
@@ -151,36 +194,46 @@ export default function EnrollmentsPage() {
       </motion.div>
 
       <div className="max-w-7xl mx-auto px-8 py-6 space-y-4">
-        {s && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: 'Total inscrits',  value: s.totalStudents  ?? '—', icon: GraduationCap, bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
-              { label: 'Actifs',          value: s.activeCount    ?? '—', icon: CheckCircle,   bg: 'bg-emerald-50', iconCls: 'text-emerald-600' },
-              { label: 'Pré-inscrits',    value: s.preEnrollCount ?? '—', icon: Clock,         bg: 'bg-amber-50',   iconCls: 'text-amber-600' },
-              { label: 'Suspendus',       value: s.suspendedCount ?? '—', icon: AlertTriangle, bg: 'bg-red-50',     iconCls: 'text-red-600' },
-            ].map(({ label, value, icon: Icon, bg, iconCls }) => (
-              <div key={label} className="bg-white rounded-2xl border border-zinc-100 px-4 py-4 flex items-center gap-3 shadow-sm">
-                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0', bg)}>
-                  <Icon size={15} className={iconCls} />
-                </div>
-                <div>
-                  <p className="text-[11px] text-zinc-400 uppercase tracking-wide">{label}</p>
-                  <p className="text-xl font-bold text-zinc-900 leading-none tabular-nums mt-0.5">{value}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="relative max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Rechercher... (Entrée)"
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-          />
-        </div>
+        <AdminMultiCriteriaSearch
+          title="Rechercher une inscription"
+          primaryPlaceholder="Nom, prénom, matricule…"
+          values={filterDraft}
+          onChange={(id, value) => setFilterField(id as keyof typeof ENROLLMENT_FILTER_DEFAULTS, value)}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+          activeChips={filterChips}
+          onRemoveChip={(id) => {
+            removeFilter(id as keyof typeof ENROLLMENT_FILTER_DEFAULTS)
+            setPage(1)
+          }}
+          resultCount={enrollments.length}
+          loading={isLoading}
+          fields={[
+            {
+              id: 'status',
+              type: 'select',
+              label: 'Statut dossier',
+              options: [
+                { value: 'ACTIVE', label: 'Actif' },
+                { value: 'PRE_ENROLL', label: 'Pré-inscrit' },
+                { value: 'APPROVED', label: 'Approuvé' },
+                { value: 'FINALIZED', label: 'Finalisé' },
+                { value: 'SUSPENDED', label: 'Suspendu' },
+                { value: 'INACTIVE', label: 'Inactif' },
+              ],
+            },
+            {
+              id: 'balance',
+              type: 'select',
+              label: 'Situation financière',
+              options: [
+                { value: 'debt', label: 'Solde dû' },
+                { value: 'clear', label: 'Soldé' },
+                { value: 'locked', label: 'Dossier verrouillé' },
+              ],
+            },
+          ]}
+        />
 
         <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           {isLoading ? (
