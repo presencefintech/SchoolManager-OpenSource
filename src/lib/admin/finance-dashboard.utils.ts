@@ -3,6 +3,7 @@ import type {
   FinanceKpi,
   FinanceCollectionEfficiencyLevel,
   FinanceEndOfDayClosing,
+  FinancePaymentMethodsBreakdown,
   FinanceIntegrityScan,
   FinanceIntegrityScanDetail,
 } from '@/types/admin'
@@ -190,6 +191,32 @@ export function normalizeEndOfDayClosing(raw: unknown): FinanceEndOfDayClosing |
       status: String(reconciliation.status ?? row.status ?? 'UNKNOWN'),
       reference: String(reconciliation.reference ?? ''),
     },
+  }
+}
+
+/** F-06 — GET /admin/finance/dashboard/payment-methods. */
+export function normalizePaymentMethodsBreakdown(raw: unknown): FinancePaymentMethodsBreakdown | null {
+  if (!raw || typeof raw !== 'object') return null
+
+  const row = raw as Record<string, unknown>
+  const period = row.period === 'day' ? 'day' : 'month'
+  const methods = Array.isArray(row.methods) ? row.methods : []
+
+  return {
+    period,
+    from: String(row.from ?? ''),
+    to: String(row.to ?? ''),
+    total: Number(row.total ?? 0),
+    count: Number(row.count ?? 0),
+    methods: methods.map((item) => {
+      const method = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>
+      return {
+        method: String(method.method ?? 'INCONNU'),
+        amount: Number(method.amount ?? 0),
+        count: Number(method.count ?? 0),
+        sharePct: Number(method.sharePct ?? 0),
+      }
+    }),
   }
 }
 

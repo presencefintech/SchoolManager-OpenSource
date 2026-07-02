@@ -1441,13 +1441,14 @@
         ],
         "summary": "Dashboard stratégique finance",
         "parameters": [],
+        "responseSchema": "#/components/schemas/EnterpriseDashboardDTO",
         "responses": {
           "200": {
             "description": "Opération réussie",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/EnterpriseDashboardDTO"
                 }
               }
             }
@@ -1839,13 +1840,14 @@
         ],
         "summary": "Alertes fraude finance",
         "parameters": [],
+        "responseSchema": "#/components/schemas/FinanceFraudAlertsResponse",
         "responses": {
           "200": {
             "description": "Opération réussie",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "$ref": "#/components/schemas/FinanceFraudAlertsResponse"
                 }
               }
             }
@@ -2059,6 +2061,103 @@
         ],
         "summary": "Vérifications paiement en attente",
         "parameters": [],
+        "responseSchema": "#/components/schemas/PendingVerificationListResponse",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingVerificationListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/payments/pending-verifications/export": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Exporter les vérifications en attente",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Format export",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "default": "csv"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/payments/verifications/{verificationId}/mark-processed": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Marquer une vérification comme traitée",
+        "parameters": [
+          {
+            "name": "verificationId",
+            "in": "path",
+            "required": true,
+            "description": "ID vérification",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkVerificationProcessedBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -2127,6 +2226,16 @@
           "Admin"
         ],
         "summary": "Enregistrer un paiement manuel",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManualPaymentBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -2337,6 +2446,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPaymentWithProofBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -2378,6 +2497,16 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmPaymentWithProofBody"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -2743,6 +2872,287 @@
         }
       }
     },
+    "/admin/finance/seal-batches": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les lots de scellés financiers",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Statut lot",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "SEALED",
+                "ARCHIVED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responseSchema": "#/components/schemas/FinancialSealBatchListResponse",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialSealBatchListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Créer un lot de scellés (paiements CONFIRMED)",
+        "description": "Rôles: ADMIN, SUPER_ADMIN. Lie financialSealBatchId + lockedAt sur chaque paiement.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSealBatchBody"
+              }
+            }
+          }
+        },
+        "successDescription": "Lot scellé créé",
+        "responseSchema": "#/components/schemas/CreateSealBatchResult",
+        "extraResponses": {
+          "201": {
+            "description": "Lot créé"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lot scellé créé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateSealBatchResult"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Lot créé"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/refunds": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les demandes de remboursement",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Statut",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "APPROVED",
+                "PROCESSING",
+                "REJECTED",
+                "PROCESSED",
+                "FAILED",
+                "CANCELLED",
+                "SYNCED"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Limite",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "maximum": 100
+            }
+          }
+        ],
+        "responseSchema": "#/components/schemas/AdminRefundListResponse",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRefundListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/refunds/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Détail demande de remboursement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID remboursement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responseSchema": "#/components/schemas/AdminRefundRequestDto",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRefundRequestDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/refunds/{id}/review": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approuver ou rejeter une demande de remboursement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID remboursement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRefundBody"
+              }
+            }
+          }
+        },
+        "responseSchema": "#/components/schemas/AdminRefundRequestDto",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminRefundRequestDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/admin/finance/payment-profile": {
       "get": {
         "tags": [
@@ -3024,6 +3434,74 @@
         }
       }
     },
+    "/admin/finance/moratoriums/policy": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Politique moratoire de l'école",
+        "responseSchema": "#/components/schemas/MoratoriumPolicyDto",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoratoriumPolicyDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mettre à jour la politique moratoire",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMoratoriumPolicyBody"
+              }
+            }
+          }
+        },
+        "responseSchema": "#/components/schemas/MoratoriumPolicyDto",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoratoriumPolicyDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/admin/finance/moratoriums/{id}": {
       "get": {
         "tags": [
@@ -3136,6 +3614,108 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RevokeMoratoriumBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/moratoriums/{id}/approve": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approuver une demande de moratoire (PENDING_APPROVAL)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID moratoire",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveMoratoriumBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/moratoriums/{id}/reject": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Rejeter une demande de moratoire",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID moratoire",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveMoratoriumBody"
               }
             }
           }
@@ -8483,6 +9063,773 @@
           "note": {
             "type": "string",
             "minLength": 3,
+            "maxLength": 500
+          }
+        }
+      },
+      "PaymentProofType": {
+        "type": "string",
+        "enum": [
+          "RECEIPT_PDF",
+          "MOBILE_MONEY_SCREENSHOT",
+          "BANK_TRANSFER_SLIP",
+          "CASH_VOUCHER",
+          "OTHER"
+        ]
+      },
+      "ManualPaymentBody": {
+        "type": "object",
+        "required": [
+          "studentId",
+          "amount",
+          "method"
+        ],
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "BANK_TRANSFER",
+              "MOBILE_MONEY",
+              "CHEQUE",
+              "ORANGE_MONEY",
+              "MPESA",
+              "AIRTEL_MONEY",
+              "CARD",
+              "BANK"
+            ]
+          },
+          "sessionId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "feeStructureId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "proofType": {
+            "$ref": "#/components/schemas/PaymentProofType"
+          },
+          "manualJustification": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 255
+          }
+        }
+      },
+      "ConfirmPaymentWithProofBody": {
+        "type": "object",
+        "properties": {
+          "proofType": {
+            "$ref": "#/components/schemas/PaymentProofType"
+          },
+          "manualJustification": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "EnterpriseDashboardDTO": {
+        "type": "object",
+        "description": "Dashboard stratégique finance (GET /admin/finance/dashboard/strategic)",
+        "properties": {
+          "performance": {
+            "type": "object",
+            "properties": {
+              "monthlyRevenue": {
+                "type": "number"
+              },
+              "projectedRevenue": {
+                "type": "number"
+              },
+              "arpu": {
+                "type": "number"
+              },
+              "digitalAdoption": {
+                "type": "number"
+              },
+              "collectionEfficiency": {
+                "type": "number"
+              }
+            }
+          },
+          "audit": {
+            "type": "object",
+            "properties": {
+              "pendingVerifications": {
+                "type": "integer"
+              },
+              "isBenfordValid": {
+                "type": "boolean"
+              },
+              "suspiciousActivity": {
+                "type": "boolean"
+              },
+              "devianceLevel": {
+                "type": "number"
+              },
+              "daysSalesOutstanding": {
+                "type": "number"
+              },
+              "highRiskProfiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinanceHighRiskProfile"
+                }
+              }
+            }
+          },
+          "treasury": {
+            "type": "object",
+            "properties": {
+              "totalUnpaid": {
+                "type": "number"
+              },
+              "breakEvenRequirement": {
+                "type": "number"
+              },
+              "badDebtEstimate": {
+                "type": "number"
+              }
+            }
+          },
+          "actionsRequired": {
+            "type": "object",
+            "properties": {
+              "criticalAttention": {
+                "type": "boolean"
+              },
+              "collectionStrategy": {
+                "type": "string",
+                "enum": [
+                  "AGGRESSIVE_RECALL",
+                  "NORMAL_FOLLOWUP"
+                ]
+              },
+              "securityAlert": {
+                "type": "string"
+              }
+            }
+          },
+          "serverMetadata": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "schoolId": {
+                "type": "integer"
+              },
+              "operatorId": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "FinanceHighRiskProfile": {
+        "type": "object",
+        "properties": {
+          "studentName": {
+            "type": "string"
+          },
+          "debtAmount": {
+            "type": "number"
+          },
+          "fraudAlertCount": {
+            "type": "integer"
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH"
+            ]
+          }
+        }
+      },
+      "FinanceFraudAlert": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "studentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FinanceFraudAlertsResponse": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "HIGH"
+            ]
+          },
+          "deviance": {
+            "type": "number"
+          },
+          "benfordValid": {
+            "type": "boolean"
+          },
+          "anomalies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "PendingVerificationPayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "method": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "proofType": {
+            "$ref": "#/components/schemas/PaymentProofType"
+          },
+          "reconciliationNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PendingVerificationQueueItem": {
+        "type": "object",
+        "description": "File guichet — vérification paiement en attente",
+        "properties": {
+          "verificationId": {
+            "type": "integer"
+          },
+          "paymentId": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "verificationStep": {
+            "type": "integer"
+          },
+          "financeCheck": {
+            "type": "boolean"
+          },
+          "adminCheck": {
+            "type": "boolean"
+          },
+          "suspicion": {
+            "type": "boolean"
+          },
+          "fraudScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "queuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PendingVerificationPayment"
+          },
+          "student": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "matricule": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "className": {
+                "type": "string",
+                "nullable": true
+              },
+              "balance": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "PendingVerificationListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingVerificationQueueItem"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminRefundRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paymentId": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "PROCESSING",
+              "REJECTED",
+              "PROCESSED",
+              "FAILED",
+              "CANCELLED",
+              "SYNCED"
+            ]
+          },
+          "reviewNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "reviewedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "gateway": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "provider": {
+                "type": "string",
+                "nullable": true
+              },
+              "refundRef": {
+                "type": "string",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "nullable": true
+              },
+              "correlationId": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "payment": {
+            "type": "object",
+            "properties": {
+              "reference": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "studentName": {
+                "type": "string"
+              },
+              "matricule": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "AdminRefundListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRefundRequestDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "ReviewRefundBody": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          },
+          "reviewNotes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "CreateSealBatchBody": {
+        "type": "object",
+        "required": [
+          "paymentIds"
+        ],
+        "properties": {
+          "paymentIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "FinancialSealBatchDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "batchReference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SEALED",
+              "ARCHIVED"
+            ]
+          },
+          "paymentCount": {
+            "type": "integer"
+          },
+          "linkedPaymentCount": {
+            "type": "integer"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "sealHmac": {
+            "type": "string"
+          },
+          "sealedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sealedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FinancialSealBatchListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialSealBatchDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateSealBatchResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "batchReference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SEALED",
+              "ARCHIVED"
+            ]
+          },
+          "paymentCount": {
+            "type": "integer"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "sealHmac": {
+            "type": "string"
+          },
+          "sealedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paymentIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "MoratoriumPolicyDto": {
+        "type": "object",
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "maxDays": {
+            "type": "integer"
+          },
+          "maxPerYear": {
+            "type": "integer"
+          },
+          "defaultNotifyBehavior": {
+            "$ref": "#/components/schemas/MoratoriumNotifyBehavior"
+          },
+          "parentRequestEnabled": {
+            "type": "boolean"
+          },
+          "parentMaxRequestDays": {
+            "type": "integer"
+          },
+          "autoApproveMaxDays": {
+            "type": "integer"
+          },
+          "allowedTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MoratoriumType"
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "database",
+              "provisioned"
+            ]
+          }
+        }
+      },
+      "UpdateMoratoriumPolicyBody": {
+        "type": "object",
+        "properties": {
+          "maxMoratoriumDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "maxMoratoriumsPerYear": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "moratoriumBehavior": {
+            "$ref": "#/components/schemas/MoratoriumNotifyBehavior"
+          },
+          "parentRequestEnabled": {
+            "type": "boolean"
+          },
+          "parentMaxRequestDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90
+          },
+          "autoApproveMaxDays": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          }
+        }
+      },
+      "ApproveMoratoriumBody": {
+        "type": "object",
+        "properties": {
+          "internalNote": {
+            "type": "string"
+          }
+        }
+      },
+      "MarkVerificationProcessedBody": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
             "maxLength": 500
           }
         }

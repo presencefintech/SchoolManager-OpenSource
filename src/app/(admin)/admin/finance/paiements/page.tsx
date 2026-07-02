@@ -16,7 +16,7 @@ import {
 import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem, PaymentProofType, ConfirmPaymentProofPayload } from '@/types/admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer, PaymentProofFields } from '@/components/admin/finance/verification-ui'
-import { defaultProofTypeForMethod } from '@/lib/finance/payment-proof'
+import { defaultProofTypeForMethod, labelPaymentProofType } from '@/lib/finance/payment-proof'
 import { formatMoney } from '@/lib/finance/currency'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -501,6 +501,7 @@ export default function PaiementsPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Workflow</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Risque</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Méthode</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Preuve</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Réf. / Reçu</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Date</th>
                   <th className="px-5 py-3" />
@@ -522,6 +523,15 @@ export default function PaiementsPage() {
                     <td className="px-5 py-3.5"><VerificationStepper item={p} /></td>
                     <td className="px-5 py-3.5"><FraudScoreBadge score={p.fraudScore} suspicion={p.suspicion} /></td>
                     <td className="px-5 py-3.5"><span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">{p.method}</span></td>
+                    <td className="px-5 py-3.5">
+                      {p.proofType ? (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium">
+                          {labelPaymentProofType(p.proofType)}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-300">—</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5 text-zinc-400 font-mono text-xs">
                       {p.receiptNumber ?? p.reference ?? p.providerRef ?? '—'}
                     </td>

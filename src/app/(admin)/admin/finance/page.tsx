@@ -6,11 +6,12 @@ import {
   TrendingUp, DollarSign, AlertTriangle, Wallet,
   BarChart3, Clock, Users, Building2, ChevronRight,
   ShieldAlert, CheckCircle2, XCircle, Banknote,
-  Receipt, FileText, ArrowRight, Sparkles, Zap,
+  Receipt, FileText, ArrowRight, Sparkles, Zap, Fingerprint,
 } from 'lucide-react'
 import {
   useFinanceDashboard, useFinanceTopPayers, useFinanceInsights,
-  useFinanceEfficiency, useFinanceEndOfDay,
+  useFinanceEfficiency, useFinanceEndOfDay, useFinancePaymentMethods,
+  useFinanceComparativeDashboard,
   usePendingVerifications, useFinanceFraudAlerts, usePaymentProfile,
 } from '@/lib/hooks/use-admin'
 import {
@@ -184,7 +185,10 @@ export default function FinanceDashboardPage() {
   const { data: topPayers = [] } = useFinanceTopPayers()
   const { data: insights } = useFinanceInsights()
   const { data: endOfDay } = useFinanceEndOfDay()
+  const { data: paymentMethodsBreakdown } = useFinancePaymentMethods('month')
   const { data: efficiencyLevels = [] } = useFinanceEfficiency()
+  const { data: comparativeLevels = [] } = useFinanceComparativeDashboard()
+  const collectionLevels = efficiencyLevels.length > 0 ? efficiencyLevels : comparativeLevels
   const { data: pending = [] } = usePendingVerifications()
   const { data: alerts = [] } = useFinanceFraudAlerts()
   const { data: paymentProfile } = usePaymentProfile()
@@ -194,8 +198,8 @@ export default function FinanceDashboardPage() {
 
   const ins = insights as Record<string, unknown> | undefined
   const display = resolveFinanceDashboardDisplay(kpis, insights)
-  const efficiencySummary = summarizeCollectionEfficiency(efficiencyLevels)
-  const efficiencyChartData = efficiencyLevels.map((level) => ({
+  const efficiencySummary = summarizeCollectionEfficiency(collectionLevels)
+  const efficiencyChartData = collectionLevels.map((level) => ({
     levelName: level.levelName,
     efficiency: Math.round(level.efficiency),
     studentCount: level.studentCount,
@@ -204,14 +208,22 @@ export default function FinanceDashboardPage() {
 
   const remaining = Math.max(0, display.totalDue - display.totalPaid)
   const collectedPct = display.totalDue > 0 ? (display.totalPaid / display.totalDue) * 100 : 0
-  const methodBreakdown = (endOfDay?.methods ?? [])
-    .map((entry) => ({
+  const methodBreakdownPeriodLabel =
+    paymentMethodsBreakdown?.period === 'day' ? "(aujourd'hui)" : '(ce mois)'
+  const methodBreakdown = (paymentMethodsBreakdown?.methods?.length
+    ? paymentMethodsBreakdown.methods.map((entry) => ({
+      method: formatPaymentMethodLabel(entry.method),
+      amount: entry.amount,
+      count: entry.count,
+      pct: entry.sharePct,
+    }))
+    : (endOfDay?.methods ?? []).map((entry) => ({
       method: formatPaymentMethodLabel(entry.method),
       amount: entry.amount,
       count: entry.count,
       pct: endOfDay && endOfDay.total > 0 ? (entry.amount / endOfDay.total) * 100 : 0,
     }))
-    .sort((a, b) => b.amount - a.amount)
+  ).sort((a, b) => b.amount - a.amount)
 
   return (
     <div className="relative min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-[#f4f6fa]">
@@ -542,7 +554,7 @@ export default function FinanceDashboardPage() {
             )}
 
             {/* Recouvrement par niveau — style Power BI */}
-            {efficiencyLevels.length > 0 && (
+            {collectionLevels.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
                 <div className="relative overflow-hidden rounded-2xl border border-[#EDEBE9] bg-white shadow-sm ring-1 ring-slate-100">
                   <div className="absolute top-0 left-0 right-0 h-1 bg-[#118DFF]" />
@@ -592,13 +604,13 @@ export default function FinanceDashboardPage() {
                 <PanelHeader
                   icon={DollarSign}
                   title="Méthodes de paiement"
-                  subtitle="Répartition réelle depuis les transactions confirmées du jour"
+                  subtitle={`Répartition réelle depuis les transactions confirmées ${methodBreakdownPeriodLabel}`}
                   accent="text-emerald-600"
                   accentBg="bg-emerald-500/10"
                 />
                 <div className="px-6 py-5 space-y-3">
                   {methodBreakdown.length === 0 ? (
-                    <p className="text-sm text-slate-500">Aucune transaction confirmée aujourd'hui.</p>
+                    <p className="text-sm text-slate-500">Aucune transaction confirmée sur la période.</p>
                   ) : (
                     methodBreakdown.slice(0, 6).map((item) => (
                       <div key={item.method} className="space-y-1.5">
@@ -665,6 +677,7 @@ export default function FinanceDashboardPage() {
                   <QuickLink href="/admin/finance/remboursements" icon={Receipt} label="Remboursements" gradient="bg-gradient-to-br from-indigo-500 to-blue-600" vibrant />
                   <QuickLink href="/admin/finance/factures" icon={FileText} label="Factures" gradient="bg-gradient-to-br from-sky-500 to-blue-600" vibrant />
                   <QuickLink href="/admin/finance/moratoriums" icon={Receipt} label="Moratoires" gradient="bg-gradient-to-br from-violet-500 to-purple-600" vibrant />
+                  <QuickLink href="/admin/finance/scelles" icon={Fingerprint} label="Lots scellés" gradient="bg-gradient-to-br from-teal-500 to-emerald-600" vibrant />
                   <QuickLink href="/admin/finance/audit" icon={ShieldAlert} label="Audit" count={fraudCount > 0 ? fraudCount : undefined} gradient="bg-gradient-to-br from-rose-500 to-red-600" vibrant />
                   <QuickLink href="/admin/finance/payment-profile" icon={Banknote} label="Profil paiement" gradient="bg-gradient-to-br from-amber-500 to-orange-600" vibrant />
                 </div>

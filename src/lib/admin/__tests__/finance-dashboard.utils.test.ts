@@ -4,10 +4,50 @@ import {
   normalizeFraudAlertsResponse,
   normalizeCollectionEfficiencyLevels,
   normalizeEndOfDayClosing,
+  normalizePaymentMethodsBreakdown,
   normalizeIntegrityScan,
   summarizeCollectionEfficiency,
   resolveFinanceDashboardDisplay,
 } from '../finance-dashboard.utils'
+
+describe('F-16 — smoke finance dashboard', () => {
+  it('affiche des KPI non vides à partir du DTO strategic + insights', () => {
+    const kpis = mapEnterpriseDashboardToKpi({
+      performance: {
+        monthlyRevenue: 120_000,
+        projectedRevenue: 180_000,
+        arpu: 12_000,
+        digitalAdoption: 45,
+        collectionEfficiency: 66.7,
+      },
+      audit: {
+        pendingVerifications: 2,
+        isBenfordValid: true,
+        suspiciousActivity: false,
+        devianceLevel: 0.5,
+        daysSalesOutstanding: 7,
+        highRiskProfiles: [],
+      },
+      treasury: {
+        totalUnpaid: 60_000,
+        breakEvenRequirement: 40,
+        badDebtEstimate: 5_000,
+      },
+    })
+
+    const display = resolveFinanceDashboardDisplay(kpis, {
+      totalCollecte: 120_000,
+      soldeRestant: 60_000,
+      efficaciteRecouvrement: 66.7,
+      nombreEleves: 42,
+    })
+
+    expect(display.totalPaid).toBeGreaterThan(0)
+    expect(display.totalDue).toBeGreaterThan(0)
+    expect(display.collectionRate).toBeGreaterThan(0)
+    expect(display.totalFees).toBe(display.totalDue)
+  })
+})
 
 describe('finance-dashboard.utils', () => {
   it('F-01 mappe EnterpriseDashboardDTO vers FinanceKpi', () => {
@@ -95,6 +135,25 @@ describe('finance-dashboard.utils', () => {
     expect(eod?.count).toBe(12)
     expect(eod?.methods[0].method).toBe('CASH')
     expect(eod?.reconciliation.status).toBe('READY_FOR_DEPOSIT')
+  })
+
+  it('F-06 normalise payment-methods breakdown', () => {
+    const breakdown = normalizePaymentMethodsBreakdown({
+      period: 'month',
+      from: '2026-06-01T00:00:00.000Z',
+      to: '2026-07-01T00:00:00.000Z',
+      total: 300_000,
+      count: 15,
+      methods: [
+        { method: 'CASH', amount: 180_000, count: 10, sharePct: 60 },
+        { method: 'ORANGE_MONEY', amount: 120_000, count: 5, sharePct: 40 },
+      ],
+    })
+
+    expect(breakdown?.period).toBe('month')
+    expect(breakdown?.total).toBe(300_000)
+    expect(breakdown?.methods).toHaveLength(2)
+    expect(breakdown?.methods[0].sharePct).toBe(60)
   })
 
   it('F-05 normalise integrity-scan backend', () => {
