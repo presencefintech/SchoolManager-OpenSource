@@ -3,15 +3,17 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Shield, AlertTriangle, ClipboardList, CheckCircle, Send, XCircle,
+  Shield, AlertTriangle, ClipboardList, CheckCircle, Send, XCircle, ShieldCheck, Search, UserCog,
 } from 'lucide-react'
 import {
   useFinanceFraudAlerts, useFinanceAuditLogs, useTriggerManualAudit,
   useFinanceIntegrityScan, useFinanceRiskProfiles, useFinanceDuplicates,
-  useFinanceLedger,
+  useFinanceLedger, useFinancePresenceSecurity, useFraudRiskAnalysis, useFinanceCashierAudit,
 } from '@/lib/hooks/use-admin'
 import type { FinanceFraudAlert, AuditLogEntry } from '@/types/admin'
 import { formatMoney } from '@/lib/finance/currency'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 
 function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
   return (
@@ -30,8 +32,25 @@ export default function AuditPage() {
   const { data: riskProfiles } = useFinanceRiskProfiles()
   const { data: duplicates } = useFinanceDuplicates()
   const { data: ledger } = useFinanceLedger()
+  const { data: presenceSecurity } = useFinancePresenceSecurity()
+  const { mutate: analyzeFraudRisk, isPending: analyzingRisk, data: fraudRiskResult } = useFraudRiskAnalysis()
   const [logPage, setLogPage] = useState(1)
   const LOGS_PER_PAGE = 20
+
+  const [riskStudentId, setRiskStudentId] = useState(0)
+  const [riskError, setRiskError] = useState('')
+  const [cashierId, setCashierId] = useState('')
+  const [cashierIdSubmitted, setCashierIdSubmitted] = useState(0)
+  const { data: cashierAudit, isLoading: loadingCashierAudit } = useFinanceCashierAudit(cashierIdSubmitted)
+
+  function handleAnalyzeRisk(e: React.FormEvent) {
+    e.preventDefault()
+    if (!riskStudentId) { setRiskError('Sélectionnez un élève'); return }
+    setRiskError('')
+    analyzeFraudRisk({ studentId: riskStudentId }, {
+      onError: (err) => setRiskError(getApiErrorMessage(err)),
+    })
+  }
 
   const rp = riskProfiles as unknown[] | { count?: number } | undefined
   const dup = duplicates as unknown[] | { count?: number } | undefined
@@ -134,6 +153,112 @@ export default function AuditPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        {/* Sécurité présences */}
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center">
+              <ShieldCheck size={14} className="text-teal-600" />
+            </div>
+            <p className="text-xs text-zinc-500">Sécurité présences</p>
+          </div>
+          {presenceSecurity != null && typeof presenceSecurity === 'object' ? (
+            <div className="space-y-1.5">
+              {Object.entries(presenceSecurity as Record<string, unknown>)
+                .filter(([, v]) => v != null && typeof v !== 'object')
+                .slice(0, 4)
+                .map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 capitalize">{k.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
+                    <span className="text-xs font-semibold text-zinc-800">{String(v)}</span>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <p className="text-xs text-zinc-400">Aucune donnée disponible</p>
+          )}
+        </div>
+
+        {/* Analyse risque fraude */}
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
+              <Search size={14} className="text-rose-600" />
+            </div>
+            <p className="text-xs text-zinc-500">Analyse risque fraude</p>
+          </div>
+          <form onSubmit={handleAnalyzeRisk} className="space-y-2">
+            <StudentSearchField
+              studentId={riskStudentId}
+              onSelect={setRiskStudentId}
+              label="Élève"
+            />
+            {riskError && <p className="text-xs text-red-500">{riskError}</p>}
+            <button
+              type="submit"
+              disabled={analyzingRisk}
+              className="w-full px-3 py-1.5 rounded-lg bg-rose-600 text-xs text-white font-medium hover:bg-rose-700 disabled:opacity-50"
+            >
+              {analyzingRisk ? 'Analyse...' : 'Analyser'}
+            </button>
+            {fraudRiskResult != null && typeof fraudRiskResult === 'object' && (
+              <div className="mt-2 space-y-1 border-t border-zinc-50 pt-2">
+                {Object.entries(fraudRiskResult as Record<string, unknown>)
+                  .filter(([, v]) => v != null && typeof v !== 'object')
+                  .slice(0, 3)
+                  .map(([k, v]) => (
+                    <div key={k} className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400 capitalize">{k.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
+                      <span className="text-xs font-semibold text-zinc-800">{String(v)}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </form>
+        </div>
+
+        {/* Audit caissier */}
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
+              <UserCog size={14} className="text-indigo-600" />
+            </div>
+            <p className="text-xs text-zinc-500">Audit caissier</p>
+          </div>
+          <div className="flex gap-1.5">
+            <input
+              type="number" min={1}
+              value={cashierId}
+              onChange={(e) => setCashierId(e.target.value)}
+              placeholder="ID caissier"
+              className="w-full px-2 py-1.5 rounded-lg border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+            <button
+              onClick={() => setCashierIdSubmitted(Number(cashierId))}
+              disabled={!cashierId}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 text-xs text-white font-medium hover:bg-zinc-900 disabled:opacity-50 whitespace-nowrap"
+            >
+              Voir
+            </button>
+          </div>
+          {loadingCashierAudit ? (
+            <p className="text-xs text-zinc-400 mt-2">Chargement...</p>
+          ) : cashierAudit != null && typeof cashierAudit === 'object' ? (
+            <div className="mt-2 space-y-1">
+              {Object.entries(cashierAudit as Record<string, unknown>)
+                .filter(([, v]) => v != null && typeof v !== 'object')
+                .slice(0, 4)
+                .map(([k, v]) => (
+                  <div key={k} className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400 capitalize">{k.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
+                    <span className="text-xs font-semibold text-zinc-800">{String(v)}</span>
+                  </div>
+                ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {integrity && integrity.details.length > 0 && (

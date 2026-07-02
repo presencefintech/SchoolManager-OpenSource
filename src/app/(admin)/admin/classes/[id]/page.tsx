@@ -3,16 +3,17 @@
 import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft } from 'lucide-react'
+import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle } from 'lucide-react'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
 } satisfies Variants
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
-import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useStudents } from '@/lib/hooks/use-admin'
+import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
+import type { ClassDetail } from '@/types/admin'
 
 function AssignModal({ classId, onClose }: { classId: number; onClose: () => void }) {
   const { mutateAsync, isPending } = useAssignStudents()
@@ -113,6 +114,94 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
   )
 }
 
+function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) {
+  const { mutateAsync, isPending } = useUpdateClass()
+  const { data: staff = [] } = useStaff()
+  const teachers = staff.filter((m: any) => m.role === 'TEACHER')
+  const [name, setName] = useState(cls.name)
+  const [capacity, setCapacity] = useState(cls.capacity ?? '')
+  const [teacherId, setTeacherId] = useState<number | ''>(cls.teacherId ?? '')
+  const [error, setError] = useState<string | null>(null)
+
+  const { data: conflicts = [] } = useClassConflicts(teacherId ? Number(teacherId) : undefined)
+  const hasConflicts = teacherId !== '' && Number(teacherId) !== cls.teacherId && conflicts.length > 0
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    if (!name.trim()) { setError('Le nom est requis'); return }
+    try {
+      await mutateAsync({
+        id: cls.id,
+        payload: {
+          name: name.trim(),
+          capacity: capacity === '' ? undefined : Number(capacity),
+          teacherId: teacherId === '' ? undefined : Number(teacherId),
+        },
+      })
+      onClose()
+    } catch (err: any) {
+      setError(err?.response?.data?.message ?? 'Erreur')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Modifier la classe</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Nom</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Capacité</label>
+            <input
+              type="number" min={0}
+              value={capacity}
+              onChange={e => setCapacity(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Enseignant</label>
+            <select
+              value={teacherId}
+              onChange={e => setTeacherId(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="">Aucun</option>
+              {teachers.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
+              ))}
+            </select>
+            {hasConflicts && (
+              <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                <AlertTriangle size={13} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700">
+                  Cet enseignant est déjà affecté à {conflicts.length} autre{conflicts.length > 1 ? 's' : ''} classe{conflicts.length > 1 ? 's' : ''} sur ce créneau.
+                </p>
+              </div>
+            )}
+          </div>
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50">
+              {isPending ? 'En cours...' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 type Tab = 'eleves' | 'stats' | 'audit'
 
 export default function ClassDetailPage() {
@@ -122,14 +211,13 @@ export default function ClassDetailPage() {
   const [tab, setTab] = useState<Tab>('eleves')
   const [showAssign, setShowAssign] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
 
   const { data: cls, isLoading } = useClassDetail(classId)
   const { data: stats } = useClassStats(classId)
   const { data: audit = [] } = useClassAudit(classId)
-  const { data: studentsData } = useStudents({ classId, limit: 200 })
+  const { data: students = [] } = useEnrollmentsByClass(classId)
   const { mutate: toggle } = useToggleClassStatus()
-
-  const students = studentsData?.data ?? []
 
   function handleExport() {
     classesApi.exportClass(classId).then(blob => {
@@ -184,6 +272,10 @@ export default function ClassDetailPage() {
             {cls.description && <p className="text-sm text-zinc-500 mt-1">{cls.description}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => setShowEdit(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
+              <Pencil size={12} />
+              Modifier
+            </button>
             <button onClick={() => setShowAssign(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <UserPlus size={12} />
               Affecter
@@ -350,6 +442,7 @@ export default function ClassDetailPage() {
 
       {showAssign && <AssignModal classId={classId} onClose={() => setShowAssign(false)} />}
       {showTransfer && <TransferModal classId={classId} onClose={() => setShowTransfer(false)} />}
+      {showEdit && cls && <EditModal cls={cls} onClose={() => setShowEdit(false)} />}
     </div>
   )
 }

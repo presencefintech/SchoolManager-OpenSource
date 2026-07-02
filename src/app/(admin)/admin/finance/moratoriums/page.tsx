@@ -14,6 +14,8 @@ import {
   useUpdateMoratoriumPolicy,
   useApproveMoratorium,
   useRejectMoratorium,
+  useGetMoratorium,
+  useUpdateMoratorium,
 } from '@/lib/hooks/use-admin'
 import { MoratoriumTypeSelect } from '@/components/admin/finance/moratorium-type-select'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
@@ -212,6 +214,59 @@ function BulkMoratoriumModal({
   )
 }
 
+function EditMoratoriumModal({ id, onClose }: { id: number; onClose: () => void }) {
+  const toast = useToast()
+  const { data: detail, isLoading } = useGetMoratorium(id)
+  const { mutate, isPending } = useUpdateMoratorium()
+  const [endDate, setEndDate] = useState('')
+  const [reason, setReason] = useState('')
+
+  useEffect(() => {
+    if (detail) {
+      setEndDate(detail.endDate?.slice(0, 10) ?? '')
+      setReason(detail.reason ?? '')
+    }
+  }, [detail])
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    mutate({ id, payload: { endDate, reason } }, {
+      onSuccess: () => { toast.success('Moratoire modifié'); onClose() },
+      onError: (err) => toast.error('Modification impossible', getApiErrorMessage(err)),
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Modifier le moratoire</h2>
+        {isLoading ? (
+          <p className="text-sm text-zinc-400">Chargement…</p>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Date fin</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Motif</label>
+              <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">Annuler</button>
+              <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium disabled:opacity-50">
+                {isPending ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function MoratoriumsPage() {
   const toast = useToast()
   const { user } = useAuth()
@@ -223,6 +278,7 @@ export default function MoratoriumsPage() {
   const [reviewNote, setReviewNote] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [showBulk, setShowBulk] = useState(false)
+  const [editId, setEditId] = useState<number | null>(null)
 
   const { data: policy } = useMoratoriumPolicy()
   const updatePolicy = useUpdateMoratoriumPolicy()
@@ -457,7 +513,16 @@ export default function MoratoriumsPage() {
           </RefundPanel>
         </motion.div>
 
-        <motion.aside initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.aside initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+          {selected && canManage && (
+            <button
+              type="button"
+              onClick={() => setEditId(selected.id)}
+              className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
+            >
+              Modifier le moratoire
+            </button>
+          )}
           <MoratoriumDetailPanel
             item={selected}
             canReview={canManage}
@@ -495,6 +560,9 @@ export default function MoratoriumsPage() {
           defaultType={defaultType}
           policyLoading={policyLoading}
         />
+      )}
+      {editId != null && (
+        <EditMoratoriumModal id={editId} onClose={() => { setEditId(null); refetch() }} />
       )}
     </RefundPageShell>
   )

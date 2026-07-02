@@ -6,13 +6,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   GraduationCap, CheckCircle, XCircle, Clock,
-  ChevronLeft, ChevronRight, User, AlertTriangle,
+  ChevronLeft, ChevronRight, User, AlertTriangle, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useStudents, useStudentDashboard, useClasses,
-  useStudentApplications, useApproveApplication, useRejectApplication,
+  useStudentApplications, useApproveApplication, useRejectApplication, useDebtors,
 } from '@/lib/hooks/use-admin'
+import { formatMoney } from '@/lib/finance/currency'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
@@ -39,7 +40,7 @@ const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
   REJECTED: { label: 'Refusé',     cls: 'bg-red-50 text-red-700' },
 }
 
-type Tab = 'list' | 'applications'
+type Tab = 'list' | 'applications' | 'debtors'
 
 export default function StudentsPage() {
   const router = useRouter()
@@ -72,6 +73,7 @@ export default function StudentsPage() {
   const applicationItems = applications?.data ?? []
   const approveMutation = useApproveApplication()
   const rejectMutation = useRejectApplication()
+  const { data: debtors = [], isLoading: loadingDebtors } = useDebtors()
 
   function handleApplyFilters() {
     applyFilters()
@@ -154,7 +156,7 @@ export default function StudentsPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
-          {([['list', 'Liste'], ['applications', 'Pré-inscriptions']] as [Tab, string][]).map(([t, label]) => (
+          {([['list', 'Liste'], ['applications', 'Pré-inscriptions'], ['debtors', 'Débiteurs']] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -382,6 +384,54 @@ export default function StudentsPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* DEBTORS TAB */}
+        {tab === 'debtors' && (
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+            {loadingDebtors ? (
+              <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
+            ) : debtors.length > 0 ? (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-100">
+                    <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Élève</th>
+                    <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Classe</th>
+                    <th className="text-right text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Dû</th>
+                    <th className="text-right text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Payé</th>
+                    <th className="text-right text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Solde</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {debtors.map((d) => (
+                    <tr
+                      key={d.studentId}
+                      className="hover:bg-zinc-50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/admin/students/${d.studentId}`)}
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                            <Wallet size={12} className="text-red-500" />
+                          </div>
+                          <p className="text-sm font-medium text-zinc-900">{d.firstName} {d.lastName}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-zinc-500">{d.className ?? '—'}</td>
+                      <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-600">{formatMoney(d.totalDue)}</td>
+                      <td className="px-5 py-3 text-sm text-right tabular-nums text-emerald-700">{formatMoney(d.totalPaid)}</td>
+                      <td className="px-5 py-3 text-sm text-right tabular-nums font-semibold text-red-600">{formatMoney(d.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="py-14 text-center">
+                <Wallet size={28} className="mx-auto text-zinc-200 mb-2" />
+                <p className="text-sm text-zinc-400">Aucun débiteur</p>
+              </div>
+            )}
           </div>
         )}
       </div>

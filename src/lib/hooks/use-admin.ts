@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi } from '@/lib/admin/api'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import { getAuthToken } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -68,6 +68,12 @@ export function useControlStats() {
     refetchInterval: 30_000,
     retry: 1,
     refetchOnMount: 'always',
+  })
+}
+
+export function useTriggerWeeklyReport() {
+  return useMutation({
+    mutationFn: dashboardApi.triggerWeeklyReport,
   })
 }
 
@@ -192,11 +198,55 @@ export function useSecurityAction() {
   })
 }
 
+export function useLogPiiAccess() {
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => studentsApi.logPiiAccess(id, reason),
+  })
+}
+
+export function useUploadStudentPhoto() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, file, description }: { studentId: number; file: File; description?: string }) =>
+      adminCloudinaryApi.uploadPhoto(studentId, file, description),
+    onSuccess: (_, { studentId }) => qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] }),
+  })
+}
+
+export function useUploadStudentDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, documentType, file, description }: {
+      studentId: number; documentType: 'certificates' | 'reports'; file: File; description?: string
+    }) => adminCloudinaryApi.uploadDocument(studentId, documentType, file, description),
+    onSuccess: (_, { studentId }) => qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] }),
+  })
+}
+
+export function useDeleteCloudinaryFile() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, publicId }: { studentId: number; publicId: string }) =>
+      adminCloudinaryApi.deleteFile(studentId, publicId),
+    onSuccess: (_, { studentId }) => qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] }),
+  })
+}
+
 // ── Enrollments ─────────────────────────────────────────────────────
 export function useEnrollments(params?: { page?: number; limit?: number; search?: string; status?: string }) {
   return useQuery({
     queryKey: ['admin', 'enrollments', 'list', params],
     queryFn: () => enrollmentsApi.list(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useEnrollmentsByClass(classId: number) {
+  return useQuery({
+    queryKey: ['admin', 'enrollments', 'class', classId],
+    queryFn: () => enrollmentsApi.listByClass(classId),
+    enabled: !!classId,
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
@@ -287,6 +337,60 @@ export function usePromoteStudent() {
     mutationFn: ({ studentId, newClassId }: { studentId: number; newClassId: number }) =>
       enrollmentsApi.promote(studentId, newClassId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+  })
+}
+
+export function useUpdateEnrollment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, payload }: { studentId: number; payload: Partial<CreateEnrollmentPayload> }) =>
+      enrollmentsApi.update(studentId, payload),
+    onSuccess: (_, { studentId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+    },
+  })
+}
+
+export function useTransferEnrollment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, targetSchoolId, newClassId }: { studentId: number; targetSchoolId: number; newClassId?: number }) =>
+      enrollmentsApi.transfer(studentId, targetSchoolId, newClassId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+  })
+}
+
+export function useSetReminderPause() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, paused }: { studentId: number; paused: boolean }) =>
+      enrollmentsApi.setReminderPause(studentId, paused),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+  })
+}
+
+export function usePurgeEnrollment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, confirmationToken }: { studentId: number; confirmationToken: string }) =>
+      enrollmentsApi.purge(studentId, confirmationToken),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+  })
+}
+
+export function useUpdateBiometrics() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, photo }: { studentId: number; photo: File }) => {
+      const fd = new FormData()
+      fd.append('photo', photo)
+      return enrollmentsApi.updateBiometrics(studentId, fd)
+    },
+    onSuccess: (_, { studentId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments', studentId] })
+    },
   })
 }
 
@@ -581,6 +685,15 @@ export function useToggleClassStatus() {
   return useMutation({
     mutationFn: (id: number) => classesApi.toggleStatus(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'classes'] }),
+  })
+}
+
+export function useClassConflicts(teacherId: number | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'classes', 'conflicts', teacherId],
+    queryFn: () => classesApi.getConflicts(teacherId!),
+    enabled: !!teacherId,
+    staleTime: 30_000,
   })
 }
 
@@ -1242,5 +1355,22 @@ export function useImportStatus(jobId: string | null) {
       if (!status || ['COMPLETED', 'PARTIAL', 'FAILED'].includes(status)) return false
       return 2000
     },
+  })
+}
+
+// ── Fraud ───────────────────────────────────────────────────────────
+
+export function useFraudAlertsTop() {
+  return useQuery({
+    queryKey: ['admin', 'fraud-alerts-list'],
+    queryFn: adminFraudApi.getAlerts,
+    enabled: !!getAuthToken(),
+    staleTime: 60_000,
+  })
+}
+
+export function useCheckFraud() {
+  return useMutation({
+    mutationFn: (payload: { studentId: number; amount?: number; method?: string }) => adminFraudApi.check(payload),
   })
 }

@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { apiClient } from '@/lib/api/client'
+import { useFraudAlertsTop, useCheckFraud } from '@/lib/hooks/use-admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 
 const fadeUp = {
@@ -13,21 +12,6 @@ const fadeUp = {
 } satisfies Variants
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
-function useAdminFraudAlerts() {
-  return useQuery({
-    queryKey: ['admin', 'fraud-alerts-list'],
-    queryFn: () => apiClient.get('/admin/fraud-alerts').then(r => r.data.data),
-    staleTime: 60_000,
-  })
-}
-
-function useCheckFraud() {
-  return useMutation({
-    mutationFn: (payload: { studentId: number; amount?: number }) =>
-      apiClient.post('/admin/fraud/check', payload).then(r => r.data.data),
-  })
-}
-
 const RISK_CFG: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
   HIGH:   { label: 'Risque élevé',  cls: 'bg-red-50 text-red-700 border-red-100',    icon: XCircle },
   MEDIUM: { label: 'Risque moyen',  cls: 'bg-amber-50 text-amber-700 border-amber-100', icon: AlertTriangle },
@@ -35,7 +19,7 @@ const RISK_CFG: Record<string, { label: string; cls: string; icon: React.Element
 }
 
 export default function FraudPage() {
-  const { data: alerts, isLoading: loadingAlerts, refetch } = useAdminFraudAlerts()
+  const { data: alerts, isLoading: loadingAlerts, refetch } = useFraudAlertsTop()
   const { mutateAsync: checkFraud, isPending, data: checkResult, reset } = useCheckFraud()
 
   const [form, setForm] = useState({ studentId: 0, amount: '' })
