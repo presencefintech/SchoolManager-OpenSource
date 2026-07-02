@@ -1065,6 +1065,49 @@ export function useReviewRefundRequest() {
 /** Alias guide F-12 */
 export const useReviewRefund = useReviewRefundRequest
 
+export function useFinancialSealBatches(params?: {
+  status?: string
+  page?: number
+  limit?: number
+  fromDate?: string
+  toDate?: string
+}) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'seal-batches', params],
+    queryFn: () => financeApi.listSealBatches(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinancialSealBatchDetail(batchId: number | null) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'seal-batch', batchId],
+    queryFn: () => financeApi.getSealBatch(batchId!),
+    enabled: batchId != null,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useVerifySealBatch() {
+  return useMutation({
+    mutationFn: (batchId: number) => financeApi.verifySealBatch(batchId),
+  })
+}
+
+export function useCreateSealBatch() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeApi.createSealBatch,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'seal-batches'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'seal-batch'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'advanced-search'] })
+    },
+  })
+}
+
 // ── Finance — hooks manquants ──────────────────────────────────────
 
 export function useFinanceDetailedReport() {
@@ -1108,6 +1151,15 @@ export function useFinanceEndOfDay() {
     queryKey: ['admin', 'finance', 'end-of-day'],
     queryFn: financeApi.getEndOfDay,
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinancePaymentMethods(period: 'day' | 'month' = 'month') {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'payment-methods', period],
+    queryFn: () => financeApi.getPaymentMethods(period),
+    staleTime: 120_000,
     refetchOnWindowFocus: false,
   })
 }
@@ -1167,12 +1219,13 @@ export function useFinanceCashierAudit(cashierId: number) {
   })
 }
 
-export function useAdvancedSearch(params: AdvancedSearchParams) {
+export function useAdvancedSearch(params: AdvancedSearchParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'advanced-search', params],
     queryFn: () => financeApi.advancedSearch(params as Record<string, string | number | undefined>),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    enabled: options?.enabled ?? true,
   })
 }
 

@@ -601,6 +601,105 @@ export interface FinanceEndOfDayClosing {
   reconciliation: { status: string; reference: string }
 }
 
+/** GET /admin/finance/dashboard/payment-methods — répartition confirmée (jour ou mois). */
+export interface FinancePaymentMethodBreakdownRow {
+  method: string
+  amount: number
+  count: number
+  sharePct: number
+}
+
+export interface FinancePaymentMethodsBreakdown {
+  period: 'day' | 'month'
+  from: string
+  to: string
+  total: number
+  count: number
+  methods: FinancePaymentMethodBreakdownRow[]
+}
+
+/** GET/POST /admin/finance/seal-batches — lots de scellés financiers. */
+export type FinancialSealBatchStatus = 'PENDING' | 'SEALED' | 'ARCHIVED'
+
+export interface FinancialSealBatch {
+  id: number
+  batchReference: string
+  status: FinancialSealBatchStatus
+  paymentCount: number
+  linkedPaymentCount?: number
+  totalAmount: number
+  currency: string
+  sealHmac?: string | null
+  sealedAt?: string | null
+  sealedBy?: { id: number; name: string } | null
+  createdAt: string
+}
+
+export interface FinancialSealBatchListResponse {
+  items: FinancialSealBatch[]
+  total: number
+  page: number
+  limit: number
+}
+
+export interface CreateSealBatchPayload {
+  paymentIds: number[]
+  metadata?: Record<string, unknown>
+}
+
+export interface CreateSealBatchResult {
+  id: number
+  batchReference: string
+  status: FinancialSealBatchStatus
+  paymentCount: number
+  totalAmount: number
+  currency: string
+  sealHmac: string
+  sealedAt: string
+  paymentIds: number[]
+}
+
+export interface FinancialSealBatchPaymentLine {
+  id: number
+  amount: number
+  currency: string
+  method: string
+  reference: string
+  status: string
+  confirmedAt?: string | null
+  studentId: number
+  studentName: string
+  studentMatricule?: string | null
+}
+
+export interface FinancialSealBatchDetail extends FinancialSealBatch {
+  payments: FinancialSealBatchPaymentLine[]
+  paymentIds: number[]
+  metadata?: Record<string, unknown> | null
+}
+
+export interface FinancialSealBatchVerifyResult {
+  valid: boolean
+  batchReference: string
+  storedSealHmac: string | null
+  recomputedSealHmac: string
+  verifiedAt: string
+  message: string
+}
+
+/** Ligne paiement éligible au scellé (recherche avancée). */
+export interface SealablePaymentRow {
+  id: number
+  amount: number
+  currency?: string
+  method: string
+  status: string
+  reference?: string | null
+  financialSealBatchId?: number | null
+  createdAt: string
+  studentName: string
+}
+
 /** GET /admin/finance/audit/integrity-scan — contrôle cohérence soldes élèves. */
 export interface FinanceIntegrityScanDetail {
   id: number

@@ -92,7 +92,7 @@ export default function AuditPage() {
           <p className="text-xs text-zinc-400 mt-1">
             {integrity
               ? `${integrity.totalChecked} profils vérifiés · ${integrity.status === 'SECURE' ? 'Système sain' : 'Attention requise'}`
-              : 'erreurs détectées'}
+              : 'anomalies en attente de scan'}
           </p>
         </div>
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
