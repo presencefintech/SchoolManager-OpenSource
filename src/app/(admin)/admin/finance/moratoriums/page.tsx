@@ -1,34 +1,37 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, CheckCircle, Ban, TrendingUp, Calendar } from 'lucide-react'
+import { Plus, Calendar, TrendingUp, RefreshCw, Search, CheckCircle } from 'lucide-react'
 import {
-  useMoratoriums, useCreateMoratorium, useCreateBulkMoratoriums,
-  useRevokeMoratorium, useMoratoriumRecoveryRate, useAllowedMoratoriumTypes,
+  useMoratoriums,
+  useCreateMoratorium,
+  useCreateBulkMoratoriums,
+  useRevokeMoratorium,
+  useMoratoriumRecoveryRate,
+  useAllowedMoratoriumTypes,
+  useMoratoriumPolicy,
+  useUpdateMoratoriumPolicy,
+  useApproveMoratorium,
+  useRejectMoratorium,
 } from '@/lib/hooks/use-admin'
 import { MoratoriumTypeSelect } from '@/components/admin/finance/moratorium-type-select'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
-import type { CreateMoratoriumPayload, BulkMoratoriumPayload } from '@/types/admin'
+import {
+  MoratoriumDetailPanel,
+  MoratoriumPolicyPanel,
+  MoratoriumStatusBadge,
+  MORATORIUM_FILTER_OPTIONS,
+  moratoriumStudentLabel,
+} from '@/components/admin/finance/moratorium-admin-ui'
+import { RefundFilterBar, RefundFilterPills, RefundPageShell, RefundPanel, RefundPanelHeader, RefundSearchInput, RefundStat } from '@/components/finance/refund-page-ui'
+import type { CreateMoratoriumPayload, BulkMoratoriumPayload, Moratorium } from '@/types/admin'
 import { labelMoratoriumType } from '@/lib/business-labels'
-
-function Sk({ className }: { className?: string }) {
-  return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
-}
-
-const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  ACTIVE:  { label: 'Actif',    cls: 'bg-emerald-50 text-emerald-700' },
-  EXPIRED: { label: 'Expiré',  cls: 'bg-zinc-100 text-zinc-500' },
-  REVOKED: { label: 'Révoqué', cls: 'bg-red-50 text-red-700' },
-}
-
-const TYPE_LABEL: Record<string, string> = {
-  MONTHLY: labelMoratoriumType('MONTHLY'),
-  QUARTERLY: labelMoratoriumType('QUARTERLY'),
-  EXCEPTIONAL: labelMoratoriumType('EXCEPTIONAL'),
-  SCHOLARSHIP_REVIEW: labelMoratoriumType('SCHOLARSHIP_REVIEW'),
-}
+import { getApiErrorMessage } from '@/lib/api/client'
+import { useToast } from '@/providers/toast-provider'
+import { useAuth } from '@/providers/auth-provider'
+import { cn } from '@/lib/utils'
 
 function MoratoriumModal({
   onClose,
@@ -55,13 +58,15 @@ function MoratoriumModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    try { await mutateAsync(form); setSuccess(true) }
-    catch (err: any) {
-      const status = err?.response?.status
+    try {
+      await mutateAsync(form)
+      setSuccess(true)
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
       setError(
         status === 429
           ? 'Trop de requêtes — patientez quelques instants puis réessayez.'
-          : (err?.response?.data?.message ?? 'Erreur'),
+          : getApiErrorMessage(err),
       )
     }
   }
@@ -108,7 +113,7 @@ function MoratoriumModal({
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Motif *</label>
-              <textarea required value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
+              <textarea required minLength={10} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
                 rows={3} className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
             </div>
             {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
@@ -150,15 +155,15 @@ function BulkMoratoriumModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (form.studentIds.length === 0) { setError('Sélectionnez au moins un élève'); return }
-    try { await mutateAsync(form); setSuccess(true) }
-    catch (err: any) {
-      const status = err?.response?.status
-      setError(
-        status === 429
-          ? 'Trop de requêtes — patientez quelques instants puis réessayez.'
-          : (err?.response?.data?.message ?? 'Erreur'),
-      )
+    if (form.studentIds.length === 0) {
+      setError('Sélectionnez au moins un élève')
+      return
+    }
+    try {
+      await mutateAsync(form)
+      setSuccess(true)
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err))
     }
   }
 
@@ -180,39 +185,25 @@ function BulkMoratoriumModal({
               label="Élèves"
               required
             />
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Type *</label>
-              <MoratoriumTypeSelect
-                value={form.type}
-                onChange={(type) => setForm((p) => ({ ...p, type }))}
-                allowedTypes={allowedTypes}
-                defaultType={defaultType}
-                isLoading={policyLoading}
-              />
-            </div>
+            <MoratoriumTypeSelect
+              value={form.type}
+              onChange={(type) => setForm((p) => ({ ...p, type }))}
+              allowedTypes={allowedTypes}
+              defaultType={defaultType}
+              isLoading={policyLoading}
+            />
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Date début *</label>
-                <input type="date" required value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Date fin *</label>
-                <input type="date" required value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-              </div>
+              <input type="date" required value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm" />
+              <input type="date" required value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Motif *</label>
-              <textarea required value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={2}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none" />
-            </div>
+            <textarea required minLength={10} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} rows={2}
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm resize-none" placeholder="Motif *" />
             {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
             <div className="flex gap-2 pt-2">
-              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">Annuler</button>
-              <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium disabled:opacity-50">
-                {isPending ? 'Création...' : 'Créer en masse'}
-              </button>
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm">Annuler</button>
+              <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium disabled:opacity-50">Créer en masse</button>
             </div>
           </form>
         )}
@@ -222,120 +213,276 @@ function BulkMoratoriumModal({
 }
 
 export default function MoratoriumsPage() {
-  const [statusFilter, setStatusFilter] = useState('')
+  const toast = useToast()
+  const { user } = useAuth()
+  const canManage = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+
+  const [statusFilter, setStatusFilter] = useState('PENDING_APPROVAL')
+  const [search, setSearch] = useState('')
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [reviewNote, setReviewNote] = useState('')
   const [showCreate, setShowCreate] = useState(false)
   const [showBulk, setShowBulk] = useState(false)
+
+  const { data: policy } = useMoratoriumPolicy()
+  const updatePolicy = useUpdateMoratoriumPolicy()
   const { allowedTypes, defaultType, isLoading: policyLoading } = useAllowedMoratoriumTypes()
-  const { data: moratoriums = [], isLoading } = useMoratoriums({ status: statusFilter || undefined })
+  const { data: moratoriums = [], isLoading, refetch } = useMoratoriums({
+    status: statusFilter || undefined,
+    limit: 100,
+  })
+  const { data: pendingQueue = [] } = useMoratoriums({ status: 'PENDING_APPROVAL', limit: 100 })
   const { data: recoveryRate } = useMoratoriumRecoveryRate()
-  const { mutate: revoke } = useRevokeMoratorium()
+  const approve = useApproveMoratorium()
+  const reject = useRejectMoratorium()
+  const revokeMoratorium = useRevokeMoratorium()
+
+  const pendingCount = pendingQueue.length
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return moratoriums
+    return moratoriums.filter((m) => {
+      const haystack = [
+        moratoriumStudentLabel(m),
+        m.reason,
+        labelMoratoriumType(m.type),
+      ].join(' ').toLowerCase()
+      return haystack.includes(q)
+    })
+  }, [moratoriums, search])
+
+  const selected: Moratorium | null =
+    filtered.find((m) => m.id === selectedId)
+    ?? moratoriums.find((m) => m.id === selectedId)
+    ?? null
+
+  async function handleSavePolicy(payload: Parameters<typeof updatePolicy.mutateAsync>[0]) {
+    try {
+      await updatePolicy.mutateAsync(payload)
+      toast.success('Politique enregistrée', 'Les règles moratoires de l\'école sont à jour.')
+    } catch (err) {
+      toast.error('Enregistrement impossible', getApiErrorMessage(err))
+      throw err
+    }
+  }
+
+  async function handleApprove() {
+    if (!selected) return
+    try {
+      await approve.mutateAsync({ id: selected.id, internalNote: reviewNote || undefined })
+      toast.success('Moratoire approuvé', moratoriumStudentLabel(selected))
+      setReviewNote('')
+      const { data } = await refetch()
+      const next = pendingQueue.find((m) => m.id !== selected.id && m.status === 'PENDING_APPROVAL')
+        ?? (data ?? []).find((m) => m.status === 'PENDING_APPROVAL')
+      setSelectedId(next?.id ?? null)
+    } catch (err) {
+      toast.error('Approbation impossible', getApiErrorMessage(err))
+    }
+  }
+
+  async function handleReject() {
+    if (!selected) return
+    if (!reviewNote.trim()) {
+      toast.warning('Motif requis', 'Indiquez une raison de rejet dans la note.')
+      return
+    }
+    try {
+      await reject.mutateAsync({ id: selected.id, reason: reviewNote.trim() })
+      toast.success('Demande rejetée', moratoriumStudentLabel(selected))
+      setReviewNote('')
+      const { data } = await refetch()
+      const next = pendingQueue.find((m) => m.id !== selected.id && m.status === 'PENDING_APPROVAL')
+        ?? (data ?? []).find((m) => m.status === 'PENDING_APPROVAL')
+      setSelectedId(next?.id ?? null)
+    } catch (err) {
+      toast.error('Rejet impossible', getApiErrorMessage(err))
+    }
+  }
+
+  function handleRevoke() {
+    if (!selected) return
+    revokeMoratorium.mutate(selected.id, {
+      onSuccess: () => {
+        toast.success('Moratoire révoqué')
+        refetch()
+        setSelectedId(null)
+      },
+      onError: (err: Error) => toast.error('Révocation impossible', getApiErrorMessage(err)),
+    })
+  }
 
   return (
-    <div className="space-y-6">
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      >
+    <RefundPageShell>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Moratoires</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Gestion des plans de paiement et délais accordés</p>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 via-violet-800 to-indigo-800 bg-clip-text text-transparent">
+            Moratoires
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Plans de paiement, demandes parent et politique d&apos;école.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowBulk(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-700 hover:bg-zinc-50">
-            <Calendar size={13} /> En masse
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            <RefreshCw size={14} />
+            Actualiser
           </button>
-          <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 shadow-sm">
-            <Plus size={14} /> Nouveau moratoire
-          </button>
+          {canManage && (
+            <>
+              <button
+                type="button"
+                onClick={() => setShowBulk(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <Calendar size={13} />
+                En masse
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreate(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 text-sm text-white font-medium hover:bg-violet-700 shadow-sm"
+              >
+                <Plus size={14} />
+                Nouveau moratoire
+              </button>
+            </>
+          )}
         </div>
-      </motion.div>
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <RefundStat
+          label="À valider"
+          value={String(pendingCount)}
+          tone={pendingCount > 0 ? 'amber' : 'slate'}
+        />
         {recoveryRate && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-zinc-100 shadow-sm">
-            <TrendingUp size={14} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-zinc-800">
-              Taux recouvrement : {recoveryRate.recoveryRateGlobal.toFixed(1)}%
-            </span>
-            {recoveryRate.studentsUnderMoratorium > 0 && (
-              <span className="text-xs text-zinc-400">
-                · {recoveryRate.studentsUnderMoratorium} sous moratoire
-              </span>
-            )}
-          </div>
+          <>
+            <RefundStat
+              label="Taux recouvrement"
+              value={`${recoveryRate.recoveryRateGlobal.toFixed(1)}%`}
+              tone="emerald"
+            />
+            <RefundStat
+              label="Élèves sous moratoire"
+              value={String(recoveryRate.studentsUnderMoratorium)}
+              tone="indigo"
+            />
+          </>
         )}
-        <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl">
-          {[['', 'Tous'], ['ACTIVE', 'Actifs'], ['EXPIRED', 'Expirés'], ['REVOKED', 'Révoqués']].map(([v, l]) => (
-            <button key={v} onClick={() => setStatusFilter(v)}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${statusFilter === v ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}>
-              {l}
-            </button>
-          ))}
-        </div>
+        <RefundStat label="Affichés" value={String(filtered.length)} tone="slate" />
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
-        {isLoading ? (
-          <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <Sk key={i} className="h-12" />)}</div>
-        ) : moratoriums.length === 0 ? (
-          <div className="py-12 text-center">
-            <Calendar size={28} className="mx-auto text-zinc-300 mb-2" />
-            <p className="text-sm text-zinc-400">Aucun moratoire</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50/50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Élève</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Type</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Début</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Fin</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Statut</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Motif</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Accordé par</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {moratoriums.map((m) => {
-                const cfg = STATUS_CFG[m.status] ?? { label: m.status, cls: 'bg-zinc-100 text-zinc-500' }
-                const studentLabel = m.studentName ?? (
-                  (m.student ? `${m.student.firstName} ${m.student.lastName}`.trim() : '') || `#${m.studentId}`
-                )
-                return (
-                  <tr key={m.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-5 py-3.5 font-medium text-zinc-900">
-                      {studentLabel}
-                    </td>
-                    <td className="px-5 py-3.5 text-zinc-600 text-xs">{TYPE_LABEL[m.type] ?? m.type}</td>
-                    <td className="px-5 py-3.5 text-zinc-500 text-xs">{new Date(m.startDate).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-5 py-3.5 text-zinc-500 text-xs">{new Date(m.endDate).toLocaleDateString('fr-FR')}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>{cfg.label}</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-zinc-400 text-xs max-w-[160px] truncate">{m.reason}</td>
-                    <td className="px-5 py-3.5 text-zinc-500 text-xs">{m.grantedByName ?? '—'}</td>
-                    <td className="px-5 py-3.5">
-                      {m.status === 'ACTIVE' && (
-                        <button onClick={() => revoke(m.id)}
-                          className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors" title="Révoquer">
-                          <Ban size={13} />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
+      <MoratoriumPolicyPanel
+        policy={policy}
+        canEdit={canManage}
+        isSaving={updatePolicy.isPending}
+        onSave={handleSavePolicy}
+      />
+
+      <RefundFilterBar>
+        <RefundFilterPills
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[...MORATORIUM_FILTER_OPTIONS]}
+        />
+        <label className="relative flex flex-1 max-w-md items-center">
+          <Search size={14} className="absolute left-3 text-slate-400" />
+          <RefundSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Rechercher élève, type, motif…"
+          />
+        </label>
+      </RefundFilterBar>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <motion.div className="xl:col-span-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <RefundPanel accent="violet">
+            <RefundPanelHeader
+              title={`Moratoires (${filtered.length})`}
+              icon={Calendar}
+              badge={
+                pendingCount > 0 ? (
+                  <span className="rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+                    {pendingCount} à valider
+                  </span>
+                ) : undefined
+              }
+            />
+            {isLoading ? (
+              <div className="p-6 text-sm text-slate-500">Chargement…</div>
+            ) : filtered.length === 0 ? (
+              <div className="py-12 text-center">
+                <Calendar size={28} className="mx-auto text-slate-300 mb-2" />
+                <p className="text-sm text-slate-500">Aucun moratoire pour ce filtre.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-200/50 max-h-[520px] overflow-y-auto">
+                {filtered.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedId(m.id)}
+                    className={cn(
+                      'w-full text-left px-5 py-3.5 transition-colors',
+                      selectedId === m.id
+                        ? 'bg-gradient-to-r from-violet-50/90 to-indigo-50/50 border-l-[3px] border-l-violet-500'
+                        : 'hover:bg-slate-50/80 border-l-[3px] border-l-transparent',
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">
+                          {moratoriumStudentLabel(m)}
+                        </p>
+                        <p className="text-xs text-slate-500 truncate">
+                          {labelMoratoriumType(m.type)} ·{' '}
+                          {new Date(m.startDate).toLocaleDateString('fr-FR')} →{' '}
+                          {new Date(m.endDate).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                      <MoratoriumStatusBadge status={m.status} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </RefundPanel>
+        </motion.div>
+
+        <motion.aside initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <MoratoriumDetailPanel
+            item={selected}
+            canReview={canManage}
+            reviewNote={reviewNote}
+            onReviewNoteChange={setReviewNote}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onRevoke={handleRevoke}
+            isApproving={approve.isPending}
+            isRejecting={reject.isPending}
+            isRevoking={revokeMoratorium.isPending}
+          />
+        </motion.aside>
       </div>
+
+      {recoveryRate && (
+        <div className="flex items-center gap-2 text-xs text-slate-500 px-1">
+          <TrendingUp size={12} className="text-emerald-600" />
+          Recouvrement hors moratoires : {recoveryRate.recoveryRateExcludingMoratorium.toFixed(1)}%
+        </div>
+      )}
 
       {showCreate && (
         <MoratoriumModal
-          onClose={() => setShowCreate(false)}
+          onClose={() => { setShowCreate(false); refetch() }}
           allowedTypes={allowedTypes}
           defaultType={defaultType}
           policyLoading={policyLoading}
@@ -343,12 +490,12 @@ export default function MoratoriumsPage() {
       )}
       {showBulk && (
         <BulkMoratoriumModal
-          onClose={() => setShowBulk(false)}
+          onClose={() => { setShowBulk(false); refetch() }}
           allowedTypes={allowedTypes}
           defaultType={defaultType}
           policyLoading={policyLoading}
         />
       )}
-    </div>
+    </RefundPageShell>
   )
 }

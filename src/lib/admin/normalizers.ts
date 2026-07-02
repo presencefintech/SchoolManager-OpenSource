@@ -229,6 +229,8 @@ export function normalizePendingVerification(row: Record<string, unknown>): Pend
     providerRef: payment.providerRef as string | undefined,
     receiptNumber: payment.receiptNumber as string | undefined,
     receiptUrl: payment.receiptUrl as string | undefined,
+    proofType: payment.proofType as PendingVerificationItem['proofType'],
+    reconciliationNote: payment.reconciliationNote as string | undefined,
     createdAt: String(payment.createdAt ?? row.queuedAt ?? row.createdAt ?? ''),
     studentId: student.id != null ? Number(student.id) : undefined,
     studentMatricule: student.matricule as string | undefined,

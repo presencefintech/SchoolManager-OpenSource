@@ -37,7 +37,7 @@ const FILTER_OPTIONS = [
 
 export default function AdminRefundsPage() {
   const toast = useToast()
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('PENDING')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [reviewNotes, setReviewNotes] = useState('')
@@ -114,6 +114,10 @@ export default function AdminRefundsPage() {
         `Remboursement #${selected.id}`,
       )
       setReviewNotes('')
+      const { data: refreshed } = await refetch()
+      const nextItems = (refreshed?.items ?? []) as AdminRefundRequest[]
+      const nextPending = nextItems.find((r) => r.status === 'PENDING')
+      setSelectedId(nextPending?.id ?? null)
     } catch (err) {
       toast.error('Action impossible', getApiErrorMessage(err))
     }
@@ -224,6 +228,11 @@ export default function AdminRefundsPage() {
                   <RefundInfoRow label="Matricule" value={selected.payment?.matricule ?? '—'} />
                   <RefundInfoRow label="Montant" value={formatMoney(Number(selected.amount))} />
                   <RefundInfoRow label="Méthode" value={selected.payment?.method ?? '—'} />
+                  <RefundInfoRow label="Demandé par" value={selected.requestedBy?.name ?? '—'} />
+                  <RefundInfoRow
+                    label="Date demande"
+                    value={new Date(selected.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between rounded-lg bg-slate-100/50 px-3 py-2">

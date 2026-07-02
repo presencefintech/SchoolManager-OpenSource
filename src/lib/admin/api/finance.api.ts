@@ -19,7 +19,8 @@ import type {
   ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
   BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
-  MoratoriumRecoveryRate, AdminRefundRequest,
+  MoratoriumRecoveryRate, AdminRefundRequest, ConfirmPaymentProofPayload,
+  UpdateMoratoriumPolicyPayload,
 } from '@/types/admin'
 
 function asItemList<T>(data: unknown): T[] {
@@ -135,11 +136,11 @@ export const financeApi = {
   verifyPaymentStep: (payload: { verificationId: number; action: 'ADMIN' | 'FINANCE' | 'REJECT'; notes?: string }) =>
     apiClient.post('/admin/finance/payments/verify-step', payload).then(r => r.data.data),
 
-  confirmBankTransaction: (paymentId: number) =>
-    apiClient.post(`/admin/finance/payments/bank-confirm/${paymentId}`).then(r => r.data.data),
+  confirmBankTransaction: (paymentId: number, proof?: ConfirmPaymentProofPayload) =>
+    apiClient.post(`/admin/finance/payments/bank-confirm/${paymentId}`, proof ?? {}).then(r => r.data.data),
 
-  confirmMobileTransaction: (paymentId: number) =>
-    apiClient.post(`/admin/finance/payments/mobile-confirm/${paymentId}`).then(r => r.data.data),
+  confirmMobileTransaction: (paymentId: number, proof?: ConfirmPaymentProofPayload) =>
+    apiClient.post(`/admin/finance/payments/mobile-confirm/${paymentId}`, proof ?? {}).then(r => r.data.data),
 
   resendReceipt: (paymentId: number) =>
     apiClient.post(`/admin/finance/payments/${paymentId}/resend-receipt`).then(r => r.data.data),
@@ -200,12 +201,15 @@ export const financeApi = {
   getMoratoriumPolicy: () =>
     apiClient.get('/admin/finance/moratoriums/policy').then(r => r.data.data as MoratoriumPolicy),
 
+  updateMoratoriumPolicy: (payload: UpdateMoratoriumPolicyPayload) =>
+    apiClient.patch('/admin/finance/moratoriums/policy', payload).then(r => r.data.data as MoratoriumPolicy),
+
   getMoratoriumRecoveryRate: () =>
     apiClient.get('/admin/finance/moratoriums/recovery-rate').then(r =>
       normalizeMoratoriumRecoveryRate(r.data.data as Record<string, unknown>),
     ),
 
-  listMoratoriums: (params?: { studentId?: number; status?: string }) =>
+  listMoratoriums: (params?: { studentId?: number; status?: string; page?: number; limit?: number }) =>
     apiClient.get('/admin/finance/moratoriums', { params }).then(r =>
       asItemList<Record<string, unknown>>(r.data.data).map(normalizeMoratorium),
     ),
@@ -229,17 +233,21 @@ export const financeApi = {
   revokeMoratorium: (id: number) =>
     apiClient.delete(`/admin/finance/moratoriums/${id}`).then(r => r.data),
 
-  approveMoratorium: (id: number) =>
-    apiClient.post(`/admin/finance/moratoriums/${id}/approve`).then(r => r.data.data),
+  approveMoratorium: (id: number, payload?: { internalNote?: string }) =>
+    apiClient.post(`/admin/finance/moratoriums/${id}/approve`, payload ?? {}).then(r =>
+      normalizeMoratorium(r.data.data as Record<string, unknown>),
+    ),
 
   rejectMoratorium: (id: number, reason?: string) =>
-    apiClient.post(`/admin/finance/moratoriums/${id}/reject`, { reason }).then(r => r.data.data),
+    apiClient.post(`/admin/finance/moratoriums/${id}/reject`, { reason }).then(r =>
+      normalizeMoratorium(r.data.data as Record<string, unknown>),
+    ),
 
   listRefundRequests: (params?: { status?: string; page?: number; limit?: number }) =>
-    apiClient.get('/finance/refunds', { params }).then(r => r.data.data as { items: AdminRefundRequest[]; total: number; page: number; limit: number }),
+    apiClient.get('/admin/finance/refunds', { params }).then(r => r.data.data as { items: AdminRefundRequest[]; total: number; page: number; limit: number }),
 
   getRefundRequest: (id: number) =>
-    apiClient.get(`/finance/refunds/${id}`).then(r => r.data.data as AdminRefundRequest),
+    apiClient.get(`/admin/finance/refunds/${id}`).then(r => r.data.data as AdminRefundRequest),
 
   reviewRefund: (id: number, payload: { action: 'approve' | 'reject'; reviewNotes?: string }) =>
     apiClient.post(`/admin/finance/refunds/${id}/review`, payload).then(r => r.data.data),

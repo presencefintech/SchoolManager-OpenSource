@@ -628,6 +628,18 @@ export interface PendingPayment {
   reference?: string
 }
 
+export type PaymentProofType =
+  | 'RECEIPT_PDF'
+  | 'MOBILE_MONEY_SCREENSHOT'
+  | 'BANK_TRANSFER_SLIP'
+  | 'CASH_VOUCHER'
+  | 'OTHER'
+
+export interface ConfirmPaymentProofPayload {
+  proofType?: PaymentProofType
+  manualJustification?: string
+}
+
 export interface PendingVerificationItem {
   verificationId: number
   paymentId: number
@@ -647,6 +659,8 @@ export interface PendingVerificationItem {
   providerRef?: string
   receiptNumber?: string
   receiptUrl?: string
+  proofType?: PaymentProofType
+  reconciliationNote?: string
   createdAt: string
   studentId?: number
   studentMatricule?: string
@@ -723,6 +737,9 @@ export interface ManualPaymentPayload {
   amount: number
   method: 'CASH' | 'BANK_TRANSFER' | 'MOBILE_MONEY' | 'CHEQUE' | 'ORANGE_MONEY' | 'MPESA' | 'AIRTEL_MONEY' | 'CARD' | 'BANK'
   note?: string
+  reference?: string
+  proofType?: PaymentProofType
+  manualJustification?: string
   sessionId?: number
   feeStructureId?: number
 }
@@ -855,6 +872,16 @@ export interface MoratoriumPolicy {
   autoApproveMaxDays?: number
   currency?: string
   source?: 'database' | 'provisioned'
+}
+
+/** Corps PATCH /admin/finance/moratoriums/policy (noms alignés backend). */
+export interface UpdateMoratoriumPolicyPayload {
+  maxMoratoriumDays?: number
+  maxMoratoriumsPerYear?: number
+  moratoriumBehavior?: 'SKIP' | 'FRIENDLY_TEMPLATE'
+  parentRequestEnabled?: boolean
+  parentMaxRequestDays?: number
+  autoApproveMaxDays?: number
 }
 
 // Invitations

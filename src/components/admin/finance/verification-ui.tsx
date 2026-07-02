@@ -1,8 +1,13 @@
 'use client'
 
 import { labelFraudScore } from '@/lib/business-labels'
+import { labelPaymentProofType } from '@/lib/finance/payment-proof'
 import { cn } from '@/lib/utils'
-import type { PendingVerificationItem } from '@/types/admin'
+import type { PendingVerificationItem, PaymentProofType } from '@/types/admin'
+import {
+  PAYMENT_PROOF_TYPE_OPTIONS,
+  defaultProofTypeForMethod,
+} from '@/lib/finance/payment-proof'
 import { AlertTriangle, CheckCircle2, Circle, ExternalLink, FileText, X } from 'lucide-react'
 
 const STEPS = [
@@ -67,6 +72,54 @@ function DetailRow({ label, value, mono }: { label: string; value?: string | nul
   )
 }
 
+export function PaymentProofFields({
+  method,
+  proofType,
+  manualJustification,
+  onProofTypeChange,
+  onJustificationChange,
+}: {
+  method: string
+  proofType: PaymentProofType
+  manualJustification?: string
+  onProofTypeChange: (value: PaymentProofType) => void
+  onJustificationChange: (value: string) => void
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium text-zinc-500 mb-1">Type de preuve *</label>
+        <select
+          value={proofType}
+          onChange={(e) => onProofTypeChange(e.target.value as PaymentProofType)}
+          className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+        >
+          {PAYMENT_PROOF_TYPE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+        <p className="mt-1 text-[10px] text-zinc-400">
+          Suggestion pour {method}: {labelPaymentProofType(defaultProofTypeForMethod(method))}
+        </p>
+      </div>
+      {proofType === 'OTHER' && (
+        <div>
+          <label className="block text-xs font-medium text-zinc-500 mb-1">Motif explicite * (min. 10 car.)</label>
+          <textarea
+            required
+            minLength={10}
+            value={manualJustification ?? ''}
+            onChange={(e) => onJustificationChange(e.target.value)}
+            rows={3}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+            placeholder="Décrivez la nature de la preuve fournie…"
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function VerificationDetailDrawer({
   item,
   onClose,
@@ -102,6 +155,8 @@ export function VerificationDetailDrawer({
 
           <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">
             <DetailRow label="Méthode" value={item.method} />
+            <DetailRow label="Type de preuve" value={labelPaymentProofType(item.proofType)} />
+            <DetailRow label="Motif / note" value={item.reconciliationNote} />
             <DetailRow label="Référence" value={item.reference} mono />
             <DetailRow label="Réf. opérateur" value={item.providerRef} mono />
             <DetailRow label="N° reçu" value={item.receiptNumber} mono />
