@@ -447,6 +447,16 @@ export function useExportAttendanceSheet() {
   })
 }
 
+export function useSubmitAttendanceSheet() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (sheetId: number) => presencesApi.submitSheet(sheetId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
+    },
+  })
+}
+
 export function useSealAttendanceSheet() {
   const qc = useQueryClient()
   return useMutation({

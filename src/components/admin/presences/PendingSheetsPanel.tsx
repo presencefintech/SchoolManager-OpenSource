@@ -8,11 +8,13 @@ import {
   Lock,
   RefreshCw,
   Search,
+  Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   usePendingAttendanceSheets,
   useSealAttendanceSheet,
+  useSubmitAttendanceSheet,
 } from '@/lib/hooks/use-admin'
 import type { AttendanceSheetStatus, PendingAttendanceSheetSummary } from '@/types/admin'
 import {
@@ -58,6 +60,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>('workflow')
   const [sessionDate, setSessionDate] = useState(todayDateInputValue())
   const [filterByDate, setFilterByDate] = useState(true)
+  const [submitTarget, setSubmitTarget] = useState<PendingAttendanceSheetSummary | null>(null)
   const [sealTarget, setSealTarget] = useState<PendingAttendanceSheetSummary | null>(null)
 
   const queryParams = {
@@ -70,6 +73,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
 
   const { data, isLoading, isError, error, refetch, isFetching } =
     usePendingAttendanceSheets(queryParams)
+  const submit = useSubmitAttendanceSheet()
   const seal = useSealAttendanceSheet()
 
   const stats = useMemo(() => {
@@ -91,6 +95,20 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
       exceptions: rows.reduce((sum, r) => sum + r.exceptionCount, 0),
     }
   }, [data, viewMode])
+
+  async function confirmSubmit() {
+    if (!submitTarget) return
+    try {
+      const { data: submitted, message } = await submit.mutateAsync(submitTarget.sheetId)
+      toast.success(
+        'Feuille soumise',
+        message ?? `Cahier ${submitTarget.className} prêt à clôturer. ${submitted.lineCount} ligne(s).`,
+      )
+      setSubmitTarget(null)
+    } catch (err) {
+      toast.error('Soumission impossible', getApiErrorMessage(err))
+    }
+  }
 
   async function confirmSeal() {
     if (!sealTarget) return
@@ -374,7 +392,18 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
                             {viewMode === 'archives' ? 'Consulter' : 'Ouvrir'}
                           </button>
                         )}
-                        {viewMode === 'workflow' && row.status === 'SUBMITTED' ? (
+                        {viewMode === 'workflow' && row.status === 'DRAFT' && (
+                          <button
+                            type="button"
+                            disabled={submit.isPending}
+                            onClick={() => setSubmitTarget(row)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[11px] font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:opacity-50"
+                          >
+                            <Send size={11} />
+                            Soumettre
+                          </button>
+                        )}
+                        {viewMode === 'workflow' && row.status === 'SUBMITTED' && (
                           <button
                             type="button"
                             disabled={seal.isPending}
@@ -384,11 +413,10 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
                             <Lock size={12} />
                             Clôturer
                           </button>
-                        ) : viewMode === 'workflow' && row.status === 'DRAFT' ? (
-                          <span className="text-[11px] text-zinc-400">Soumettre d&apos;abord</span>
-                        ) : viewMode === 'workflow' && row.status === 'SEALED' ? (
+                        )}
+                        {viewMode === 'workflow' && row.status === 'SEALED' && (
                           <span className="text-[11px] font-medium text-emerald-700">Registre prêt</span>
-                        ) : null}
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -398,6 +426,25 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={submitTarget != null}
+        title="Soumettre ce cahier d'appel ?"
+        description="La feuille passera en statut SUBMITTED et pourra ensuite être clôturée définitivement."
+        impact={
+          submitTarget
+            ? [
+                `Classe : ${submitTarget.className}`,
+                `Date : ${formatSessionDate(submitTarget.sessionDate)}`,
+                `${submitTarget.lineCount} ligne(s) enregistrée(s)`,
+              ]
+            : []
+        }
+        confirmLabel="Soumettre la feuille"
+        loading={submit.isPending}
+        onConfirm={confirmSubmit}
+        onCancel={() => setSubmitTarget(null)}
+      />
 
       <ConfirmDialog
         open={sealTarget != null}

@@ -13,7 +13,7 @@ import type {
   PresenceSecurityAlert, SessionQR, RecordPresencePayload, BulkPresencePayload,
   AdminPresenceRecordResult, BulkPresenceRecordResult,
   AttendanceSheetDraft, PendingAttendanceSheetSummary, SealedAttendanceSheetResult,
-  PresenceReasonCodeEntry, AttendanceSheetStatus,
+  SubmittedAttendanceSheetResult, PresenceReasonCodeEntry, AttendanceSheetStatus,
 } from '@/types/admin'
 
 function normalizeSecurityAlert(raw: Record<string, unknown>): PresenceSecurityAlert {
@@ -167,6 +167,15 @@ export const presencesApi = {
       throw error
     }
   },
+
+  /** Soumet une feuille brouillon (DRAFT → SUBMITTED) */
+  submitSheet: (sheetId: number) =>
+    apiClient
+      .post<{ success: boolean; data: SubmittedAttendanceSheetResult; message?: string }>(
+        `/admin/presences/sheets/${sheetId}/submit`,
+        {},
+      )
+      .then((r) => ({ data: r.data.data, message: r.data.message })),
 
   /** Clôture et scelle une feuille soumise */
   sealSheet: (sheetId: number) =>

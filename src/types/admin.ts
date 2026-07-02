@@ -456,6 +456,13 @@ export interface PendingAttendanceSheetSummary {
   submittedAt: string | null
 }
 
+export interface SubmittedAttendanceSheetResult {
+  sheetId: number
+  status: 'SUBMITTED'
+  submittedAt: string
+  lineCount: number
+}
+
 export interface SealedAttendanceSheetResult {
   sheetId: number
   status: AttendanceSheetStatus
