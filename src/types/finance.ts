@@ -95,6 +95,8 @@ export interface RefundRequest {
   reviewedAt?: string
   processedAt?: string
   createdAt: string
+  requestedBy?: { id: number; name: string } | null
+  reviewedBy?: { id: number; name: string } | null
   gateway?: {
     provider?: string
     refundRef?: string

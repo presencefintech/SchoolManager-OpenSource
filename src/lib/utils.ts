@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { formatMoney, DEFAULT_FINANCE_CURRENCY } from '@/lib/finance/currency'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -9,8 +10,8 @@ export function formatPercent(value: number): string {
   return `${Math.round(value)}%`
 }
 
-export function formatCurrency(amount: number, currency = 'XOF'): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
+export function formatCurrency(amount: number, currency = DEFAULT_FINANCE_CURRENCY): string {
+  return formatMoney(amount, currency)
 }
 
 export function formatDate(date: string | Date): string {

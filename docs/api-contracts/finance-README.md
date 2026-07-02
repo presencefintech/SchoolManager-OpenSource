@@ -1,5 +1,7 @@
 # Module Web Finance (Guichet)
 
+**Guide de travail (étapes F-01 → F-16) :** [`../FINANCE_WORK_GUIDE.md`](../FINANCE_WORK_GUIDE.md)
+
 **Préfixe API :** `/api/v1/finance/*`  
 **Rôles :** `FINANCE`, `ADMIN` (selon route)  
 **Policy :** `FinancePolicy` + isolation `schoolId` (JWT)

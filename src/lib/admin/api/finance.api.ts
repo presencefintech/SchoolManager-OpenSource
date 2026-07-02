@@ -7,12 +7,19 @@ import {
   normalizeMoratorium,
   normalizeMoratoriumRecoveryRate,
 } from '@/lib/admin/normalizers'
+import {
+  mapEnterpriseDashboardToKpi,
+  normalizeFraudAlertsResponse,
+  normalizeCollectionEfficiencyLevels,
+  normalizeEndOfDayClosing,
+  normalizeIntegrityScan,
+} from '@/lib/admin/finance-dashboard.utils'
 import type {
   FinanceKpi, PendingVerificationItem, FinanceFraudAlert, AuditLogEntry, TopPayer,
   ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
   BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
-  MoratoriumRecoveryRate,
+  MoratoriumRecoveryRate, AdminRefundRequest,
 } from '@/types/admin'
 
 function asItemList<T>(data: unknown): T[] {
@@ -44,7 +51,10 @@ function normalizeMobilePending(row: Record<string, unknown>): MobilePendingItem
 export const financeApi = {
   // ── Dashboard ──────────────────────────────────────────────────────────────
   getStrategicDashboard: () =>
-    apiClient.get('/admin/finance/dashboard/strategic').then(r => r.data.data as FinanceKpi & Record<string, unknown>),
+    apiClient
+      .get('/admin/finance/dashboard/strategic')
+      .then((r) => mapEnterpriseDashboardToKpi(r.data.data)),
+
 
   getDetailedReport: () =>
     apiClient.get('/admin/finance/reports/detailed').then(r => r.data.data),
@@ -59,23 +69,33 @@ export const financeApi = {
     apiClient.get('/admin/finance/dashboard/insights').then(r => r.data.data),
 
   getComparativeDashboard: () =>
-    apiClient.get('/admin/finance/dashboard/comparative').then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/dashboard/comparative')
+      .then((r) => normalizeCollectionEfficiencyLevels(r.data.data)),
 
   getEfficiency: () =>
-    apiClient.get('/admin/finance/dashboard/efficiency').then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/dashboard/efficiency')
+      .then((r) => normalizeCollectionEfficiencyLevels(r.data.data)),
 
   getEndOfDay: () =>
-    apiClient.get('/admin/finance/closing/end-of-day').then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/closing/end-of-day')
+      .then((r) => normalizeEndOfDayClosing(r.data.data)),
 
   // ── Audit & Fraude ─────────────────────────────────────────────────────────
   getFraudAlerts: () =>
-    apiClient.get('/admin/finance/audit/fraud-alerts').then(r => (r.data.data ?? []) as FinanceFraudAlert[]),
+    apiClient
+      .get('/admin/finance/audit/fraud-alerts')
+      .then((r) => normalizeFraudAlertsResponse(r.data.data)),
 
   getAuditLogs: (params?: { page?: number; limit?: number }) =>
     apiClient.get('/admin/finance/audit/logs', { params }).then(r => (r.data.data ?? []) as AuditLogEntry[]),
 
   checkIntegrity: () =>
-    apiClient.get('/admin/finance/audit/integrity-scan').then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/audit/integrity-scan')
+      .then((r) => normalizeIntegrityScan(r.data.data)),
 
   getRiskProfiles: () =>
     apiClient.get('/admin/finance/audit/risk-profiles').then(r => r.data.data),
@@ -215,6 +235,12 @@ export const financeApi = {
   rejectMoratorium: (id: number, reason?: string) =>
     apiClient.post(`/admin/finance/moratoriums/${id}/reject`, { reason }).then(r => r.data.data),
 
-  reviewRefund: (id: number, payload: { action: 'APPROVE' | 'REJECT'; notes?: string }) =>
+  listRefundRequests: (params?: { status?: string; page?: number; limit?: number }) =>
+    apiClient.get('/finance/refunds', { params }).then(r => r.data.data as { items: AdminRefundRequest[]; total: number; page: number; limit: number }),
+
+  getRefundRequest: (id: number) =>
+    apiClient.get(`/finance/refunds/${id}`).then(r => r.data.data as AdminRefundRequest),
+
+  reviewRefund: (id: number, payload: { action: 'approve' | 'reject'; reviewNotes?: string }) =>
     apiClient.post(`/admin/finance/refunds/${id}/review`, payload).then(r => r.data.data),
 }

@@ -24,7 +24,7 @@ export const queryKeys = {
 
     anomalies: {
       dashboard: () => ['superadmin', 'anomalies', 'dashboard'] as const,
-      thresholds: () => ['superadmin', 'anomalies', 'thresholds'] as const,
+      thresholds: (schoolId?: number) => ['superadmin', 'anomalies', 'thresholds', schoolId] as const,
     },
 
     mm: {

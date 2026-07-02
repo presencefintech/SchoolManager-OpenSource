@@ -149,7 +149,7 @@ export default function SecurityPage() {
   }
 
   /* Thresholds */
-  const { data: thresholds } = useAnomalyThresholds()
+  const { data: thresholds } = useAnomalyThresholds(schoolId || undefined)
   const [thresholdForm, setThresholdForm] = useState({ fraudScoreMin: '', absenceRateMax: '', devianceMax: '' })
   const [savingThresholds, setSavingThresholds] = useState(false)
   const [thresholdFeedback, setThresholdFeedback] = useState<FeedbackState>(null)

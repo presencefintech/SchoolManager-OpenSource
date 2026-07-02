@@ -141,7 +141,15 @@ export const financeRoleApi = {
     apiClient.get('/finance/classes').then(r => r.data.data),
 
   getClassDetail: (id: number) =>
-    apiClient.get(`/finance/classes/${id}`).then(r => r.data.data),
+    apiClient.get(`/finance/classes/${id}`).then(r => {
+      const body = r.data as { data?: unknown } | Record<string, unknown>
+      return (body && 'data' in body && body.data != null ? body.data : body) as {
+        id: number
+        name: string
+        section?: { id: number; name: string }
+        option?: { id: number; name: string }
+      }
+    }),
 
   getClassFinancialStatus: (id: number) =>
     apiClient.get(`/finance/classes/${id}/financial-status`).then(r => r.data),

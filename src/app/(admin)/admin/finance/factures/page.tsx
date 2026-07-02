@@ -11,6 +11,7 @@ import type { FeeStructurePayload } from '@/types/admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
+import { formatMoney } from '@/lib/finance/currency'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -75,7 +76,7 @@ function GenerateInvoiceModal({ onClose }: { onClose: () => void }) {
                   <option value="">— Choisir —</option>
                   {feeStructures.map((fs) => (
                     <option key={fs.id} value={fs.id}>
-                      {fs.label} · {Number(fs.amount).toLocaleString('fr-FR')} F
+                      {fs.label} · {formatMoney(Number(fs.amount))}
                     </option>
                   ))}
                 </select>
@@ -127,7 +128,7 @@ function DiscountModal({ invoiceId, onClose }: { invoiceId: number; onClose: () 
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Montant remise (FCFA) *</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Montant remise (USD) *</label>
               <input type="number" required min={1} value={form.discountAmount || ''}
                 onChange={e => setForm(p => ({ ...p, discountAmount: Number(e.target.value) }))}
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
@@ -200,7 +201,7 @@ export default function FacturesPage() {
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (FCFA) *</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (USD) *</label>
             <input type="number" required min={1} value={feeForm.totalAmount || ''}
               onChange={e => setFeeForm(p => ({ ...p, totalAmount: Number(e.target.value) }))}
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
@@ -281,7 +282,7 @@ export default function FacturesPage() {
                 {(invoices as any[]).map((inv) => (
                   <tr key={inv.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-5 py-3.5 font-medium text-zinc-900">{inv.label ?? inv.description ?? '—'}</td>
-                    <td className="px-5 py-3.5 text-zinc-700 font-medium">{Number(inv.amount ?? inv.totalAmount ?? 0).toLocaleString('fr-FR')} F</td>
+                    <td className="px-5 py-3.5 text-zinc-700 font-medium">{formatMoney(Number(inv.amount ?? inv.totalAmount ?? 0))}</td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${inv.status === 'PAID' ? 'bg-emerald-50 text-emerald-700' : inv.status === 'PENDING' ? 'bg-amber-50 text-amber-700' : 'bg-zinc-100 text-zinc-500'}`}>
                         {inv.status ?? '—'}

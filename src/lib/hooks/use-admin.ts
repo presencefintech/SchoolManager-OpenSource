@@ -888,6 +888,27 @@ export function useRevokeMoratorium() {
   })
 }
 
+export function useAdminRefundRequests(params?: { status?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'refunds', params],
+    queryFn: () => financeApi.listRefundRequests(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useReviewRefundRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, action, reviewNotes }: { id: number; action: 'approve' | 'reject'; reviewNotes?: string }) =>
+      financeApi.reviewRefund(id, { action, reviewNotes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'refunds'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+    },
+  })
+}
+
 // ── Finance — hooks manquants ──────────────────────────────────────
 
 export function useFinanceDetailedReport() {

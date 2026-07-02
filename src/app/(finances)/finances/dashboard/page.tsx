@@ -9,6 +9,7 @@ import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
   useExecutiveDashboard, useFinanceIntegrity,
 } from '@/lib/hooks/use-finance'
+import { formatMoney } from '@/lib/finance/currency'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
@@ -75,7 +76,8 @@ export default function FinanceDashboardPage() {
   const { data: guichet, isLoading, refetch } = useGuichetDashboard()
   const { data: dailyCash = [] } = useDailyCashReport()
   const { data: debtorsData } = useDebtors(10)
-  const { data: collection } = useCollectionAnalytics()
+  const sessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)?.currentAcademicSessionId
+  const { data: collection } = useCollectionAnalytics(sessionId ?? undefined)
   const { data: execData } = useExecutiveDashboard()
   const { data: integrityData } = useFinanceIntegrity()
 
@@ -89,6 +91,7 @@ export default function FinanceDashboardPage() {
 
   const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
   const totalTx = cash.reduce((acc, r) => acc + (r._count?.id || 0), 0)
+  const revenueTrend = cash.map((r) => Number(r._sum?.amount) || 0)
 
   const today = typeof window !== 'undefined'
     ? new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -135,7 +138,7 @@ export default function FinanceDashboardPage() {
               <motion.div variants={fadeUp}>
                 <KpiCard
                   label="Encaissements du jour"
-                  value={g?.collectionsToday?.total != null ? `${Number(g.collectionsToday.total).toLocaleString('fr-FR')} F` : '—'}
+                  value={g?.collectionsToday?.total != null ? formatMoney(Number(g.collectionsToday.total)) : '—'}
                   sub={`${g?.collectionsToday?.count ?? 0} transaction(s)`}
                   icon={DollarSign} color="text-emerald-600" bg="bg-emerald-50"
                   sparkData={revenueTrend} hex="#059669"
@@ -167,9 +170,9 @@ export default function FinanceDashboardPage() {
               </motion.div>
               <motion.div variants={fadeUp}>
                 <KpiCard
-                  label="Top débiteurs (> 10 F)"
+                  label="Top débiteurs (seuil > 10)"
                   value={debtors.length}
-                  sub={debtors.length > 0 ? `${debtors.reduce((a, d) => a + (Number(d.feesBalance) || 0), 0).toLocaleString('fr-FR')} F total` : 'Aucun'}
+                  sub={debtors.length > 0 ? `${formatMoney(debtors.reduce((a, d) => a + (Number(d.feesBalance) || 0), 0))} total` : 'Aucun'}
                   icon={Users} color="text-red-600" bg="bg-red-50"
                 />
               </motion.div>
@@ -192,7 +195,7 @@ export default function FinanceDashboardPage() {
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-zinc-900">Encaissements du jour</h3>
             {totalCash > 0 && (
-              <span className="text-xs font-semibold text-emerald-700">{totalCash.toLocaleString('fr-FR')} F total</span>
+              <span className="text-xs font-semibold text-emerald-700">{formatMoney(totalCash)} total</span>
             )}
           </div>
           {cash.length === 0 ? (
@@ -209,13 +212,13 @@ export default function FinanceDashboardPage() {
                     <p className="text-xs text-zinc-400">{row._count?.id ?? 0} transaction(s)</p>
                   </div>
                   <span className="text-sm font-semibold text-emerald-700">
-                    {row._sum?.amount != null ? `${Number(row._sum.amount).toLocaleString('fr-FR')} F` : '—'}
+                    {row._sum?.amount != null ? formatMoney(Number(row._sum.amount)) : '—'}
                   </span>
                 </div>
               ))}
               <div className="flex items-center justify-between px-5 py-3 bg-zinc-50/60">
                 <p className="text-sm font-semibold text-zinc-700">Total — {totalTx} tx</p>
-                <span className="text-sm font-bold text-emerald-700">{totalCash.toLocaleString('fr-FR')} F</span>
+                <span className="text-sm font-bold text-emerald-700">{formatMoney(totalCash)}</span>
               </div>
             </div>
           )}
@@ -248,7 +251,7 @@ export default function FinanceDashboardPage() {
                     </div>
                   </div>
                   <span className="text-sm font-semibold text-red-600">
-                    {dbtr.feesBalance != null ? `${Number(dbtr.feesBalance).toLocaleString('fr-FR')} F` : '—'}
+                    {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
                   </span>
                 </div>
               ))}
@@ -268,7 +271,7 @@ export default function FinanceDashboardPage() {
             {g.collectionsToday.byMethod.map((m: any) => (
               <div key={m.method} className="px-5 py-4">
                 <p className="text-xs text-zinc-500 mb-1">{m.method}</p>
-                <p className="text-lg font-bold text-zinc-900">{Number(m.amount).toLocaleString('fr-FR')} F</p>
+                <p className="text-lg font-bold text-zinc-900">{formatMoney(Number(m.amount))}</p>
                 <p className="text-xs text-zinc-400">{m.count} tx</p>
               </div>
             ))}
@@ -309,10 +312,10 @@ export default function FinanceDashboardPage() {
                 {exec.performance && (
                   <div className="space-y-2">
                     {[
-                      ['Revenus du mois', `${Number(exec.performance.monthlyRevenue).toLocaleString('fr-FR')} F`],
-                      ['Revenu projeté', `${Number(exec.performance.projectedRevenue).toLocaleString('fr-FR')} F`],
+                      ['Revenus du mois', formatMoney(Number(exec.performance.monthlyRevenue))],
+                      ['Revenu projeté', formatMoney(Number(exec.performance.projectedRevenue))],
                       ['Taux de recouvrement', `${Number(exec.performance.collectionEfficiency).toFixed(1)} %`],
-                      ['ARPU', `${Number(exec.performance.arpu).toLocaleString('fr-FR')} F`],
+                      ['ARPU', formatMoney(Number(exec.performance.arpu))],
                       ['Adoption digitale', `${Number(exec.performance.digitalAdoption).toFixed(1)} %`],
                     ].map(([k, v]) => (
                       <div key={k} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
@@ -327,11 +330,11 @@ export default function FinanceDashboardPage() {
                     <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Trésorerie</p>
                     <div className="flex justify-between text-xs">
                       <span className="text-zinc-500">Impayés totaux</span>
-                      <span className="font-semibold text-red-600">{Number(exec.treasury.totalUnpaid).toLocaleString('fr-FR')} F</span>
+                      <span className="font-semibold text-red-600">{formatMoney(Number(exec.treasury.totalUnpaid))}</span>
                     </div>
                     <div className="flex justify-between text-xs">
                       <span className="text-zinc-500">Estimation créances douteuses</span>
-                      <span className="font-semibold text-amber-600">{Number(exec.treasury.badDebtEstimate).toLocaleString('fr-FR')} F</span>
+                      <span className="font-semibold text-amber-600">{formatMoney(Number(exec.treasury.badDebtEstimate))}</span>
                     </div>
                   </div>
                 )}

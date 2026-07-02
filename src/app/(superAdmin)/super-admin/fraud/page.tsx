@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { fraudApi } from '@/lib/superAdmin/api/fraud.api'
+import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { FraudAnalysisResult } from '@/types/super-admin'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
@@ -69,7 +70,7 @@ export default function FraudPage() {
     setResult(null)
     setAnalyzeError(null)
     try {
-      const r = await fraudApi.analyze(Number(studentId))
+      const r = await anomaliesApi.analyzeStudent(Number(studentId))
       setResult(r)
     } catch {
       setAnalyzeError('Erreur lors de l\'analyse de fraude')

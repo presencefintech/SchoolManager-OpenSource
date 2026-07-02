@@ -24,7 +24,8 @@ const ROLES = [
 function useBroadcastGroup() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: adminNotificationsApi.broadcastGroup,
+    mutationFn: (payload: { title: string; message: string; roles: string[] }) =>
+      adminNotificationsApi.broadcastGroup(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'notif', 'history'] }),
   })
 }
@@ -32,7 +33,8 @@ function useBroadcastGroup() {
 function useSendDirect() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: adminNotificationsApi.sendDirect,
+    mutationFn: (payload: { targetUserId: number; title: string; message: string }) =>
+      adminNotificationsApi.sendDirect(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'notif', 'history'] }),
   })
 }
