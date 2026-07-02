@@ -510,11 +510,11 @@ export function useHighRiskProfiles(schoolId: number) {
   })
 }
 
-export function useAnomalyThresholds() {
+export function useAnomalyThresholds(schoolId?: number) {
   return useQuery({
-    queryKey: queryKeys.superadmin.anomalies.thresholds(),
-    queryFn: () => anomaliesApi.getThresholds(),
-    enabled: !!getAuthToken(),
+    queryKey: queryKeys.superadmin.anomalies.thresholds(schoolId),
+    queryFn: () => anomaliesApi.getThresholds(schoolId!),
+    enabled: !!getAuthToken() && !!schoolId,
     staleTime: 300_000,
     refetchOnWindowFocus: false,
   })

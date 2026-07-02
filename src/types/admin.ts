@@ -571,6 +571,43 @@ export interface FinanceKpi {
   fraudAlerts: number
 }
 
+/** GET /admin/finance/dashboard/efficiency — recouvrement par niveau scolaire. */
+export interface FinanceCollectionEfficiencyLevel {
+  levelName: string
+  studentCount: number
+  totalDue: number
+  efficiency: number
+}
+
+/** GET /admin/finance/dashboard/comparative — même forme que efficiency (par niveau). */
+export type FinanceComparativeDashboard = FinanceCollectionEfficiencyLevel[]
+
+/** GET /admin/finance/closing/end-of-day — snapshot journalier confirmé. */
+export interface FinanceEndOfDayClosing {
+  date: string
+  total: number
+  count: number
+  methods: Array<{ method: string; amount: number; count: number }>
+  reconciliation: { status: string; reference: string }
+}
+
+/** GET /admin/finance/audit/integrity-scan — contrôle cohérence soldes élèves. */
+export interface FinanceIntegrityScanDetail {
+  id: number
+  firstName?: string | null
+  lastName?: string | null
+  totalFees?: number
+  feesPaid?: number
+  tuitionBalance?: number
+}
+
+export interface FinanceIntegrityScan {
+  status: 'SECURE' | 'WARNING' | string
+  totalChecked: number
+  anomaliesFound: number
+  details: FinanceIntegrityScanDetail[]
+}
+
 /** @deprecated Prefer PendingVerificationItem */
 export interface PendingPayment {
   verificationId?: number
@@ -727,6 +764,34 @@ export interface MobilePendingItem {
   operator?: string
   reference?: string
   createdAt: string
+}
+
+export interface AdminRefundRequest {
+  id: number
+  uuid?: string
+  paymentId: number
+  amount: number
+  reason: string
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSING' | 'PROCESSED' | 'FAILED' | 'CANCELLED' | 'SYNCED'
+  reviewNotes?: string | null
+  reviewedAt?: string | null
+  processedAt?: string | null
+  createdAt: string
+  requestedBy?: { id: number; name: string } | null
+  reviewedBy?: { id: number; name: string } | null
+  gateway?: {
+    provider?: string | null
+    refundRef?: string | null
+    status?: string | null
+    correlationId?: string | null
+  } | null
+  payment?: {
+    reference?: string
+    method?: string
+    channel?: string
+    studentName?: string
+    matricule?: string
+  }
 }
 
 export type StudentSecurityAction = 'BLOCK' | 'UNBLOCK'

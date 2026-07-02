@@ -207,7 +207,7 @@ export default function MonitoringPage() {
         </motion.div>
 
         {/* Raw JSON health */}
-        {health && !healthLoading && (
+        {health != null && !healthLoading && (
           <details className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] group">
             <summary className="px-6 py-4 text-sm font-medium text-zinc-500 cursor-pointer list-none flex items-center gap-2 hover:text-zinc-800 transition-colors">
               <span className="text-zinc-300 group-open:rotate-90 transition-transform inline-block">▶</span>

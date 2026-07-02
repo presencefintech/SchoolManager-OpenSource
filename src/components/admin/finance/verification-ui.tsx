@@ -10,9 +10,10 @@ const STEPS = [
   { key: 'admin', label: 'Admin', field: 'adminCheck' as const },
 ] as const
 
+import { formatMoney } from '@/lib/finance/currency'
+
 export function fmtMoney(amount: number, currency = 'USD') {
-  const suffix = currency === 'USD' ? ' $' : ` ${currency}`
-  return `${amount.toLocaleString('fr-FR', { maximumFractionDigits: 2 })}${suffix}`
+  return formatMoney(amount, currency)
 }
 
 export function VerificationStepper({ item }: { item: PendingVerificationItem }) {

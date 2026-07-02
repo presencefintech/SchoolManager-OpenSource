@@ -308,7 +308,12 @@ export function useProcessRefund() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: { notes?: string } }) =>
       financeRoleApi.processRefund(id, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['finance', 'refunds'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'refunds'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'dashboard'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'debtors'] })
+    },
   })
 }
 
@@ -316,7 +321,11 @@ export function useSyncRefundGateway() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => financeRoleApi.syncRefundGateway(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['finance', 'refunds'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'refunds'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'dashboard'] })
+    },
   })
 }
 

@@ -16,6 +16,7 @@ import {
 import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem } from '@/types/admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer } from '@/components/admin/finance/verification-ui'
+import { formatMoney } from '@/lib/finance/currency'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 
@@ -73,7 +74,7 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
               onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
             />
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (FCFA) *</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (USD) *</label>
               <input type="number" required min={1} value={form.amount || ''}
                 onChange={e => setForm(p => ({ ...p, amount: Number(e.target.value) }))}
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
@@ -359,7 +360,7 @@ export default function PaiementsPage() {
                     {(Array.isArray(searchResults) ? searchResults : (searchResults as any)?.data ?? []).map((r: any) => (
                       <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                         <td className="px-3 py-2 text-zinc-900">{r.studentName ?? '—'}</td>
-                        <td className="px-3 py-2 text-zinc-700 font-medium">{Number(r.amount).toLocaleString('fr-FR')} F</td>
+                        <td className="px-3 py-2 text-zinc-700 font-medium">{formatMoney(Number(r.amount))}</td>
                         <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">{r.method}</span></td>
                         <td className="px-3 py-2">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === 'VALIDATED' ? 'bg-emerald-50 text-emerald-700' : r.status === 'PENDING' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
@@ -522,7 +523,7 @@ export default function PaiementsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-sm font-semibold text-zinc-900">{Number(m.amount).toLocaleString('fr-FR')} F</span>
+                  <span className="text-sm font-semibold text-zinc-900">{formatMoney(Number(m.amount))}</span>
                   {mobile ? (
                     <button
                       disabled={confirming}

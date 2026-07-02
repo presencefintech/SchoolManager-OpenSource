@@ -10,6 +10,8 @@ import {
   useFinanceIntegrityScan, useFinanceRiskProfiles, useFinanceDuplicates,
   useFinanceLedger,
 } from '@/lib/hooks/use-admin'
+import type { FinanceFraudAlert, AuditLogEntry } from '@/types/admin'
+import { formatMoney } from '@/lib/finance/currency'
 
 function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message: string }) {
   return (
@@ -31,12 +33,11 @@ export default function AuditPage() {
   const [logPage, setLogPage] = useState(1)
   const LOGS_PER_PAGE = 20
 
-  const integ = integrity as any
-  const rp = riskProfiles as any
-  const dup = duplicates as any
+  const rp = riskProfiles as unknown[] | { count?: number } | undefined
+  const dup = duplicates as unknown[] | { count?: number } | undefined
 
-  const paginatedLogs = (logs as any[]).slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE)
-  const totalLogPages = Math.ceil((logs as any[]).length / LOGS_PER_PAGE)
+  const paginatedLogs = (logs as AuditLogEntry[]).slice((logPage - 1) * LOGS_PER_PAGE, logPage * LOGS_PER_PAGE)
+  const totalLogPages = Math.ceil((logs as AuditLogEntry[]).length / LOGS_PER_PAGE)
 
   return (
     <div className="space-y-6">
@@ -67,9 +68,13 @@ export default function AuditPage() {
             <p className="text-xs text-zinc-500">Intégrité</p>
           </div>
           <p className="text-2xl font-bold text-zinc-900">
-            {integ?.errors ?? integ?.errorCount ?? (integ ? Object.keys(integ).length : '—')}
+            {integrity?.anomaliesFound ?? '—'}
           </p>
-          <p className="text-xs text-zinc-400 mt-1">erreurs détectées</p>
+          <p className="text-xs text-zinc-400 mt-1">
+            {integrity
+              ? `${integrity.totalChecked} profils vérifiés · ${integrity.status === 'SECURE' ? 'Système sain' : 'Attention requise'}`
+              : 'erreurs détectées'}
+          </p>
         </div>
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-3">
@@ -100,15 +105,15 @@ export default function AuditPage() {
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-zinc-900">Alertes fraude</h3>
-          {(alerts as any[]).length > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{(alerts as any[]).length}</span>
+          {(alerts as FinanceFraudAlert[]).length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{(alerts as FinanceFraudAlert[]).length}</span>
           )}
         </div>
-        {(alerts as any[]).length === 0 ? (
+        {(alerts as FinanceFraudAlert[]).length === 0 ? (
           <EmptyState icon={CheckCircle} message="Aucune alerte fraude" />
         ) : (
           <div className="divide-y divide-zinc-50">
-            {(alerts as any[]).map((alert) => (
+            {(alerts as FinanceFraudAlert[]).map((alert) => (
               <div key={alert.id} className="px-5 py-4 flex items-start gap-3">
                 <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${alert.severity === 'HIGH' ? 'bg-red-500' : alert.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-zinc-400'}`} />
                 <div className="flex-1 min-w-0">
@@ -122,7 +127,7 @@ export default function AuditPage() {
                   <p className="text-xs text-zinc-500 mt-1">{alert.description}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  {alert.amount != null && <p className="text-sm font-semibold text-zinc-900">{Number(alert.amount).toLocaleString('fr-FR')} F</p>}
+                  {alert.amount != null && <p className="text-sm font-semibold text-zinc-900">{formatMoney(Number(alert.amount))}</p>}
                   <p className="text-xs text-zinc-400">{new Date(alert.createdAt).toLocaleDateString('fr-FR')}</p>
                 </div>
               </div>
@@ -130,6 +135,31 @@ export default function AuditPage() {
           </div>
         )}
       </div>
+
+      {integrity && integrity.details.length > 0 && (
+        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+          <div className="px-5 py-4 border-b border-zinc-100">
+            <h3 className="text-sm font-semibold text-zinc-900">Anomalies d'intégrité</h3>
+          </div>
+          <div className="divide-y divide-zinc-50">
+            {integrity.details.slice(0, 10).map((detail) => (
+              <div key={detail.id} className="px-5 py-3.5 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">
+                    {[detail.firstName, detail.lastName].filter(Boolean).join(' ') || `Élève #${detail.id}`}
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    Frais {formatMoney(Number(detail.totalFees ?? 0))} · payé {formatMoney(Number(detail.feesPaid ?? 0))}
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-red-600 tabular-nums">
+                  Solde {formatMoney(Number(detail.tuitionBalance ?? 0))}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {rp && Array.isArray(rp) && rp.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
@@ -163,7 +193,7 @@ export default function AuditPage() {
             {dup.map((d: any, i: number) => (
               <div key={d.id ?? i} className="px-5 py-3.5">
                 <p className="text-sm text-zinc-700">{d.description ?? d.reference ?? `Doublon #${i + 1}`}</p>
-                {d.amount != null && <p className="text-xs text-zinc-400">{Number(d.amount).toLocaleString('fr-FR')} F</p>}
+                {d.amount != null && <p className="text-xs text-zinc-400">{formatMoney(Number(d.amount))}</p>}
               </div>
             ))}
           </div>
@@ -190,12 +220,12 @@ export default function AuditPage() {
         <div className="px-5 py-4 border-b border-zinc-100">
           <h3 className="text-sm font-semibold text-zinc-900">Journal d'audit</h3>
         </div>
-        {(logs as any[]).length === 0 ? (
+        {(logs as AuditLogEntry[]).length === 0 ? (
           <EmptyState icon={ClipboardList} message="Aucun événement d'audit" />
         ) : (
           <>
             <div className="divide-y divide-zinc-50">
-              {paginatedLogs.map((log: any) => (
+              {paginatedLogs.map((log) => (
                 <div key={log.id} className="px-5 py-3.5 flex items-start gap-3">
                   <div className="w-2 h-2 rounded-full bg-zinc-300 mt-1.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
