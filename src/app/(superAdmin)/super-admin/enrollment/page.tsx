@@ -326,6 +326,10 @@ function EnrollmentPageContent() {
   /* biométrie */
   const [faceVectorJson, setFaceVectorJson] = useState('')
 
+  /* test face id */
+  const [testFacePhoto, setTestFacePhoto] = useState<File | null>(null)
+  const [testFaceResult, setTestFaceResult] = useState<{ match: boolean; score: number } | null>(null)
+
   /* â"€â"€ handlers â"€â"€ */
 
   async function checkIntegrity() {
@@ -550,6 +554,38 @@ function EnrollmentPageContent() {
         type: 'error',
         message: err.response?.data?.message ?? err.message ?? 'Erreur lors de l\'injection biométrique.',
       })
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  function readFileAsBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function runTestFaceId() {
+    if (!studentId || !testFacePhoto) return
+    setLoading('test-face-id')
+    setActionResult(null)
+    setTestFaceResult(null)
+    try {
+      const imageBase64 = await readFileAsBase64(testFacePhoto)
+      const result = await enrollmentApi.testFaceId(Number(studentId), imageBase64)
+      setTestFaceResult(result)
+      setActionResult({
+        type: result.match ? 'success' : 'error',
+        message: result.match
+          ? `Correspondance confirmée (score ${result.score.toFixed(2)})`
+          : `Aucune correspondance (score ${result.score.toFixed(2)})`,
+      })
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      setActionResult({ type: 'error', message: err.response?.data?.message ?? 'Erreur lors du test.' })
     } finally {
       setLoading(null)
     }
@@ -1007,6 +1043,35 @@ function EnrollmentPageContent() {
                     className="h-9 w-full text-xs font-medium rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 transition-all"
                   >
                     {loading === 'biometrics' ? 'Injection…' : 'Injecter le vecteur'}
+                  </button>
+                </div>
+
+                <div className="rounded-xl border border-zinc-100 p-3.5 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Search size={14} className="text-zinc-400" />
+                    <span className="text-xs font-medium text-zinc-700">Test Face ID</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => { setTestFacePhoto(e.target.files?.[0] ?? null); setTestFaceResult(null) }}
+                    className="w-full text-xs text-zinc-500"
+                  />
+                  {testFaceResult && (
+                    <div className={cn(
+                      'text-[11px] font-medium px-2.5 py-1.5 rounded-lg',
+                      testFaceResult.match ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700',
+                    )}>
+                      {testFaceResult.match ? 'Correspondance' : 'Pas de correspondance'} · score {testFaceResult.score.toFixed(2)}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    disabled={!studentId || !testFacePhoto || loading === 'test-face-id'}
+                    onClick={runTestFaceId}
+                    className="h-9 w-full text-xs font-medium rounded-xl border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-40 transition-all"
+                  >
+                    {loading === 'test-face-id' ? 'Vérification…' : 'Tester la correspondance'}
                   </button>
                 </div>
               </div>

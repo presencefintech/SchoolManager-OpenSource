@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet } from 'lucide-react'
-import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet } from '@/lib/hooks/use-finance'
+import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar } from 'lucide-react'
+import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,6 +33,7 @@ export default function DebiteursPage() {
   const { data: studentProfile, isLoading: loadingProfile } = useStudentFinanceProfile(searchedId)
   const { data: walletData, isLoading: loadingWallet } = useStudentWallet(searchedId)
   const { data: highRiskData, isLoading: loadingRisk } = useHighRisk()
+  const { data: moratoriumsData, isLoading: loadingMoratoriums } = useFinanceMoratoriums({ status: 'ACTIVE' })
   const exportDebtors = useExportDebtors()
   const { mutateAsync: triggerReminders, isPending: triggering } = useTriggerDebtReminders()
 
@@ -51,6 +52,7 @@ export default function DebiteursPage() {
   const profile = studentProfile as any
   const wallet = walletData as StudentWallet | undefined
   const highRisk: RiskEntry[] = (highRiskData as any)?.data ?? (Array.isArray(highRiskData) ? highRiskData : [])
+  const moratoriums: any[] = (moratoriumsData as any)?.data ?? (Array.isArray(moratoriumsData) ? moratoriumsData : [])
 
   const totalDebt = debtors.reduce((acc, d) => acc + (Number(d.feesBalance) || 0), 0)
 
@@ -229,6 +231,48 @@ export default function DebiteursPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Moratoires actifs */}
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar size={14} className="text-violet-400" />
+            <h2 className="text-sm font-semibold text-zinc-900">Moratoires actifs</h2>
+          </div>
+          {moratoriums.length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium">{moratoriums.length}</span>
+          )}
+        </div>
+        {loadingMoratoriums ? (
+          <div className="p-5 space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+          </div>
+        ) : moratoriums.length === 0 ? (
+          <div className="py-8 text-center">
+            <Calendar size={20} className="mx-auto text-zinc-200 mb-2" />
+            <p className="text-sm text-zinc-400">Aucun moratoire actif</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-zinc-50">
+            {moratoriums.map((m: any, i: number) => (
+              <div key={m.id ?? i} className="flex items-center justify-between px-5 py-3.5">
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">
+                    {m.studentName ?? ([m.student?.firstName, m.student?.lastName].filter(Boolean).join(' ') || `Élève #${m.studentId ?? '—'}`)}
+                  </p>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {m.type ?? '—'}{m.startDate ? ` · ${new Date(m.startDate).toLocaleDateString('fr-FR')}` : ''}
+                    {m.endDate ? ` → ${new Date(m.endDate).toLocaleDateString('fr-FR')}` : ''}
+                  </p>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium">
+                  {m.status ?? 'ACTIVE'}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>

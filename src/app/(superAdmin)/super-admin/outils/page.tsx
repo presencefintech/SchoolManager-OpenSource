@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Wrench, RefreshCw, Search, QrCode, Upload, Loader2,
-  CheckCircle2, AlertCircle, FileText, ScanLine,
+  CheckCircle2, AlertCircle, FileText, ScanLine, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { bankApi } from '@/lib/superAdmin/api/bank.api'
@@ -82,6 +82,16 @@ export default function OutilsPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadFeedback, setUploadFeedback] = useState<Feedback>(null)
+  const [uploadedPublicId, setUploadedPublicId] = useState('')
+
+  /* ── File delete ────────────────────────────────────────────────── */
+  const [deletePublicId, setDeletePublicId] = useState('')
+  const [deletingFile, setDeletingFile] = useState(false)
+  const [deleteFeedback, setDeleteFeedback] = useState<Feedback>(null)
+
+  /* ── Audit PDF global ───────────────────────────────────────────── */
+  const [downloadingAuditPdf, setDownloadingAuditPdf] = useState(false)
+  const [auditPdfFeedback, setAuditPdfFeedback] = useState<Feedback>(null)
 
   /* ── handlers ───────────────────────────────────────────────────── */
 
@@ -158,9 +168,38 @@ export default function OutilsPage() {
       const r = await filesApi.upload(fd)
       setUploadFeedback({ type: 'success', message: `Fichier uploadé : ${r.url ?? r.secure_url ?? '✓'}` })
       setUploadFile(null)
+      if (r.publicId) setUploadedPublicId(r.publicId)
     } catch {
       setUploadFeedback({ type: 'error', message: 'Erreur lors de l\'upload' })
     } finally { setUploading(false) }
+  }
+
+  const handleDeleteFile = async () => {
+    if (!deletePublicId) return
+    setDeletingFile(true); setDeleteFeedback(null)
+    try {
+      const r = await filesApi.deleteFile(deletePublicId)
+      setDeleteFeedback({ type: 'success', message: r.message ?? 'Fichier supprimé' })
+      setDeletePublicId('')
+    } catch {
+      setDeleteFeedback({ type: 'error', message: 'Erreur lors de la suppression' })
+    } finally { setDeletingFile(false) }
+  }
+
+  const handleAuditPdfDownload = async () => {
+    setDownloadingAuditPdf(true); setAuditPdfFeedback(null)
+    try {
+      const blob = await pdfApi.getGlobalAuditPdf()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'audit_global.pdf'
+      a.click()
+      URL.revokeObjectURL(url)
+      setAuditPdfFeedback({ type: 'success', message: 'PDF téléchargé' })
+    } catch {
+      setAuditPdfFeedback({ type: 'error', message: 'Erreur lors du téléchargement' })
+    } finally { setDownloadingAuditPdf(false) }
   }
 
   return (
@@ -328,6 +367,22 @@ export default function OutilsPage() {
           </div>
         </div>
 
+        {/* ── PDF Audit global ─────────────────────────────────────────── */}
+        <div className={CARD}>
+          <CardTitle icon={FileText} title="Audit PDF global" desc="Télécharger le rapport d'audit global (toutes écoles)" />
+          <div className="space-y-3">
+            <button
+              onClick={handleAuditPdfDownload}
+              disabled={downloadingAuditPdf}
+              className={cn(BTN, 'bg-zinc-900 text-white hover:bg-zinc-700')}
+            >
+              {downloadingAuditPdf ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+              Télécharger l'audit global
+            </button>
+            <FeedbackBanner state={auditPdfFeedback} />
+          </div>
+        </div>
+
         {/* ── Upload fichier ────────────────────────────────────────────── */}
         <div className={CARD}>
           <CardTitle icon={Upload} title="Upload fichier Cloudinary" desc="Envoyer un fichier manuellement vers le stockage" />
@@ -350,6 +405,36 @@ export default function OutilsPage() {
               Uploader
             </button>
             <FeedbackBanner state={uploadFeedback} />
+          </div>
+        </div>
+
+        {/* ── Supprimer fichier ────────────────────────────────────────── */}
+        <div className={CARD}>
+          <CardTitle icon={Trash2} title="Supprimer fichier Cloudinary" desc="Supprimer un fichier par son Public ID" />
+          <div className="space-y-3">
+            <div>
+              <label className={LABEL}>Public ID</label>
+              <input type="text" placeholder="Ex: documents/abc123" value={deletePublicId}
+                onChange={e => setDeletePublicId(e.target.value)} className={INPUT} />
+              {uploadedPublicId && (
+                <button
+                  type="button"
+                  onClick={() => setDeletePublicId(uploadedPublicId)}
+                  className="text-xs text-indigo-600 hover:text-indigo-700 mt-1"
+                >
+                  Utiliser le dernier fichier uploadé ({uploadedPublicId})
+                </button>
+              )}
+            </div>
+            <button
+              onClick={handleDeleteFile}
+              disabled={deletingFile || !deletePublicId}
+              className={cn(BTN, 'bg-red-600 text-white hover:bg-red-700')}
+            >
+              {deletingFile ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              Supprimer
+            </button>
+            <FeedbackBanner state={deleteFeedback} />
           </div>
         </div>
 

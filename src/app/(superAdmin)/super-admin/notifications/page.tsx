@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Bell, Send, List, Trash2, CheckCircle2, AlertCircle, Loader2,
+  Bell, Send, List, Trash2, CheckCircle2, AlertCircle, Loader2, Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useNotificationLogs, useQueueStatus } from '@/lib/hooks/use-super-admin'
 import { notificationsApi } from '@/lib/superAdmin/api/notifications.api'
+import { emailsApi } from '@/lib/superAdmin/api/emails.api'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type Feedback = { type: 'success' | 'error'; message: string } | null
@@ -25,6 +26,12 @@ export default function NotificationsPage() {
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [broadcastFeedback, setBroadcastFeedback] = useState<Feedback>(null)
+
+  /* Email broadcast */
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailFeedback, setEmailFeedback] = useState<Feedback>(null)
 
   /* Cleanup */
   const [cleaning, setCleaning] = useState(false)
@@ -44,6 +51,22 @@ export default function NotificationsPage() {
       setBroadcastFeedback({ type: 'error', message: 'Erreur lors de l\'envoi' })
     } finally {
       setSending(false)
+    }
+  }
+
+  const handleEmailBroadcast = async () => {
+    if (!emailSubject || !emailBody) return
+    setSendingEmail(true)
+    setEmailFeedback(null)
+    try {
+      const res = await emailsApi.broadcast({ subject: emailSubject, body: emailBody })
+      setEmailFeedback({ type: 'success', message: res.message ?? 'Email envoyé' })
+      setEmailSubject('')
+      setEmailBody('')
+    } catch {
+      setEmailFeedback({ type: 'error', message: 'Erreur lors de l\'envoi' })
+    } finally {
+      setSendingEmail(false)
     }
   }
 
@@ -125,6 +148,55 @@ export default function NotificationsPage() {
                 )}>
                   {broadcastFeedback.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
                   {broadcastFeedback.message}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ══ DIFFUSION EMAIL ═════════════════════════════════════════════════ */}
+        <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
+          <div className="flex items-center gap-2 mb-5">
+            <Mail size={16} className="text-sky-500" />
+            <h2 className="text-base font-semibold text-zinc-900">Diffusion email</h2>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Sujet</label>
+              <input
+                type="text"
+                placeholder="Sujet de l'email…"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-sky-200 placeholder:text-zinc-300"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Contenu</label>
+              <textarea
+                rows={4}
+                placeholder="Contenu de l'email envoyé à tous les établissements…"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-sky-200 placeholder:text-zinc-300 resize-none"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleEmailBroadcast}
+                disabled={sendingEmail || !emailSubject || !emailBody}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-sky-600 text-white rounded-xl hover:bg-sky-700 disabled:opacity-40 transition-colors"
+              >
+                {sendingEmail ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                Envoyer à tous
+              </button>
+              {emailFeedback && (
+                <div className={cn(
+                  'flex items-center gap-2 text-sm px-3 py-2 rounded-lg',
+                  emailFeedback.type === 'success' ? 'text-emerald-700 bg-emerald-50' : 'text-red-600 bg-red-50'
+                )}>
+                  {emailFeedback.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                  {emailFeedback.message}
                 </div>
               )}
             </div>

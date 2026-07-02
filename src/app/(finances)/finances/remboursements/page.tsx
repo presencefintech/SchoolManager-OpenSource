@@ -6,6 +6,7 @@ import { RefreshCw, Plus, CheckCircle, RefreshCcw, RotateCcw, Search, FileText, 
 import {
   useRefunds, useCreateRefund, useProcessRefund, useSyncRefundGateway,
   useStudentConfirmedPayments, useFinanceStudentSearch, useStudentFinanceProfile, useFinanceClassDetail,
+  useRefund,
 } from '@/lib/hooks/use-finance'
 import { RefundAccountingImpact } from '@/components/finance/refund-accounting-impact'
 import { RefundDecisionHistory } from '@/components/finance/refund-decision-history'
@@ -221,8 +222,10 @@ export default function RemboursementsPage() {
       .toLowerCase()
     return haystack.includes(q)
   })
+  const { data: selectedRefundDetail } = useRefund(selectedRefundId ?? 0)
   const selectedRefund =
-    visibleRefunds.find((r) => r.id === selectedRefundId)
+    (selectedRefundDetail as RefundRequest | undefined)
+    ?? visibleRefunds.find((r) => r.id === selectedRefundId)
     ?? refunds.find((r) => r.id === selectedRefundId)
     ?? null
   const selectedLookupKey = selectedRefund?.payment?.matricule ?? selectedRefund?.payment?.studentName ?? ''

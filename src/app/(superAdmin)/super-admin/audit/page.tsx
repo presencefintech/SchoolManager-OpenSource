@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
   ShieldAlert, Activity, Wifi, WifiOff, Zap, Clock, UserCheck,
   HardDrive, AlertTriangle, CheckCircle2, XCircle, Download,
-  RefreshCw, FileSearch, ScrollText, Loader2, Flag, SearchCheck,
+  RefreshCw, FileSearch, ScrollText, Loader2, Flag, SearchCheck, UploadCloud,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -77,6 +77,28 @@ export default function AuditPage() {
 
   /* ── export ── */
   const [exporting, setExporting] = useState(false)
+
+  /* ── force storage upload ── */
+  const [forceUploadFile, setForceUploadFile] = useState<File | null>(null)
+  const [forceUploading, setForceUploading] = useState(false)
+  const [forceUploadMsg, setForceUploadMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const handleForceStorageUpload = async () => {
+    if (!forceUploadFile) return
+    setForceUploading(true)
+    setForceUploadMsg(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', forceUploadFile)
+      const res = await superAdminApi.forceStorageUpload(fd)
+      setForceUploadMsg({ ok: true, text: res.message ?? 'Fichier envoyé au stockage' })
+      setForceUploadFile(null)
+    } catch {
+      setForceUploadMsg({ ok: false, text: 'Erreur lors de l\'envoi' })
+    } finally {
+      setForceUploading(false)
+    }
+  }
 
   const handleIntegrityCheck = async () => {
     if (!integritySchoolId || !integrityStudentId) return
@@ -259,6 +281,30 @@ export default function AuditPage() {
                 <div className="text-sm text-zinc-500 space-y-1">
                   <p className="tabular-nums">{storage.total_files.toLocaleString('fr-FR')} fichiers</p>
                   <p>Bande passante : {storage.bandwidth}</p>
+                </div>
+                <div className="pt-3 border-t border-zinc-100 space-y-2">
+                  <label className="flex items-center gap-2 text-xs font-medium text-zinc-500">
+                    <UploadCloud size={13} className="text-zinc-400" />
+                    Forcer un envoi vers le stockage
+                  </label>
+                  <input
+                    type="file"
+                    onChange={(e) => setForceUploadFile(e.target.files?.[0] ?? null)}
+                    className="w-full text-xs text-zinc-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 transition-all"
+                  />
+                  <button
+                    onClick={handleForceStorageUpload}
+                    disabled={forceUploading || !forceUploadFile}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-900 text-white hover:bg-zinc-700 disabled:opacity-40 transition-colors"
+                  >
+                    {forceUploading ? <Loader2 size={12} className="animate-spin" /> : <UploadCloud size={12} />}
+                    Envoyer
+                  </button>
+                  {forceUploadMsg && (
+                    <p className={cn('text-xs', forceUploadMsg.ok ? 'text-emerald-600' : 'text-red-500')}>
+                      {forceUploadMsg.text}
+                    </p>
+                  )}
                 </div>
               </div>
             )}

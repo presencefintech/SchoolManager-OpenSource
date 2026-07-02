@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
   Building2, Plus, RefreshCw, FileText, Tag,
   Zap, Search, CheckCircle2, XCircle, History,
-  Receipt, Percent, Users, RotateCcw,
+  Receipt, Percent, Users, RotateCcw, Trash2,
 } from 'lucide-react'
 import {
   useSchools,
@@ -101,6 +101,25 @@ export default function FeesPage() {
       setUpsertFb({ type: 'error', message: 'Erreur lors de l\'opération.' })
     } finally {
       setUpsertLoading(false)
+    }
+  }
+
+  /* ── Suppression structure ────────────────────────────────────────────── */
+  const [deletingFeeId, setDeletingFeeId] = useState<number | null>(null)
+  const [deleteFb, setDeleteFb] = useState<Feedback>(null)
+
+  async function handleDeleteFee(feeId: number, name: string) {
+    if (!window.confirm(`Supprimer définitivement la structure "${name}" ?`)) return
+    setDeletingFeeId(feeId)
+    setDeleteFb(null)
+    try {
+      await feesApi.deleteFee(feeId)
+      setDeleteFb({ type: 'success', message: `Structure #${feeId} supprimée.` })
+      refetchStructures()
+    } catch {
+      setDeleteFb({ type: 'error', message: 'Erreur lors de la suppression.' })
+    } finally {
+      setDeletingFeeId(null)
     }
   }
 
@@ -468,6 +487,14 @@ export default function FeesPage() {
                     >
                       Modifier
                     </button>
+                    <button
+                      onClick={() => handleDeleteFee(s.id, s.name)}
+                      disabled={deletingFeeId === s.id}
+                      className="text-xs text-red-500 hover:text-red-700 font-medium flex-shrink-0 flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {deletingFeeId === s.id ? <RefreshCw size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                      Supprimer
+                    </button>
                   </div>
                 ))}
               </div>
@@ -476,6 +503,7 @@ export default function FeesPage() {
                 Aucune structure de frais pour cet établissement
               </div>
             )}
+            {deleteFb && <div className="px-7 py-3 border-t border-zinc-100"><FeedbackBanner fb={deleteFb} /></div>}
           </div>
 
           {/* ══ 3. FACTURES — GÉNÉRATION + REMISE ══════════════════════════ */}

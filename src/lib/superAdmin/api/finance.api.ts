@@ -67,10 +67,10 @@ export const financeApi = {
       .get<{ success: boolean; data: HighRiskProfile[] }>(`/superadmin/payment-stats/high-risk/${schoolId}`)
       .then((r) => r.data.data),
 
-  getPaymentProfiles: () =>
+  getPaymentProfiles: (params?: { schoolId?: number; kycStatus?: 'PENDING' | 'VERIFIED' | 'REJECTED'; limit?: number; offset?: number }) =>
     apiClient
-      .get<{ success: boolean; data: unknown[] }>('/superadmin/finance/payment-profiles')
-      .then((r) => r.data.data),
+      .get<{ success: boolean; data: { items: unknown[]; total: number } }>('/superadmin/finance/payment-profiles', { params })
+      .then((r) => r.data.data.items),
 
   getSchoolPaymentProfileSA: (schoolId: number) =>
     apiClient

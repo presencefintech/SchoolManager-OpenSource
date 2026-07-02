@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { BookOpen, ChevronDown, BarChart3, ClipboardList, Download, Users } from 'lucide-react'
-import { useFinanceClasses, useClassFinancialStatus, useClassAudit, useClassStudents, useExportClassPayments } from '@/lib/hooks/use-finance'
+import { useFinanceClasses, useClassFinancialStatus, useClassAudit, useClassStudents, useExportClassPayments, useFinanceClassDetail } from '@/lib/hooks/use-finance'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -21,6 +21,7 @@ function Sk({ className }: { className?: string }) {
 }
 
 function ClassDetail({ classId }: { classId: number }) {
+  const { data: detail } = useFinanceClassDetail(classId)
   const { data: status, isLoading: loadingStatus } = useClassFinancialStatus(classId)
   const { data: audit, isLoading: loadingAudit } = useClassAudit(classId)
   const { data: studentsData, isLoading: loadingStudents } = useClassStudents(classId)
@@ -31,6 +32,13 @@ function ClassDetail({ classId }: { classId: number }) {
 
   return (
     <div className="mt-4 space-y-4">
+      {(detail?.section || detail?.option) && (
+        <div className="flex items-center gap-2 text-xs text-zinc-500">
+          {detail.section && <span className="px-2 py-0.5 rounded-full bg-zinc-100">{detail.section.name}</span>}
+          {detail.option && <span className="px-2 py-0.5 rounded-full bg-zinc-100">{detail.option.name}</span>}
+        </div>
+      )}
+
       {/* Ligne 1 : statut financier + audit */}
       <div className="grid grid-cols-2 gap-4">
         {/* Statut financier */}

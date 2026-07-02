@@ -253,6 +253,47 @@ export default function SuperAdminDashboardPage() {
         className="max-w-7xl mx-auto px-8 py-8 space-y-6"
       >
 
+        {/* ══ 0. ÉCOLE DE BASE ═══════════════════════════════════════════════ */}
+        {!loadingSchools && schools && schools.length > 0 && (() => {
+          const school = schools[0]
+          return (
+            <Link
+              href={`/super-admin/schools/${school.id}`}
+              className="block bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-6 hover:border-zinc-300 transition-colors group"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <Building2 size={20} className="text-indigo-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-base font-semibold text-zinc-900 truncate">{school.name}</p>
+                      <HealthBadge level={school.health.level} />
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-0.5">{school.city}{school.email ? ` · ${school.email}` : ''}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-6 flex-shrink-0">
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-zinc-900 tabular-nums">{school._count.students.toLocaleString('fr-FR')}</p>
+                    <p className="text-[11px] text-zinc-400 uppercase tracking-wide">Élèves</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-zinc-900 tabular-nums">{school._count.admins.toLocaleString('fr-FR')}</p>
+                    <p className="text-[11px] text-zinc-400 uppercase tracking-wide">Admins</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-zinc-900 tabular-nums">{school._count.payments.toLocaleString('fr-FR')}</p>
+                    <p className="text-[11px] text-zinc-400 uppercase tracking-wide">Paiements</p>
+                  </div>
+                  <ChevronRight size={16} className="text-zinc-300 group-hover:text-zinc-500 transition-colors" />
+                </div>
+              </div>
+            </Link>
+          )
+        })()}
+
         {isError && !loadingStats && (
           <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             <span>Impossible de charger les statistiques.</span>
