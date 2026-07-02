@@ -13,9 +13,10 @@ import {
   useLinkOrphanTransaction, useAdvancedSearch, useProcessManualPayment,
   useMarkVerificationProcessed, useExportPendingVerifications,
 } from '@/lib/hooks/use-admin'
-import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem } from '@/types/admin'
+import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem, PaymentProofType, ConfirmPaymentProofPayload } from '@/types/admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
-import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer } from '@/components/admin/finance/verification-ui'
+import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer, PaymentProofFields } from '@/components/admin/finance/verification-ui'
+import { defaultProofTypeForMethod } from '@/lib/finance/payment-proof'
 import { formatMoney } from '@/lib/finance/currency'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -41,8 +42,14 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 function ManualPaymentModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useProcessManualPayment()
   const [form, setForm] = useState<ManualPaymentPayload>({ studentId: 0, amount: 0, method: 'CASH' })
+  const [proofType, setProofType] = useState<PaymentProofType>('CASH_VOUCHER')
+  const [manualJustification, setManualJustification] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    setProofType(defaultProofTypeForMethod(form.method))
+  }, [form.method])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -50,8 +57,19 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
       setError('Sélectionnez un élève dans la liste.')
       return
     }
+    if (proofType === 'OTHER' && manualJustification.trim().length < 10) {
+      setError('Un motif explicite (min. 10 caractères) est requis pour le type « Autre ».')
+      return
+    }
     setError(null)
-    try { await mutateAsync(form); setSuccess(true) }
+    try {
+      await mutateAsync({
+        ...form,
+        proofType,
+        manualJustification: manualJustification.trim() || undefined,
+      })
+      setSuccess(true)
+    }
     catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur lors de l\'enregistrement') }
   }
 
@@ -93,8 +111,26 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
                 <option value="AIRTEL_MONEY">Airtel Money</option>
               </select>
             </div>
+            {form.method !== 'CASH' && (
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Référence opérateur</label>
+                <input
+                  value={form.reference ?? ''}
+                  placeholder="REF-XXXX (recommandé)"
+                  onChange={e => setForm(p => ({ ...p, reference: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                />
+              </div>
+            )}
+            <PaymentProofFields
+              method={form.method}
+              proofType={proofType}
+              manualJustification={manualJustification}
+              onProofTypeChange={setProofType}
+              onJustificationChange={setManualJustification}
+            />
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Note</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Note interne</label>
               <input value={form.note ?? ''} placeholder="Optionnel"
                 onChange={e => setForm(p => ({ ...p, note: e.target.value }))}
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
@@ -108,6 +144,70 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
             </div>
           </form>
         )}
+      </div>
+    </div>
+  )
+}
+
+function ProviderConfirmModal({
+  target,
+  onClose,
+  onConfirm,
+  isPending,
+}: {
+  target: { paymentId: number; method: string; kind: 'bank' | 'mobile'; label?: string }
+  onClose: () => void
+  onConfirm: (proof: ConfirmPaymentProofPayload) => void
+  isPending?: boolean
+}) {
+  const [proofType, setProofType] = useState<PaymentProofType>(defaultProofTypeForMethod(target.method))
+  const [manualJustification, setManualJustification] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setProofType(defaultProofTypeForMethod(target.method))
+    setManualJustification('')
+    setError(null)
+  }, [target.paymentId, target.method])
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (proofType === 'OTHER' && manualJustification.trim().length < 10) {
+      setError('Un motif explicite (min. 10 caractères) est requis pour le type « Autre ».')
+      return
+    }
+    setError(null)
+    onConfirm({
+      proofType,
+      manualJustification: manualJustification.trim() || undefined,
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1">
+          {target.kind === 'mobile' ? 'Confirmer Mobile Money' : 'Confirmer virement bancaire'}
+        </h2>
+        <p className="text-xs text-zinc-500 mb-5">
+          {target.label ?? `Paiement #${target.paymentId}`} — indiquez le type de preuve utilisé pour la validation.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <PaymentProofFields
+            method={target.method}
+            proofType={proofType}
+            manualJustification={manualJustification}
+            onProofTypeChange={setProofType}
+            onJustificationChange={setManualJustification}
+          />
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 disabled:opacity-50">
+              {isPending ? 'Confirmation…' : 'Confirmer'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
@@ -173,7 +273,7 @@ export default function PaiementsPage() {
   const { data: mobilePending = [], refetch: refetchMobile } = useMobilePending()
   const { mutate: verify, isPending: verifying } = useVerifyPayment()
   const { mutate: confirmMobile, isPending: confirming } = useConfirmMobilePayment()
-  const { mutate: confirmBank } = useConfirmBankTransaction()
+  const confirmBank = useConfirmBankTransaction()
   const { mutate: resendReceipt } = useResendReceipt()
   const markProcessed = useMarkVerificationProcessed()
   const exportReport = useExportPendingVerifications()
@@ -186,6 +286,12 @@ export default function PaiementsPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [processConfirm, setProcessConfirm] = useState<PendingVerificationItem | null>(null)
   const [detailItem, setDetailItem] = useState<PendingVerificationItem | null>(null)
+  const [providerConfirm, setProviderConfirm] = useState<{
+    paymentId: number
+    method: string
+    kind: 'bank' | 'mobile'
+    label?: string
+  } | null>(null)
   const [resendingId, setResendingId] = useState<number | null>(null)
   const { data: searchResults } = useAdvancedSearch(searchParams)
 
@@ -458,7 +564,13 @@ export default function PaiementsPage() {
                           className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors" title="Rejeter">
                           <XCircle size={14} />
                         </button>
-                        <button onClick={() => confirmBank(p.paymentId)}
+                        <button
+                          onClick={() => setProviderConfirm({
+                            paymentId: p.paymentId,
+                            method: p.method,
+                            kind: 'bank',
+                            label: p.studentName,
+                          })}
                           className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors" title="Confirmer banque">
                           <Shield size={14} />
                         </button>
@@ -529,14 +641,11 @@ export default function PaiementsPage() {
                       disabled={confirming}
                       onClick={() => {
                         setMobileActionError(null)
-                        confirmMobile(m.id, {
-                          onError: (error) => {
-                            const err = error as { response?: { data?: { message?: string } } }
-                            setMobileActionError(
-                              err.response?.data?.message
-                                ?? 'Confirmation impossible — vérifiez que le paiement est bien Mobile Money.',
-                            )
-                          },
+                        setProviderConfirm({
+                          paymentId: m.id,
+                          method: m.method ?? m.operator ?? 'MOBILE_MONEY',
+                          kind: 'mobile',
+                          label: m.studentName,
                         })
                       }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-xs text-white font-medium hover:bg-blue-700 disabled:opacity-50"
@@ -546,7 +655,12 @@ export default function PaiementsPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => confirmBank(m.id)}
+                      onClick={() => setProviderConfirm({
+                        paymentId: m.id,
+                        method: m.method ?? m.operator ?? 'BANK',
+                        kind: 'bank',
+                        label: m.studentName,
+                      })}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50"
                       title="Carte / virement — confirmation bancaire"
                     >
@@ -562,6 +676,37 @@ export default function PaiementsPage() {
 
       {showManual && <ManualPaymentModal onClose={() => setShowManual(false)} />}
       {showLinkOrphan && <LinkOrphanModal onClose={() => setShowLinkOrphan(false)} />}
+
+      {providerConfirm && (
+        <ProviderConfirmModal
+          target={providerConfirm}
+          onClose={() => setProviderConfirm(null)}
+          isPending={confirming || confirmBank.isPending}
+          onConfirm={(proof) => {
+            const { paymentId, kind } = providerConfirm
+            const onError = (error: unknown) => {
+              const err = error as { response?: { data?: { message?: string } } }
+              const message = err.response?.data?.message
+                ?? (kind === 'mobile'
+                  ? 'Confirmation impossible — vérifiez que le paiement est bien Mobile Money.'
+                  : 'Échec de confirmation bancaire.')
+              if (kind === 'mobile') setMobileActionError(message)
+              else toast.error(message)
+            }
+            const onSuccess = () => {
+              toast.success(kind === 'mobile' ? 'Transaction mobile confirmée' : 'Paiement bancaire validé')
+              setProviderConfirm(null)
+              refetchPending()
+              refetchMobile()
+            }
+            if (kind === 'mobile') {
+              confirmMobile({ paymentId, proof }, { onSuccess, onError })
+            } else {
+              confirmBank.mutate({ paymentId, proof }, { onSuccess, onError })
+            }
+          }}
+        />
+      )}
 
       {detailItem && (
         <VerificationDetailDrawer

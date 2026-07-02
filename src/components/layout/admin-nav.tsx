@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -48,6 +48,7 @@ const NAV_SECTIONS: NavSection[] = [
         children: [
           { label: 'Dashboard',         href: '/admin/finance',                 icon: LayoutDashboard },
           { label: 'Paiements',         href: '/admin/finance/paiements',       icon: CreditCard },
+          { label: 'Remboursements',    href: '/admin/finance/remboursements',  icon: RotateCcw },
           { label: 'Factures & Frais',  href: '/admin/finance/factures',        icon: FileText },
           { label: 'Moratoires',        href: '/admin/finance/moratoriums',     icon: Clock },
           { label: 'Profil règlement',  href: '/admin/finance/payment-profile', icon: Building2 },

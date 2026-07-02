@@ -4,7 +4,13 @@ import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import { getAuthToken } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
-import type { CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload, CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload, GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType, StudentSecurityAction } from '@/types/admin'
+import type {
+  CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload,
+  CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload,
+  GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload,
+  FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
+  StudentSecurityAction, ConfirmPaymentProofPayload, UpdateMoratoriumPolicyPayload,
+} from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────
 export function useAdminStats() {
@@ -692,8 +698,12 @@ export function useVerifyPayment() {
 export function useConfirmMobilePayment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (paymentId: number) => financeApi.confirmMobileTransaction(paymentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'mobile-pending'] }),
+    mutationFn: ({ paymentId, proof }: { paymentId: number; proof?: ConfirmPaymentProofPayload }) =>
+      financeApi.confirmMobileTransaction(paymentId, proof),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'mobile-pending'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] })
+    },
   })
 }
 
@@ -841,12 +851,41 @@ export function useAllowedMoratoriumTypes(options?: { enabled?: boolean }) {
   return { allowedTypes, defaultType, isLoading, isError, error, policy }
 }
 
-export function useMoratoriums(params?: { studentId?: number; status?: string }) {
+export function useMoratoriums(params?: { studentId?: number; status?: string; page?: number; limit?: number }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'moratoriums', params],
     queryFn: () => financeApi.listMoratoriums(params),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+  })
+}
+
+export function useUpdateMoratoriumPolicy() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateMoratoriumPolicyPayload) => financeApi.updateMoratoriumPolicy(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums', 'policy'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] })
+    },
+  })
+}
+
+export function useApproveMoratorium() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, internalNote }: { id: number; internalNote?: string }) =>
+      financeApi.approveMoratorium(id, { internalNote }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] }),
+  })
+}
+
+export function useRejectMoratorium() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
+      financeApi.rejectMoratorium(id, reason),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] }),
   })
 }
 
@@ -905,9 +944,13 @@ export function useReviewRefundRequest() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'refunds'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'refunds'] })
     },
   })
 }
+
+/** Alias guide F-12 */
+export const useReviewRefund = useReviewRefundRequest
 
 // ── Finance — hooks manquants ──────────────────────────────────────
 
@@ -1031,9 +1074,11 @@ export function useFraudRiskAnalysis() {
 export function useConfirmBankTransaction() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (paymentId: number) => financeApi.confirmBankTransaction(paymentId),
+    mutationFn: ({ paymentId, proof }: { paymentId: number; proof?: ConfirmPaymentProofPayload }) =>
+      financeApi.confirmBankTransaction(paymentId, proof),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'pending'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'mobile-pending'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
     },
   })
