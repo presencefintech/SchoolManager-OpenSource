@@ -13,6 +13,7 @@ import {
   useFinanceEfficiency, useFinanceEndOfDay, useFinancePaymentMethods,
   useFinanceComparativeDashboard,
   usePendingVerifications, useFinanceFraudAlerts, usePaymentProfile,
+  useFinanceDetailedReport, useFinanceHealthCheck,
 } from '@/lib/hooks/use-admin'
 import {
   summarizeCollectionEfficiency,
@@ -192,6 +193,8 @@ export default function FinanceDashboardPage() {
   const { data: pending = [] } = usePendingVerifications()
   const { data: alerts = [] } = useFinanceFraudAlerts()
   const { data: paymentProfile } = usePaymentProfile()
+  const { data: detailedReport } = useFinanceDetailedReport()
+  const { data: healthCheck } = useFinanceHealthCheck()
 
   const pendingCount = kpis?.pendingPayments ?? (pending as unknown[]).length
   const fraudCount = kpis?.fraudAlerts ?? (alerts as unknown[]).length
@@ -642,6 +645,50 @@ export default function FinanceDashboardPage() {
                     {Object.entries(ins)
                       .filter(([, v]) => v != null && typeof v !== 'object')
                       .slice(0, 5)
+                      .map(([k, v]) => (
+                        <div key={k} className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                          <span className="text-xs text-slate-500">{formatInsightLabel(k)}</span>
+                          <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                            {formatInsightValue(k, v)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </Panel>
+              </motion.div>
+            )}
+
+            {/* Bilan de santé financière */}
+            {healthCheck != null && typeof healthCheck === 'object' && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
+                <Panel glow="emerald">
+                  <PanelHeader icon={CheckCircle2} title="Bilan de santé" subtitle="Indicateurs de santé financière de l'établissement" />
+                  <div className="px-6 py-4 grid gap-2">
+                    {Object.entries(healthCheck as Record<string, unknown>)
+                      .filter(([, v]) => v != null && typeof v !== 'object')
+                      .slice(0, 6)
+                      .map(([k, v]) => (
+                        <div key={k} className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                          <span className="text-xs text-slate-500">{formatInsightLabel(k)}</span>
+                          <span className="text-sm font-semibold text-slate-900 tabular-nums">
+                            {formatInsightValue(k, v)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </Panel>
+              </motion.div>
+            )}
+
+            {/* Rapport détaillé */}
+            {detailedReport != null && typeof detailedReport === 'object' && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}>
+                <Panel glow="violet">
+                  <PanelHeader icon={FileText} title="Rapport détaillé" subtitle="Analyse financière approfondie" accent="text-violet-600" accentBg="bg-violet-500/10" />
+                  <div className="px-6 py-4 grid gap-2">
+                    {Object.entries(detailedReport as Record<string, unknown>)
+                      .filter(([, v]) => v != null && typeof v !== 'object')
+                      .slice(0, 6)
                       .map(([k, v]) => (
                         <div key={k} className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                           <span className="text-xs text-slate-500">{formatInsightLabel(k)}</span>

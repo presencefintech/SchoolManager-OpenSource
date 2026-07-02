@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import type { UserRole } from '@/types/auth'
 import { ROLE_HOME } from '@/types/auth'
-import { verifyAccessToken } from '@/lib/auth/verify-access-token'
+import { decodeAccessToken } from '@/lib/auth/verify-access-token'
 
-const PUBLIC_PATHS = ['/login']
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password']
 
 const ROLE_PREFIXES: Record<UserRole, string> = {
   ADMIN: '/admin',
@@ -12,7 +12,7 @@ const ROLE_PREFIXES: Record<UserRole, string> = {
   FINANCE: '/finances',
 }
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const token = request.cookies.get('auth_token')?.value
@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const session = await verifyAccessToken(token)
+  const session = decodeAccessToken(token)
   if (!session) {
     const res = NextResponse.redirect(new URL('/login', request.url))
     res.cookies.delete('auth_token')

@@ -2,15 +2,18 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Plus, CheckCircle, DollarSign, RotateCcw } from 'lucide-react'
+import { FileText, Plus, CheckCircle, DollarSign, RotateCcw, Layers, Trash2 } from 'lucide-react'
 import {
   useSetupFeeStructure, useStudentInvoices, useGenerateInvoice,
   useApplyDiscount, useSyncBalance, useFeeStructures, useClasses,
+  useBulkApplyFees, useDeleteFeeStructure,
 } from '@/lib/hooks/use-admin'
 import type { FeeStructurePayload } from '@/types/admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
 
 function Sk({ className }: { className?: string }) {
@@ -154,15 +157,20 @@ function DiscountModal({ invoiceId, onClose }: { invoiceId: number; onClose: () 
 }
 
 export default function FacturesPage() {
+  const toast = useToast()
   const { mutateAsync: createFee, isPending: creatingFee } = useSetupFeeStructure()
   const { mutate: syncBalance } = useSyncBalance()
   const { data: classes = [] } = useClasses({ isActive: true })
+  const { data: feeStructures = [], isLoading: loadingFeeStructures } = useFeeStructures()
+  const { mutate: bulkApply, isPending: bulkApplying, variables: bulkApplyVars } = useBulkApplyFees()
+  const { mutateAsync: deleteFeeStructure, isPending: deletingFee } = useDeleteFeeStructure()
   const [feeForm, setFeeForm] = useState<FeeStructurePayload>({ label: '', totalAmount: 0 })
   const [feeSuccess, setFeeSuccess] = useState(false)
   const [feeError, setFeeError] = useState<string | null>(null)
   const [activeStudentId, setActiveStudentId] = useState<number>(0)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [discountInvoiceId, setDiscountInvoiceId] = useState<number | null>(null)
+  const [deleteFeeTarget, setDeleteFeeTarget] = useState<{ id: number; label: string } | null>(null)
 
   const { data: invoices = [], isLoading: loadingInvoices } = useStudentInvoices(activeStudentId)
 
@@ -172,6 +180,25 @@ export default function FacturesPage() {
     setFeeSuccess(false)
     try { await createFee(feeForm); setFeeSuccess(true); setFeeForm({ label: '', totalAmount: 0 }) }
     catch (err) { setFeeError(getApiErrorMessage(err)) }
+  }
+
+  function handleBulkApply(feeStructureId: number) {
+    bulkApply({ feeStructureId }, {
+      onSuccess: () => toast.success('Frais appliqués', 'La structure a été appliquée aux élèves concernés.'),
+      onError: (err) => toast.error('Application impossible', getApiErrorMessage(err)),
+    })
+  }
+
+  async function confirmDeleteFee() {
+    if (!deleteFeeTarget) return
+    try {
+      await deleteFeeStructure(deleteFeeTarget.id)
+      toast.success('Structure supprimée')
+    } catch (err) {
+      toast.error('Suppression impossible', getApiErrorMessage(err))
+    } finally {
+      setDeleteFeeTarget(null)
+    }
   }
 
   return (
@@ -234,6 +261,54 @@ export default function FacturesPage() {
           </div>
         </form>
         {feeError && <p className="mt-2 text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{feeError}</p>}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+          <Layers size={14} className="text-zinc-400" />
+          <h3 className="text-sm font-semibold text-zinc-900">Structures de frais existantes</h3>
+        </div>
+        {loadingFeeStructures ? (
+          <div className="p-5 space-y-2">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
+        ) : feeStructures.length === 0 ? (
+          <EmptyState icon={Layers} message="Aucune structure de frais créée" />
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Libellé</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Montant</th>
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {feeStructures.map((fs) => (
+                <tr key={fs.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                  <td className="px-5 py-3 font-medium text-zinc-900">{fs.label}</td>
+                  <td className="px-5 py-3 text-zinc-600">{formatMoney(Number(fs.amount))}</td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        onClick={() => handleBulkApply(fs.id)}
+                        disabled={bulkApplying && bulkApplyVars?.feeStructureId === fs.id}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+                      >
+                        <Layers size={11} />
+                        {bulkApplying && bulkApplyVars?.feeStructureId === fs.id ? 'Application...' : 'Appliquer en masse'}
+                      </button>
+                      <button
+                        onClick={() => setDeleteFeeTarget({ id: fs.id, label: fs.label })}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={11} /> Supprimer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
@@ -310,6 +385,18 @@ export default function FacturesPage() {
 
       {showGenerateModal && <GenerateInvoiceModal onClose={() => setShowGenerateModal(false)} />}
       {discountInvoiceId !== null && <DiscountModal invoiceId={discountInvoiceId} onClose={() => setDiscountInvoiceId(null)} />}
+
+      <ConfirmDialog
+        open={deleteFeeTarget != null}
+        title="Supprimer la structure de frais ?"
+        description="Cette action est irréversible. Les factures déjà générées ne sont pas affectées."
+        impact={deleteFeeTarget ? [`Structure : ${deleteFeeTarget.label}`] : []}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={deletingFee}
+        onConfirm={confirmDeleteFee}
+        onCancel={() => setDeleteFeeTarget(null)}
+      />
     </div>
   )
 }

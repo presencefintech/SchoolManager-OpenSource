@@ -189,6 +189,9 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
     updatedAt: String(profile.updatedAt ?? ''),
     presenceCount: presences?.length,
     lastPresence: presences?.[0]?.scannedAt ? String(presences[0].scannedAt) : undefined,
+    photoUrl: profile.photoUrl as string | undefined,
+    birthCertificateUrl: profile.birthCertificateUrl as string | undefined,
+    enrollmentFormUrl: profile.enrollmentFormUrl as string | undefined,
   }
 }
 

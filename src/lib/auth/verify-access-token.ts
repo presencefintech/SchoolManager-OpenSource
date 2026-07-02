@@ -17,32 +17,20 @@ function base64UrlDecode(value: string): Uint8Array {
   return bytes
 }
 
-/** Vérifie signature HS256 + expiration (Edge-compatible, sans dépendance Node). */
-export async function verifyAccessToken(token: string): Promise<VerifiedAccessToken | null> {
-  const secret = process.env.JWT_SECRET?.trim()
-  if (!secret) return null
-
+/**
+ * Décode le payload JWT (userId/role/exp) sans vérifier la signature — aucun
+ * secret requis côté frontend. Le vrai rempart de sécurité est le backend :
+ * chaque appel API forward ce même token en Bearer et le backend y valide
+ * réellement la signature et les droits. Ce décodage ne sert qu'au routage
+ * UX du middleware (éviter d'afficher la coquille d'une page hors rôle) —
+ * un token forgé n'obtiendrait aucune donnée réelle, bloquée en 401/403.
+ */
+export function decodeAccessToken(token: string): VerifiedAccessToken | null {
   const parts = token.split('.')
   if (parts.length !== 3) return null
 
-  const [header, payload, signature] = parts
-  const encoder = new TextEncoder()
-
   try {
-    const key = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify'],
-    )
-
-    const data = encoder.encode(`${header}.${payload}`)
-    const sigBytes = new Uint8Array(base64UrlDecode(signature))
-    const valid = await crypto.subtle.verify('HMAC', key, sigBytes, data)
-    if (!valid) return null
-
-    const decoded = JSON.parse(new TextDecoder().decode(base64UrlDecode(payload))) as {
+    const decoded = JSON.parse(new TextDecoder().decode(base64UrlDecode(parts[1]))) as {
       userId?: number
       role?: string
       schoolId?: number

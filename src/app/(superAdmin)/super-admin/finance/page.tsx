@@ -52,7 +52,7 @@ export default function FinancePage() {
   /* KYC payment profiles */
   const { data: kycProfiles = [], isLoading: loadingKyc } = useQuery({
     queryKey: ['superadmin', 'finance', 'payment-profiles'],
-    queryFn: financeApi.getPaymentProfiles,
+    queryFn: () => financeApi.getPaymentProfiles(),
   })
   const [kycAction, setKycAction] = useState<{ schoolId: number; action: 'verify' | 'reject' } | null>(null)
   const [kycFeedback, setKycFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)

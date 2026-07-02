@@ -1,20 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
-  FileCheck, Loader2, FileEdit,
+  FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useStudentDetail, useStudentActivity, useDossierStatus, useSecurityAction,
-  useEnrollmentDetail, useSyncBalance, useToggleLock,
+  useEnrollmentDetail, useSyncBalance, useToggleLock, useLogPiiAccess,
+  useUploadStudentPhoto, useUploadStudentDocument, useDeleteCloudinaryFile, useUpdateBiometrics,
 } from '@/lib/hooks/use-admin'
 import type { StudentSecurityAction } from '@/types/admin'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
+import { StudentCardPhoto } from '@/components/student-card/student-card-photo'
 import { AdminProfileModal } from '@/components/admin/students/admin-profile-modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -33,12 +35,195 @@ const STATUS_CFG: Record<string, { label: string; cls: string }> = {
   SUSPENDED: { label: 'Suspendu', cls: 'bg-red-50 text-red-700' },
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
+function InfoRow({ label, value, action }: { label: string; value?: string | null; action?: React.ReactNode }) {
   if (!value) return null
   return (
     <div className="flex items-start gap-3 py-2 border-b border-zinc-50 last:border-0">
       <span className="text-xs text-zinc-400 w-32 flex-shrink-0 pt-0.5">{label}</span>
-      <span className="text-sm text-zinc-700 min-w-0 break-words">{value}</span>
+      <span className="text-sm text-zinc-700 min-w-0 break-words flex-1">{value}</span>
+      {action}
+    </div>
+  )
+}
+
+function BiometricsUpdateModal({ studentId, onClose }: { studentId: number; onClose: () => void }) {
+  const toast = useToast()
+  const { mutate, isPending } = useUpdateBiometrics()
+  const [file, setFile] = useState<File | null>(null)
+  const [error, setError] = useState('')
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!file) { setError('Sélectionnez une photo'); return }
+    mutate({ studentId, photo: file }, {
+      onSuccess: () => { toast.success('Biométrie mise à jour'); onClose() },
+      onError: (err) => setError(getApiErrorMessage(err)),
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Mettre à jour la biométrie</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Photo du visage</label>
+            <input
+              type="file" accept="image/*" required
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="w-full text-sm"
+            />
+          </div>
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">Annuler</button>
+            <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50">
+              {isPending ? 'Envoi...' : 'Mettre à jour'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function extractCloudinaryPublicId(url?: string): string | undefined {
+  if (!url) return undefined
+  const match = url.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/)
+  return match?.[1]
+}
+
+function PhotoDocumentsCard({ studentId, firstName, lastName, photoUrl, birthCertificateUrl, enrollmentFormUrl }: {
+  studentId: number
+  firstName: string
+  lastName: string
+  photoUrl?: string
+  birthCertificateUrl?: string
+  enrollmentFormUrl?: string
+}) {
+  const toast = useToast()
+  const { mutate: uploadPhoto, isPending: uploadingPhoto } = useUploadStudentPhoto()
+  const { mutate: uploadDocument, isPending: uploadingDocument } = useUploadStudentDocument()
+  const { mutateAsync: deleteFile, isPending: deleting } = useDeleteCloudinaryFile()
+  const [deleteTarget, setDeleteTarget] = useState<{ publicId: string; label: string } | null>(null)
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    uploadPhoto({ studentId, file }, {
+      onSuccess: () => toast.success('Photo mise à jour'),
+      onError: (err) => toast.error('Upload impossible', getApiErrorMessage(err)),
+    })
+  }
+
+  function handleDocumentChange(documentType: 'certificates' | 'reports') {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      e.target.value = ''
+      if (!file) return
+      uploadDocument({ studentId, documentType, file }, {
+        onSuccess: () => toast.success('Document téléversé'),
+        onError: (err) => toast.error('Upload impossible', getApiErrorMessage(err)),
+      })
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    try {
+      await deleteFile({ studentId, publicId: deleteTarget.publicId })
+      toast.success('Fichier supprimé')
+    } catch (err) {
+      toast.error('Suppression impossible', getApiErrorMessage(err))
+    } finally {
+      setDeleteTarget(null)
+    }
+  }
+
+  const documents: { type: 'certificates' | 'reports'; label: string; url?: string }[] = [
+    { type: 'certificates', label: 'Certificat de naissance', url: birthCertificateUrl },
+    { type: 'reports', label: "Fiche d'inscription", url: enrollmentFormUrl },
+  ]
+
+  return (
+    <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
+      <h2 className="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2"><Camera size={14} /> Photo & documents</h2>
+      <div className="flex items-start gap-4">
+        <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
+          <StudentCardPhoto photoUrl={photoUrl ?? null} firstName={firstName} lastName={lastName} />
+        </div>
+        <div className="flex-1 min-w-0 space-y-2">
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 cursor-pointer">
+            <Upload size={11} />
+            {uploadingPhoto ? 'Envoi...' : 'Changer la photo'}
+            <input type="file" accept="image/*" className="hidden" disabled={uploadingPhoto} onChange={handlePhotoChange} />
+          </label>
+          {photoUrl && (() => {
+            const publicId = extractCloudinaryPublicId(photoUrl)
+            return publicId ? (
+              <button
+                type="button"
+                onClick={() => setDeleteTarget({ publicId, label: 'Photo élève' })}
+                className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+              >
+                <Trash2 size={11} /> Supprimer
+              </button>
+            ) : null
+          })()}
+        </div>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-zinc-50 space-y-3">
+        {documents.map((doc) => {
+          const publicId = extractCloudinaryPublicId(doc.url)
+          return (
+            <div key={doc.type} className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileImage size={13} className="text-zinc-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-zinc-700 truncate">{doc.label}</p>
+                  {doc.url ? (
+                    <a href={doc.url} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-600 hover:underline">
+                      Voir le fichier
+                    </a>
+                  ) : (
+                    <p className="text-[11px] text-zinc-400">Aucun fichier</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <label className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-zinc-200 text-[11px] text-zinc-600 hover:bg-zinc-50 cursor-pointer">
+                  <Upload size={10} />
+                  {uploadingDocument ? '...' : 'Téléverser'}
+                  <input type="file" className="hidden" disabled={uploadingDocument} onChange={handleDocumentChange(doc.type)} />
+                </label>
+                {publicId && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteTarget({ publicId, label: doc.label })}
+                    className="p-1 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Supprimer ce fichier ?"
+        description="Cette action est irréversible."
+        impact={deleteTarget ? [deleteTarget.label] : []}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
@@ -65,11 +250,19 @@ export default function StudentDetailPage() {
   const securityMutation = useSecurityAction()
   const toggleLockMutation = useToggleLock()
   const syncMutation = useSyncBalance()
+  const { mutate: logPiiAccess } = useLogPiiAccess()
+
+  useEffect(() => {
+    if (!studentId) return
+    logPiiAccess({ id: studentId, reason: 'Consultation fiche élève' }, { onError: () => {} })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId])
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [securityReason, setSecurityReason] = useState('')
   const [syncingEnrollmentId, setSyncingEnrollmentId] = useState<number | null>(null)
   const [showAdminProfile, setShowAdminProfile] = useState(false)
+  const [showBiometricsUpdate, setShowBiometricsUpdate] = useState(false)
   const [pendingAction, setPendingAction] = useState<{
     key: string
     kind: 'security' | 'lock'
@@ -250,11 +443,32 @@ export default function StudentDetailPage() {
               <InfoRow label="Lieu de naissance" value={student.placeOfBirth} />
               <InfoRow label="Nationalité" value={student.nationality} />
               <InfoRow label="Année scolaire" value={student.academicYear ?? enrollmentDetail?.academicYear} />
-              <InfoRow label="Biométrie" value={labelBiometricStatus(student.biometricStatus ?? enrollmentDetail?.biometricStatus)} />
+              <InfoRow
+                label="Biométrie"
+                value={labelBiometricStatus(student.biometricStatus ?? enrollmentDetail?.biometricStatus)}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setShowBiometricsUpdate(true)}
+                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800 flex-shrink-0"
+                  >
+                    Mettre à jour
+                  </button>
+                }
+              />
               <InfoRow label="Groupe sanguin" value={student.bloodGroup} />
               <InfoRow label="Allergies" value={student.allergies} />
               <InfoRow label="Notes médicales" value={student.medicalNotes} />
             </div>
+
+            <PhotoDocumentsCard
+              studentId={studentId}
+              firstName={student.firstName}
+              lastName={student.lastName}
+              photoUrl={student.photoUrl}
+              birthCertificateUrl={student.birthCertificateUrl}
+              enrollmentFormUrl={student.enrollmentFormUrl}
+            />
 
             {/* Sessions académiques */}
             {enrollmentDetail?.enrollments && enrollmentDetail.enrollments.length > 0 && (
@@ -405,6 +619,10 @@ export default function StudentDetailPage() {
       </div>
 
       <AdminProfileModal open={showAdminProfile} student={student} onClose={() => setShowAdminProfile(false)} />
+
+      {showBiometricsUpdate && (
+        <BiometricsUpdateModal studentId={studentId} onClose={() => setShowBiometricsUpdate(false)} />
+      )}
 
       <ConfirmDialog
         open={pendingAction != null}

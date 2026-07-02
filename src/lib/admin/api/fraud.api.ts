@@ -5,4 +5,6 @@ export const adminFraudApi = {
     apiClient
       .post<{ success: boolean; data: { riskScore: number; flags: string[] } }>('/admin/fraud/check', payload)
       .then((r) => r.data.data),
+  getAlerts: () =>
+    apiClient.get<{ success: boolean; data: unknown[] }>('/admin/fraud-alerts').then((r) => r.data.data),
 }

@@ -151,6 +151,9 @@ export interface StudentDetail {
   presenceCount?: number
   lastPresence?: string
   enrollments?: SessionEnrollment[]
+  photoUrl?: string
+  birthCertificateUrl?: string
+  enrollmentFormUrl?: string
 }
 
 export interface StudentActivity {

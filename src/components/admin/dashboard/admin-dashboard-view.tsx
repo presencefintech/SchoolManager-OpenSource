@@ -5,13 +5,16 @@ import Link from 'next/link'
 import {
   GraduationCap, CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
   TrendingUp, TrendingDown, ArrowRight, AlertTriangle, Server, Zap, RefreshCw,
-  Radio, Users, BookOpen, ClipboardList,
+  Radio, Users, BookOpen, ClipboardList, FileBarChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useAdminStats, useLiveFeed, useFraudAlerts, useControlStats, useHeatmap, useClasses,
+  useTriggerWeeklyReport,
 } from '@/lib/hooks/use-admin'
+import { getApiErrorMessage } from '@/lib/api/client'
 import { useAuth } from '@/providers/auth-provider'
+import { useToast } from '@/providers/toast-provider'
 import {
   WeeklyAttendanceChart,
   HourlyScansChart,
@@ -168,6 +171,8 @@ function KpiCard({
 
 export function AdminDashboardView() {
   const { user, isLoading: authLoading } = useAuth()
+  const toast = useToast()
+  const { mutate: triggerWeeklyReport, isPending: weeklyReportPending } = useTriggerWeeklyReport()
   const {
     data: stats,
     isPending: statsPending,
@@ -268,6 +273,20 @@ export function AdminDashboardView() {
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 Live · 15s
               </span>
+              <button
+                type="button"
+                disabled={weeklyReportPending}
+                onClick={() =>
+                  triggerWeeklyReport(undefined, {
+                    onSuccess: (res) => toast.success('Rapport hebdo généré', res?.message),
+                    onError: (err) => toast.error('Échec de la génération', getApiErrorMessage(err)),
+                  })
+                }
+                className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg bg-white/10 text-white ring-1 ring-white/15 hover:bg-white/15 transition-colors disabled:opacity-50"
+              >
+                <FileBarChart size={14} />
+                {weeklyReportPending ? 'Génération…' : 'Rapport hebdo'}
+              </button>
               <Link
                 href="/admin/presences"
                 className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg bg-white/10 text-white ring-1 ring-white/15 hover:bg-white/15 transition-colors"

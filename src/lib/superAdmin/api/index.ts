@@ -19,9 +19,9 @@ export { qrcodeApi }       from './qrcode.api'
 export { filesApi }        from './files.api'
 export { fraudApi }        from './fraud.api'
 export { anomaliesApi }    from './anomalies.api'
+export { emailsApi }       from './emails.api'
 
 export const superAdminApi = {
-  ...coreApi,
   ...financeApi,
   ...monitoringApi,
   ...authApi,
@@ -30,4 +30,9 @@ export const superAdminApi = {
   ...enrollmentApi,
   ...presenceApi,
   ...studentsApi,
+  // coreApi spread last: its `reconcilePayment` (POST /superadmin/core/reconcile/{id}) is the
+  // generic payment reconciliation the audit page expects — must win over monitoringApi's
+  // mobile-money-specific `reconcilePayment` (POST /superadmin/mm/reconcile/{id}), which callers
+  // needing MM semantics import directly from monitoringApi instead of through superAdminApi.
+  ...coreApi,
 }
