@@ -7,13 +7,17 @@ import {
   TrendingUp, Download,
 } from 'lucide-react'
 import {
-  useCurrentSession, useSessionSummary, useOpenSession,
-  useCloseSession, useExportCashSession,
+  useSessionSummary, useOpenSession,
+  useCloseSession, useExportCashSession, useResolvedCashSession,
 } from '@/lib/hooks/use-finance'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
+<<<<<<< HEAD
 import type { CashSession } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
+=======
+import axios from 'axios'
+>>>>>>> 7c97a81f58983801305904ff505ab7954753b287
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -25,9 +29,13 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export default function CaissePage() {
-  const { data: session, isLoading, refetch, error: sessionError } = useCurrentSession()
-  const currentSession = session as CashSession | null | undefined
-  const hasOpenSession = currentSession?.status === 'OPEN'
+  const {
+    session: currentSession,
+    hasOpenSession,
+    isLoading,
+    couldNotVerify,
+    refetch,
+  } = useResolvedCashSession()
 
   const { data: summary } = useSessionSummary(currentSession?.id ?? 0)
   const { mutateAsync: openSession, isPending: opening } = useOpenSession()
@@ -55,6 +63,11 @@ export default function CaissePage() {
       setOpenForm({ openingFloat: '', openNotes: '' })
       refetch()
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        await refetch()
+        setOpenError('Une session est déjà ouverte — affichage mis à jour ci-dessus.')
+        return
+      }
       setOpenError(getApiErrorMessage(err))
     }
   }
@@ -152,6 +165,11 @@ export default function CaissePage() {
               <p className="text-xs text-emerald-600">{st.transactionCount ?? 0} transactions</p>
             </div>
           </div>
+        )}
+        {couldNotVerify && (
+          <p className="text-xs text-sky-700 mt-3 px-3 py-2 rounded-lg bg-sky-50 border border-sky-100">
+            Impossible de lire l&apos;état de la caisse (erreur réseau). Si vous avez déjà ouvert une session, rechargez la page après déploiement du correctif proxy.
+          </p>
         )}
       </motion.div>
 
