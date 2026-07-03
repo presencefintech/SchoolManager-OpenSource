@@ -71,10 +71,10 @@ apiClient.interceptors.response.use(
 )
 
 export function getApiErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) {
-    return error.message
-  }
   if (axios.isAxiosError(error)) {
+    if (!error.response && error.code === 'ERR_NETWORK') {
+      return 'Connexion au serveur impossible (réseau ou proxy). Réessayez dans quelques secondes.'
+    }
     const data = error.response?.data as {
       message?: string | string[]
       errors?: { field?: string; message?: string }[]
@@ -88,7 +88,13 @@ export function getApiErrorMessage(error: unknown): string {
     }
     const msg = data?.message
     if (Array.isArray(msg)) return msg.join(' · ')
-    return msg ?? 'Une erreur inattendue est survenue'
+    if (typeof msg === 'string' && msg) return msg
+    if (error.response?.status === 409) {
+      return 'Une session caisse est déjà ouverte pour ce guichet.'
+    }
+  }
+  if (error instanceof Error && error.message && error.message !== 'Network Error') {
+    return error.message
   }
   return 'Une erreur inattendue est survenue'
 }
