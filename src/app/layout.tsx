@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/providers/query-provider'
 import { AuthProvider } from '@/providers/auth-provider'
 import { ToastProvider } from '@/providers/toast-provider'
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ToastProvider>{children}</ToastProvider>
           </AuthProvider>
         </QueryProvider>
+        <Analytics />
       </body>
     </html>
   )
