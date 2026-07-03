@@ -28,7 +28,7 @@ function Sk({ className }: { className?: string }) {
 }
 
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
-  ACTIVE:     { label: 'Actif',        cls: 'bg-emerald-50 text-emerald-700' },
+  ACTIVE:     { label: 'Actif',        cls: 'bg-emerald-50 text-emerald-600' },
   INACTIVE:   { label: 'Inactif',      cls: 'bg-zinc-100 text-zinc-500' },
   SUSPENDED:  { label: 'Suspendu',     cls: 'bg-red-50 text-red-700' },
   PRE_ENROLL: { label: 'Pré-inscrit',  cls: 'bg-indigo-50 text-indigo-700' },
