@@ -6,8 +6,8 @@ import {
   DollarSign, CheckCircle, AlertCircle, RefreshCw, Download, FileDown, AlertTriangle, Printer,
 } from 'lucide-react'
 import {
-  useProcessPayment, useDailyCashReport, useCurrentSession,
-  useDownloadReceipt, useFinanceFeeStructures,
+  useProcessPayment, useDailyCashReport,
+  useDownloadReceipt, useFinanceFeeStructures, useResolvedCashSession,
 } from '@/lib/hooks/use-finance'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
@@ -35,12 +35,16 @@ function downloadBlob(blob: Blob, filename: string) {
 export default function PaiementsPage() {
   const { mutateAsync: processPayment, isPending } = useProcessPayment()
   const { data: dailyCash = [], refetch: refetchCash } = useDailyCashReport()
-  const { data: session } = useCurrentSession()
+  const {
+    session: currentSession,
+    hasOpenSession: hasSession,
+    academicSessionId,
+    isLoading: sessionLoading,
+    couldNotVerify,
+    refetch: refetchSession,
+  } = useResolvedCashSession()
   const { data: feeStructures = [] } = useFinanceFeeStructures()
   const downloadReceipt = useDownloadReceipt()
-
-  const currentSession = session as any
-  const hasSession = currentSession?.status === 'OPEN'
 
   const [form, setForm] = useState({
     studentId: 0,
@@ -68,16 +72,34 @@ export default function PaiementsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.studentId) { setErrorMsg('Sélectionnez un élève'); setStatus('error'); return }
-    if (!hasSession) { setErrorMsg("Aucune session de caisse ouverte — ouvrez une session dans Caisse avant d'encaisser."); setStatus('error'); return }
+    if (
+      form.method === 'CASH' &&
+      !hasSession &&
+      !couldNotVerify &&
+      !sessionLoading
+    ) {
+      setErrorMsg("Aucune session de caisse ouverte — ouvrez une session dans Caisse avant d'encaisser.")
+      setStatus('error')
+      return
+    }
     if (!form.amount || Number(form.amount) <= 0) { setErrorMsg('Montant invalide'); setStatus('error'); return }
     if ((feeStructures as any[]).length > 0 && !form.feeStructureId) { setErrorMsg('Veuillez sélectionner une structure de frais.'); setStatus('error'); return }
     setStatus('idle')
+    const selectedFee = (feeStructures as { id: number; sessionId?: number }[]).find(
+      f => String(f.id) === form.feeStructureId,
+    )
+    const sessionIdForPayment = academicSessionId ?? selectedFee?.sessionId
+    if (!sessionIdForPayment) {
+      setErrorMsg('Session académique introuvable — rechargez la page ou contactez l\'administrateur.')
+      setStatus('error')
+      return
+    }
     try {
       const result = await processPayment({
         studentId: form.studentId,
         amount: Number(form.amount),
         method: form.method as any,
-        sessionId: currentSession.id,
+        sessionId: sessionIdForPayment,
         reference: form.reference || undefined,
         comment: form.comment || undefined,
         feeStructureId: form.feeStructureId ? Number(form.feeStructureId) : undefined,
@@ -85,6 +107,7 @@ export default function PaiementsPage() {
       setLastPaymentId((result as any)?.paymentId ?? (result as any)?.id ?? null)
       setStatus('success')
       refetchCash()
+      refetchSession()
     } catch (err) {
       setErrorMsg(getApiErrorMessage(err))
       setStatus('error')
@@ -124,7 +147,7 @@ export default function PaiementsPage() {
             <h1 className="text-2xl font-bold text-zinc-900">Paiements</h1>
             <p className="text-sm text-zinc-500 mt-0.5">Encaissement et suivi des transactions</p>
           </div>
-          {hasSession && (
+          {hasSession && currentSession && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
               <div className="w-2 h-2 rounded-full bg-emerald-500" />
               <span className="text-xs font-medium text-emerald-700">Session #{currentSession.id} ouverte</span>
@@ -133,10 +156,19 @@ export default function PaiementsPage() {
         </div>
       </motion.div>
 
-      {!hasSession && (
+      {couldNotVerify && form.method === 'CASH' && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-sky-50 border border-sky-100">
+          <AlertTriangle size={15} className="text-sky-600 flex-shrink-0" />
+          <p className="text-sm text-sky-800">
+            Impossible d&apos;afficher l&apos;état de la caisse (erreur réseau). Une session est peut‑être déjà ouverte côté serveur — vous pouvez tenter l&apos;encaissement CASH.
+          </p>
+        </div>
+      )}
+
+      {!hasSession && !couldNotVerify && !sessionLoading && form.method === 'CASH' && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
           <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />
-          <p className="text-sm text-amber-700">Aucune session de caisse ouverte. Rendez-vous dans <strong>Caisse</strong> pour ouvrir une session avant d'encaisser.</p>
+          <p className="text-sm text-amber-700">Aucune session de caisse ouverte. Rendez-vous dans <strong>Caisse</strong> pour ouvrir une session avant d&apos;encaisser en espèces.</p>
         </div>
       )}
 

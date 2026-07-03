@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
+import type { CashSession } from '@/types/finance'
 
 // ── Dashboard & Analytics ──────────────────────────────────────────────────
 
@@ -54,8 +55,45 @@ export function useCurrentSession() {
     queryFn: financeRoleApi.getCurrentSession,
     staleTime: 30_000,
     refetchInterval: 60_000,
-    retry: false,
+    retry: 1,
   })
+}
+
+/** Session caisse ouverte — fusionne /current et dashboard guichet (résilience proxy). */
+export function useResolvedCashSession() {
+  const current = useCurrentSession()
+  const guichet = useGuichetDashboard()
+
+  const fromCurrent = current.data as CashSession | null | undefined
+  const fromGuichet = (guichet.data as { openCashSession?: CashSession | null } | undefined)
+    ?.openCashSession
+
+  const session =
+    fromCurrent?.status === 'OPEN'
+      ? fromCurrent
+      : fromGuichet?.status === 'OPEN'
+        ? fromGuichet
+        : null
+
+  const academicSessionId = (guichet.data as { currentAcademicSessionId?: number | null } | undefined)
+    ?.currentAcademicSessionId
+
+  const isLoading = current.isLoading || guichet.isLoading
+  const couldNotVerify =
+    !session && !isLoading && current.isError && guichet.isError
+
+  return {
+    session,
+    hasOpenSession: session?.status === 'OPEN',
+    academicSessionId,
+    isLoading,
+    couldNotVerify,
+    refetch: () => {
+      void current.refetch()
+      void guichet.refetch()
+    },
+    isError: current.isError && guichet.isError,
+  }
 }
 
 export function useSessionSummary(id: number) {
