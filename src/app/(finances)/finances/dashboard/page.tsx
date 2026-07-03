@@ -13,6 +13,25 @@ import { formatMoney } from '@/lib/finance/currency'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
+import { PaymentCategoryDonutChart, PaymentMethodBarChart, PaymentMethodCountBarChart } from '@/components/charts/finance-transactions-charts'
+
+const METHOD_LABEL: Record<string, string> = {
+  CASH: 'Espèces',
+  BANK: 'Virement',
+  ORANGE_MONEY: 'Orange Money',
+  MPESA: 'M-Pesa',
+  AIRTEL_MONEY: 'Airtel Money',
+  CARD: 'Carte',
+}
+
+const CATEGORY_COLORS = {
+  cash: '#10b981',
+  mobile: '#118DFF',
+  bank: '#8764B8',
+  card: '#f59e0b',
+} as const
+
+const MOBILE_MONEY_METHODS = new Set(['ORANGE_MONEY', 'MPESA', 'AIRTEL_MONEY'])
 
 function Sparkline({ data, hex }: { data: number[]; hex: string }) {
   if (data.length < 2 || data.every(v => v === 0)) return null
@@ -89,8 +108,45 @@ export default function FinanceDashboardPage() {
   const debtors: any[] = (debtorsData as any)?.data ?? (Array.isArray(debtorsData) ? debtorsData : [])
   const coll = collection as any
 
-  const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
-  const totalTx = cash.reduce((acc, r) => acc + (r._count?.id || 0), 0)
+  const byMethod: { method: string; amount: number; count: number }[] = g?.collectionsToday?.byMethod ?? []
+  const todayTotal = Number(g?.collectionsToday?.total) || byMethod.reduce((acc, m) => acc + (Number(m.amount) || 0), 0)
+
+  const categoryTotals = byMethod.reduce(
+    (acc, m) => {
+      const amount = Number(m.amount) || 0
+      const count = Number(m.count) || 0
+      let bucket: keyof typeof acc | null = null
+      if (m.method === 'CASH') bucket = 'cash'
+      else if (m.method === 'BANK') bucket = 'bank'
+      else if (m.method === 'CARD') bucket = 'card'
+      else if (MOBILE_MONEY_METHODS.has(m.method)) bucket = 'mobile'
+      if (bucket) {
+        acc[bucket].amount += amount
+        acc[bucket].count += count
+      }
+      return acc
+    },
+    {
+      cash: { amount: 0, count: 0 },
+      mobile: { amount: 0, count: 0 },
+      bank: { amount: 0, count: 0 },
+      card: { amount: 0, count: 0 },
+    },
+  )
+
+  const categoryData = [
+    { name: 'Espèces', value: categoryTotals.cash.amount, count: categoryTotals.cash.count, color: CATEGORY_COLORS.cash },
+    { name: 'Mobile Money', value: categoryTotals.mobile.amount, count: categoryTotals.mobile.count, color: CATEGORY_COLORS.mobile },
+    { name: 'Banque', value: categoryTotals.bank.amount, count: categoryTotals.bank.count, color: CATEGORY_COLORS.bank },
+    { name: 'Carte', value: categoryTotals.card.amount, count: categoryTotals.card.count, color: CATEGORY_COLORS.card },
+  ]
+
+  const methodBarData = byMethod.map((m) => ({
+    name: METHOD_LABEL[m.method] ?? m.method,
+    amount: Number(m.amount) || 0,
+    count: Number(m.count) || 0,
+  }))
+
   const revenueTrend = cash.map((r) => Number(r._sum?.amount) || 0)
 
   const today = typeof window !== 'undefined'
@@ -189,39 +245,31 @@ export default function FinanceDashboardPage() {
         </>
       )}
 
-      {/* Encaissements par méthode + Top débiteurs */}
+      {/* Transactions du jour (mobile money / banque / espèces / carte) + Top débiteurs */}
       <div className="grid grid-cols-2 gap-6">
         <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-zinc-900">Encaissements du jour</h3>
-            {totalCash > 0 && (
-              <span className="text-xs font-semibold text-emerald-700">{formatMoney(totalCash)} total</span>
+            <div className="flex items-center gap-2">
+              <Banknote size={14} className="text-zinc-400" />
+              <h3 className="text-sm font-semibold text-zinc-900">Transactions du jour</h3>
+            </div>
+            {todayTotal > 0 && (
+              <span className="text-xs font-semibold text-emerald-700">{formatMoney(todayTotal)} total</span>
             )}
           </div>
-          {cash.length === 0 ? (
-            <div className="py-10 text-center">
-              <DollarSign size={24} className="mx-auto text-zinc-300 mb-2" />
-              <p className="text-sm text-zinc-400">Aucun encaissement aujourd'hui</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-zinc-50">
-              {cash.map((row, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-zinc-900">{row.method ?? '—'}</p>
-                    <p className="text-xs text-zinc-400">{row._count?.id ?? 0} transaction(s)</p>
-                  </div>
-                  <span className="text-sm font-semibold text-emerald-700">
-                    {row._sum?.amount != null ? formatMoney(Number(row._sum.amount)) : '—'}
-                  </span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between px-5 py-3 bg-zinc-50/60">
-                <p className="text-sm font-semibold text-zinc-700">Total — {totalTx} tx</p>
-                <span className="text-sm font-bold text-emerald-700">{formatMoney(totalCash)}</span>
+          <div className="p-5 grid grid-cols-2 gap-4">
+            <PaymentCategoryDonutChart data={categoryData} total={todayTotal} />
+            <div className="space-y-3">
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide mb-1">Montant par méthode</p>
+                <PaymentMethodBarChart data={methodBarData} />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wide mb-1">Nombre de transactions</p>
+                <PaymentMethodCountBarChart data={methodBarData} />
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
@@ -259,25 +307,6 @@ export default function FinanceDashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Encaissements par méthode (guichet) */}
-      {g?.collectionsToday?.byMethod?.length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
-          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
-            <Banknote size={14} className="text-zinc-400" />
-            <h3 className="text-sm font-semibold text-zinc-900">Détail par méthode (aujourd'hui)</h3>
-          </div>
-          <div className={`grid grid-cols-${Math.min(g.collectionsToday.byMethod.length, 4)} divide-x divide-zinc-100`}>
-            {g.collectionsToday.byMethod.map((m: any) => (
-              <div key={m.method} className="px-5 py-4">
-                <p className="text-xs text-zinc-500 mb-1">{m.method}</p>
-                <p className="text-lg font-bold text-zinc-900">{formatMoney(Number(m.amount))}</p>
-                <p className="text-xs text-zinc-400">{m.count} tx</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Analytics de recouvrement */}
       {coll && Object.keys(coll).length > 0 && (

@@ -14,6 +14,7 @@ import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, use
 import { classesApi } from '@/lib/admin/api'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { ClassDetail } from '@/types/admin'
+import { formatMoney } from '@/lib/finance/currency'
 
 function AssignModal({ classId, onClose }: { classId: number; onClose: () => void }) {
   const { mutateAsync, isPending } = useAssignStudents()
@@ -301,8 +302,8 @@ export default function ClassDetailPage() {
             {[
               { label: 'Élèves', value: stats.studentCount, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
               { label: 'Taux présence', value: `${stats.attendanceRate?.toFixed(1) ?? 0}%`, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'Total dû', value: stats.totalDue ? `${stats.totalDue.toLocaleString('fr-FR')} F` : '—', icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
-              { label: 'Total payé', value: stats.totalPaid ? `${stats.totalPaid.toLocaleString('fr-FR')} F` : '—', icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
+              { label: 'Total dû', value: stats.totalDue ? formatMoney(stats.totalDue) : '—', icon: DollarSign, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'Total payé', value: stats.totalPaid ? formatMoney(stats.totalPaid) : '—', icon: DollarSign, color: 'text-violet-600', bg: 'bg-violet-50' },
             ].map(({ label, value, icon: Icon, color, bg }) => (
               <motion.div key={label} variants={fadeUp} className="bg-white rounded-2xl border border-zinc-100 p-4 shadow-sm">
                 <div className="flex items-center gap-2.5">
@@ -385,7 +386,7 @@ export default function ClassDetailPage() {
                 <div>
                   <p className="text-xs text-zinc-400 mb-1">Balance financière</p>
                   <p className={`text-2xl font-bold ${(stats.balance ?? 0) < 0 ? 'text-red-500' : 'text-zinc-900'}`}>
-                    {stats.balance != null ? `${stats.balance.toLocaleString('fr-FR')} F` : '—'}
+                    {stats.balance != null ? formatMoney(stats.balance) : '—'}
                   </p>
                 </div>
                 <div>

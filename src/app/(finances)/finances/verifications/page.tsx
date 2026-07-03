@@ -11,6 +11,7 @@ import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PendingPayment } from '@/types/finance'
+import { formatMoney } from '@/lib/finance/currency'
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: 'Espèces',
@@ -89,7 +90,7 @@ function VerifyStepModal({
             <div className="bg-zinc-50 rounded-xl p-4 mb-5 space-y-1.5">
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Montant</span>
-                <span className="font-semibold text-zinc-900">{Number(payment.amount).toLocaleString('fr-FR')} F</span>
+                <span className="font-semibold text-zinc-900">{formatMoney(Number(payment.amount))}</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Méthode</span>
@@ -250,7 +251,7 @@ export default function VerificationsPage() {
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-right font-semibold text-zinc-900">
-                      {Number(p.amount).toLocaleString('fr-FR')} F
+                      {formatMoney(Number(p.amount))}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5">

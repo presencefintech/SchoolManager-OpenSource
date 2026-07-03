@@ -13,6 +13,7 @@ import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { formatMoney } from '@/lib/finance/currency'
 
 const METHODS = [
   { value: 'CASH',         label: 'Espèces' },
@@ -189,12 +190,12 @@ export default function PaiementsPage() {
             />
 
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (FCFA) *</label>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Montant ($) *</label>
               <input
-                type="number" required min={1}
+                type="number" required min={1} step="0.01"
                 value={form.amount}
                 onChange={e => { setForm(p => ({ ...p, amount: e.target.value })); setStatus('idle') }}
-                placeholder="50000"
+                placeholder="50"
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
               />
             </div>
@@ -222,7 +223,7 @@ export default function PaiementsPage() {
                 >
                   <option value="">— Sélectionner —</option>
                   {(feeStructures as any[]).map((fs: any) => (
-                    <option key={fs.id} value={fs.id}>{fs.label} · {Number(fs.amount).toLocaleString('fr-FR')} F</option>
+                    <option key={fs.id} value={fs.id}>{fs.label} · {formatMoney(Number(fs.amount))}</option>
                   ))}
                 </select>
                 <p className="text-xs text-zinc-400 mt-1">Le montant est calculé depuis le barème sélectionné</p>
@@ -278,7 +279,7 @@ export default function PaiementsPage() {
             <h2 className="text-sm font-semibold text-zinc-900">Rapport du jour</h2>
             <div className="flex items-center gap-2">
               {totalCash > 0 && (
-                <span className="text-xs font-semibold text-emerald-700">{totalCash.toLocaleString('fr-FR')} F</span>
+                <span className="text-xs font-semibold text-emerald-700">{formatMoney(totalCash)}</span>
               )}
               <button onClick={() => refetchCash()} className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 transition-colors">
                 <RefreshCw size={13} />
@@ -306,7 +307,7 @@ export default function PaiementsPage() {
                       <td className="px-5 py-3 font-medium text-zinc-900">{row.method ?? '—'}</td>
                       <td className="px-5 py-3 text-right text-zinc-500">{row._count?.id ?? 0}</td>
                       <td className="px-5 py-3 text-right font-semibold text-emerald-700">
-                        {row._sum?.amount != null ? `${Number(row._sum.amount).toLocaleString('fr-FR')} F` : '—'}
+                        {row._sum?.amount != null ? formatMoney(Number(row._sum.amount)) : '—'}
                       </td>
                     </tr>
                   ))}
@@ -318,7 +319,7 @@ export default function PaiementsPage() {
                       {cash.reduce((a, r) => a + (r._count?.id || 0), 0)} tx
                     </td>
                     <td className="px-5 py-3 text-right text-sm font-bold text-emerald-700">
-                      {totalCash.toLocaleString('fr-FR')} F
+                      {formatMoney(totalCash)}
                     </td>
                   </tr>
                 </tfoot>

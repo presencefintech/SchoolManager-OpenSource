@@ -15,6 +15,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney } from '@/lib/finance/currency'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -54,8 +55,8 @@ function ClassDetail({ classId }: { classId: number }) {
               {[
                 ['Élèves inscrits', st.financial?.metrics?.studentCount ?? '—'],
                 ['Taux de recouvrement', st.financial?.metrics?.recoveryRate != null ? `${Number(st.financial.metrics.recoveryRate).toFixed(1)} %` : '—'],
-                ['Total dû', st.financial?.metrics?.totalDebt != null ? `${Number(st.financial.metrics.totalDebt).toLocaleString('fr-FR')} F` : '—'],
-                ['Total encaissé', st.metrics?.totalPaid != null ? `${Number(st.metrics.totalPaid).toLocaleString('fr-FR')} F` : '—'],
+                ['Total dû', st.financial?.metrics?.totalDebt != null ? formatMoney(Number(st.financial.metrics.totalDebt)) : '—'],
+                ['Total encaissé', st.metrics?.totalPaid != null ? formatMoney(Number(st.metrics.totalPaid)) : '—'],
                 ['Présences enregistrées', st.metrics?.attendanceCount ?? '—'],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between py-0.5 border-b border-zinc-100 last:border-0">
@@ -130,10 +131,10 @@ function ClassDetail({ classId }: { classId: number }) {
                     <tr key={s.id} className="hover:bg-zinc-100/60">
                       <td className="py-2 pr-4 font-medium text-zinc-800">{s.firstName} {s.lastName}</td>
                       <td className="py-2 pr-4 font-mono text-zinc-400">{s.matricule ?? '—'}</td>
-                      <td className="py-2 pr-4 text-right text-zinc-600">{enr ? `${Number(enr.totalAmount).toLocaleString('fr-FR')} F` : '—'}</td>
-                      <td className="py-2 pr-4 text-right text-emerald-600">{enr ? `${Number(enr.paidAmount).toLocaleString('fr-FR')} F` : '—'}</td>
+                      <td className="py-2 pr-4 text-right text-zinc-600">{enr ? formatMoney(Number(enr.totalAmount)) : '—'}</td>
+                      <td className="py-2 pr-4 text-right text-emerald-600">{enr ? formatMoney(Number(enr.paidAmount)) : '—'}</td>
                       <td className={`py-2 text-right font-semibold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {enr ? `${balance.toLocaleString('fr-FR')} F` : '—'}
+                        {enr ? formatMoney(balance) : '—'}
                       </td>
                     </tr>
                   )

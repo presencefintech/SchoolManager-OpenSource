@@ -6,6 +6,7 @@ import { Search, RefreshCw } from 'lucide-react'
 import { useSearchTransactions } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp } from '@/lib/animations'
+import { formatMoney } from '@/lib/finance/currency'
 
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
   PENDING:   { label: 'En attente', cls: 'bg-amber-50 text-amber-700' },
@@ -177,7 +178,7 @@ export default function TransactionsPage() {
                             {t.student ? `${t.student.firstName} ${t.student.lastName}` : t.studentId ?? '—'}
                           </td>
                           <td className="px-5 py-3.5 text-right font-semibold text-zinc-900">
-                            {t.amount != null ? `${Number(t.amount).toLocaleString('fr-FR')} F` : '—'}
+                            {t.amount != null ? formatMoney(Number(t.amount)) : '—'}
                           </td>
                           <td className="px-5 py-3.5">
                             <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">{t.method ?? '—'}</span>

@@ -13,6 +13,7 @@ import {
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { CashSession } from '@/types/finance'
+import { formatMoney } from '@/lib/finance/currency'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -138,7 +139,7 @@ export default function CaissePage() {
             {(st.byMethod as any[]).map((m: any, i: number) => (
               <div key={i} className="bg-zinc-50 rounded-xl p-3">
                 <p className="text-xs text-zinc-400 mb-1">{m.method}</p>
-                <p className="text-sm font-bold text-zinc-900">{Number(m.amount).toLocaleString('fr-FR')} F</p>
+                <p className="text-sm font-bold text-zinc-900">{formatMoney(Number(m.amount))}</p>
                 <p className="text-xs text-zinc-400">{m.count} tx</p>
               </div>
             ))}
@@ -147,7 +148,7 @@ export default function CaissePage() {
                 <TrendingUp size={11} className="text-emerald-600" />
                 <p className="text-xs text-emerald-600">Total encaissé</p>
               </div>
-              <p className="text-sm font-bold text-emerald-700">{Number(st.totalCollected ?? 0).toLocaleString('fr-FR')} F</p>
+              <p className="text-sm font-bold text-emerald-700">{formatMoney(Number(st.totalCollected ?? 0))}</p>
               <p className="text-xs text-emerald-600">{st.transactionCount ?? 0} transactions</p>
             </div>
           </div>
@@ -170,9 +171,9 @@ export default function CaissePage() {
             )}
             <form onSubmit={handleOpen} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Fond de caisse à l'ouverture (FCFA)</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Fond de caisse à l'ouverture ($)</label>
                 <input
-                  type="number" min={0}
+                  type="number" min={0} step="0.01"
                   value={openForm.openingFloat}
                   onChange={e => setOpenForm(p => ({ ...p, openingFloat: e.target.value }))}
                   placeholder="0"
@@ -215,9 +216,9 @@ export default function CaissePage() {
             )}
             <form onSubmit={handleClose} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">Caisse comptée à la clôture (FCFA)</label>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">Caisse comptée à la clôture ($)</label>
                 <input
-                  type="number" min={0}
+                  type="number" min={0} step="0.01"
                   value={closeForm.closingCounted}
                   onChange={e => setCloseForm(p => ({ ...p, closingCounted: e.target.value }))}
                   placeholder="0"
@@ -257,7 +258,7 @@ export default function CaissePage() {
                 ['ID session', `#${currentSession.id}`],
                 ['Statut', currentSession.status],
                 ['Ouverture', new Date(currentSession.openedAt).toLocaleString('fr-FR')],
-                ...(currentSession.openingBalance != null ? [['Solde ouverture', `${Number(currentSession.openingBalance).toLocaleString('fr-FR')} F`] as [string, string]] : []),
+                ...(currentSession.openingBalance != null ? [['Solde ouverture', formatMoney(Number(currentSession.openingBalance))] as [string, string]] : []),
                 ...(currentSession.notes ? [['Notes', currentSession.notes] as [string, string]] : []),
                 ...(currentSession.cashierName ? [['Caissier', currentSession.cashierName] as [string, string]] : []),
               ].map(([k, v]) => (

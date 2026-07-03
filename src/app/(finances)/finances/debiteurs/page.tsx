@@ -8,6 +8,7 @@ import { FinanceStudentSearchField } from '@/components/finances/student-search-
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { RiskEntry, StudentWallet } from '@/types/finance'
+import { formatMoney } from '@/lib/finance/currency'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -76,7 +77,7 @@ export default function DebiteursPage() {
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-100 bg-white text-xs font-medium text-zinc-700 shadow-sm">
                 <DollarSign size={13} className="text-red-500" />
-                {totalDebt.toLocaleString('fr-FR')} F
+                {formatMoney(totalDebt)}
               </div>
             </>
           )}
@@ -109,7 +110,7 @@ export default function DebiteursPage() {
         >
           Filtrer
         </button>
-        <span className="text-xs text-zinc-400">Afficher les élèves avec une dette supérieure à {minDebt.toLocaleString('fr-FR')} FCFA</span>
+        <span className="text-xs text-zinc-400">Afficher les élèves avec une dette supérieure à {formatMoney(minDebt)}</span>
       </div>
 
       {/* Table débiteurs */}
@@ -157,7 +158,7 @@ export default function DebiteursPage() {
                     <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">{dbtr.matricule ?? '—'}</td>
                     <td className="px-5 py-3.5 text-zinc-500">{dbtr.class?.name ?? '—'}</td>
                     <td className="px-5 py-3.5 text-right font-semibold text-red-600">
-                      {dbtr.feesBalance != null ? `${Number(dbtr.feesBalance).toLocaleString('fr-FR')} F` : '—'}
+                      {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
                     </td>
                     <td className="px-5 py-3.5">
                       <ChevronDown size={14} className={`text-zinc-400 transition-transform ${expandedDebtor === dbtr.id ? 'rotate-180' : ''}`} />
@@ -169,7 +170,7 @@ export default function DebiteursPage() {
                 <tr className="bg-zinc-50/50 border-t border-zinc-100">
                   <td colSpan={3} className="px-5 py-3 text-xs font-semibold text-zinc-500">Total ({debtors.length} débiteurs)</td>
                   <td className="px-5 py-3 text-right text-xs font-bold text-red-600">
-                    {totalDebt.toLocaleString('fr-FR')} F
+                    {formatMoney(totalDebt)}
                   </td>
                   <td />
                 </tr>
@@ -216,7 +217,7 @@ export default function DebiteursPage() {
                     <td className="px-5 py-3.5 font-medium text-zinc-900">{r.firstName} {r.lastName}</td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs">{r.className ?? '—'}</td>
                     <td className="px-5 py-3.5 text-right font-semibold text-red-600">
-                      {Number(r.tuitionBalance ?? r.balance ?? 0).toLocaleString('fr-FR')} F
+                      {formatMoney(Number(r.tuitionBalance ?? r.balance ?? 0))}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -326,7 +327,7 @@ export default function DebiteursPage() {
                             k.toLowerCase().includes('balance') || k.toLowerCase().includes('debt')
                               ? 'text-red-600' : 'text-zinc-800'
                           }`}>
-                            {typeof v === 'number' ? `${Number(v).toLocaleString('fr-FR')} F` : String(v ?? '—')}
+                            {typeof v === 'number' ? formatMoney(Number(v)) : String(v ?? '—')}
                           </span>
                         </div>
                       ))}
@@ -343,7 +344,7 @@ export default function DebiteursPage() {
                         <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-zinc-50 last:border-0">
                           <span className="text-zinc-500">{l.type ?? l.description ?? l.action ?? '—'}</span>
                           <span className={Number(l.amount) >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
-                            {Number(l.amount).toLocaleString('fr-FR')} F
+                            {formatMoney(Number(l.amount))}
                           </span>
                         </div>
                       ))}
@@ -372,7 +373,7 @@ export default function DebiteursPage() {
                             )}
                           </div>
                           <span className="text-xs font-semibold text-zinc-900">
-                            {p.amount != null ? `${Number(p.amount).toLocaleString('fr-FR')} F` : '—'}
+                            {p.amount != null ? formatMoney(Number(p.amount)) : '—'}
                           </span>
                         </div>
                       ))}
@@ -394,9 +395,9 @@ export default function DebiteursPage() {
                 ) : wallet ? (
                   <div className="space-y-1.5">
                     {[
-                      ['Solde', `${Number(wallet.balance).toLocaleString('fr-FR')} F`, Number(wallet.balance) < 0 ? 'text-red-600' : 'text-zinc-800'],
-                      ['Total payé', `${Number(wallet.totalPaid).toLocaleString('fr-FR')} F`, 'text-emerald-700'],
-                      ['Total dû', `${Number(wallet.totalDue).toLocaleString('fr-FR')} F`, 'text-zinc-800'],
+                      ['Solde', formatMoney(Number(wallet.balance)), Number(wallet.balance) < 0 ? 'text-red-600' : 'text-zinc-800'],
+                      ['Total payé', formatMoney(Number(wallet.totalPaid)), 'text-emerald-700'],
+                      ['Total dû', formatMoney(Number(wallet.totalDue)), 'text-zinc-800'],
                       ...(wallet.lastPaymentAt ? [['Dernier paiement', new Date(wallet.lastPaymentAt).toLocaleDateString('fr-FR'), 'text-zinc-500']] : []),
                     ].map(([k, v, cls]) => (
                       <div key={k} className="flex items-center justify-between py-1 border-b border-zinc-50 last:border-0">
@@ -412,7 +413,7 @@ export default function DebiteursPage() {
                             <div key={t.id} className="flex items-center justify-between text-xs">
                               <span className="text-zinc-500">{t.method} · {new Date(t.createdAt).toLocaleDateString('fr-FR')}</span>
                               <span className={`font-medium ${t.status === 'CONFIRMED' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                {Number(t.amount).toLocaleString('fr-FR')} F
+                                {formatMoney(Number(t.amount))}
                               </span>
                             </div>
                           ))}

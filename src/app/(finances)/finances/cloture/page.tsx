@@ -10,6 +10,7 @@ import {
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney } from '@/lib/finance/currency'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -99,7 +100,7 @@ export default function CloturePage() {
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                 <p className="text-xs text-emerald-600 mb-1">Total encaissé</p>
-                <p className="text-xl font-bold text-emerald-700">{Number(pv.totalCash ?? 0).toLocaleString('fr-FR')} F</p>
+                <p className="text-xl font-bold text-emerald-700">{formatMoney(Number(pv.totalCash ?? 0))}</p>
               </div>
               <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-100">
                 <p className="text-xs text-zinc-500 mb-1">Transactions</p>
@@ -118,7 +119,7 @@ export default function CloturePage() {
                   {Object.entries(pv.totalByMethod as Record<string, number>).map(([method, amount]) => (
                     <div key={method} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
                       <span className="text-sm text-zinc-600">{method}</span>
-                      <span className="text-sm font-semibold text-zinc-900">{Number(amount).toLocaleString('fr-FR')} F</span>
+                      <span className="text-sm font-semibold text-zinc-900">{formatMoney(Number(amount))}</span>
                     </div>
                   ))}
                 </div>
