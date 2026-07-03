@@ -12,12 +12,8 @@ import {
 } from '@/lib/hooks/use-finance'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
-<<<<<<< HEAD
-import type { CashSession } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
-=======
 import axios from 'axios'
->>>>>>> 7c97a81f58983801305904ff505ab7954753b287
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
