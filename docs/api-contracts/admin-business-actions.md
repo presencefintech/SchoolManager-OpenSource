@@ -267,7 +267,7 @@ Envoie une notification aux parents et un rappel interne admin/finance.
 }
 ```
 
-**Effet serveur :** `NotificationService.sendToParents` (type `FRAUD_ALERT`) + broadcast admin/finance.
+**Effet serveur :** `NotificationService.sendToParents` (type `FRAUD_ALERT`, outbox + idempotence) + broadcast admin/finance via fan-out si seuil atteint.
 
 **Audit :** `PRESENCE_ALERT_NOTIFIED` · log `PRESENCE_ALERT_NOTIFY`.
 
@@ -315,6 +315,38 @@ Le frontend ne doit **pas** exposer `fraudScore`, `isLocked`, `isPaymentLocked` 
 
 ---
 
+## Notifications — DLQ & broadcast (juil. 2026)
+
+> Détail architecture : [notification-architecture.md](./notification-architecture.md) · OpenAPI : `openapi/admin.json`
+
+### `GET /admin/notifications/dlq`
+
+Liste les livraisons **DEAD** (SMS, email, push) pour l'école de l'admin.
+
+| | |
+|--|--|
+| **Rôles** | `ADMIN` |
+| **Query** | `limit` (défaut 50, max 200) |
+
+**Réponse `200` :** `data: NotificationDlqItem[]` — voir [types/notification.types.ts](./types/notification.types.ts).
+
+### `POST /admin/notifications/dlq/{deliveryId}/retry`
+
+Relance manuelle : remet la livraison et l'outbox en `PENDING`, reprogramme le worker.
+
+| | |
+|--|--|
+| **Rôles** | `ADMIN` |
+| **Params** | `deliveryId` (cuid, path) |
+
+**Réponse `404` :** livraison hors école ou non DEAD.
+
+### `POST /admin/notifications/broadcast-group`
+
+Annonce à un ou plusieurs rôles. **≥ 3 destinataires** → file BullMQ `notification-fanout`. Canaux : WebSocket, email, push, SMS (si préférence active).
+
+---
+
 ## Matrice RBAC récapitulative
 
 | Route | ADMIN | SUPER_ADMIN | FINANCE |
@@ -325,6 +357,7 @@ Le frontend ne doit **pas** exposer `fraudScore`, `isLocked`, `isPaymentLocked` 
 | `GET …/pending-verifications/export` | ✓ | ✓ | ✓ |
 | `POST …/verifications/{id}/mark-processed` | ✓ | ✓ | — |
 | `PATCH/POST …/security-events/{id}/*` | ✓ | ✓ | — |
+| `GET/POST …/admin/notifications/dlq*` | ✓ | — | — |
 | `GET/POST …/admin/presences/*` (module) | ✓ | ✓ | — |
 | `GET …/presences/sheets/{id}/export` | ✓ | ✓ | — |
 
@@ -347,3 +380,4 @@ Le frontend ne doit **pas** exposer `fraudScore`, `isLocked`, `isPaymentLocked` 
 - [`enrollment-architecture.md`](./enrollment-architecture.md) — flux inscription global
 - [`web-admin-payment-handoff.md`](./web-admin-payment-handoff.md) — workflow vérification paiement
 - [`admin-README.md`](./admin-README.md) — index module admin
+- [`notification-architecture.md`](./notification-architecture.md) — outbox, SMS, DLQ, fan-out

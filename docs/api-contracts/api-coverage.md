@@ -145,7 +145,8 @@ const socket = io(host, {
 | `payment.confirmed.admin` | Serveur → client | `school:{id}:control-dashboard` | ADMIN | `PaymentConfirmedAdminPayload` | Validé |
 | `payment.confirmed.finance` | Serveur → client | `school:{id}:finance` | FINANCE · ADMIN (supervision) | `PaymentConfirmedFinancePayload` | Validé |
 | `payment.failed.admin` | Serveur → client | `school:{id}:control-dashboard` | ADMIN | `PaymentFailedAdminPayload` | Validé |
-| `notification` | Serveur → client | `user_{userId}` | Tous | Notification Prisma | Partiel |
+| `notification` | Serveur → client | `user_{userId}` | Tous | `SocketNotificationPayload` · worker outbox | **Validé** (juil. 2026) |
+| `attendance.recorded` | Serveur → client | `user_{parentUserId}` | PARENT | Catalog v0 | Validé |
 
 ### Détail des payloads paiement
 

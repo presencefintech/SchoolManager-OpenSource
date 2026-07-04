@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import Link from 'next/link'
 import {
@@ -10,7 +11,7 @@ import {
 } from 'lucide-react'
 import {
   useFinanceDashboard, useFinanceTopPayers, useFinanceInsights,
-  useFinanceEfficiency, useFinanceEndOfDay, useFinancePaymentMethods,
+  useFinanceEfficiency, useFinanceEndOfDay, useFinancePaymentMethods, useFinanceFeeTypes,
   useFinanceComparativeDashboard,
   usePendingVerifications, useFinanceFraudAlerts, usePaymentProfile,
   useFinanceDetailedReport, useFinanceHealthCheck,
@@ -182,11 +183,13 @@ function QuickLink({ href, icon: Icon, label, count, gradient, vibrant }: {
 /* ══════════════════════════════════════════════════════════════════════════ */
 
 export default function FinanceDashboardPage() {
+  const [dashboardPeriod, setDashboardPeriod] = useState<'day' | 'month'>('month')
   const { data: kpis, isLoading } = useFinanceDashboard()
   const { data: topPayers = [] } = useFinanceTopPayers()
   const { data: insights } = useFinanceInsights()
   const { data: endOfDay } = useFinanceEndOfDay()
-  const { data: paymentMethodsBreakdown } = useFinancePaymentMethods('month')
+  const { data: paymentMethodsBreakdown } = useFinancePaymentMethods(dashboardPeriod)
+  const { data: feeTypesBreakdown } = useFinanceFeeTypes(dashboardPeriod)
   const { data: efficiencyLevels = [] } = useFinanceEfficiency()
   const { data: comparativeLevels = [] } = useFinanceComparativeDashboard()
   const collectionLevels = efficiencyLevels.length > 0 ? efficiencyLevels : comparativeLevels
@@ -212,7 +215,7 @@ export default function FinanceDashboardPage() {
   const remaining = Math.max(0, display.totalDue - display.totalPaid)
   const collectedPct = display.totalDue > 0 ? (display.totalPaid / display.totalDue) * 100 : 0
   const methodBreakdownPeriodLabel =
-    paymentMethodsBreakdown?.period === 'day' ? "(aujourd'hui)" : '(ce mois)'
+    dashboardPeriod === 'day' ? "(aujourd'hui)" : '(ce mois)'
   const methodBreakdown = (paymentMethodsBreakdown?.methods?.length
     ? paymentMethodsBreakdown.methods.map((entry) => ({
       method: formatPaymentMethodLabel(entry.method),
@@ -227,6 +230,14 @@ export default function FinanceDashboardPage() {
       pct: endOfDay && endOfDay.total > 0 ? (entry.amount / endOfDay.total) * 100 : 0,
     }))
   ).sort((a, b) => b.amount - a.amount)
+  const feeTypeBreakdown = (feeTypesBreakdown?.feeTypes ?? [])
+    .map((entry) => ({
+      label: entry.feeType,
+      amount: entry.amount,
+      count: entry.count,
+      pct: entry.sharePct,
+    }))
+    .sort((a, b) => b.amount - a.amount)
 
   return (
     <div className="relative min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-[#f4f6fa]">
@@ -601,6 +612,37 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
+            {/* F-06 + Increment A — Période & répartitions */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.26 }}
+              className="flex flex-wrap items-center justify-between gap-3"
+            >
+              <p className="text-sm font-medium text-slate-600">Encaissements confirmés</p>
+              <div className="flex gap-1 rounded-xl bg-slate-200/60 p-1">
+                {([
+                  ['month', 'Ce mois'],
+                  ['day', "Aujourd'hui"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setDashboardPeriod(value)}
+                    className={cn(
+                      'rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+                      dashboardPeriod === value
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-600 hover:text-slate-800',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {/* F-06 — Payment methods (real data) */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
               <Panel glow="emerald">
@@ -635,6 +677,42 @@ export default function FinanceDashboardPage() {
                 </div>
               </Panel>
             </motion.div>
+
+            {/* Increment A — Fee types */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <Panel glow="violet">
+                <PanelHeader
+                  icon={Receipt}
+                  title="Types de frais"
+                  subtitle={`Encaissements ventilés par catégorie ${methodBreakdownPeriodLabel}`}
+                  accent="text-violet-600"
+                  accentBg="bg-violet-500/10"
+                />
+                <div className="px-6 py-5 space-y-3">
+                  {feeTypeBreakdown.length === 0 ? (
+                    <p className="text-sm text-slate-500">Aucun encaissement ventilé sur la période.</p>
+                  ) : (
+                    feeTypeBreakdown.slice(0, 6).map((item) => (
+                      <div key={item.label} className="space-y-1.5">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-600">{item.label}</span>
+                          <span className="font-semibold text-slate-900 tabular-nums">
+                            {formatMoney(item.amount)} · {item.count} tx · {item.pct.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500"
+                            style={{ width: `${Math.min(100, item.pct)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Panel>
+            </motion.div>
+            </div>
 
             {/* Insights */}
             {ins && (

@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -69,6 +69,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Fichiers',      href: '/admin/files',         icon: FolderOpen },
       { label: 'Monitoring',    href: '/admin/monitoring',    icon: Monitor },
       { label: 'Paramètres',    href: '/admin/settings',      icon: Settings },
+      { label: 'Profil & sécurité', href: '/admin/profil-securite', icon: UserCircle },
     ],
   },
 ]
@@ -232,24 +233,32 @@ export function AdminNav() {
 
       {/* User footer */}
       <div className="px-3 pb-3 flex-shrink-0 border-t border-zinc-100 pt-2.5">
-        <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-zinc-50 transition-colors group">
+        <Link
+          href="/admin/profil-securite"
+          className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-zinc-50 transition-colors group"
+        >
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm ring-2 ring-white">
             <span className="text-[10px] font-bold text-white">{initials}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-zinc-700 truncate leading-tight">
+            <p className="text-xs font-semibold text-zinc-700 truncate leading-tight group-hover:text-emerald-700">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-[10px] text-zinc-400 truncate leading-tight">{user?.email}</p>
+            <p className="text-[10px] text-zinc-400 truncate leading-tight">Profil &amp; sécurité</p>
           </div>
           <button
-            onClick={logout}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              logout()
+            }}
             title="Déconnexion"
             className="p-1.5 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
           >
             <LogOut size={13} />
           </button>
-        </div>
+        </Link>
       </div>
     </aside>
   )

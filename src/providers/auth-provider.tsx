@@ -18,6 +18,7 @@ interface AuthContextValue {
   isLoading: boolean
   login: (payload: LoginPayload) => Promise<void>
   logout: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -80,8 +81,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/login')
   }, [router])
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/session', { credentials: 'include' })
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.user) {
+        persistUserProfile(data.user)
+        setUser(data.user)
+      }
+    } catch {
+      /* session indisponible — ignoré */
+    }
+  }, [])
+
+  useEffect(() => {
+    function onVerificationRequired() {
+      void refreshUser()
+    }
+    window.addEventListener('auth:email-verification-required', onVerificationRequired)
+    return () => window.removeEventListener('auth:email-verification-required', onVerificationRequired)
+  }, [refreshUser])
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

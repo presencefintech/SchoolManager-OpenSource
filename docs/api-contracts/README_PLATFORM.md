@@ -122,7 +122,7 @@ Le promoteur (ADMIN) rejoint également la room finance pour **superviser les en
 
 | Room | Membres | Usage |
 |------|---------|-------|
-| `user_{userId}` | Tous les utilisateurs connectés | Canal personnel (parent : `payment.settled`, `notification`) |
+| `user_{userId}` | Tous les utilisateurs connectés | Canal personnel (`payment.settled`, `notification`, alertes DLQ admin) |
 | `tenant_{tenantId}` | Clients avec `auth.tenantId` résolu | Diffusion future scopée tenant UUID (ADR-002) |
 | `school:{id}:control-dashboard` | ADMIN, SUPER_ADMIN | Pilotage ops, paiements confirmés/échoués, inscriptions |
 | `school:{id}:finance` | FINANCE · ADMIN (supervision) | Flux comptables temps réel |
@@ -153,7 +153,8 @@ PaymentGatewayService ──► PaymentEventDispatcher
 
 - **Webhooks entrants :** `POST /api/v1/webhooks/{provider}` — confirmation ou échec provider en temps quasi-réel
 - **Réconciliation nocturne :** job CRON 02h00 (Africa/Kinshasa) — vérification auprès des partenaires Mobile Money / banques
-- **Relances de dette :** job CRON 08h00 — notifications parents (staging limité aux élèves de test)
+- **Relances de dette :** job CRON 08h00 — notifications parents via outbox (fan-out si bulk)
+- **Notifications présence :** post-process → outbox → SMS/email/push/WebSocket — voir `api-contracts/notification-architecture.md`
 
 ### Déploiement staging
 

@@ -1,5 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthSchoolId, redirectToLogin } from '@/lib/api/auth-storage'
+import { extractApiErrorPayload, resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -37,6 +38,13 @@ function getOrRefreshToken(): Promise<void> {
 apiClient.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
+    if (typeof window !== 'undefined' && error.response) {
+      const { code } = extractApiErrorPayload(error.response.data)
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        window.dispatchEvent(new CustomEvent('auth:email-verification-required'))
+      }
+    }
+
     const originalRequest = error.config as RetryConfig | undefined
 
     if (
@@ -77,6 +85,7 @@ export function getApiErrorMessage(error: unknown): string {
     }
     const data = error.response?.data as {
       message?: string | string[]
+      code?: string
       errors?: { field?: string; message?: string }[]
     } | undefined
     if (data?.errors?.length) {
@@ -88,6 +97,8 @@ export function getApiErrorMessage(error: unknown): string {
     }
     const msg = data?.message
     if (Array.isArray(msg)) return msg.join(' · ')
+    const resolved = resolveApiErrorMessage(data)
+    if (resolved !== 'Une erreur inattendue est survenue') return resolved
     if (typeof msg === 'string' && msg) return msg
     if (error.response?.status === 409) {
       return 'Une session caisse est déjà ouverte pour ce guichet.'

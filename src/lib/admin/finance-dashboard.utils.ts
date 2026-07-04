@@ -4,6 +4,7 @@ import type {
   FinanceCollectionEfficiencyLevel,
   FinanceEndOfDayClosing,
   FinancePaymentMethodsBreakdown,
+  FinanceFeeTypesBreakdown,
   FinanceIntegrityScan,
   FinanceIntegrityScanDetail,
 } from '@/types/admin'
@@ -215,6 +216,38 @@ export function normalizePaymentMethodsBreakdown(raw: unknown): FinancePaymentMe
         amount: Number(method.amount ?? 0),
         count: Number(method.count ?? 0),
         sharePct: Number(method.sharePct ?? 0),
+      }
+    }),
+  }
+}
+
+/** Increment A — GET /admin/finance/dashboard/fee-types. */
+export function normalizeFeeTypesBreakdown(raw: unknown): FinanceFeeTypesBreakdown | null {
+  if (!raw || typeof raw !== 'object') return null
+
+  const row = raw as Record<string, unknown>
+  const period = row.period === 'day' ? 'day' : 'month'
+  const feeTypes = Array.isArray(row.feeTypes) ? row.feeTypes : []
+  const total = Number(row.total ?? 0)
+
+  return {
+    period,
+    from: String(row.from ?? ''),
+    to: String(row.to ?? ''),
+    total,
+    count: Number(row.count ?? 0),
+    feeTypes: feeTypes.map((item) => {
+      const fee = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>
+      const amount = Number(fee.amount ?? 0)
+      return {
+        feeType: String(fee.feeType ?? 'Autre'),
+        amount,
+        count: Number(fee.count ?? 0),
+        sharePct: fee.sharePct != null
+          ? Number(fee.sharePct)
+          : total > 0
+            ? (amount / total) * 100
+            : 0,
       }
     }),
   }

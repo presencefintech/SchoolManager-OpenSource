@@ -1974,56 +1974,14 @@
         "tags": [
           "Enrollment"
         ],
-        "summary": "Création forcée élève (intervention plateforme)",
-        "description": "Inscription par le propriétaire SaaS. Schéma aligné sur l'admin école ; champs optionnels complétés via `EnrollmentDefaultsService` (session courante, tenant, barèmes frais). Audit `SUPERADMIN_FORCED_ENROLLMENT` (sévérité SECURITY). Accepte JSON ou multipart avec champ `photo` (max 5 Mo).",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SuperAdminCreateStudentBody"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/SuperAdminCreateStudentBody"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "photo": {
-                        "type": "string",
-                        "format": "binary",
-                        "description": "Photo élève (optionnel, max 5 Mo)"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        },
+        "summary": "Création forcée élève",
         "responses": {
-          "201": {
-            "description": "Élève créé",
+          "200": {
+            "description": "Opération réussie",
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/ApiSuccess"
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "data": {
-                          "$ref": "#/components/schemas/EnrollmentCreateResult"
-                        }
-                      }
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -2504,7 +2462,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentListApiResponse"
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -2541,7 +2499,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentDebtorsApiResponse"
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -2578,7 +2536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentGlobalStatsResponse"
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -2652,7 +2610,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentDashboardResponse"
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -2689,7 +2647,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentDossierResponse"
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -2726,7 +2684,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StudentActivityResponse"
+                  "$ref": "#/components/schemas/ApiSuccess"
                 }
               }
             }
@@ -3644,118 +3602,7 @@
         "tags": [
           "Notifications"
         ],
-        "summary": "Historique notifications",
-        "responses": {
-          "200": {
-            "description": "Opération réussie",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/superadmin/notifications/broadcast": {
-      "post": {
-        "tags": [
-          "Notifications"
-        ],
-        "summary": "Broadcast notification",
-        "responses": {
-          "200": {
-            "description": "Opération réussie",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/superadmin/notifications/queue-status": {
-      "get": {
-        "tags": [
-          "Notifications"
-        ],
-        "summary": "Statut queue BullMQ",
-        "responses": {
-          "200": {
-            "description": "Opération réussie",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/superadmin/notifications/cleanup": {
-      "delete": {
-        "tags": [
-          "Notifications"
-        ],
-        "summary": "Nettoyage maintenance",
+        "summary": "Historique notifications in-app (global)",
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -4506,6 +4353,143 @@
           }
         ]
       }
+    },
+    "/superadmin/notifications/broadcast": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Broadcast plateforme (fan-out massif)",
+        "description": "Rôle **SUPER_ADMIN**. Envoie à **tous** les utilisateurs via `NotificationService.sendToUsers`.\n\nArchitecture juillet 2026 : outbox transactionnelle + file **`notification-fanout`** (seuil ≥ 3). Réponse indique le nombre de destinataires planifiés.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuperAdminBroadcastBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/superadmin/notifications/queue-status": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Métriques files BullMQ notification",
+        "description": "Rôle **SUPER_ADMIN**. Compteurs par file :\n- `notification-outbox` — livraison par destinataire (SMS, email, push, WebSocket)\n- `notification-fanout` — dispatch bulk vers outbox\n\nSi Redis indisponible : `redisEnabled: false`, compteurs à 0 (reprise via poller DB).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationQueuesStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/superadmin/notifications/cleanup": {
+      "delete": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Purge notifications in-app lues",
+        "description": "Supprime les notifications **lues** plus anciennes que `days` (défaut 30). Ne purge pas l'outbox DLQ.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "description": "Âge minimum en jours",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "minimum": 1
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -4935,336 +4919,72 @@
           }
         }
       },
-      "SuperAdminCreateStudentBody": {
+      "SuperAdminBroadcastBody": {
         "type": "object",
         "required": [
-          "firstName",
-          "lastName",
-          "gender",
-          "classId",
-          "schoolId"
+          "title",
+          "message"
         ],
-        "description": "Au moins birthDate OU dateOfBirth requis. Champs optionnels résolus côté serveur si absents (voir enrollment-architecture.md).",
         "properties": {
-          "firstName": { "type": "string", "minLength": 2, "maxLength": 50 },
-          "lastName": { "type": "string", "minLength": 2, "maxLength": 50 },
-          "gender": { "type": "string", "enum": ["M", "F", "MALE", "FEMALE"] },
-          "birthDate": { "type": "string", "format": "date", "example": "2012-05-15" },
-          "dateOfBirth": { "type": "string", "format": "date-time" },
-          "schoolId": { "type": "integer", "minimum": 1 },
-          "classId": { "type": "integer", "minimum": 1 },
-          "placeOfBirth": { "type": "string", "minLength": 2 },
-          "nationality": { "type": "string", "minLength": 2 },
-          "academicYear": { "type": "string", "pattern": "^\\d{4}-\\d{4}$", "example": "2025-2026" },
-          "email": { "type": "string", "format": "email", "nullable": true },
-          "overrideReason": { "type": "string", "minLength": 10, "description": "Motif intervention plateforme (recommandé, audité)" },
-          "matricule": { "type": "string", "minLength": 10, "description": "Auto-généré si absent" },
-          "totalFees": { "type": "number", "minimum": 0 },
-          "feesPaid": { "type": "number", "minimum": 0, "default": 0 },
-          "sectionId": { "type": "integer" },
-          "scholarshipPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
-          "nfcTagId": { "type": "string", "minLength": 8 },
-          "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "PENDING_ENROLLMENT", "SUSPENDED"], "default": "ACTIVE" },
-          "faceEmbedding": { "type": "array", "items": { "type": "number" }, "minItems": 512, "maxItems": 512 }
-        }
-      },
-      "EnrollmentCreateResult": {
-        "type": "object",
-        "properties": {
-          "student": {
-            "type": "object",
-            "properties": {
-              "id": { "type": "integer" },
-              "firstName": { "type": "string" },
-              "lastName": { "type": "string" },
-              "matricule": { "type": "string" },
-              "schoolId": { "type": "integer" },
-              "classId": { "type": "integer" },
-              "placeOfBirth": { "type": "string", "nullable": true },
-              "nationality": { "type": "string", "nullable": true },
-              "academicYear": { "type": "string", "nullable": true },
-              "totalFees": { "type": "number" },
-              "feesPaid": { "type": "number" },
-              "feesBalance": { "type": "number" },
-              "photoUrl": { "type": "string", "nullable": true }
-            }
+          "title": {
+            "type": "string",
+            "minLength": 3
           },
-          "qrcode": { "type": "string", "nullable": true },
-          "message": { "type": "string" },
-          "pdfCard": { "type": "string", "description": "PDF carte élève en data:application/pdf;base64,..." },
-          "pdfWarning": { "type": "string", "description": "Présent si génération PDF échouée" }
-        }
-      },
-      "StudentGlobalStats": {
-        "type": "object",
-        "required": ["totalStudents", "presentToday", "lateToday", "totalClasses", "attendanceRate", "lastUpdate"],
-        "properties": {
-          "totalStudents": { "type": "integer", "minimum": 0 },
-          "presentToday": { "type": "integer", "minimum": 0 },
-          "lateToday": { "type": "integer", "minimum": 0 },
-          "totalClasses": { "type": "integer", "minimum": 0 },
-          "attendanceRate": { "type": "number" },
-          "lastUpdate": { "type": "string", "format": "date-time" }
-        }
-      },
-      "StudentListItem": {
-        "type": "object",
-        "required": ["id", "firstName", "lastName", "status", "isPaymentLocked", "_count"],
-        "properties": {
-          "id": { "type": "integer" },
-          "firstName": { "type": "string" },
-          "lastName": { "type": "string" },
-          "matricule": { "type": "string", "nullable": true },
-          "status": { "type": "string" },
-          "biometricStatus": { "type": "string", "nullable": true },
-          "isPaymentLocked": { "type": "boolean" },
-          "class": {
-            "type": "object",
-            "nullable": true,
-            "properties": { "name": { "type": "string" } }
+          "message": {
+            "type": "string",
+            "minLength": 5
           },
-          "_count": {
-            "type": "object",
-            "required": ["payments", "presences"],
-            "properties": {
-              "payments": { "type": "integer", "minimum": 0 },
-              "presences": { "type": "integer", "minimum": 0 }
-            }
+          "type": {
+            "type": "string",
+            "description": "NotificationType Prisma",
+            "example": "SYSTEM"
           }
         }
       },
-      "StudentListResponse": {
+      "NotificationQueueMetrics": {
         "type": "object",
-        "required": ["total", "page", "totalPages", "data"],
         "properties": {
-          "total": { "type": "integer", "minimum": 0 },
-          "page": { "type": "integer", "minimum": 1 },
-          "totalPages": { "type": "integer", "minimum": 0 },
-          "data": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/StudentListItem" }
-          }
-        }
-      },
-      "StudentDebtorItem": {
-        "type": "object",
-        "required": ["id", "firstName", "lastName", "feesBalance"],
-        "properties": {
-          "id": { "type": "integer" },
-          "firstName": { "type": "string" },
-          "lastName": { "type": "string" },
-          "matricule": { "type": "string", "nullable": true },
-          "feesBalance": { "type": "number" },
-          "class": {
-            "type": "object",
-            "nullable": true,
-            "properties": { "name": { "type": "string" } }
-          }
-        }
-      },
-      "StudentStats": {
-        "type": "object",
-        "required": ["attendanceRate", "totalPaid", "remainingDebt", "tuitionDebt", "isUpToDate", "currency"],
-        "properties": {
-          "attendanceRate": { "type": "number" },
-          "totalPaid": { "type": "number" },
-          "remainingDebt": { "type": "number" },
-          "tuitionDebt": { "type": "number" },
-          "isUpToDate": { "type": "boolean" },
-          "currency": { "type": "string" }
-        }
-      },
-      "StudentProfile": {
-        "type": "object",
-        "required": ["id", "firstName", "lastName", "status", "gender", "isPaymentLocked"],
-        "description": "Profil élève — embeddings biométriques et signatures financières exclus côté serveur",
-        "properties": {
-          "id": { "type": "integer" },
-          "firstName": { "type": "string" },
-          "lastName": { "type": "string" },
-          "matricule": { "type": "string", "nullable": true },
-          "status": { "type": "string" },
-          "photoUrl": { "type": "string", "nullable": true },
-          "gender": { "type": "string" },
-          "birthDate": { "type": "string", "nullable": true },
-          "isPaymentLocked": { "type": "boolean" },
-          "biometricStatus": { "type": "string", "nullable": true },
-          "school": {
-            "type": "object",
-            "nullable": true,
-            "properties": {
-              "name": { "type": "string" },
-              "baseCurrency": { "type": "string" }
-            }
+          "waiting": {
+            "type": "integer"
           },
-          "class": {
-            "type": "object",
-            "nullable": true,
-            "properties": { "name": { "type": "string" } }
-          }
-        }
-      },
-      "StudentDashboard": {
-        "type": "object",
-        "required": ["profile", "stats", "history"],
-        "description": "Vue 360° élève — consultation auditée SUPERADMIN_STUDENT_PROFILE_VIEW",
-        "properties": {
-          "profile": { "$ref": "#/components/schemas/StudentProfile" },
-          "stats": { "$ref": "#/components/schemas/StudentStats" },
-          "history": {
-            "type": "object",
-            "properties": {
-              "payments": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": { "type": "integer" },
-                    "amount": { "type": "number" },
-                    "currency": { "type": "string" },
-                    "createdAt": { "type": "string", "format": "date-time" }
-                  }
-                }
-              },
-              "presences": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": { "type": "integer" },
-                    "status": { "type": "string", "nullable": true },
-                    "scannedAt": { "type": "string", "format": "date-time" },
-                    "scanMethod": { "type": "string", "nullable": true }
-                  }
-                }
-              },
-              "sessions": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": { "type": "integer" },
-                    "createdAt": { "type": "string", "format": "date-time" },
-                    "session": {
-                      "type": "object",
-                      "nullable": true,
-                      "properties": { "year": { "type": "string" } }
-                    }
-                  }
-                }
-              },
-              "discipline": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": { "type": "integer" },
-                    "type": { "type": "string" },
-                    "createdAt": { "type": "string", "format": "date-time" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "StudentDossier": {
-        "type": "object",
-        "required": ["checks", "completionRate", "isReady"],
-        "description": "Complétude dossier — consultation auditée SUPERADMIN_STUDENT_DOSSIER_VIEW",
-        "properties": {
-          "checks": {
-            "type": "object",
-            "required": ["photo", "biometrics", "verified", "payment", "documents"],
-            "properties": {
-              "photo": { "type": "boolean" },
-              "biometrics": { "type": "boolean" },
-              "verified": { "type": "boolean" },
-              "payment": { "type": "boolean" },
-              "documents": { "type": "boolean" }
-            }
+          "active": {
+            "type": "integer"
           },
-          "completionRate": { "type": "number", "minimum": 0, "maximum": 100 },
-          "isReady": { "type": "boolean" }
+          "completed": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "delayed": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
         }
       },
-      "StudentActivityItem": {
-        "type": "object",
-        "required": ["type", "date", "title", "icon"],
-        "properties": {
-          "type": { "type": "string", "enum": ["PRESENCE", "PAYMENT", "DISCIPLINE"] },
-          "date": { "type": "string", "format": "date-time" },
-          "title": { "type": "string" },
-          "icon": { "type": "string" }
-        }
-      },
-      "StudentGlobalStatsResponse": {
+      "NotificationQueuesStatusResponse": {
         "allOf": [
-          { "$ref": "#/components/schemas/ApiSuccess" },
           {
-            "type": "object",
-            "properties": {
-              "data": { "$ref": "#/components/schemas/StudentGlobalStats" }
-            }
-          }
-        ]
-      },
-      "StudentListApiResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ApiSuccess" },
-          {
-            "type": "object",
-            "properties": {
-              "data": { "$ref": "#/components/schemas/StudentListResponse" }
-            }
-          }
-        ]
-      },
-      "StudentDebtorsApiResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ApiSuccess" },
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
           {
             "type": "object",
             "properties": {
               "data": {
-                "type": "array",
-                "items": { "$ref": "#/components/schemas/StudentDebtorItem" }
-              }
-            }
-          }
-        ]
-      },
-      "StudentDashboardResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ApiSuccess" },
-          {
-            "type": "object",
-            "properties": {
-              "data": { "$ref": "#/components/schemas/StudentDashboard" }
-            }
-          }
-        ]
-      },
-      "StudentDossierResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ApiSuccess" },
-          {
-            "type": "object",
-            "properties": {
-              "data": { "$ref": "#/components/schemas/StudentDossier" }
-            }
-          }
-        ]
-      },
-      "StudentActivityResponse": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ApiSuccess" },
-          {
-            "type": "object",
-            "properties": {
-              "data": {
-                "type": "array",
-                "items": { "$ref": "#/components/schemas/StudentActivityItem" }
+                "type": "object",
+                "properties": {
+                  "redisEnabled": {
+                    "type": "boolean"
+                  },
+                  "outbox": {
+                    "$ref": "#/components/schemas/NotificationQueueMetrics"
+                  },
+                  "fanout": {
+                    "$ref": "#/components/schemas/NotificationQueueMetrics"
+                  }
+                }
               }
             }
           }

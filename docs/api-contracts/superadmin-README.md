@@ -17,6 +17,7 @@
 | Students | `GET /students-management/students/{id}/dashboard` | Vue 360° · panel latéral · audit consultation |
 | Monitoring | `GET /monitoring/alerts`, `/monitoring/reconciliation` | Santé gateways |
 | Mobile Money | `GET /mm/fraud-radar`, `POST /mm/reconcile/{paymentId}` | Réconciliation réseau |
+| **Notifications** | `POST /notifications/broadcast`, **`GET /notifications/queue-status`** | Fan-out plateforme · métriques outbox/fanout |
 
 ## Documentation
 
@@ -26,7 +27,8 @@
 | **Architecture élèves SuperAdmin** | [students-management-architecture.md](./students-management-architecture.md) | — |
 | **Passation KYC / paiements (collègue front)** | [web-admin-payment-handoff.md](./web-admin-payment-handoff.md) | — |
 | **REST superadmin (source de vérité)** | [openapi/superadmin.json](./openapi/superadmin.json) | `/api-docs/superadmin` |
-| Temps réel paiements (supervision) | `src/docs/openapi-admin.json` | `/api-docs/admin-realtime` |
+| **Notifications outbox / DLQ** | [notification-architecture.md](./notification-architecture.md) | — |
+| Temps réel paiements (supervision) | [openapi/admin-sockets.json](./openapi/admin-sockets.json) | `/api-docs/admin-realtime` |
 
 **Régénération REST :** `npm run docs:superadmin-openapi` → `scripts/generate-superadmin-swagger.js` → `swagger-docs/superadmin.json`
 
@@ -37,5 +39,6 @@ Toutes les routes superadmin REST sont documentées **uniquement** dans `swagger
 - [types/enrollment.validation.ts](./types/enrollment.validation.ts) — schémas inscription (admin + super-admin)
 - [types/students-management.validation.ts](./types/students-management.validation.ts) — schémas réponses élèves (dashboard, dossier, activité)
 - [types/superadmin.validation.ts](./types/superadmin.validation.ts) — schémas Zod requêtes super-admin
+- [types/notification.types.ts](./types/notification.types.ts) — DLQ, queue metrics, settings parent SMS
 - `Dto/audit.dto.ts`, `Dto/anomaly.dto.ts` — query/body parsing
 - `utils/analytics.types.ts` — réponses dashboard analytics

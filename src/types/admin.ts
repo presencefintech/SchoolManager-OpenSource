@@ -618,6 +618,23 @@ export interface FinancePaymentMethodsBreakdown {
   methods: FinancePaymentMethodBreakdownRow[]
 }
 
+/** GET /admin/finance/dashboard/fee-types — encaissements par catégorie de frais. */
+export interface FinanceFeeTypeBreakdownRow {
+  feeType: string
+  amount: number
+  count: number
+  sharePct: number
+}
+
+export interface FinanceFeeTypesBreakdown {
+  period: 'day' | 'month'
+  from: string
+  to: string
+  total: number
+  count: number
+  feeTypes: FinanceFeeTypeBreakdownRow[]
+}
+
 /** GET/POST /admin/finance/seal-batches — lots de scellés financiers. */
 export type FinancialSealBatchStatus = 'PENDING' | 'SEALED' | 'ARCHIVED'
 
