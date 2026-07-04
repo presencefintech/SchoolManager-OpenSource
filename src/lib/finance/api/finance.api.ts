@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client'
+import type { StudentFeeScheduleDto } from '@/types/finance'
 
 export const financeRoleApi = {
   // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -89,6 +90,13 @@ export const financeRoleApi = {
 
   getStudentWallet: (id: number) =>
     apiClient.get(`/finance/students/${id}/wallet`).then(r => r.data.data),
+
+  getStudentFeeSchedule: (studentId: number, sessionId?: number) =>
+    apiClient
+      .get(`/finance/students/${studentId}/fee-schedule`, {
+        params: sessionId != null && sessionId > 0 ? { sessionId } : undefined,
+      })
+      .then(r => r.data.data as StudentFeeScheduleDto),
 
   // ── Catalogue ──────────────────────────────────────────────────────────────
   getFeeStructures: (params?: { classId?: number }) =>

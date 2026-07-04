@@ -163,3 +163,74 @@ export interface ClosingPreview {
   pendingCount: number
   canFinalize: boolean
 }
+
+// ── Échéancier élève (FeeBillingScheduleService / OpenAPI StudentFeeScheduleDto) ──
+
+export type FeeScheduleLineStatus = 'PAID' | 'DUE' | 'UPCOMING' | 'OVERDUE'
+
+export type FeeBillingPeriod = 'ONE_TIME' | 'MONTHLY' | 'TERM' | 'ANNUAL'
+
+/** Mois facturé YYYY-MM */
+export type MonthYear = string
+
+export interface FeeScheduleLineDto {
+  feeStructureId: number
+  categoryId: number
+  categoryCode: string | null
+  categoryName: string
+  billingPeriod: FeeBillingPeriod
+  amount: number
+  currency: string
+  monthYear: MonthYear | null
+  dueDate: string | null
+  status: FeeScheduleLineStatus
+  paid: boolean
+}
+
+export interface FeeScheduleSummaryDto {
+  lineCount: number
+  paidCount: number
+  dueCount: number
+  overdueCount: number
+  upcomingCount: number
+  totalAmountDue: number
+  totalAmountPaid: number
+  nextDueDate: string | null
+  nextDueMonthYear: MonthYear | null
+}
+
+export interface StudentFeeScheduleDto {
+  studentId: number
+  sessionId: number
+  sessionLabel: string
+  billingStartMonth: MonthYear
+  billingEndMonth: MonthYear
+  currency: string
+  lines: FeeScheduleLineDto[]
+  summary: FeeScheduleSummaryDto
+}
+
+// ── Paiement manuel (OpenAPI ManualPaymentBody) ─────────────────────────────
+
+export type PaymentMethod =
+  | 'CASH'
+  | 'BANK'
+  | 'BANK_TRANSFER'
+  | 'MOBILE_MONEY'
+  | 'ORANGE_MONEY'
+  | 'MPESA'
+  | 'AIRTEL_MONEY'
+  | 'CARD'
+  | 'CHEQUE'
+
+export interface ManualPaymentRequest {
+  studentId: number
+  amount: number
+  method: PaymentMethod
+  sessionId?: number
+  feeStructureId?: number
+  monthYear?: MonthYear
+  reference?: string
+  comment?: string
+  payerPhone?: string
+}
