@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar } from 'lucide-react'
+import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
@@ -141,6 +142,7 @@ export default function DebiteursPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Matricule</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Classe</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Solde dû</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-zinc-500">Actions</th>
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
@@ -161,6 +163,14 @@ export default function DebiteursPage() {
                       {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
                     </td>
                     <td className="px-5 py-3.5">
+                      {dbtr.id ? (
+                        <StudentFeeScheduleLink
+                          studentId={Number(dbtr.id)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-3.5">
                       <ChevronDown size={14} className={`text-zinc-400 transition-transform ${expandedDebtor === dbtr.id ? 'rotate-180' : ''}`} />
                     </td>
                   </tr>
@@ -168,7 +178,7 @@ export default function DebiteursPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-zinc-50/50 border-t border-zinc-100">
-                  <td colSpan={3} className="px-5 py-3 text-xs font-semibold text-zinc-500">Total ({debtors.length} débiteurs)</td>
+                  <td colSpan={4} className="px-5 py-3 text-xs font-semibold text-zinc-500">Total ({debtors.length} débiteurs)</td>
                   <td className="px-5 py-3 text-right text-xs font-bold text-red-600">
                     {formatMoney(totalDebt)}
                   </td>
@@ -209,6 +219,7 @@ export default function DebiteursPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Classe</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Solde dû</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Risque</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-zinc-500">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -227,6 +238,9 @@ export default function DebiteursPage() {
                       }`}>
                         {r.riskLevel ?? 'HIGH'}
                       </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {r.studentId ? <StudentFeeScheduleLink studentId={r.studentId} /> : null}
                     </td>
                   </tr>
                 ))}
@@ -291,6 +305,11 @@ export default function DebiteursPage() {
                 onSelect={(id) => setSearchedId(id)}
                 label="Rechercher un élève"
               />
+              {searchedId > 0 && (
+                <div className="mt-3">
+                  <StudentFeeScheduleLink studentId={searchedId} variant="inline" />
+                </div>
+              )}
             </div>
 
             {loadingProfile && (
