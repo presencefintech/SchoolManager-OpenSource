@@ -5,10 +5,11 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck, UserCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
+import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 
 const NAV_LINKS = [
   { label: 'Dashboard',        href: '/finances/dashboard',       icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const NAV_LINKS = [
   { label: 'Transactions',     href: '/finances/transactions',    icon: Search },
   { label: 'Classes',          href: '/finances/classes',         icon: BookOpen },
   { label: 'Clôture',          href: '/finances/cloture',         icon: CalendarCheck },
+  { label: 'Profil & sécurité', href: '/finances/profil-securite', icon: UserCircle },
 ]
 
 function FinanceNav() {
@@ -90,15 +92,20 @@ function FinanceNav() {
       <div className="mx-5 h-px bg-zinc-100" />
 
       <div className="px-4 py-4 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-3">
+        <Link
+          href="/finances/profil-securite"
+          className="flex items-center gap-3 mb-3 rounded-xl px-1 py-1 hover:bg-zinc-50 transition-colors group"
+        >
           <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center ring-1 ring-emerald-200/80 flex-shrink-0">
             <span className="text-xs font-bold text-emerald-700">{initials}</span>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-700 truncate leading-tight">{user?.firstName} {user?.lastName}</p>
-            <p className="text-[11px] text-zinc-400 truncate leading-tight">{user?.email}</p>
+            <p className="text-sm font-medium text-zinc-700 truncate leading-tight group-hover:text-emerald-700">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-[11px] text-zinc-400 truncate leading-tight">Profil &amp; sécurité</p>
           </div>
-        </div>
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
@@ -116,6 +123,7 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
     <div className="flex min-h-screen">
       <FinanceNav />
       <main className="flex-1 ml-64 min-h-screen bg-zinc-50">
+        <EmailVerificationBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
     </div>

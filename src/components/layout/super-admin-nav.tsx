@@ -3,7 +3,7 @@
 import { useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench, UserCircle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -24,6 +24,7 @@ const NAV_LINKS = [
   { label: 'Exports',         href: '/super-admin/export',           icon: Download },
   { label: 'Notifications',   href: '/super-admin/notifications',    icon: Bell },
   { label: 'Outils SA',       href: '/super-admin/outils',           icon: Wrench },
+  { label: 'Profil & sécurité', href: '/super-admin/profil-securite', icon: UserCircle },
 ]
 
 export function SuperAdminNav() {
@@ -105,17 +106,20 @@ export function SuperAdminNav() {
 
       {/* User + logout */}
       <div className="px-4 py-4 flex-shrink-0">
-        <div className="flex items-center gap-3 mb-3">
+        <Link
+          href="/super-admin/profil-securite"
+          className="flex items-center gap-3 mb-3 rounded-xl px-1 py-1 hover:bg-zinc-50 transition-colors group"
+        >
           <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center ring-1 ring-indigo-200/80 flex-shrink-0">
             <span className="text-xs font-bold text-indigo-700">{initials}</span>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-700 truncate leading-tight">
+            <p className="text-sm font-medium text-zinc-700 truncate leading-tight group-hover:text-indigo-700">
               {user?.firstName} {user?.lastName}
             </p>
-            <p className="text-[11px] text-zinc-400 truncate leading-tight">{user?.email}</p>
+            <p className="text-[11px] text-zinc-400 truncate leading-tight">Profil &amp; sécurité</p>
           </div>
-        </div>
+        </Link>
         <button
           onClick={logout}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"

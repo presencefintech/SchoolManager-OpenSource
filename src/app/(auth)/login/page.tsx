@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,6 +29,16 @@ const features = [
 ]
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  )
+}
+
+function LoginPageContent() {
+  const searchParams = useSearchParams()
+  const justActivated = searchParams.get('activated') === '1'
   const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
@@ -90,6 +101,16 @@ export default function LoginPage() {
             <h2 className="text-lg font-semibold text-zinc-900">Connexion</h2>
             <p className="text-sm text-zinc-400 mt-1">Accédez à votre espace administrateur</p>
           </div>
+
+          {justActivated && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800"
+            >
+              Compte activé. Connectez-vous, puis confirmez votre email pour débloquer les opérations
+              financières.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
 

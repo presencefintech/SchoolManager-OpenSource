@@ -120,7 +120,7 @@
           "pattern": "user_{userId}",
           "joinedBy": "server",
           "roles": ["ALL"],
-          "purpose": "Canal personnel (`notification`) — complément REST NotificationService"
+          "purpose": "Canal personnel (`notification`, alertes DLQ admin) — worker outbox WEBSOCKET"
         }
       ],
       "payloadIsolation": {
@@ -183,6 +183,35 @@
           "confirmedAt": "2026-06-08T15:22:00.000Z",
           "reconciliationStatus": "CONFIRMED",
           "timestamp": "2026-06-08T15:22:00.125Z"
+        }
+      },
+      "notification": {
+        "tag": "Real-time — Notifications",
+        "direction": "server → client",
+        "description": "Notification in-app (Prisma) — émise par le worker outbox après enregistrement. Alertes DLQ admin utilisent le même canal.",
+        "emittedTo": "room `user_{userId}`",
+        "audienceRoles": ["ALL"],
+        "trigger": "NotificationDeliveryService.deliverWebSocket — file notification-outbox",
+        "payloadSchema": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "integer" },
+            "userId": { "type": "integer" },
+            "title": { "type": "string" },
+            "message": { "type": "string" },
+            "type": { "type": "string" },
+            "schoolId": { "type": "integer" },
+            "studentId": { "type": "integer", "nullable": true }
+          }
+        },
+        "example": {
+          "id": 1201,
+          "userId": 42,
+          "title": "Présence confirmée",
+          "message": "Jean est marqué PRESENT",
+          "type": "SYSTEM",
+          "schoolId": 1,
+          "studentId": 110
         }
       },
       "refund.requested.finance": {

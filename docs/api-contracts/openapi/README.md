@@ -8,6 +8,9 @@ Régénérer avant partage collaborateur : `npm run docs:openapi`
 | **Admin** | `admin.json` | `ADMIN`, `SUPER_ADMIN`, `FINANCE` (lecture) | `/api-docs/admin` |
 | **Finance guichet** | `finance.json` | `FINANCE`, `ADMIN` | `/api-docs/finance` |
 | **SuperAdmin** | `superadmin.json` | `SUPER_ADMIN` | `/api-docs/superadmin` |
+| **Parent mobile** | `parent-mobile.json` | `PARENT` | `/api-docs/parent-mobile` |
+
+> **Notifications (juil. 2026) :** outbox transactionnelle, DLQ admin, fan-out bulk, SMS parent — voir [notification-architecture.md](../notification-architecture.md).
 
 > **Inscription :** schéma `SuperAdminCreateStudentBody` sur `POST /superadmin/enrollment` — voir [enrollment-architecture.md](../enrollment-architecture.md).
 
@@ -19,7 +22,7 @@ Régénérer avant partage collaborateur : `npm run docs:openapi`
 
 > **KYC :** `PUT` payment-profile → `admin.json` · `GET` (lecture FINANCE) → aussi dans `finance.json` · `verify`/`reject` → `superadmin.json`. Schémas partagés : `paymentProfileSchemas` dans `scripts/swagger-openapi-shared.js`.
 
-**Compteur ops (juin 2026) :** admin **136** · superadmin **112** · finance **40**
+**Compteur ops (juil. 2026) :** admin **166** · superadmin **112** · finance **40**
 
 > **Admin & SuperAdmin :** une seule spec REST chacun — `admin.json` et `superadmin.json`. Schémas KYC partagés via `scripts/swagger-openapi-shared.js` → `paymentProfileSchemas`.
 
@@ -33,13 +36,13 @@ npm run docs:openapi
 
 ## Specs complémentaires (non générées par ces scripts)
 
-| Fichier | Rôle | Script | Commande npm | Swagger UI |
-|---------|------|--------|--------------|------------|
-| `src/docs/openapi-parent-mobile.json` | Parent Flutter (hors finances + sockets) | `scripts/build-parent-openapi-docs.mjs` | `docs:parent-openapi` | `/api-docs/parent-mobile` |
-| `src/docs/openapi-parent-finances.json` | Finances & paiements parent | `scripts/build-parent-openapi-docs.mjs` | `docs:parent-openapi` | `/api-docs/parent-finances` |
-| `src/docs/openapi-auth.json` | Auth parent / OTP | `scripts/build-parent-openapi-docs.mjs` | `docs:parent-openapi` | `/api-docs/auth-mobile` |
-| `src/docs/openapi-teacher-mobile.json` | App enseignant | `scripts/build-teacher-openapi-docs.mjs` | `docs:teacher-openapi` | `/api-docs/teacher-mobile` |
-| `src/docs/openapi-admin.json` | Socket.io temps réel (admin + finance) | — | — | `/api-docs/admin-realtime` |
+| Fichier | Rôle | Emplacement front | Swagger UI |
+|---------|------|-------------------|------------|
+| `openapi/parent-mobile.json` | Parent Flutter | `docs/api-contracts/openapi/` | `/api-docs/parent-mobile` |
+| `openapi/admin-sockets.json` | Socket.io admin/finance/parent | `docs/api-contracts/openapi/` | `/api-docs/admin-realtime` |
+| `src/docs/openapi-parent-finances.json` | Finances parent (backend) | backend `src/docs/` | `/api-docs/parent-finances` |
+| `src/docs/openapi-auth.json` | Auth OTP (backend) | backend `src/docs/` | `/api-docs/auth-mobile` |
+| `src/docs/openapi-teacher-mobile.json` | App enseignant | backend `src/docs/` | `/api-docs/teacher-mobile` |
 
 > **Parent :** deux specs REST complémentaires (`openapi-parent-mobile.json` + `openapi-parent-finances.json`) — une seule commande `npm run docs:parent-openapi`, pas de doublon avec les anciens fichiers settings/autogen.
 

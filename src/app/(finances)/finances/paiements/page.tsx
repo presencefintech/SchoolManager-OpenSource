@@ -11,6 +11,7 @@ import {
 } from '@/lib/hooks/use-finance'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
+import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatMoney } from '@/lib/finance/currency'
@@ -220,6 +221,11 @@ export default function PaiementsPage() {
               label="Élève"
               required
             />
+            {form.studentId > 0 && (
+              <div className="-mt-2">
+                <StudentFeeScheduleLink studentId={form.studentId} variant="inline" />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Montant ($) *</label>

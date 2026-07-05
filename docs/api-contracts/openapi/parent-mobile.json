@@ -1,0 +1,2340 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Presence — API Mobile Parent (Flutter)",
+    "version": "1.0.0",
+    "description": "Contrat OpenAPI **parent mobile** — tout sauf finances.\n\n**Base URL:** `{host}/api/v1/mobile/parents`\n\n**Auth:** `Authorization: Bearer <JWT>` (rôle PARENT) — voir [`openapi-auth.json`](./openapi-auth.json).\n\n**Contexte tenant (ADR-002):** après login, `GET /control-plane/tenant/config` puis header `X-Tenant-Id: <uuid>` sur les routes protégées. Socket : `auth.tenantId`. Voir [`docs/ADR-002-tenant-context.md`](../../docs/ADR-002-tenant-context.md).\n\n**Finances / paiements:** [`openapi-parent-finances.json`](./openapi-parent-finances.json) (aucune route finance ici).\n\n**Réponse standard:** `{ success, message, data?, timestamp, statusCode }`\n\n**Temps réel:** extension `x-socket-events` — **Event catalog v0** (`payment.settled`, `attendance.recorded`, `notification`).\n\n**Guide:** [`frontend-integration-guide.md`](./frontend-integration-guide.md)"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1/mobile/parents",
+      "description": "Développement local"
+    },
+    {
+      "url": "https://gestion-presence-et-paiement-mobile.onrender.com/api/v1/mobile/parents",
+      "description": "Staging Render"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Onboarding",
+      "description": "Activation et liaison de compte"
+    },
+    {
+      "name": "Control Plane",
+      "description": "Configuration runtime tenant (UUID, features, branding)"
+    },
+    {
+      "name": "Dashboard",
+      "description": "Tableau de bord et paramètres"
+    },
+    {
+      "name": "Students",
+      "description": "Élèves, présence, sécurité"
+    },
+    {
+      "name": "Classes",
+      "description": "Informations sur la classe de l'enfant"
+    },
+    {
+      "name": "Health",
+      "description": "Santé de l'API"
+    }
+  ],
+  "paths": {
+    "/activate-access": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Activer un compte parent (code école)",
+        "description": "Première connexion : le parent doit déjà exister côté admin (`isActive: false`). Distinct de `POST /api/v1/auth/activate` (staff).",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateParentAccessBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compte activé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ActivateParentAccessData"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "403": {
+            "description": "Code invalide ou activation refusée"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/ping": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check routeur parent",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Parent router opérationnel 🚀"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard-debug": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Dashboard mock (développement)",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Données de test"
+          }
+        }
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Tableau de bord parent",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "description": "Contexte tenant UUID (recommandé) ou `school-{id}`. Source : `GET /control-plane/tenant/config` → `data.tenant.id`. Fallback serveur : `x-school-id` puis JWT `schoolId`. Incohérence JWT en prod → 403 `TENANT_CONTEXT_MISMATCH`.",
+            "schema": {
+              "type": "string",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "ID de traçabilité (généré côté serveur si absent). Logs + gateway paiement.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-school-id",
+            "in": "header",
+            "required": false,
+            "description": "Fallback legacy — entier école si `X-Tenant-Id` absent.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Synthèse enfants, finances, notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ParentDashboard"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/control-plane/tenant/config": {
+      "get": {
+        "tags": [
+          "Control Plane"
+        ],
+        "summary": "Configuration runtime tenant (Control Plane P0)",
+        "description": "Retourne tenant UUID, slug, feature flags, branding et limits pour l'école du parent. Le mobile met en cache 1 h et utilise `tenant.id` pour `X-Tenant-Id`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "description": "Contexte tenant UUID (recommandé) ou `school-{id}`. Source : `GET /control-plane/tenant/config` → `data.tenant.id`. Fallback serveur : `x-school-id` puis JWT `schoolId`. Incohérence JWT en prod → 403 `TENANT_CONTEXT_MISMATCH`.",
+            "schema": {
+              "type": "string",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "ID de traçabilité (généré côté serveur si absent). Logs + gateway paiement.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-school-id",
+            "in": "header",
+            "required": false,
+            "description": "Fallback legacy — entier école si `X-Tenant-Id` absent.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "schoolId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "École cible — doit correspondre à un lien parent actif"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/TenantConfigPayload"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "description": "schoolId invalide",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "schoolId invalide",
+                  "statusCode": 422
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Liste des notifications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "unreadOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste paginée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/settings/notifications": {
+      "patch": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Préférences de notification (email, push, SMS)",
+        "description": "Active ou désactive les canaux de livraison.\n\n- **`sms: true`** — présence/absences envoyées par **SMS** (Africa's Talking / mock) via outbox transactionnelle.\n- **`push`** — FCM / Web Push.\n- **`email`** — SMTP système.\n\nComplète le temps réel `attendance.recorded` et l'événement socket `notification`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSettingsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Préférences mises à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/notifications/register-token": {
+      "post": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Enregistrer un token push (FCM / iOS)",
+        "description": "À appeler **après** login OTP/password. Distinct de `PATCH /api/v1/auth/push-token`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token enregistré"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/security-logs": {
+      "get": {
+        "tags": [
+          "Dashboard"
+        ],
+        "summary": "Journal de sécurité du compte",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs paginés (actorId = utilisateur courant)"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/students": {
+      "get": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Liste des enfants liés",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Élèves rattachés au parent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ParentStudentListItem"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/claim-student": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Lier un élève supplémentaire (code invitation)",
+        "description": "Parent déjà connecté. Body: `{ \"code\": \"...\" }` (min 6 caractères, uppercase).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimStudentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Élève lié",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/pre-enroll": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Pré-inscription d'un enfant",
+        "description": "Crée un élève **PENDING_ENROLLMENT**. Validation établissement hors scope parent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PreEnrollMultipart"
+              }
+            },
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParentPreEnrollBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pré-inscription enregistrée",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/PreEnrollResponse"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/students/{studentId}/attendance": {
+      "get": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Fil de présence d'un enfant (lecture seule)",
+        "description": "Retourne les pointages du **jour courant** pour l'élève lié au parent.\n\n**Usage Flutter :** afficher `status`, `method` (mode de prélèvement), `scannedAt`, alertes `security`.\n\nLe parent **ne pointe pas** — le prélèvement est effectué par l'app enseignant (`openapi-teacher-mobile.json`).\n\n**Référence modes :** `PresenceScanMethod` · statuts : `PresenceStatus`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flux paginé (présences du jour)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/StudentAttendanceFeed"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/students/{studentId}/pass": {
+      "get": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Pass numérique élève (QR)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Données du pass",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "qrCodeString": {
+                              "type": "string"
+                            },
+                            "expiresAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/students/{studentId}/clearance": {
+      "get": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Autorisation de sortie / clearance",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statut clearance"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/students/{studentId}/security-check": {
+      "get": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Vérification sécurité (fraude, blacklist)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat du contrôle"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/students/{studentId}/biometrics": {
+      "post": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Mettre à jour la photo biométrique",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "photo"
+                ],
+                "properties": {
+                  "photo": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG/PNG/WebP/PDF, max 2 Mo"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Biométrie mise à jour"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/students/{studentId}/photo": {
+      "post": {
+        "tags": [
+          "Students"
+        ],
+        "summary": "Uploader une photo de profil enfant",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Photo enregistrée"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/classes/{id}": {
+      "get": {
+        "tags": [
+          "Classes"
+        ],
+        "summary": "Détails de la classe",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Identifiant de la classe"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Informations classe"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/classes/{id}/logistics": {
+      "get": {
+        "tags": [
+          "Classes"
+        ],
+        "summary": "Résumé logistique (fournitures, etc.)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Identifiant de la classe"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Données logistiques"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/classes/{id}/contacts": {
+      "get": {
+        "tags": [
+          "Classes"
+        ],
+        "summary": "Contacts pour diffusion",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Identifiant de la classe"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste de contacts"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/classes/{id}/stats": {
+      "get": {
+        "tags": [
+          "Classes"
+        ],
+        "summary": "Statistiques académiques de la classe",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Identifiant de la classe"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Statistiques"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    }
+  },
+  "x-socket-events": {
+    "protocol": "socket.io",
+    "version": "4.x",
+    "description": "Canal temps réel parent — **Event catalog v0** (enveloppe canonique Empire). Rooms `user_{parentUserId}` et `tenant_{tenantId}` (ADR-002).",
+    "connection": {
+      "url": "{host}",
+      "path": "/socket.io/",
+      "transports": [
+        "websocket",
+        "polling"
+      ],
+      "authentication": {
+        "description": "JWT via POST /api/v1/auth/login ou /verify-otp (rôle PARENT). Optionnel : `auth.tenantId` (même UUID que header REST `X-Tenant-Id`).",
+        "handshakeAuth": {
+          "token": "<JWT Bearer — même valeur que Authorization REST>",
+          "tenantId": "<UUID tenant — depuis GET /control-plane/tenant/config>"
+        }
+      }
+    },
+    "events": [
+      {
+        "name": "payment.settled",
+        "direction": "server → client",
+        "room": "user_{parentUserId}",
+        "role": "PARENT",
+        "schema": {
+          "$ref": "#/components/schemas/ParentSocketEventPaymentSettled"
+        },
+        "description": "Émis après webhook PAYMENT_CONFIRMED ou réconciliation. Enveloppe catalog v0 — détails dans `payload`."
+      },
+      {
+        "name": "attendance.recorded",
+        "direction": "server → client",
+        "room": "user_{parentUserId}",
+        "role": "PARENT",
+        "schema": {
+          "$ref": "#/components/schemas/ParentSocketEventAttendanceRecorded"
+        },
+        "description": "Émis après pointage élève (post-process présence). Idempotence Redis 24 h.\nComplémentaire aux SMS/email si `smsNotifications` / `emailNotifications` actifs (outbox juillet 2026)."
+      },
+      {
+        "name": "notification",
+        "direction": "server → client",
+        "room": "user_{parentUserId}",
+        "role": "PARENT",
+        "schema": {
+          "$ref": "#/components/schemas/ParentSocketEventNotification"
+        },
+        "description": "Notification in-app persistée — émise par le worker outbox (canal WEBSOCKET)."
+      }
+    ],
+    "implementationStatus": {
+      "payment.settled": "IMPLÉMENTÉ — payment-settled.emitter.ts (catalog v0)",
+      "attendance.recorded": "IMPLÉMENTÉ — parent-attendance-socket.handler.ts",
+      "notification": "IMPLÉMENTÉ — NotificationDeliveryService (canal WEBSOCKET)",
+      "validatedAt": "2026-07-04"
+    }
+  },
+  "components": {
+    "parameters": {
+      "XTenantId": {
+        "name": "X-Tenant-Id",
+        "in": "header",
+        "required": false,
+        "description": "Contexte tenant UUID (recommandé) ou `school-{id}`. Source : `GET /control-plane/tenant/config` → `data.tenant.id`. Fallback serveur : `x-school-id` puis JWT `schoolId`. Incohérence JWT en prod → 403 `TENANT_CONTEXT_MISMATCH`.",
+        "schema": {
+          "type": "string",
+          "example": "550e8400-e29b-41d4-a716-446655440000"
+        }
+      },
+      "XCorrelationId": {
+        "name": "X-Correlation-Id",
+        "in": "header",
+        "required": false,
+        "description": "ID de traçabilité (généré côté serveur si absent). Logs + gateway paiement.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "XSchoolId": {
+        "name": "x-school-id",
+        "in": "header",
+        "required": false,
+        "description": "Fallback legacy — entier école si `X-Tenant-Id` absent.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "example": 1
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Token via openapi-auth.json"
+      }
+    },
+    "schemas": {
+      "ApiSuccess": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "timestamp",
+          "statusCode"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusCode": {
+            "type": "integer",
+            "example": 200
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "validation": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusCode": {
+            "type": "integer"
+          }
+        }
+      },
+      "ActivateParentAccessBody": {
+        "type": "object",
+        "required": [
+          "phone",
+          "code",
+          "password",
+          "firstName",
+          "lastName"
+        ],
+        "properties": {
+          "phone": {
+            "type": "string",
+            "minLength": 6,
+            "example": "+243900000000"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 20
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "format": "password"
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 2
+          }
+        }
+      },
+      "ActivateParentAccessData": {
+        "type": "object",
+        "properties": {
+          "parentId": {
+            "type": "integer"
+          },
+          "studentId": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          }
+        }
+      },
+      "ClaimStudentBody": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 6,
+            "example": "INVITE1"
+          }
+        }
+      },
+      "NotificationSettingsBody": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Au moins un canal requis. SMS = notifications présence/absence par SMS.",
+        "properties": {
+          "email": {
+            "type": "boolean",
+            "description": "Notifications par email (SMTP)"
+          },
+          "push": {
+            "type": "boolean",
+            "description": "Push FCM / iOS"
+          },
+          "sms": {
+            "type": "boolean",
+            "description": "SMS présence/absence (requiert téléphone vérifié OTP)"
+          }
+        }
+      },
+      "RegisterPushTokenBody": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 10
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "FCM",
+              "IOS",
+              "WEB",
+              "MOBILE"
+            ],
+            "default": "MOBILE"
+          }
+        }
+      },
+      "TenantConfigPayload": {
+        "type": "object",
+        "required": [
+          "tenant",
+          "features",
+          "branding",
+          "limits"
+        ],
+        "properties": {
+          "tenant": {
+            "type": "object",
+            "required": [
+              "id",
+              "slug",
+              "schoolId",
+              "region",
+              "timezone",
+              "currency",
+              "locale"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "tenant_id immuable"
+              },
+              "slug": {
+                "type": "string",
+                "example": "ecole-saint-joseph-kin-1"
+              },
+              "schoolId": {
+                "type": "integer",
+                "example": 1
+              },
+              "region": {
+                "type": "string",
+                "example": "cd-kin"
+              },
+              "timezone": {
+                "type": "string",
+                "example": "Africa/Kinshasa"
+              },
+              "currency": {
+                "type": "string",
+                "example": "USD"
+              },
+              "locale": {
+                "type": "string",
+                "example": "fr-CD"
+              }
+            }
+          },
+          "features": {
+            "type": "object",
+            "properties": {
+              "payments": {
+                "type": "object",
+                "properties": {
+                  "flutterwave": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "mobile_money": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              },
+              "biometrics": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "provider": {
+                    "type": "string",
+                    "example": "local_edge"
+                  }
+                }
+              },
+              "offline_sync": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "max_queue_hours": {
+                    "type": "integer",
+                    "example": 72
+                  }
+                }
+              }
+            }
+          },
+          "branding": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "example": "École Saint-Joseph"
+              },
+              "logo_url": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "max_students": {
+                "type": "integer",
+                "example": 2000
+              },
+              "rate_limit_rpm": {
+                "type": "integer",
+                "example": 500
+              }
+            }
+          }
+        }
+      },
+      "ParentDashboard": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "totalChildren": {
+                "type": "integer"
+              },
+              "unreadCount": {
+                "type": "integer"
+              },
+              "financials": {
+                "type": "object",
+                "properties": {
+                  "totalDebt": {
+                    "type": "number"
+                  },
+                  "totalPaid": {
+                    "type": "number"
+                  },
+                  "healthScore": {
+                    "type": "number"
+                  }
+                }
+              },
+              "attendance": {
+                "type": "object",
+                "properties": {
+                  "averageRate": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "GOOD",
+                      "ATTENTION",
+                      "NONE"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "students": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "photo": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "balance": {
+                  "type": "object",
+                  "properties": {
+                    "debt": {
+                      "type": "number"
+                    },
+                    "isUpToDate": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "insights": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "studentId": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "security": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": [
+                  "VERIFIED",
+                  "ISSUE_DETECTED"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        }
+      },
+      "ParentStudentListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "photo": {
+            "type": "string",
+            "nullable": true
+          },
+          "className": {
+            "type": "string"
+          },
+          "balance": {
+            "type": "number"
+          },
+          "paid": {
+            "type": "number"
+          },
+          "isSecure": {
+            "type": "boolean"
+          },
+          "attendanceRate": {
+            "type": "number"
+          }
+        }
+      },
+      "ParentStudentStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING_ENROLLMENT",
+          "ACTIVE"
+        ]
+      },
+      "ParentStudentSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "classId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "M",
+              "F"
+            ]
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ParentStudentStatus"
+          },
+          "photoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PreEnrollResponse": {
+        "type": "object",
+        "required": [
+          "student",
+          "message"
+        ],
+        "properties": {
+          "student": {
+            "$ref": "#/components/schemas/ParentStudentSummary"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ParentPreEnrollBody": {
+        "type": "object",
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "gender": {
+            "type": "string",
+            "enum": [
+              "M",
+              "F"
+            ]
+          },
+          "dateOfBirth": {
+            "type": "string",
+            "format": "date"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "classId": {
+            "type": "integer"
+          },
+          "sectionId": {
+            "type": "integer"
+          },
+          "placeOfBirth": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": "string",
+            "default": "Congolaise"
+          },
+          "emergencyContactName": {
+            "type": "string"
+          },
+          "emergencyContactPhone": {
+            "type": "string",
+            "minLength": 10
+          },
+          "bloodGroup": {
+            "type": "string"
+          },
+          "allergies": {
+            "type": "string"
+          },
+          "medicalNotes": {
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "type": "string",
+            "default": "fr"
+          }
+        }
+      },
+      "PreEnrollMultipart": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ParentPreEnrollBody"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "photo": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        ]
+      },
+      "PresenceStatus": {
+        "type": "string",
+        "description": "Statut calculé ou enregistré pour le pointage.",
+        "enum": [
+          "PRESENT",
+          "LATE",
+          "ABSENT"
+        ]
+      },
+      "PresenceScanMethod": {
+        "type": "string",
+        "description": "Mode de prélèvement de présence (valeur `scanMethod` en base). Aligné sur le scan enseignant — voir `PresenceRecordBody.scanMethod` dans openapi-teacher-mobile.json.",
+        "enum": [
+          "QR_CODE",
+          "NFC",
+          "BIOMETRIC",
+          "FACIAL",
+          "MANUAL"
+        ],
+        "example": "QR_CODE"
+      },
+      "AttendanceFeedSecurity": {
+        "type": "object",
+        "properties": {
+          "isSuspicious": {
+            "type": "boolean"
+          },
+          "riskScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AttendanceFeedLocation": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "nullable": true
+          },
+          "lng": {
+            "type": "number",
+            "nullable": true
+          },
+          "roomName": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "AttendanceFeedItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "studentName",
+          "scannedAt",
+          "status",
+          "method"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID présence"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "matricule": {
+            "type": "string"
+          },
+          "className": {
+            "type": "string"
+          },
+          "scannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PresenceStatus"
+          },
+          "method": {
+            "$ref": "#/components/schemas/PresenceScanMethod"
+          },
+          "security": {
+            "$ref": "#/components/schemas/AttendanceFeedSecurity"
+          },
+          "location": {
+            "$ref": "#/components/schemas/AttendanceFeedLocation"
+          }
+        }
+      },
+      "StudentAttendanceFeed": {
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttendanceFeedItem"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "page": {
+                "type": "integer"
+              },
+              "limit": {
+                "type": "integer"
+              },
+              "totalPages": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "ParentSocketEventEnvelope": {
+        "type": "object",
+        "description": "Enveloppe canonique — TOUS les events parent Socket.io (Empire EventBus).",
+        "required": [
+          "type",
+          "tenantId",
+          "schoolId",
+          "studentId",
+          "correlationId",
+          "occurredAt",
+          "payload"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "payment.settled",
+              "attendance.recorded"
+            ]
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "tenant_id immuable (ADR-002)"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "studentId": {
+            "type": "integer"
+          },
+          "correlationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Traçabilité bout-en-bout"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Données spécifiques au type"
+          }
+        }
+      },
+      "PaymentSettledPayload": {
+        "type": "object",
+        "required": [
+          "paymentId",
+          "parentUserId",
+          "status",
+          "amount",
+          "currency",
+          "reference",
+          "provider",
+          "nextStep"
+        ],
+        "properties": {
+          "paymentId": {
+            "type": "integer"
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentUserId": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "RECONCILED"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "remainingBalance": {
+            "type": "number",
+            "nullable": true
+          },
+          "nextStep": {
+            "type": "string",
+            "enum": [
+              "COMPLETE"
+            ]
+          }
+        }
+      },
+      "AttendanceRecordedPayload": {
+        "type": "object",
+        "required": [
+          "presenceId",
+          "studentName",
+          "method",
+          "status",
+          "scannedAt"
+        ],
+        "properties": {
+          "presenceId": {
+            "type": "integer"
+          },
+          "studentName": {
+            "type": "string"
+          },
+          "classId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "method": {
+            "$ref": "#/components/schemas/PresenceScanMethod"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PresenceStatus"
+          },
+          "scannedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "subjectType": {
+            "type": "string",
+            "example": "STUDENT"
+          }
+        }
+      },
+      "ParentSocketEventPaymentSettled": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ParentSocketEventEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "payment.settled"
+                ]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/PaymentSettledPayload"
+              }
+            }
+          }
+        ]
+      },
+      "ParentSocketEventAttendanceRecorded": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ParentSocketEventEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "attendance.recorded"
+                ]
+              },
+              "payload": {
+                "$ref": "#/components/schemas/AttendanceRecordedPayload"
+              }
+            }
+          }
+        ]
+      },
+      "ParentSocketEventNotification": {
+        "type": "object",
+        "description": "Événement socket `notification` — enregistrement Prisma Notification.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "studentId": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentSettledEvent": {
+        "type": "object",
+        "deprecated": true,
+        "description": "Ancien format plat — remplacé par enveloppe catalog v0.",
+        "required": [
+          "event",
+          "paymentId",
+          "studentId",
+          "schoolId",
+          "parentUserId",
+          "status",
+          "amount",
+          "currency",
+          "reference",
+          "provider",
+          "correlationId",
+          "nextStep",
+          "timestamp"
+        ],
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "payment.settled"
+            ]
+          },
+          "paymentId": {
+            "type": "integer"
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "studentId": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "parentUserId": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "RECONCILED"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "correlationId": {
+            "type": "string"
+          },
+          "remainingBalance": {
+            "type": "number",
+            "nullable": true
+          },
+          "nextStep": {
+            "type": "string",
+            "enum": [
+              "COMPLETE"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "JWT manquant ou invalide",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Session expirée ou non autorisée",
+              "statusCode": 401
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Accès refusé (rôle, lien parent-enfant, ou incohérence tenant JWT/header — `TENANT_CONTEXT_MISMATCH`)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "FORBIDDEN",
+              "statusCode": 403
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Ressource introuvable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "NOT_FOUND",
+              "statusCode": 404
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Erreur de validation Zod",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Données invalides ou manquantes",
+              "errors": {
+                "validation": [
+                  {
+                    "field": "code",
+                    "message": "Code invalide"
+                  }
+                ]
+              },
+              "statusCode": 400
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Trop de requêtes",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "Trop de requêtes, réessayez plus tard.",
+              "statusCode": 429
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflit métier (ex. intention déjà exécutée)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            },
+            "example": {
+              "success": false,
+              "message": "PAYMENT_INTENT_ALREADY_EXECUTED",
+              "statusCode": 409
+            }
+          }
+        }
+      }
+    }
+  }
+}

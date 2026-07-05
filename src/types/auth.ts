@@ -8,6 +8,7 @@ export interface AuthUser {
   lastName: string
   role: UserRole
   schoolId: number | null
+  isEmailConfirmed?: boolean
 }
 
 export interface LoginPayload {

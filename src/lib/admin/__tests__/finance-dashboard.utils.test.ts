@@ -5,6 +5,7 @@ import {
   normalizeCollectionEfficiencyLevels,
   normalizeEndOfDayClosing,
   normalizePaymentMethodsBreakdown,
+  normalizeFeeTypesBreakdown,
   normalizeIntegrityScan,
   summarizeCollectionEfficiency,
   resolveFinanceDashboardDisplay,
@@ -154,6 +155,24 @@ describe('finance-dashboard.utils', () => {
     expect(breakdown?.total).toBe(300_000)
     expect(breakdown?.methods).toHaveLength(2)
     expect(breakdown?.methods[0].sharePct).toBe(60)
+  })
+
+  it('Increment A normalise fee-types breakdown', () => {
+    const breakdown = normalizeFeeTypesBreakdown({
+      period: 'day',
+      from: '2026-07-03T00:00:00.000Z',
+      to: '2026-07-04T00:00:00.000Z',
+      total: 200,
+      count: 4,
+      feeTypes: [
+        { feeType: 'Minerval', amount: 120, count: 2, sharePct: 60 },
+        { feeType: 'Transport', amount: 80, count: 2, sharePct: 40 },
+      ],
+    })
+
+    expect(breakdown?.period).toBe('day')
+    expect(breakdown?.feeTypes[0].feeType).toBe('Minerval')
+    expect(breakdown?.feeTypes[1].sharePct).toBe(40)
   })
 
   it('F-05 normalise integrity-scan backend', () => {

@@ -14,6 +14,7 @@ import {
   normalizeCollectionEfficiencyLevels,
   normalizeEndOfDayClosing,
   normalizePaymentMethodsBreakdown,
+  normalizeFeeTypesBreakdown,
   normalizeIntegrityScan,
 } from '@/lib/admin/finance-dashboard.utils'
 import type {
@@ -176,6 +177,11 @@ export const financeApi = {
     apiClient
       .get('/admin/finance/dashboard/payment-methods', { params: { period } })
       .then((r) => normalizePaymentMethodsBreakdown(r.data.data)),
+
+  getFeeTypes: (period: 'day' | 'month' = 'month') =>
+    apiClient
+      .get('/admin/finance/dashboard/fee-types', { params: { period } })
+      .then((r) => normalizeFeeTypesBreakdown(r.data.data)),
 
   // ── Audit & Fraude ─────────────────────────────────────────────────────────
   getFraudAlerts: () =>

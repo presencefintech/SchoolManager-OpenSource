@@ -1164,6 +1164,15 @@ export function useFinancePaymentMethods(period: 'day' | 'month' = 'month') {
   })
 }
 
+export function useFinanceFeeTypes(period: 'day' | 'month' = 'month') {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-types', period],
+    queryFn: () => financeApi.getFeeTypes(period),
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export function useFinancePresenceSecurity() {
   return useQuery({
     queryKey: ['admin', 'finance', 'presence-security'],

@@ -16,7 +16,7 @@
 | Fichiers | `POST/DELETE /files/upload`, `/files/delete` | ADMIN, FINANCE |
 | Fraude | `POST /fraud/check` | ADMIN |
 | Utilisateurs | `POST /users/staff` | ADMIN |
-| Notifications | `POST /notifications/broadcast-group`, `/direct` | ADMIN |
+| Notifications | `POST /notifications/broadcast-group`, `/direct`, `GET /history`, **`GET /dlq`**, **`POST /dlq/{deliveryId}/retry`** | ADMIN |
 | PDF / reçus | `GET /pdf/receipts/{paymentId}` | ADMIN |
 | Sanctions | `POST /sanctions/analyze` | ADMIN, SUPER_ADMIN |
 | Médias (Cloudinary) | `POST /cloudinary/students/{id}/photo` | ADMIN, SUPER_ADMIN |
@@ -42,7 +42,9 @@
 
 **Régénération REST :** `npm run docs:admin-openapi` → exécute `scripts/generate-admin-swagger.js`.
 
-Moratoires, profil KYC et modes pointage (`/admin/schools/{schoolId}/attendance-settings`) sont dans `swagger-docs/admin.json`.
+Moratoires, profil KYC, modes pointage et **notifications outbox/DLQ** sont dans `openapi/admin.json`.
+
+**Architecture notifications (juil. 2026) :** [notification-architecture.md](./notification-architecture.md) · types [types/notification.types.ts](./types/notification.types.ts)
 
 ## Dashboard & analytics (`/admin/stats`, `/admin/heatmap`, …)
 
@@ -72,5 +74,6 @@ Utilisé par le formulaire d'inscription admin (cascade Section → Option → C
 | `payment.confirmed.admin` | `school:{id}:control-dashboard` | `admin-socket.service.ts` |
 | `payment.failed.admin` | `school:{id}:control-dashboard` | `admin-socket.service.ts` |
 | `payment.confirmed.finance` | `school:{id}:finance` | `finance-socket.service.ts` (module finance) |
+| `notification` | `user_{userId}` | Worker outbox WEBSOCKET (alertes DLQ admin) |
 
-Contrats : `openapi-admin.json` · `gateway/events/payment-event.types.ts`
+Contrats : `openapi/admin-sockets.json` · `gateway/events/payment-event.types.ts`

@@ -2,6 +2,7 @@ import { AdminNav } from '@/components/layout/admin-nav'
 import { PageTransition } from '@/components/ui/page-transition'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { AdminGlobalSearch } from '@/components/admin/shared/global-search'
+import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="sticky top-0 z-20 bg-[#e8ecf4]/90 backdrop-blur border-b border-slate-200/70 px-6 py-3">
           <AdminGlobalSearch />
         </div>
+        <EmailVerificationBanner />
         <ErrorBoundary>
           <PageTransition>{children}</PageTransition>
         </ErrorBoundary>
