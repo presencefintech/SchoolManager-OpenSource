@@ -1,14 +1,17 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   Activity, CheckCircle2, AlertCircle, XCircle, Clock,
-  BarChart3, ShieldAlert, Eye,
+  BarChart3, ShieldAlert, Eye, MessageSquare, Loader2, Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api/client'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
+import type { SmsIntegrationStatus } from '@/types/super-admin'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const SKELETON = 'bg-zinc-100 rounded-xl animate-pulse'
@@ -37,7 +40,32 @@ function CardTitle({ icon: Icon, title, desc }: { icon: React.ElementType; title
   )
 }
 
+function SmsStatusBadge({ status }: { status: SmsIntegrationStatus }) {
+  if (status.ready) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">
+        <CheckCircle2 size={12} /> Connecté
+      </span>
+    )
+  }
+  if (status.enabled && !status.forceMock) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+        <AlertCircle size={12} /> Config incomplète
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-zinc-600 bg-zinc-100 px-2 py-1 rounded-lg">
+      <Clock size={12} /> Mock (dev)
+    </span>
+  )
+}
+
 export default function MonitoringPage() {
+  const [testPhone, setTestPhone] = useState('')
+  const [smsFeedback, setSmsFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
   const { data: health, isLoading: loadingHealth } = useQuery({
     queryKey: ['superadmin', 'monitoring', 'reconciliation'],
     queryFn: monitoringApi.getReconciliationHealth,
@@ -60,6 +88,33 @@ export default function MonitoringPage() {
     queryKey: ['superadmin', 'anomalies', 'dashboard'],
     queryFn: anomaliesApi.getDashboard,
     refetchInterval: 60_000,
+  })
+
+  const { data: smsStatus, isLoading: loadingSms, refetch: refetchSms } = useQuery({
+    queryKey: ['superadmin', 'monitoring', 'sms'],
+    queryFn: monitoringApi.getSmsStatus,
+    refetchInterval: 60_000,
+  })
+
+  const smsTestMutation = useMutation({
+    mutationFn: (phone: string) => monitoringApi.sendSmsTest(phone),
+    onSuccess: (result) => {
+      refetchSms()
+      if (result.delivery.success) {
+        setSmsFeedback({
+          type: 'success',
+          message: `SMS envoyé via ${result.delivery.provider} (id: ${result.delivery.messageId ?? '—'})`,
+        })
+      } else {
+        setSmsFeedback({
+          type: 'error',
+          message: result.delivery.errorMessage ?? 'Échec envoi SMS',
+        })
+      }
+    },
+    onError: (err) => {
+      setSmsFeedback({ type: 'error', message: getApiErrorMessage(err) })
+    },
   })
 
   return (
@@ -140,6 +195,91 @@ export default function MonitoringPage() {
             </div>
           ) : (
             <p className="text-sm text-zinc-400">Aucune donnée de réconciliation</p>
+          )}
+        </div>
+
+        {/* ── SMS ─────────────────────────────────────────────────────── */}
+        <div className={CARD}>
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                <MessageSquare size={16} className="text-zinc-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-900">Intégration SMS</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Africa&apos;s Talking — OTP staff, invitations, notifications parents
+                </p>
+              </div>
+            </div>
+            {smsStatus && <SmsStatusBadge status={smsStatus} />}
+          </div>
+
+          {loadingSms ? (
+            <div className={cn(SKELETON, 'h-24')} />
+          ) : smsStatus ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <p className="text-zinc-400 mb-0.5">Provider configuré</p>
+                  <p className="font-mono text-zinc-800">{smsStatus.provider}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-400 mb-0.5">Provider actif</p>
+                  <p className="font-mono text-zinc-800">{smsStatus.activeProvider}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-400 mb-0.5">Sender ID</p>
+                  <p className="font-mono text-zinc-800">{smsStatus.senderId}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-400 mb-0.5">Credentials</p>
+                  <p className={cn('font-semibold', smsStatus.credentialsPresent ? 'text-emerald-600' : 'text-red-600')}>
+                    {smsStatus.credentialsPresent ? 'Présents' : 'Manquants'}
+                  </p>
+                </div>
+              </div>
+
+              {!smsStatus.ready && (
+                <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
+                  Sur Render, définissez{' '}
+                  <code className="bg-white/80 px-1 rounded">SMS_PROVIDER_ENABLED=true</code>,{' '}
+                  <code className="bg-white/80 px-1 rounded">SMS_PROVIDER=africas_talking</code>,{' '}
+                  <code className="bg-white/80 px-1 rounded">SMS_USERNAME</code> et{' '}
+                  <code className="bg-white/80 px-1 rounded">SMS_API_KEY</code>, puis redéployez.
+                </p>
+              )}
+
+              <div className="border-t border-zinc-100 pt-4 flex flex-col sm:flex-row gap-3">
+                <input
+                  type="tel"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="+243810000000"
+                  className="flex-1 border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                />
+                <button
+                  type="button"
+                  disabled={!testPhone.trim() || smsTestMutation.isPending}
+                  onClick={() => smsTestMutation.mutate(testPhone.trim())}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium disabled:opacity-50"
+                >
+                  {smsTestMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  Envoyer test SMS
+                </button>
+              </div>
+
+              {smsFeedback && (
+                <p className={cn(
+                  'text-xs rounded-xl px-3 py-2',
+                  smsFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                )}>
+                  {smsFeedback.message}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">Statut SMS indisponible</p>
           )}
         </div>
 

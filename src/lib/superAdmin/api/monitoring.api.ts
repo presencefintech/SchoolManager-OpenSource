@@ -7,6 +7,8 @@ import type {
   PendingPayment,
   FraudRadarItem,
   QueueStatus,
+  SmsIntegrationStatus,
+  SmsTestResult,
 } from '@/types/super-admin'
 
 export const monitoringApi = {
@@ -23,6 +25,16 @@ export const monitoringApi = {
   getSecurityAlerts: () =>
     apiClient
       .get<{ success: boolean; data: SecurityAlerts }>('/superadmin/monitoring/alerts')
+      .then((r) => r.data.data),
+
+  getSmsStatus: () =>
+    apiClient
+      .get<{ success: boolean; data: SmsIntegrationStatus }>('/superadmin/monitoring/sms')
+      .then((r) => r.data.data),
+
+  sendSmsTest: (phone: string) =>
+    apiClient
+      .post<{ success: boolean; data: SmsTestResult }>('/superadmin/monitoring/sms/test', { phone })
       .then((r) => r.data.data),
 
   getAnomalyDashboard: () =>

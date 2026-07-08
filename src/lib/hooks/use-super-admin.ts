@@ -1,12 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAuthToken } from '@/lib/api/auth-storage'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
+import { usersApi } from '@/lib/superAdmin/api/users.api'
 import { notificationsApi } from '@/lib/superAdmin/api/notifications.api'
 import { fraudApi } from '@/lib/superAdmin/api/fraud.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import { queryKeys } from '@/lib/query/keys'
+import type {
+  InviteStaffPayload,
+  RevokeStaffInvitationPayload,
+  ResendStaffInvitationPayload,
+} from '@/types/super-admin'
 
 export function useCoreUsers(params?: { page?: number; take?: number; role?: string }) {
   return useQuery({
@@ -467,6 +473,62 @@ export function useSchoolInvitations(schoolId: number) {
     staleTime: 30_000,
     enabled: !!getAuthToken() && !!schoolId,
     refetchOnWindowFocus: false,
+  })
+}
+
+export function useInviteStaffSuperAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: InviteStaffPayload) => invitationsApi.inviteStaff(payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.superadmin.invitations.school(vars.schoolId) })
+    },
+  })
+}
+
+export function useRevokeStaffInvitationSuperAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: RevokeStaffInvitationPayload) => invitationsApi.revokeStaff(payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.superadmin.invitations.school(vars.schoolId) })
+    },
+  })
+}
+
+export function useResendStaffInvitationSuperAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: ResendStaffInvitationPayload) => invitationsApi.resendStaffInvitation(payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.superadmin.invitations.school(vars.schoolId) })
+    },
+  })
+}
+
+export function useSuspendUserSuperAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { userId: number; schoolId?: number; reason?: string }) =>
+      usersApi.suspendAccount(payload),
+    onSuccess: (_data, vars) => {
+      if (vars.schoolId) {
+        qc.invalidateQueries({ queryKey: queryKeys.superadmin.invitations.school(vars.schoolId) })
+      }
+    },
+  })
+}
+
+export function useReactivateUserSuperAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { userId: number; schoolId?: number }) =>
+      usersApi.reactivateAccount(payload),
+    onSuccess: (_data, vars) => {
+      if (vars.schoolId) {
+        qc.invalidateQueries({ queryKey: queryKeys.superadmin.invitations.school(vars.schoolId) })
+      }
+    },
   })
 }
 

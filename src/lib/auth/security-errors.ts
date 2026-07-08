@@ -25,6 +25,18 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Trop de tentatives. Patientez quelques minutes avant de réessayer.',
   TOKEN_EXPIRED_OR_INVALID:
     'Ce lien d\'invitation est invalide ou a expiré.',
+  EMAIL_ALREADY_USED:
+    'Cet email est déjà utilisé par un compte existant. Utilisez une autre adresse ou révoquez l\'invitation en cours.',
+  PENDING_INVITATION_EXISTS:
+    'Une invitation est déjà en cours pour cet email. Utilisez « Renvoyer » dans la liste ci-dessous.',
+  PHONE_ALREADY_USED:
+    'Ce numéro de téléphone est déjà associé à un autre compte de l\'établissement.',
+  CANNOT_DELETE_ACTIVE_USER:
+    'Impossible de supprimer un compte déjà actif. Contactez un super-admin.',
+  ACCOUNT_SUSPENDED:
+    'Ce compte est suspendu. Contactez l\'administration.',
+  INVITATION_NOT_FOUND:
+    'Invitation introuvable. Actualisez la page.',
   WEAK_PASSWORD:
     'Le mot de passe ne respecte pas la politique de sécurité.',
   INVALID_RESET_TOKEN:

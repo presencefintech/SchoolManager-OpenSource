@@ -1,10 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Mail, UserPlus, Trash2, RefreshCw, Copy, Check } from 'lucide-react'
-import { useInvitationStatus, useGenerateParentCode, useRevokeParentCode, useInviteStaff, useRevokeStaffInvitation, useStudents } from '@/lib/hooks/use-admin'
-import type { InviteStaffPayload } from '@/types/admin'
+import { useInvitationStatus, useGenerateParentCode, useRevokeParentCode, useInviteStaff, useRevokeStaffInvitation, useResendStaffInvitation, useStudents } from '@/lib/hooks/use-admin'
+import type { InviteStaffPayload, StaffInvitation } from '@/types/admin'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { PhoneInput } from '@/components/ui/phone-input'
+import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
+import { StaffInvitationRowActions } from '@/components/invitations/staff-invitation-row-actions'
+import { staffApi } from '@/lib/admin/api/staff.api'
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -128,14 +134,58 @@ function StaffInvitationsTab() {
   const { data, isLoading, refetch } = useInvitationStatus()
   const inviteStaff = useInviteStaff()
   const revokeInvitation = useRevokeStaffInvitation()
+  const resendInvitation = useResendStaffInvitation()
+  const qc = useQueryClient()
+  const suspendStaff = useMutation({
+    mutationFn: (userId: number) => staffApi.disable(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invitations'] }),
+  })
 
-  const [form, setForm] = useState<InviteStaffPayload>({ email: '', role: 'TEACHER', firstName: '', lastName: '' })
+  const [form, setForm] = useState<InviteStaffPayload>({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '' })
+  const [inviteError, setInviteError] = useState('')
+  const [revokeError, setRevokeError] = useState('')
 
   const invitations = data?.staffInvitations ?? []
 
+  const handleSuspend = (inv: StaffInvitation) => {
+    if (!inv.userId) return
+    if (!confirm(`Suspendre le compte de ${inv.firstName} ${inv.lastName} ?`)) return
+    setRevokeError('')
+    suspendStaff.mutate(inv.userId, {
+      onSuccess: () => refetch(),
+      onError: (err) => setRevokeError(getApiErrorMessage(err)),
+    })
+  }
+
+  const handleRevoke = (inv: StaffInvitation) => {
+    if (!confirm(`Supprimer l'invitation de ${inv.firstName} ${inv.lastName} (${inv.email}) ?`)) return
+    setRevokeError('')
+    revokeInvitation.mutate(
+      { invitationId: inv.id, targetUserId: inv.userId ?? undefined },
+      {
+        onSuccess: () => refetch(),
+        onError: (err) => setRevokeError(getApiErrorMessage(err)),
+      },
+    )
+  }
+
   const handleInvite = () => {
-    if (!form.email || !form.firstName || !form.lastName) return
-    inviteStaff.mutate(form, { onSuccess: () => { setForm({ email: '', role: 'TEACHER', firstName: '', lastName: '' }); refetch() } })
+    if (!form.email || !form.firstName || !form.lastName || !form.phone) return
+    if (!isValidInternationalPhone(form.phone)) {
+      setInviteError('Numéro de téléphone invalide pour le pays sélectionné.')
+      return
+    }
+    setInviteError('')
+    inviteStaff.mutate(
+      { ...form, phone: formatPhoneToE164(form.phone) },
+      {
+        onSuccess: () => {
+          setForm({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '', })
+          refetch()
+        },
+        onError: (err) => setInviteError(getApiErrorMessage(err)),
+      },
+    )
   }
 
   const statusBadge = (status: string) => {
@@ -158,6 +208,11 @@ function StaffInvitationsTab() {
             className="px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           <input placeholder="Email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
             className="px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+          <PhoneInput
+            value={form.phone}
+            onChange={(phone) => setForm(f => ({ ...f, phone }))}
+            showError={false}
+          />
           <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
             className="px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="TEACHER">Enseignant</option>
@@ -166,13 +221,18 @@ function StaffInvitationsTab() {
         </div>
         <button
           onClick={handleInvite}
-          disabled={!form.email || !form.firstName || !form.lastName || inviteStaff.isPending}
+          disabled={!form.email || !form.phone || !isValidInternationalPhone(form.phone) || !form.firstName || !form.lastName || inviteStaff.isPending}
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
         >
           <Mail size={14} />
           Envoyer l'invitation
         </button>
-        {inviteStaff.isError && <p className="mt-2 text-xs text-red-500">Erreur lors de l'envoi</p>}
+        {inviteError && (
+          <p className="mt-2 text-xs text-red-600">{inviteError}</p>
+        )}
+        {inviteStaff.isError && !inviteError && (
+          <p className="mt-2 text-xs text-red-500">Erreur lors de l&apos;envoi</p>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
@@ -182,6 +242,9 @@ function StaffInvitationsTab() {
             <RefreshCw size={14} />
           </button>
         </div>
+        {revokeError && (
+          <p className="px-4 py-2 text-xs text-red-600 border-b border-red-100 bg-red-50">{revokeError}</p>
+        )}
         {isLoading ? (
           <div className="p-6 text-center text-sm text-zinc-400">Chargement…</div>
         ) : invitations.length === 0 ? (
@@ -193,8 +256,9 @@ function StaffInvitationsTab() {
                 <th className="px-4 py-2 text-left">Nom</th>
                 <th className="px-4 py-2 text-left">Email</th>
                 <th className="px-4 py-2 text-left">Rôle</th>
-                <th className="px-4 py-2 text-left">Statut</th>
-                <th className="px-4 py-2" />
+                <th className="px-4 py-2 text-left">Étape</th>
+                <th className="px-4 py-2 text-left">Statut compte</th>
+                <th className="px-4 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -205,20 +269,23 @@ function StaffInvitationsTab() {
                   <td className="px-4 py-2.5">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">{inv.role}</span>
                   </td>
+                  <td className="px-4 py-2.5 text-zinc-600 text-xs">
+                    {inv.verificationLabel ?? inv.verificationStep ?? '—'}
+                  </td>
                   <td className="px-4 py-2.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${statusBadge(inv.status)}`}>{inv.status}</span>
                   </td>
-                  <td className="px-4 py-2.5 text-right">
-                    {inv.status === 'PENDING' && (
-                      <button
-                        onClick={() => revokeInvitation.mutate((inv as any).userId ?? inv.id)}
-                        disabled={revokeInvitation.isPending}
-                        className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                        title="Révoquer"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
+                  <td className="px-4 py-2.5 text-xs text-zinc-600">{inv.userStatus ?? '—'}</td>
+                  <td className="px-4 py-2.5">
+                    <StaffInvitationRowActions
+                      inv={inv}
+                      resendPending={resendInvitation.isPending}
+                      revokePending={revokeInvitation.isPending}
+                      suspendPending={suspendStaff.isPending}
+                      onResend={() => resendInvitation.mutate(inv.userId!, { onSuccess: () => refetch() })}
+                      onDelete={() => handleRevoke(inv)}
+                      onSuspend={() => handleSuspend(inv)}
+                    />
                   </td>
                 </tr>
               ))}

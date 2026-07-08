@@ -16,6 +16,11 @@ import {
 import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem, PaymentProofType, ConfirmPaymentProofPayload } from '@/types/admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { VerificationStepper, FraudScoreBadge, fmtMoney, VerificationDetailDrawer, PaymentProofFields } from '@/components/admin/finance/verification-ui'
+import {
+  FeeAttributionPanel,
+  type FeeAttributionValue,
+} from '@/components/finance/fee-attribution-picker'
+import { buildPaymentFeeLines } from '@/lib/finance/fee-schedule.utils'
 import { defaultProofTypeForMethod, labelPaymentProofType } from '@/lib/finance/payment-proof'
 import { formatMoney } from '@/lib/finance/currency'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -42,6 +47,8 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 function ManualPaymentModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useProcessManualPayment()
   const [form, setForm] = useState<ManualPaymentPayload>({ studentId: 0, amount: 0, method: 'CASH' })
+  const [attribution, setAttribution] = useState<FeeAttributionValue | null>(null)
+  const [useCatalogFallback, setUseCatalogFallback] = useState(false)
   const [proofType, setProofType] = useState<PaymentProofType>('CASH_VOUCHER')
   const [manualJustification, setManualJustification] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -51,10 +58,38 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
     setProofType(defaultProofTypeForMethod(form.method))
   }, [form.method])
 
+  function handleStudentSelect(id: number) {
+    setForm(p => ({ ...p, studentId: id, amount: 0, feeStructureId: undefined, monthYear: undefined, sessionId: undefined }))
+    setAttribution(null)
+    setUseCatalogFallback(false)
+  }
+
+  function handleAttributionChange(next: FeeAttributionValue | null) {
+    setAttribution(next)
+    setUseCatalogFallback(false)
+    const feeLines = next ? buildPaymentFeeLines(next.lines) : undefined
+    setForm(p => ({
+      ...p,
+      amount: next?.totalAmount ?? 0,
+      sessionId: next?.sessionId,
+      feeStructureId: undefined,
+      monthYear: undefined,
+      fees: feeLines,
+    }))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.studentId) {
       setError('Sélectionnez un élève dans la liste.')
+      return
+    }
+    if (!attribution && !useCatalogFallback) {
+      setError('Sélectionnez une ligne d\'échéancier ou activez le mode hors échéancier.')
+      return
+    }
+    if (!form.amount || form.amount <= 0) {
+      setError('Montant invalide.')
       return
     }
     if (proofType === 'OTHER' && manualJustification.trim().length < 10) {
@@ -70,12 +105,15 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
       })
       setSuccess(true)
     }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur lors de l\'enregistrement') }
+    catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg ?? 'Erreur lors de l\'enregistrement')
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 mb-5">Paiement manuel</h2>
         {success ? (
           <div className="text-center py-6">
@@ -89,13 +127,51 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <StudentSearchField
               studentId={form.studentId}
-              onSelect={(id) => setForm((p) => ({ ...p, studentId: id }))}
+              onSelect={handleStudentSelect}
             />
+
+            {form.studentId > 0 && !useCatalogFallback && (
+              <FeeAttributionPanel
+                api="admin"
+                compact
+                studentId={form.studentId}
+                value={attribution}
+                onChange={handleAttributionChange}
+              />
+            )}
+
+            {form.studentId > 0 && (
+              <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useCatalogFallback}
+                  onChange={(e) => {
+                    setUseCatalogFallback(e.target.checked)
+                    setAttribution(null)
+                    setForm(p => ({ ...p, amount: 0, feeStructureId: undefined, monthYear: undefined, sessionId: undefined }))
+                  }}
+                  className="rounded border-zinc-300"
+                />
+                Paiement hors échéancier (montant libre, non ventilé)
+              </label>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (USD) *</label>
-              <input type="number" required min={1} value={form.amount || ''}
+              <input
+                type="number"
+                required
+                min={1}
+                readOnly={!!attribution}
+                value={form.amount || ''}
                 onChange={e => setForm(p => ({ ...p, amount: Number(e.target.value) }))}
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 read-only:bg-zinc-50"
+              />
+              {attribution && (
+                <p className="text-xs text-emerald-600 mt-1">
+                  {attribution.lines.length} ligne{attribution.lines.length > 1 ? 's' : ''} ventilée{attribution.lines.length > 1 ? 's' : ''}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Mode de paiement *</label>

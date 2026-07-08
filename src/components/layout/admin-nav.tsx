@@ -34,6 +34,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Gestion',
     links: [
       { label: 'Élèves',       href: '/admin/students',    icon: GraduationCap },
+      { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
       { label: 'Classes',      href: '/admin/classes',     icon: BookOpen },
       { label: 'Enseignants',  href: '/admin/teachers',    icon: School },

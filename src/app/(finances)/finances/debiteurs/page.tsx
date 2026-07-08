@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar } from 'lucide-react'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
-import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
+import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums, useStudentPaymentsDetailed } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,6 +33,7 @@ export default function DebiteursPage() {
 
   const { data: debtorsData, isLoading: loadingDebtors } = useDebtors(minDebt)
   const { data: studentProfile, isLoading: loadingProfile } = useStudentFinanceProfile(searchedId)
+  const { data: paymentsPage, isLoading: loadingPayments } = useStudentPaymentsDetailed(searchedId)
   const { data: walletData, isLoading: loadingWallet } = useStudentWallet(searchedId)
   const { data: highRiskData, isLoading: loadingRisk } = useHighRisk()
   const { data: moratoriumsData, isLoading: loadingMoratoriums } = useFinanceMoratoriums({ status: 'ACTIVE' })
@@ -372,31 +373,41 @@ export default function DebiteursPage() {
                 )}
 
                 {/* Historique paiements */}
-                {profile.history && (profile.history as any[]).length > 0 && (
+                {searchedId > 0 && (loadingPayments || (paymentsPage?.data?.length ?? 0) > 0) && (
                   <motion.div variants={fadeUp}>
                     <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Historique paiements</p>
-                    <div className="space-y-1.5 max-h-44 overflow-y-auto">
-                      {(profile.history as any[]).map((p: any, i: number) => (
-                        <div key={p.id ?? i} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
-                          <div>
-                            <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">{p.method ?? '—'}</span>
-                            {p.status && (
-                              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-medium ${
-                                p.status === 'VALIDATED' ? 'bg-emerald-50 text-emerald-700' :
-                                p.status === 'PENDING' ? 'bg-amber-50 text-amber-700' :
-                                'bg-red-50 text-red-700'
-                              }`}>{p.status}</span>
-                            )}
-                            {p.createdAt && (
-                              <p className="text-[10px] text-zinc-400 mt-0.5">{new Date(p.createdAt).toLocaleDateString('fr-FR')}</p>
-                            )}
+                    {loadingPayments ? (
+                      <div className="space-y-2">
+                        <Sk className="h-8" />
+                        <Sk className="h-8" />
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                        {(paymentsPage?.data ?? []).map((p) => (
+                          <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
+                            <div className="min-w-0 pr-2">
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">{p.methodLabel || p.method || '—'}</span>
+                              {p.status && (
+                                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-medium ${
+                                  p.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-700' :
+                                  p.status === 'PENDING' ? 'bg-amber-50 text-amber-700' :
+                                  'bg-red-50 text-red-700'
+                                }`}>{p.status}</span>
+                              )}
+                              {p.feeSummary && (
+                                <p className="text-[10px] text-zinc-500 mt-0.5 truncate">{p.feeSummary}</p>
+                              )}
+                              {p.createdAt && (
+                                <p className="text-[10px] text-zinc-400 mt-0.5">{new Date(p.createdAt).toLocaleDateString('fr-FR')}</p>
+                              )}
+                            </div>
+                            <span className="text-xs font-semibold text-zinc-900 shrink-0">
+                              {formatMoney(Number(p.amount))}
+                            </span>
                           </div>
-                          <span className="text-xs font-semibold text-zinc-900">
-                            {p.amount != null ? formatMoney(Number(p.amount)) : '—'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </motion.div>

@@ -1,11 +1,15 @@
 'use client'
 
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FeesTable } from '@/components/finance/student-dashboard/FeesTable/FeesTable'
+import { PaymentModal } from '@/components/finance/student-dashboard/PaymentModal/PaymentModal'
+import { PrintReceiptButton } from '@/components/finance/student-dashboard/receipts/PrintReceiptButton'
 import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-schedule'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
+import type { FeeScheduleLineDto } from '@/types/finance'
 
 interface StudentFinanceDashboardProps {
   studentId: number
@@ -35,6 +39,9 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
     sessionId,
   )
 
+  const [payLine, setPayLine] = useState<FeeScheduleLineDto | null>(null)
+  const [lastPaymentId, setLastPaymentId] = useState<number | null>(null)
+
   if (isLoading) {
     return <DashboardSkeleton />
   }
@@ -44,9 +51,7 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
       <div className="rounded-xl border border-red-200/60 bg-red-50/50 px-6 py-8 text-center">
         <AlertCircle className="mx-auto mb-3 h-8 w-8 text-red-500" />
         <p className="text-sm font-medium text-red-800">Impossible de charger l&apos;échéancier</p>
-        <p className="mt-1 text-xs text-red-600">
-          {getApiErrorMessage(error)}
-        </p>
+        <p className="mt-1 text-xs text-red-600">{getApiErrorMessage(error)}</p>
         <button
           type="button"
           onClick={() => refetch()}
@@ -61,6 +66,7 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
 
   const currency = (data.currency || 'USD') as FinanceCurrencyCode
   const { summary } = data
+  const academicSessionId = sessionId ?? data.sessionId
 
   return (
     <div className="space-y-6">
@@ -72,6 +78,18 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
           {data.billingStartMonth} → {data.billingEndMonth}
         </p>
       </div>
+
+      {lastPaymentId ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+            <p className="text-sm font-medium text-emerald-900">
+              Paiement enregistré · #{lastPaymentId}
+            </p>
+          </div>
+          <PrintReceiptButton paymentId={lastPaymentId} />
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <SummaryCard label="Lignes" value={String(summary.lineCount)} />
@@ -92,13 +110,35 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-zinc-900">Détail des frais</h2>
           <p className="text-xs text-zinc-400">
-            {summary.totalAmountPaid > 0
-              ? `${formatMoney(summary.totalAmountPaid, currency)} encaissés`
-              : 'Lecture seule'}
+            {summary.dueCount + summary.overdueCount > 0
+              ? 'Cliquez Payer sur une ligne due ou en retard'
+              : summary.totalAmountPaid > 0
+                ? `${formatMoney(summary.totalAmountPaid, currency)} encaissés`
+                : 'Aucune ligne payable'}
           </p>
         </div>
-        <FeesTable lines={data.lines} currency={currency} />
+        <FeesTable
+          lines={data.lines}
+          currency={currency}
+          onPayLine={(line) => {
+            setLastPaymentId(null)
+            setPayLine(line)
+          }}
+        />
       </div>
+
+      <PaymentModal
+        open={payLine != null}
+        onClose={() => setPayLine(null)}
+        studentId={studentId}
+        academicSessionId={academicSessionId}
+        line={payLine}
+        currency={currency}
+        onSuccess={(paymentId) => {
+          setLastPaymentId(paymentId)
+          void refetch()
+        }}
+      />
     </div>
   )
 }

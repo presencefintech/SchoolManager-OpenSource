@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "next dev --port 3001 --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --port 3001",
     "lint": "next lint",
@@ -23,6 +23,7 @@
     "html2canvas": "^1.4.1",
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",
+    "libphonenumber-js": "^1.13.8",
     "lucide-react": "^0.417.0",
     "next": "14.2.5",
     "qrcode": "^1.5.4",
@@ -30,6 +31,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.52.1",
+    "react-phone-number-input": "^3.4.17",
     "recharts": "^2.12.7",
     "tailwind-merge": "^2.4.0",
     "zod": "^3.23.8"

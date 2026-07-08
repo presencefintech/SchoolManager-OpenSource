@@ -166,7 +166,7 @@ export interface ClosingPreview {
 
 // ── Échéancier élève (FeeBillingScheduleService / OpenAPI StudentFeeScheduleDto) ──
 
-export type FeeScheduleLineStatus = 'PAID' | 'DUE' | 'UPCOMING' | 'OVERDUE'
+export type FeeScheduleLineStatus = 'PAID' | 'PARTIALLY_PAID' | 'DUE' | 'UPCOMING' | 'OVERDUE'
 
 export type FeeBillingPeriod = 'ONE_TIME' | 'MONTHLY' | 'TERM' | 'ANNUAL'
 
@@ -180,11 +180,19 @@ export interface FeeScheduleLineDto {
   categoryName: string
   billingPeriod: FeeBillingPeriod
   amount: number
+  amountPaid?: number
+  amountRemaining?: number
   currency: string
   monthYear: MonthYear | null
   dueDate: string | null
   status: FeeScheduleLineStatus
   paid: boolean
+}
+
+export interface PaymentFeeLinePayload {
+  feeStructureId: number
+  monthYear?: MonthYear
+  amount: number
 }
 
 export interface FeeScheduleSummaryDto {
@@ -233,4 +241,79 @@ export interface ManualPaymentRequest {
   reference?: string
   comment?: string
   payerPhone?: string
+}
+
+export interface ProcessPaymentResponse {
+  paymentId?: number
+  id?: number
+  status?: string
+  amount?: number
+  reference?: string
+}
+
+export type StudentFinancialStatus = 'DEBTOR' | 'PAID'
+
+export interface StudentFinancialRow {
+  id: number
+  matricule: string
+  firstName: string
+  lastName: string
+  fullName: string
+  classId: number | null
+  className: string | null
+  sectionId: number | null
+  sectionName: string | null
+  optionId: number | null
+  optionName: string | null
+  totalFees: number
+  feesPaid: number
+  balance: number
+  financialStatus: StudentFinancialStatus
+}
+
+export interface StudentsFinancialListResponse {
+  data: StudentFinancialRow[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+    debtors: number
+    paid: number
+    totalBalance: number
+  }
+  filters: {
+    classId?: number
+    sectionId?: number
+    optionId?: number
+    status?: StudentFinancialStatus
+    page?: number
+    limit?: number
+  }
+}
+
+export interface StudentsFinancialPrintReport {
+  generatedAt: string
+  schoolName: string
+  filters: StudentsFinancialListResponse['filters']
+  summary: {
+    total: number
+    debtors: number
+    paid: number
+    totalBalance: number
+    totalFees: number
+    totalPaid: number
+  }
+  columns: string[]
+  rows: Array<{
+    matricule: string
+    eleve: string
+    classe: string
+    section: string
+    option: string
+    fraisTotaux: number
+    dejaPaye: number
+    solde: number
+    statut: string
+  }>
 }

@@ -28,6 +28,8 @@ import type {
   FinancialSealBatchDetail, FinancialSealBatchVerifyResult,
 } from '@/types/admin'
 import { parseContentDispositionFilename, isExportContentType, readBlobErrorMessage } from '@/lib/download-blob'
+import { asFeeStructureList, type FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
+import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
 
 function asItemList<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[]
@@ -254,6 +256,23 @@ export const financeApi = {
   getStudentInvoices: (studentId: number) =>
     apiClient.get(`/admin/finance/invoices/student/${studentId}`).then(r => (r.data.data ?? []) as unknown[]),
 
+  getStudentPaymentsDetailed: (studentId: number, params?: {
+    page?: number
+    limit?: number
+    startDate?: string
+    endDate?: string
+  }) =>
+    apiClient
+      .get(`/admin/finance/students/${studentId}/payments/details`, { params })
+      .then(r => asStudentPaymentsDetailedPage(r.data.data)),
+
+  getStudentFeeSchedule: (studentId: number, sessionId?: number) =>
+    apiClient
+      .get(`/admin/finance/students/${studentId}/fee-schedule`, {
+        params: sessionId ? { sessionId } : undefined,
+      })
+      .then(r => r.data.data as import('@/types/finance').StudentFeeScheduleDto),
+
   generateInvoice: (payload: { studentId: number; feeStructureId: number; dueDate?: string }) =>
     apiClient.post('/admin/finance/invoices/generate', payload).then(r => r.data.data),
 
@@ -261,7 +280,9 @@ export const financeApi = {
     apiClient.post('/admin/finance/invoices/apply-discount', payload).then(r => r.data.data),
 
   listFeeStructures: (params?: { classId?: number; sessionId?: number }) =>
-    apiClient.get('/admin/finance/fee-structures', { params }).then(r => r.data.data as { id: number; label: string; amount: number; description?: string }[]),
+    apiClient
+      .get('/admin/finance/fee-structures', { params })
+      .then((r) => asFeeStructureList(r.data.data) as FeeStructureListItem[]),
 
   setupFeeStructure: (payload: FeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structure', payload).then(r => r.data.data),

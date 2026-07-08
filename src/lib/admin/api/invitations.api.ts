@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import type { ParentInvitationCode, StaffInvitation, InvitationStatusSummary, GenerateParentCodePayload, InviteStaffPayload } from '@/types/admin'
+import type { ParentInvitationCode, StaffInvitation, InvitationStatusSummary, GenerateParentCodePayload, InviteStaffPayload, RevokeStaffInvitationPayload } from '@/types/admin'
 
 export const invitationsApi = {
   getStatus: () =>
@@ -20,8 +20,11 @@ export const invitationsApi = {
           firstName: s.user?.firstName ?? s.firstName ?? '',
           lastName: s.user?.lastName ?? s.lastName ?? '',
           status: s.status,
+          verificationStep: s.verificationStep,
+          verificationLabel: s.verificationLabel,
           createdAt: s.createdAt,
-          userId: s.userId ?? s.user?.id ?? s.id,
+          userId: s.userId ?? s.user?.id ?? null,
+          userStatus: s.user?.status ?? null,
         })),
         parentCodes: parents.map(p => ({
           id: p.id,
@@ -31,7 +34,7 @@ export const invitationsApi = {
           expiresAt: p.expiresAt,
           createdAt: p.createdAt,
         })),
-      } as InvitationStatusSummary & { staffInvitations: (StaffInvitation & { userId: number })[] }
+      } as InvitationStatusSummary
     }),
 
   generateParentCode: (payload: GenerateParentCodePayload) =>
@@ -43,6 +46,9 @@ export const invitationsApi = {
   inviteStaff: (payload: InviteStaffPayload) =>
     apiClient.post('/admin/invitations/staff', payload).then(r => r.data.data as StaffInvitation),
 
-  revokeStaffInvitation: (targetUserId: number) =>
-    apiClient.delete('/admin/invitations/staff/revoke', { data: { targetUserId } }).then(r => r.data),
+  revokeStaffInvitation: (payload: RevokeStaffInvitationPayload) =>
+    apiClient.delete('/admin/invitations/staff/revoke', { data: payload }).then(r => r.data),
+
+  resendStaffInvitation: (targetUserId: number) =>
+    apiClient.post('/admin/invitations/staff/resend', { targetUserId }).then(r => r.data),
 }

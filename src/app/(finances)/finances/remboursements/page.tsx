@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { RefreshCw, Plus, CheckCircle, RefreshCcw, RotateCcw, Search, FileText, AlertTriangle } from 'lucide-react'
 import {
   useRefunds, useCreateRefund, useProcessRefund, useSyncRefundGateway,
-  useStudentConfirmedPayments, useFinanceStudentSearch, useStudentFinanceProfile, useFinanceClassDetail,
+  useStudentPaymentsDetailed, useFinanceStudentSearch, useStudentFinanceProfile, useFinanceClassDetail,
   useRefund,
 } from '@/lib/hooks/use-finance'
 import { RefundAccountingImpact } from '@/components/finance/refund-accounting-impact'
@@ -49,7 +49,8 @@ function CreateRefundModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const { data: payments = [], isFetching: loadingPayments } = useStudentConfirmedPayments(studentId)
+  const { data: paymentsPage, isFetching: loadingPayments } = useStudentPaymentsDetailed(studentId)
+  const payments = (paymentsPage?.data ?? []).filter(p => p.status === 'CONFIRMED')
 
   function handlePaymentSelect(e: React.ChangeEvent<HTMLSelectElement>) {
     const id = Number(e.target.value)
@@ -135,7 +136,8 @@ function CreateRefundModal({ onClose }: { onClose: () => void }) {
                       {payments.map(p => (
                         <option key={p.id} value={p.id}>
                           #{p.id} · {formatMoney(Number(p.amount))}
-                          {p.method ? ` · ${p.method}` : ''}
+                          {p.methodLabel ? ` · ${p.methodLabel}` : ''}
+                          {p.feeSummary ? ` · ${p.feeSummary}` : ''}
                           {p.reference ? ` · ${p.reference}` : ''}
                           {` · ${new Date(p.createdAt).toLocaleDateString('fr-FR')}`}
                         </option>

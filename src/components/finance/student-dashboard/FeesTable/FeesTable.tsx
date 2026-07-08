@@ -6,17 +6,44 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { useMemo } from 'react'
+import type { ColumnDef } from '@tanstack/react-table'
 import type { FeeScheduleLineDto } from '@/types/finance'
 import type { FinanceCurrencyCode } from '@/lib/finance/currency'
 import { createFeesTableColumns } from './fees-table.columns'
 
+const PAYABLE_STATUSES = new Set<FeeScheduleLineDto['status']>(['DUE', 'OVERDUE', 'PARTIALLY_PAID'])
+
 interface FeesTableProps {
   lines: FeeScheduleLineDto[]
   currency: FinanceCurrencyCode
+  onPayLine?: (line: FeeScheduleLineDto) => void
 }
 
-export function FeesTable({ lines, currency }: FeesTableProps) {
-  const columns = useMemo(() => createFeesTableColumns(currency), [currency])
+export function FeesTable({ lines, currency, onPayLine }: FeesTableProps) {
+  const columns = useMemo(() => {
+    const base = createFeesTableColumns(currency)
+    if (!onPayLine) return base
+
+    const actionsColumn: ColumnDef<FeeScheduleLineDto> = {
+      id: 'actions',
+      header: () => <span className="sr-only">Actions</span>,
+      cell: ({ row }) => {
+        const line = row.original
+        if (!PAYABLE_STATUSES.has(line.status)) return null
+        return (
+          <button
+            type="button"
+            onClick={() => onPayLine(line)}
+            className="inline-flex items-center rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+          >
+            Payer
+          </button>
+        )
+      },
+    }
+
+    return [...base, actionsColumn]
+  }, [currency, onPayLine])
 
   const table = useReactTable({
     data: lines,

@@ -861,6 +861,12 @@ export interface ManualPaymentPayload {
   manualJustification?: string
   sessionId?: number
   feeStructureId?: number
+  monthYear?: string
+  fees?: Array<{
+    feeStructureId: number
+    monthYear?: string
+    amount: number
+  }>
 }
 
 export interface BulkMoratoriumPayload {
@@ -1016,12 +1022,29 @@ export interface ParentInvitationCode {
 
 export interface StaffInvitation {
   id: number
+  userId?: number | null
+  userStatus?: string | null
   email: string
   role: string
   firstName: string
   lastName: string
   status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | string
+  verificationStep?: 'INVITED' | 'AWAITING_VERIFICATION' | 'COMPLETED' | string
+  verificationLabel?: string
   createdAt: string
+}
+
+export interface RevokeStaffInvitationPayload {
+  invitationId: number
+  targetUserId?: number
+}
+
+export interface InviteStaffPayload {
+  email: string
+  phone: string
+  role: 'TEACHER' | 'FINANCE' | string
+  firstName: string
+  lastName: string
 }
 
 export interface InvitationStatusSummary {
@@ -1031,13 +1054,6 @@ export interface InvitationStatusSummary {
 
 export interface GenerateParentCodePayload {
   studentId: number
-}
-
-export interface InviteStaffPayload {
-  email: string
-  role: 'TEACHER' | 'FINANCE' | string
-  firstName: string
-  lastName: string
 }
 
 // Teachers

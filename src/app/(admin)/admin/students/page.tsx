@@ -156,7 +156,7 @@ export default function StudentsPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
-          {([['list', 'Liste'], ['applications', 'Pré-inscriptions'], ['debtors', 'Débiteurs']] as [Tab, string][]).map(([t, label]) => (
+          {([['list', 'Liste'], ['applications', 'Candidatures'], ['debtors', 'Débiteurs']] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}

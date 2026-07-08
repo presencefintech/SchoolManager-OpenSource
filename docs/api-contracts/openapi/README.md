@@ -10,6 +10,10 @@ Régénérer avant partage collaborateur : `npm run docs:openapi`
 | **SuperAdmin** | `superadmin.json` | `SUPER_ADMIN` | `/api-docs/superadmin` |
 | **Parent mobile** | `parent-mobile.json` | `PARENT` | `/api-docs/parent-mobile` |
 
+> **Parcours parent multi-enfants (juil. 2026) :** extension OpenAPI `x-parent-onboarding` dans `parent-mobile.json` — 1× `activate-access` (1er enfant) + N× `claim-student` (enfants suivants). Guide : `backend/docs/FRONTEND_AUTH_INTEGRATION.md`.
+
+> **Invitations admin (juil. 2026) :** `POST /admin/invitations/staff/resend` · revoke body `{ targetUserId? | invitationId? }` · staff invite avec `phone` E.164 · parent-code = **1 code / élève**.
+
 > **Notifications (juil. 2026) :** outbox transactionnelle, DLQ admin, fan-out bulk, SMS parent — voir [notification-architecture.md](../notification-architecture.md).
 
 > **Inscription :** schéma `SuperAdminCreateStudentBody` sur `POST /superadmin/enrollment` — voir [enrollment-architecture.md](../enrollment-architecture.md).

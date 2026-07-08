@@ -1,5 +1,7 @@
 import { apiClient } from '@/lib/api/client'
-import type { StudentFeeScheduleDto } from '@/types/finance'
+import { asFeeStructureList } from '@/lib/finance/fee-structure.utils'
+import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
+import type { StudentFeeScheduleDto, StudentsFinancialListResponse, StudentsFinancialPrintReport } from '@/types/finance'
 
 export const financeRoleApi = {
   // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -40,6 +42,12 @@ export const financeRoleApi = {
     reference?: string
     comment?: string
     feeStructureId?: number
+    monthYear?: string
+    fees?: Array<{
+      feeStructureId: number
+      monthYear?: string
+      amount: number
+    }>
   }) =>
     apiClient.post('/finance/payments/process', payload).then(r => r.data.data),
 
@@ -98,9 +106,52 @@ export const financeRoleApi = {
       })
       .then(r => r.data.data as StudentFeeScheduleDto),
 
+  getStudentPaymentsDetailed: (studentId: number, params?: {
+    page?: number
+    limit?: number
+    startDate?: string
+    endDate?: string
+  }) =>
+    apiClient
+      .get(`/finance/students/${studentId}/payments/details`, { params })
+      .then(r => asStudentPaymentsDetailedPage(r.data.data)),
+
+  listStudentsFinancial: (params?: {
+    classId?: number
+    sectionId?: number
+    optionId?: number
+    status?: 'DEBTOR' | 'PAID'
+    page?: number
+    limit?: number
+  }) =>
+    apiClient
+      .get('/finance/students', { params })
+      .then(r => r.data.data as StudentsFinancialListResponse),
+
+  exportStudentsFinancialPrint: async (params?: {
+    classId?: number
+    sectionId?: number
+    optionId?: number
+    status?: 'DEBTOR' | 'PAID'
+    format?: 'json' | 'csv'
+  }) => {
+    const format = params?.format ?? 'json'
+    if (format === 'csv') {
+      const res = await apiClient.get('/finance/students/export/print', {
+        params: { ...params, format: 'csv' },
+        responseType: 'blob',
+      })
+      return { type: 'csv' as const, blob: res.data as Blob }
+    }
+    const res = await apiClient.get('/finance/students/export/print', { params })
+    return { type: 'json' as const, report: res.data.data as StudentsFinancialPrintReport }
+  },
+
   // ── Catalogue ──────────────────────────────────────────────────────────────
   getFeeStructures: (params?: { classId?: number }) =>
-    apiClient.get('/finance/fee-structures', { params }).then(r => r.data.data as { id: number; label: string; amount: number; description?: string }[]),
+    apiClient
+      .get('/finance/fee-structures', { params })
+      .then((r) => asFeeStructureList(r.data.data)),
 
   getMoratoriums: (params?: { status?: string }) =>
     apiClient.get('/finance/moratoriums', { params }).then(r => r.data.data),

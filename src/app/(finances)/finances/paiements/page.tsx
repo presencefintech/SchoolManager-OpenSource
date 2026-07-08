@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  DollarSign, CheckCircle, AlertCircle, RefreshCw, Download, FileDown, AlertTriangle, Printer,
+  DollarSign, CheckCircle, AlertCircle, RefreshCw, FileDown, AlertTriangle, Printer,
 } from 'lucide-react'
 import {
   useProcessPayment, useDailyCashReport,
@@ -12,6 +12,11 @@ import {
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
+import {
+  FeeAttributionPanel,
+  type FeeAttributionValue,
+} from '@/components/finance/fee-attribution-picker'
+import { buildPaymentFeeLines } from '@/lib/finance/fee-schedule.utils'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatMoney } from '@/lib/finance/currency'
@@ -48,6 +53,8 @@ export default function PaiementsPage() {
   const { data: feeStructures = [] } = useFinanceFeeStructures()
   const downloadReceipt = useDownloadReceipt()
 
+  const [attribution, setAttribution] = useState<FeeAttributionValue | null>(null)
+  const [useCatalogFallback, setUseCatalogFallback] = useState(false)
   const [form, setForm] = useState({
     studentId: 0,
     amount: '',
@@ -64,49 +71,96 @@ export default function PaiementsPage() {
   const cash: any[] = Array.isArray(dailyCash) ? dailyCash : []
   const needsRef = form.method !== 'CASH'
   const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
+  const cashBlocked = form.method === 'CASH' && !hasSession && !couldNotVerify && !sessionLoading
+  const hasCatalog = (feeStructures as unknown[]).length > 0
+  const attributedAmount = attribution?.totalAmount
+  const catalogFee = (feeStructures as { id: number; sessionId?: number; amount?: number }[]).find(
+    f => String(f.id) === form.feeStructureId,
+  )
 
   function reset() {
+    setAttribution(null)
+    setUseCatalogFallback(false)
     setForm({ studentId: 0, amount: '', method: 'CASH', reference: '', comment: '', feeStructureId: '' })
     setStatus('idle')
     setLastPaymentId(null)
   }
 
+  function handleStudentSelect(id: number) {
+    setForm(p => ({ ...p, studentId: id, amount: '', feeStructureId: '' }))
+    setAttribution(null)
+    setUseCatalogFallback(false)
+    setStatus('idle')
+  }
+
+  function handleAttributionChange(next: FeeAttributionValue | null) {
+    setAttribution(next)
+    setUseCatalogFallback(false)
+    setForm(p => ({
+      ...p,
+      amount: next ? String(next.totalAmount) : '',
+      feeStructureId: '',
+    }))
+    setStatus('idle')
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.studentId) { setErrorMsg('Sélectionnez un élève'); setStatus('error'); return }
-    if (
-      form.method === 'CASH' &&
-      !hasSession &&
-      !couldNotVerify &&
-      !sessionLoading
-    ) {
+    if (cashBlocked) {
       setErrorMsg("Aucune session de caisse ouverte — ouvrez une session dans Caisse avant d'encaisser.")
       setStatus('error')
       return
     }
-    if (!form.amount || Number(form.amount) <= 0) { setErrorMsg('Montant invalide'); setStatus('error'); return }
-    if ((feeStructures as any[]).length > 0 && !form.feeStructureId) { setErrorMsg('Veuillez sélectionner une structure de frais.'); setStatus('error'); return }
-    setStatus('idle')
-    const selectedFee = (feeStructures as { id: number; sessionId?: number }[]).find(
-      f => String(f.id) === form.feeStructureId,
-    )
-    const sessionIdForPayment = academicSessionId ?? selectedFee?.sessionId
+
+    const feeLines = attribution ? buildPaymentFeeLines(attribution.lines) : undefined
+    const feeStructureId = feeLines?.length === 1 ? feeLines[0].feeStructureId : undefined
+    const monthYear = feeLines?.length === 1 ? feeLines[0].monthYear : undefined
+    const amount = attribution?.totalAmount ?? Number(form.amount)
+
+    if (!attribution && !useCatalogFallback) {
+      setErrorMsg('Sélectionnez au moins une ligne d\'échéancier à payer.')
+      setStatus('error')
+      return
+    }
+    if (useCatalogFallback && hasCatalog && !form.feeStructureId) {
+      setErrorMsg('Veuillez sélectionner une structure de frais.')
+      setStatus('error')
+      return
+    }
+    if (!amount || amount <= 0) { setErrorMsg('Montant invalide'); setStatus('error'); return }
+
+    const sessionIdForPayment =
+      attribution?.sessionId
+      ?? academicSessionId
+      ?? catalogFee?.sessionId
+
     if (!sessionIdForPayment) {
       setErrorMsg('Session académique introuvable — rechargez la page ou contactez l\'administrateur.')
       setStatus('error')
       return
     }
+
+    if (attribution?.lines.some(({ line, amount }) => amount > (line.amountRemaining ?? line.amount) + 0.01)) {
+      setErrorMsg('Un montant dépasse le solde restant sur une ligne.')
+      setStatus('error')
+      return
+    }
+
+    setStatus('idle')
     try {
       const result = await processPayment({
         studentId: form.studentId,
-        amount: Number(form.amount),
-        method: form.method as any,
+        amount,
+        method: form.method as 'CASH' | 'ORANGE_MONEY' | 'MPESA' | 'AIRTEL_MONEY' | 'BANK' | 'CARD',
         sessionId: sessionIdForPayment,
         reference: form.reference || undefined,
         comment: form.comment || undefined,
-        feeStructureId: form.feeStructureId ? Number(form.feeStructureId) : undefined,
+        ...(feeLines && feeLines.length > 0
+          ? { fees: feeLines }
+          : { feeStructureId: form.feeStructureId ? Number(form.feeStructureId) : undefined }),
       })
-      setLastPaymentId((result as any)?.paymentId ?? (result as any)?.id ?? null)
+      setLastPaymentId((result as { paymentId?: number; id?: number })?.paymentId ?? (result as { id?: number })?.id ?? null)
       setStatus('success')
       refetchCash()
       refetchSession()
@@ -129,7 +183,7 @@ export default function PaiementsPage() {
     setThermalPrinting(true)
     try {
       const data = await financeRoleApi.getThermalReceipt(lastPaymentId)
-      const html = (data as any)?.html ?? (typeof data === 'string' ? data : JSON.stringify(data, null, 2))
+      const html = (data as { html?: string })?.html ?? (typeof data === 'string' ? data : JSON.stringify(data, null, 2))
       const win = window.open('', '_blank')
       if (win) {
         win.document.write(html)
@@ -147,7 +201,7 @@ export default function PaiementsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-zinc-900">Paiements</h1>
-            <p className="text-sm text-zinc-500 mt-0.5">Encaissement et suivi des transactions</p>
+            <p className="text-sm text-zinc-500 mt-0.5">Encaissement avec attribution des frais</p>
           </div>
           {hasSession && currentSession && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
@@ -167,7 +221,7 @@ export default function PaiementsPage() {
         </div>
       )}
 
-      {!hasSession && !couldNotVerify && !sessionLoading && form.method === 'CASH' && (
+      {cashBlocked && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
           <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />
           <p className="text-sm text-amber-700">Aucune session de caisse ouverte. Rendez-vous dans <strong>Caisse</strong> pour ouvrir une session avant d&apos;encaisser en espèces.</p>
@@ -175,7 +229,6 @@ export default function PaiementsPage() {
       )}
 
       <div className="grid grid-cols-2 gap-6">
-        {/* Formulaire encaissement */}
         <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-6">
           <h2 className="text-sm font-semibold text-zinc-900 mb-5">Encaisser un paiement</h2>
 
@@ -217,7 +270,7 @@ export default function PaiementsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <FinanceStudentSearchField
               studentId={form.studentId}
-              onSelect={(id) => { setForm(p => ({ ...p, studentId: id })); setStatus('idle') }}
+              onSelect={handleStudentSelect}
               label="Élève"
               required
             />
@@ -227,15 +280,76 @@ export default function PaiementsPage() {
               </div>
             )}
 
+            {form.studentId > 0 && !useCatalogFallback && (
+              <FeeAttributionPanel
+                studentId={form.studentId}
+                sessionId={academicSessionId ?? undefined}
+                value={attribution}
+                onChange={handleAttributionChange}
+              />
+            )}
+
+            {form.studentId > 0 && (
+              <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useCatalogFallback}
+                  onChange={(e) => {
+                    setUseCatalogFallback(e.target.checked)
+                    setAttribution(null)
+                    setForm(p => ({ ...p, amount: '', feeStructureId: '' }))
+                  }}
+                  className="rounded border-zinc-300"
+                />
+                Paiement hors échéancier (catalogue / montant libre)
+              </label>
+            )}
+
+            {useCatalogFallback && hasCatalog && (
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">
+                  Structure de frais <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.feeStructureId}
+                  onChange={e => {
+                    const id = e.target.value
+                    const fs = (feeStructures as { id: number; amount?: number }[]).find(f => String(f.id) === id)
+                    setForm(p => ({
+                      ...p,
+                      feeStructureId: id,
+                      amount: fs?.amount != null ? String(fs.amount) : p.amount,
+                    }))
+                    setStatus('idle')
+                  }}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  <option value="">— Sélectionner —</option>
+                  {(feeStructures as { id: number; label: string; amount: number }[]).map((fs) => (
+                    <option key={fs.id} value={fs.id}>{fs.label} · {formatMoney(Number(fs.amount))}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1">Montant ($) *</label>
               <input
-                type="number" required min={1} step="0.01"
-                value={form.amount}
+                type="number"
+                required
+                min={1}
+                step="0.01"
+                readOnly={!!attribution || (useCatalogFallback && !!form.feeStructureId)}
+                value={attribution ? String(attributedAmount) : form.amount}
                 onChange={e => { setForm(p => ({ ...p, amount: e.target.value })); setStatus('idle') }}
                 placeholder="50"
-                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 read-only:bg-zinc-50 read-only:text-zinc-600"
               />
+              {attribution && (
+                <p className="text-xs text-emerald-600 mt-1">
+                  {attribution.lines.length} ligne{attribution.lines.length > 1 ? 's' : ''} · total ventilé
+                </p>
+              )}
             </div>
 
             <div>
@@ -248,25 +362,6 @@ export default function PaiementsPage() {
                 {METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
-
-            {(feeStructures as any[]).length > 0 && (
-              <div>
-                <label className="block text-xs font-medium text-zinc-500 mb-1">
-                  Structure de frais <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.feeStructureId}
-                  onChange={e => setForm(p => ({ ...p, feeStructureId: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                >
-                  <option value="">— Sélectionner —</option>
-                  {(feeStructures as any[]).map((fs: any) => (
-                    <option key={fs.id} value={fs.id}>{fs.label} · {formatMoney(Number(fs.amount))}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-zinc-400 mt-1">Le montant est calculé depuis le barème sélectionné</p>
-              </div>
-            )}
 
             {needsRef && (
               <div>
@@ -295,7 +390,8 @@ export default function PaiementsPage() {
 
             <div className="flex gap-2">
               <button
-                type="submit" disabled={isPending || !hasSession}
+                type="submit"
+                disabled={isPending || cashBlocked}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
               >
                 <DollarSign size={15} />
@@ -311,7 +407,6 @@ export default function PaiementsPage() {
           </form>
         </motion.div>
 
-        {/* Rapport du jour */}
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-900">Rapport du jour</h2>
@@ -327,7 +422,7 @@ export default function PaiementsPage() {
           {cash.length === 0 ? (
             <div className="py-12 text-center">
               <DollarSign size={24} className="mx-auto text-zinc-300 mb-2" />
-              <p className="text-sm text-zinc-400">Aucun encaissement aujourd'hui</p>
+              <p className="text-sm text-zinc-400">Aucun encaissement aujourd&apos;hui</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -340,7 +435,7 @@ export default function PaiementsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cash.map((row: any, i: number) => (
+                  {cash.map((row: { method?: string; _count?: { id?: number }; _sum?: { amount?: number } }, i: number) => (
                     <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                       <td className="px-5 py-3 font-medium text-zinc-900">{row.method ?? '—'}</td>
                       <td className="px-5 py-3 text-right text-zinc-500">{row._count?.id ?? 0}</td>

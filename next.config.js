@@ -20,7 +20,13 @@ const nextConfig = {
         value: 'max-age=63072000; includeSubDomains; preload',
       })
     }
-    return [{ source: '/(.*)', headers: securityHeaders }]
+    return [
+      { source: '/(.*)', headers: securityHeaders },
+      {
+        source: '/.well-known/:path*',
+        headers: [{ key: 'Content-Type', value: 'application/json' }],
+      },
+    ]
   },
   async redirects() {
     return [
