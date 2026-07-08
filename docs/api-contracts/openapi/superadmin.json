@@ -3343,44 +3343,7 @@
         "tags": [
           "Invitations"
         ],
-        "summary": "Inviter staff",
-        "responses": {
-          "200": {
-            "description": "Opération réussie",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerError"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/superadmin/invitations/staff/revoke": {
-      "delete": {
-        "tags": [
-          "Invitations"
-        ],
-        "summary": "Révoquer invitation staff",
+        "summary": "Inviter staff (email + téléphone E.164)",
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -3454,7 +3417,7 @@
         "tags": [
           "Invitations"
         ],
-        "summary": "Code liaison parent",
+        "summary": "Code liaison parent (1 code / élève)",
         "responses": {
           "200": {
             "description": "Opération réussie",
@@ -4490,6 +4453,196 @@
           }
         ]
       }
+    },
+    "/superadmin/invitations/staff/resend": {
+      "post": {
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Renvoyer invitation staff",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuperAdminResendStaffBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/superadmin/users/suspend": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Suspendre un compte utilisateur",
+        "description": "Met le compte en statut SUSPENDED (staff parent ou admin école).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuperAdminSuspendUserBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/superadmin/users/reactivate": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Réactiver un compte suspendu",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuperAdminReactivateUserBody"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/superadmin/invitations/staff/revoke": {
+      "delete": {
+        "tags": [
+          "Invitations"
+        ],
+        "summary": "Révoquer invitation staff (body détaillé)",
+        "description": "Remplace la route générique — body avec schoolId + invitationId ou targetUserId.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuperAdminRevokeStaffBody"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4916,6 +5069,143 @@
           },
           "role": {
             "type": "string"
+          }
+        }
+      },
+      "SuperAdminInviteStaffBody": {
+        "type": "object",
+        "required": [
+          "email",
+          "phone",
+          "role",
+          "schoolId",
+          "firstName",
+          "lastName"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 6,
+            "description": "E.164 (+243…, +33…)",
+            "example": "+243810000000"
+          },
+          "role": {
+            "type": "string",
+            "description": "Role Prisma (ADMIN, FINANCE, TEACHER, …)"
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 2
+          },
+          "lastName": {
+            "type": "string",
+            "minLength": 2
+          }
+        }
+      },
+      "SuperAdminGenerateParentCodeBody": {
+        "type": "object",
+        "required": [
+          "studentId",
+          "schoolId"
+        ],
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "description": "1 code = 1 élève. Voir parcours parent `x-parent-onboarding` dans openapi-parent-mobile.json."
+      },
+      "SuperAdminRevokeStaffBody": {
+        "type": "object",
+        "required": [
+          "schoolId"
+        ],
+        "minProperties": 2,
+        "properties": {
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "targetUserId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "invitationId": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "description": "Au moins invitationId ou targetUserId requis (en plus de schoolId)."
+      },
+      "SuperAdminResendStaffBody": {
+        "type": "object",
+        "required": [
+          "targetUserId",
+          "schoolId"
+        ],
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "SuperAdminSuspendUserBody": {
+        "type": "object",
+        "required": [
+          "userId"
+        ],
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optionnel — contexte école"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "SuperAdminReactivateUserBody": {
+        "type": "object",
+        "required": [
+          "userId"
+        ],
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "schoolId": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       },

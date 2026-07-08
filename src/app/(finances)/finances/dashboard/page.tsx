@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   DollarSign, ClipboardList, CheckCircle, Users,
@@ -278,9 +279,17 @@ export default function FinanceDashboardPage() {
               <Users size={14} className="text-zinc-400" />
               <h3 className="text-sm font-semibold text-zinc-900">Top débiteurs</h3>
             </div>
-            {debtors.length > 0 && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{debtors.length}</span>
-            )}
+            <div className="flex items-center gap-2">
+              {debtors.length > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{debtors.length}</span>
+              )}
+              <Link
+                href="/finances/suivi-financier?status=DEBTOR"
+                className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
+              >
+                Suivi complet →
+              </Link>
+            </div>
           </div>
           {debtors.length === 0 ? (
             <div className="py-10 text-center">

@@ -5,7 +5,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck, UserCircle } from 'lucide-react'
+import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck, UserCircle, BarChart3 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -17,6 +17,7 @@ const NAV_LINKS = [
   { label: 'Paiements',        href: '/finances/paiements',       icon: DollarSign },
   { label: 'Vérifications',   href: '/finances/verifications',   icon: ClipboardCheck },
   { label: 'Débiteurs',        href: '/finances/debiteurs',       icon: Users },
+  { label: 'Suivi financier',  href: '/finances/suivi-financier', icon: BarChart3 },
   { label: 'Remboursements',   href: '/finances/remboursements',  icon: RotateCcw },
   { label: 'Transactions',     href: '/finances/transactions',    icon: Search },
   { label: 'Classes',          href: '/finances/classes',         icon: BookOpen },

@@ -120,6 +120,28 @@ export interface ProviderStat {
   volume: number
 }
 
+export interface SmsIntegrationStatus {
+  enabled: boolean
+  forceMock: boolean
+  provider: string
+  activeProvider: string
+  credentialsPresent: boolean
+  ready: boolean
+  senderId: string
+}
+
+export interface SmsTestResult {
+  health: SmsIntegrationStatus
+  delivery: {
+    success: boolean
+    status: string
+    provider: string
+    messageId?: string
+    errorCode?: string
+    errorMessage?: string
+  }
+}
+
 export interface SecurityAlerts {
   count: number
   recent: Array<{
@@ -602,12 +624,36 @@ export interface StudentDossier {
 /* ─── Invitations ───────────────────────────────────────────── */
 export interface StaffInvitation {
   id: number
+  userId?: number | null
+  userStatus?: string | null
   email: string
   role: string
   status: string
+  verificationStep?: string
+  verificationLabel?: string
   createdAt: string
   firstName?: string
   lastName?: string
+}
+
+export interface InviteStaffPayload {
+  email: string
+  phone: string
+  role: 'ADMIN' | 'FINANCE' | 'TEACHER'
+  schoolId: number
+  firstName: string
+  lastName: string
+}
+
+export interface RevokeStaffInvitationPayload {
+  invitationId: number
+  targetUserId?: number
+  schoolId: number
+}
+
+export interface ResendStaffInvitationPayload {
+  targetUserId: number
+  schoolId: number
 }
 
 export interface ParentInvitation {

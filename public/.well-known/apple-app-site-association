@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.example.ecoleAppMobile"],
+        "components": [
+          {
+            "/": "/receipt/verify",
+            "?": { "token": "?*" },
+            "comment": "Marketing query ?token=p2a_…"
+          },
+          {
+            "/": "/receipt/verify/*",
+            "comment": "Marketing path /receipt/verify/TOKEN"
+          }
+        ]
+      }
+    ]
+  }
+}

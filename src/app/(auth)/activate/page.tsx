@@ -41,9 +41,9 @@ const activateSchema = z
 type ActivateForm = z.infer<typeof activateSchema>
 
 const onboardingSteps = [
-  { icon: UserCheck, title: 'Compte activé', desc: 'Votre accès staff est ouvert.' },
-  { icon: Mail, title: 'Email de vérification', desc: 'Consultez votre boîte mail.' },
-  { icon: ShieldCheck, title: 'Connexion sécurisée', desc: 'Puis accédez à votre espace.' },
+  { icon: UserCheck, title: 'Mot de passe défini', desc: 'Votre accès staff est préparé.' },
+  { icon: Mail, title: 'Code SMS vérifié', desc: 'Double validation email + SMS.' },
+  { icon: ShieldCheck, title: 'Connexion sécurisée', desc: 'Accédez à votre espace.' },
 ]
 
 function PasswordRequirements({ password }: { password: string }) {
@@ -97,7 +97,9 @@ function ActivateContent() {
 
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
-  const [done, setDone] = useState(false)
+  const [step, setStep] = useState<'password' | 'otp' | 'done'>('password')
+  const [otp, setOtp] = useState('')
+  const [otpSubmitting, setOtpSubmitting] = useState(false)
 
   const {
     register,
@@ -124,12 +126,41 @@ function ActivateContent() {
       if (!res.ok) {
         throw new Error(mapActivateErrorMessage(data.message ?? data.code))
       }
-      setDone(true)
+      if (data.requiresVerification) {
+        setStep('otp')
+        return
+      }
+      setStep('done')
       setTimeout(() => router.push('/login?activated=1'), 4500)
     } catch (err) {
       setServerError(err instanceof Error ? err.message : mapActivateErrorMessage(undefined))
     }
   }
+
+  async function onVerifyOtp(e: React.FormEvent) {
+    e.preventDefault()
+    setServerError('')
+    setOtpSubmitting(true)
+    try {
+      const res = await fetch('/api/auth/verify-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, otp }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(mapActivateErrorMessage(data.message ?? data.code))
+      }
+      setStep('done')
+      setTimeout(() => router.push('/login?activated=1'), 4500)
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : mapActivateErrorMessage(undefined))
+    } finally {
+      setOtpSubmitting(false)
+    }
+  }
+
+  const done = step === 'done'
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-12 bg-[#f4f6fa] overflow-hidden">
@@ -190,10 +221,9 @@ function ActivateContent() {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 size={22} className="text-emerald-600" />
                 </div>
-                <h2 className="text-lg font-semibold text-zinc-900">Compte activé avec succès</h2>
+                <h2 className="text-lg font-semibold text-zinc-900">Compte vérifié avec succès</h2>
                 <p className="text-sm text-zinc-500 mt-2 leading-relaxed">
-                  Un email de vérification vient d&apos;être envoyé. Confirmez votre adresse avant
-                  d&apos;effectuer des opérations financières.
+                  Votre email et votre numéro de téléphone sont confirmés. Vous pouvez vous connecter.
                 </p>
               </div>
               <ol className="space-y-3">
@@ -216,6 +246,45 @@ function ActivateContent() {
               </ol>
               <p className="text-center text-xs text-zinc-400 mt-6">Redirection vers la connexion…</p>
             </div>
+          ) : step === 'otp' ? (
+            <>
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-zinc-900">Vérification SMS</h2>
+                <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
+                  Saisissez le code à 6 chiffres reçu par SMS pour finaliser l&apos;activation.
+                </p>
+              </div>
+              <form onSubmit={onVerifyOtp} className="space-y-4" noValidate>
+                <div className="space-y-1.5">
+                  <label htmlFor="otp" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    Code SMS
+                  </label>
+                  <input
+                    id="otp"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    autoFocus
+                    placeholder="000000"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 text-sm tracking-[0.3em] text-center font-mono focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-400 outline-none"
+                  />
+                </div>
+                {serverError && (
+                  <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+                    {serverError}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={otpSubmitting || otp.length !== 6}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-medium disabled:opacity-60"
+                >
+                  {otpSubmitting && <Loader2 size={15} className="animate-spin" />}
+                  {otpSubmitting ? 'Vérification…' : 'Valider mon compte'}
+                </button>
+              </form>
+            </>
           ) : (
             <>
               <div className="mb-6">

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle2, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react'
-import { useAdminRefundRequests, useReviewRefundRequest } from '@/lib/hooks/use-admin'
+import { useAdminRefundRequests, useReviewRefundRequest, useAdminStudentPaymentsDetailed } from '@/lib/hooks/use-admin'
 import { useFinanceStudentSearch, useStudentFinanceProfile, useFinanceClassDetail } from '@/lib/hooks/use-finance'
 import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -79,6 +79,7 @@ export default function AdminRefundsPage() {
       : s.name?.toLowerCase() === selected?.payment?.studentName?.toLowerCase(),
   )
   const { data: selectedProfileData } = useStudentFinanceProfile(matchedStudent?.id ?? 0)
+  const { data: selectedPaymentsPage } = useAdminStudentPaymentsDetailed(matchedStudent?.id ?? 0)
   const selectedProfile = (selectedProfileData as { profile?: Record<string, unknown> } | undefined)?.profile
   const selectedClassId = Number((selectedProfile?.classId as number | undefined) ?? 0)
   const { data: selectedClass } = useFinanceClassDetail(selectedClassId)
@@ -249,6 +250,29 @@ export default function AdminRefundsPage() {
                 <RefundDetailBlock title="Motif" tone="amber">
                   <p className="text-slate-700">{selected.reason || '—'}</p>
                 </RefundDetailBlock>
+
+                {(selectedPaymentsPage?.data?.length ?? 0) > 0 && (
+                  <RefundDetailBlock title="Historique paiements élève" tone="slate">
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      {selectedPaymentsPage!.data.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between gap-2 text-xs py-1 border-b border-slate-100 last:border-0">
+                          <div className="min-w-0">
+                            <span className="font-medium text-slate-700">#{p.id}</span>
+                            <span className="ml-1.5 text-slate-500">{p.methodLabel}</span>
+                            {p.id === selected.paymentId && (
+                              <span className="ml-1.5 rounded bg-violet-100 px-1 py-0.5 text-[10px] font-medium text-violet-700">cible</span>
+                            )}
+                            <p className="text-[10px] text-slate-400 truncate">{p.feeSummary}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-semibold text-slate-800 tabular-nums">{formatMoney(p.amount)}</p>
+                            <p className="text-[10px] text-slate-400">{new Date(p.createdAt).toLocaleDateString('fr-FR')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </RefundDetailBlock>
+                )}
 
               <RefundDecisionHistory refund={selected} />
 

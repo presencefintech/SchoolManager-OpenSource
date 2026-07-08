@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
+import { financeQueryKeys } from '@/lib/finance/query-keys'
 import type { CashSession } from '@/types/finance'
 
 // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -135,11 +136,14 @@ export function useProcessPayment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: financeRoleApi.processPayment,
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['finance', 'dashboard'] })
       qc.invalidateQueries({ queryKey: ['finance', 'daily-cash'] })
       qc.invalidateQueries({ queryKey: ['finance', 'debtors'] })
       qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
+      qc.invalidateQueries({ queryKey: ['fee-schedule', variables.studentId] })
+      qc.invalidateQueries({ queryKey: financeQueryKeys.feeSchedule(variables.studentId) })
+      qc.invalidateQueries({ queryKey: ['student-wallet', variables.studentId] })
     },
   })
 }
@@ -215,6 +219,29 @@ export function useExportCashSession() {
   })
 }
 
+// ── Suivi financier (filtres classe / section / statut) ─────────────────────
+
+export function useStudentsFinancial(params?: {
+  classId?: number
+  sectionId?: number
+  optionId?: number
+  status?: 'DEBTOR' | 'PAID'
+  page?: number
+  limit?: number
+}) {
+  return useQuery({
+    queryKey: ['finance', 'students-financial', params],
+    queryFn: () => financeRoleApi.listStudentsFinancial(params),
+    staleTime: 30_000,
+  })
+}
+
+export function useExportStudentsFinancialPrint() {
+  return useMutation({
+    mutationFn: financeRoleApi.exportStudentsFinancialPrint,
+  })
+}
+
 // ── Transactions & Recherche ───────────────────────────────────────────────
 
 export function useSearchTransactions(params: Parameters<typeof financeRoleApi.searchTransactions>[0]) {
@@ -269,6 +296,18 @@ export function useStudentConfirmedPayments(studentId: number) {
           createdAt: string
         }[]
       ),
+    staleTime: 30_000,
+    enabled: studentId > 0,
+  })
+}
+
+export function useStudentPaymentsDetailed(
+  studentId: number,
+  params?: Parameters<typeof financeRoleApi.getStudentPaymentsDetailed>[1],
+) {
+  return useQuery({
+    queryKey: ['finance', 'student-payments-detailed', studentId, params],
+    queryFn: () => financeRoleApi.getStudentPaymentsDetailed(studentId, params),
     staleTime: 30_000,
     enabled: studentId > 0,
   })

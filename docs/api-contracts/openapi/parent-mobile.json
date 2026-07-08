@@ -3,7 +3,7 @@
   "info": {
     "title": "Presence — API Mobile Parent (Flutter)",
     "version": "1.0.0",
-    "description": "Contrat OpenAPI **parent mobile** — tout sauf finances.\n\n**Base URL:** `{host}/api/v1/mobile/parents`\n\n**Auth:** `Authorization: Bearer <JWT>` (rôle PARENT) — voir [`openapi-auth.json`](./openapi-auth.json).\n\n**Contexte tenant (ADR-002):** après login, `GET /control-plane/tenant/config` puis header `X-Tenant-Id: <uuid>` sur les routes protégées. Socket : `auth.tenantId`. Voir [`docs/ADR-002-tenant-context.md`](../../docs/ADR-002-tenant-context.md).\n\n**Finances / paiements:** [`openapi-parent-finances.json`](./openapi-parent-finances.json) (aucune route finance ici).\n\n**Réponse standard:** `{ success, message, data?, timestamp, statusCode }`\n\n**Temps réel:** extension `x-socket-events` — **Event catalog v0** (`payment.settled`, `attendance.recorded`, `notification`).\n\n**Guide:** [`frontend-integration-guide.md`](./frontend-integration-guide.md)"
+    "description": "## Parcours parent multi-enfants\n\n| Situation | Codes admin (1 / élève) | Action mobile |\n|---|---|---|\n| 1er enfant, 1ère activation | 1 code | `POST /activate-access` (sans JWT) → login |\n| 2e, 3e enfant… même parent | 1 code / enfant supplémentaire | Login → `POST /claim-student` (`{ \"code\" }` seul, JWT requis) |\n\n**Règles:** pas d’inscription parent · compte parent pré-créé à l’inscription élève (`isActive: false`, même téléphone) · un code consommé par enfant · téléphone **E.164** (`+243…`, `+33…`, formats locaux normalisés côté serveur).\n\n**URL canonique:** `{host}/api/v1/mobile/parents` (pluriel — **pas** d’alias `/mobile/parent`).\n\nContrat OpenAPI **parent mobile** — tout sauf finances.\n\n**Base URL:** `{host}/api/v1/mobile/parents`\n\n**Auth:** `Authorization: Bearer <JWT>` (rôle PARENT) — voir [`openapi-auth.json`](./openapi-auth.json).\n\n**Contexte tenant (ADR-002):** après login, `GET /control-plane/tenant/config` puis header `X-Tenant-Id: <uuid>` sur les routes protégées. Socket : `auth.tenantId`. Voir [`docs/ADR-002-tenant-context.md`](../../docs/ADR-002-tenant-context.md).\n\n**Finances / paiements:** [`openapi-parent-finances.json`](./openapi-parent-finances.json) (aucune route finance ici).\n\n**Réponse standard:** `{ success, message, data?, timestamp, statusCode }`\n\n**Temps réel:** extension `x-socket-events` — **Event catalog v0** (`payment.settled`, `attendance.recorded`, `notification`).\n\n**Guide:** [`frontend-integration-guide.md`](./frontend-integration-guide.md)"
   },
   "servers": [
     {
@@ -18,7 +18,7 @@
   "tags": [
     {
       "name": "Onboarding",
-      "description": "Activation et liaison de compte"
+      "description": "Activation 1er accès (`activate-access`) et liaison enfant supplémentaire (`claim-student`). Voir `x-parent-onboarding` dans la spec."
     },
     {
       "name": "Control Plane",
@@ -47,8 +47,8 @@
         "tags": [
           "Onboarding"
         ],
-        "summary": "Activer un compte parent (code école)",
-        "description": "Première connexion : le parent doit déjà exister côté admin (`isActive: false`). Distinct de `POST /api/v1/auth/activate` (staff).",
+        "summary": "Activer un compte parent — 1er enfant (code école)",
+        "description": "**1er accès uniquement** — parent sans compte actif.\n\nLe compte User PARENT doit déjà exister (`isActive: false`, téléphone = celui saisi à l’inscription élève). Body : téléphone E.164, code à usage unique, mot de passe, prénom, nom.\n\nSuccès → compte activé + lien parent ↔ élève A ; le code est consommé.\n\nEnsuite : `POST /api/v1/auth/login` (pas de JWT renvoyé par cette route).\n\nPour un **2e enfant** : générer un nouveau code admin, parent **connecté** → `POST /claim-student`.\n\nDistinct de `POST /api/v1/auth/activate` (staff).",
         "security": [],
         "requestBody": {
           "required": true,
@@ -87,7 +87,22 @@
             "$ref": "#/components/responses/ValidationError"
           },
           "403": {
-            "description": "Code invalide ou activation refusée"
+            "description": "Activation refusée (`ACCOUNT_ACTIVATION_DENIED`) — code invalide/expiré, téléphone inconnu, ou compte déjà actif",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "success": false,
+                  "message": "ACCOUNT_ACTIVATION_DENIED",
+                  "errors": {
+                    "code": "ACCOUNT_ACTIVATION_DENIED"
+                  },
+                  "statusCode": 403
+                }
+              }
+            }
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -542,11 +557,44 @@
         "tags": [
           "Onboarding"
         ],
-        "summary": "Lier un élève supplémentaire (code invitation)",
-        "description": "Parent déjà connecté. Body: `{ \"code\": \"...\" }` (min 6 caractères, uppercase).",
+        "summary": "Lier un élève supplémentaire — 2e, 3e enfant…",
+        "description": "**Parent déjà connecté** (JWT PARENT). Pas de mot de passe, pas de ré-activation.\n\nBody : `{ \"code\": \"XXXXXXXX\" }` uniquement (min 6 caractères, normalisé uppercase côté serveur).\n\nUn code admin par enfant supplémentaire. Consomme le code et crée/met à jour `parentStudent`.\n\nUI Flutter : écran « Ajouter un enfant » accessible depuis le dashboard (parent avec ≥1 enfant).",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Tenant-Id",
+            "in": "header",
+            "required": false,
+            "description": "Contexte tenant UUID (recommandé) ou `school-{id}`. Source : `GET /control-plane/tenant/config` → `data.tenant.id`. Fallback serveur : `x-school-id` puis JWT `schoolId`. Incohérence JWT en prod → 403 `TENANT_CONTEXT_MISMATCH`.",
+            "schema": {
+              "type": "string",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "ID de traçabilité (généré côté serveur si absent). Logs + gateway paiement.",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-school-id",
+            "in": "header",
+            "required": false,
+            "description": "Fallback legacy — entier école si `X-Tenant-Id` absent.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
           }
         ],
         "requestBody": {
@@ -561,11 +609,23 @@
         },
         "responses": {
           "200": {
-            "description": "Élève lié",
+            "description": "Élève lié au compte parent",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApiSuccess"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiSuccess"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/ClaimStudentData"
+                        }
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -591,7 +651,7 @@
           "Onboarding"
         ],
         "summary": "Pré-inscription d'un enfant",
-        "description": "Crée un élève **PENDING_ENROLLMENT**. Validation établissement hors scope parent.",
+        "description": "Crée un élève **PENDING_ENROLLMENT**. Validation établissement hors scope parent.\n\nSi `photo` est envoyée, **`livenessScore` est obligatoire** (capture live anti-spoof, seuil ≥ 0.85).",
         "security": [
           {
             "bearerAuth": []
@@ -857,6 +917,7 @@
           "Students"
         ],
         "summary": "Mettre à jour la photo biométrique",
+        "description": "Enregistre le template facial (`face_embedding`) pour la présence FACIAL/BIOMETRIC.\n\n**`livenessScore` obligatoire** — capture live uniquement (pas de galerie). Seuil serveur ≥ 0.85.",
         "security": [
           {
             "bearerAuth": []
@@ -878,17 +939,25 @@
           "content": {
             "multipart/form-data": {
               "schema": {
-                "type": "object",
-                "required": [
-                  "photo"
-                ],
-                "properties": {
-                  "photo": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "JPEG/PNG/WebP/PDF, max 2 Mo"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BiometricCaptureMultipart"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "photo",
+                      "livenessScore"
+                    ],
+                    "properties": {
+                      "photo": {
+                        "type": "string",
+                        "format": "binary",
+                        "description": "JPEG/PNG/WebP, max 2 Mo — capture live uniquement"
+                      }
+                    }
                   }
-                }
+                ]
               }
             }
           }
@@ -1097,6 +1166,49 @@
       }
     }
   },
+  "x-parent-onboarding": {
+    "version": "2026-07",
+    "canonicalBasePath": "/api/v1/mobile/parents",
+    "flows": [
+      {
+        "id": "first_child_activation",
+        "when": "Parent sans compte actif (1er enfant)",
+        "adminAction": "POST /admin/invitations/parent-code { studentId } → 1 code",
+        "mobileSteps": [
+          "Welcome → « J’ai un code » / « Activer mon accès »",
+          "POST /activate-access { phone, code, password, firstName, lastName }",
+          "POST /auth/login { identifier, password }"
+        ],
+        "auth": "activate-access : aucune · login : aucune"
+      },
+      {
+        "id": "additional_child_claim",
+        "when": "Même parent, déjà connecté (2e, 3e enfant…)",
+        "adminAction": "Nouveau POST /parent-code par enfant supplémentaire",
+        "mobileSteps": [
+          "POST /auth/login",
+          "Dashboard → « Ajouter un enfant » → POST /claim-student { code }"
+        ],
+        "auth": "Bearer JWT PARENT obligatoire sur claim-student"
+      }
+    ],
+    "rules": [
+      "Un code invitation = un élève",
+      "Pas de register / signup parent",
+      "Téléphone parent = celui enregistré à l’inscription élève",
+      "OTP login n’active pas le compte"
+    ],
+    "seedExample": {
+      "activation": {
+        "phone": "+243900333444",
+        "code": "TESTPARENT1"
+      },
+      "claim": {
+        "code": "CLAIMMAR1",
+        "afterLogin": "parent@test.com"
+      }
+    }
+  },
   "x-socket-events": {
     "protocol": "socket.io",
     "version": "4.x",
@@ -1282,12 +1394,14 @@
           "phone": {
             "type": "string",
             "minLength": 6,
+            "description": "E.164 recommandé (+243…, +33…). Variantes locales normalisées côté serveur.",
             "example": "+243900000000"
           },
           "code": {
             "type": "string",
             "minLength": 4,
-            "maxLength": 20
+            "maxLength": 20,
+            "description": "Code à usage unique (1 élève)"
           },
           "password": {
             "type": "string",
@@ -1323,11 +1437,36 @@
         "required": [
           "code"
         ],
+        "additionalProperties": false,
         "properties": {
           "code": {
             "type": "string",
             "minLength": 6,
-            "example": "INVITE1"
+            "example": "CLAIMMAR1",
+            "description": "Code école — seul champ requis"
+          }
+        }
+      },
+      "ClaimStudentData": {
+        "type": "object",
+        "properties": {
+          "relation": {
+            "type": "object",
+            "properties": {
+              "parentId": {
+                "type": "integer"
+              },
+              "studentId": {
+                "type": "integer"
+              },
+              "schoolId": {
+                "type": "integer"
+              }
+            }
+          },
+          "studentName": {
+            "type": "string",
+            "example": "Marie"
           }
         }
       },
@@ -1773,6 +1912,9 @@
             "$ref": "#/components/schemas/ParentPreEnrollBody"
           },
           {
+            "$ref": "#/components/schemas/BiometricCaptureMultipart"
+          },
+          {
             "type": "object",
             "properties": {
               "photo": {
@@ -1782,6 +1924,31 @@
             }
           }
         ]
+      },
+      "BiometricLivenessScore": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Score vivacité capture live (ML Kit). Seuil serveur ≥ 0.85.",
+        "example": 0.92
+      },
+      "BiometricFaceScore": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Score qualité visage (optionnel, complète livenessScore).",
+        "example": 0.91
+      },
+      "BiometricCaptureMultipart": {
+        "type": "object",
+        "properties": {
+          "livenessScore": {
+            "$ref": "#/components/schemas/BiometricLivenessScore"
+          },
+          "faceScore": {
+            "$ref": "#/components/schemas/BiometricFaceScore"
+          }
+        }
       },
       "PresenceStatus": {
         "type": "string",

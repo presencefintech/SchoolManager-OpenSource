@@ -5821,6 +5821,45 @@
         }
       }
     },
+    "/admin/invitations/staff/resend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Renvoyer l’invitation staff (e-mail + lien activation web)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendStaffInvitationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/admin/invitations/parent-code/{codeId}": {
       "delete": {
         "tags": [
@@ -8346,6 +8385,7 @@
         "type": "object",
         "required": [
           "email",
+          "phone",
           "role",
           "firstName",
           "lastName"
@@ -8354,6 +8394,12 @@
           "email": {
             "type": "string",
             "format": "email"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 6,
+            "description": "Téléphone international E.164 (+243…, +33…) ou format local — normalisé côté serveur.",
+            "example": "+243810000000"
           },
           "role": {
             "$ref": "#/components/schemas/Role"
@@ -8376,15 +8422,18 @@
         "properties": {
           "studentId": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "description": "Élève à lier — **un code par enfant**"
           },
           "email": {
             "type": "string",
-            "format": "email"
+            "format": "email",
+            "description": "Optionnel — notification"
           }
-        }
+        },
+        "description": "Génère un code à usage unique. 1er enfant → parent utilise `POST /mobile/parents/activate-access`. Enfants suivants (même parent) → nouveau code + `POST /mobile/parents/claim-student` (JWT)."
       },
-      "RevokeStaffInvitationBody": {
+      "ResendStaffInvitationBody": {
         "type": "object",
         "required": [
           "targetUserId"
@@ -8392,9 +8441,27 @@
         "properties": {
           "targetUserId": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "description": "User.id du staff en attente (PENDING_VERIFICATION)"
           }
         }
+      },
+      "RevokeStaffInvitationBody": {
+        "type": "object",
+        "minProperties": 1,
+        "properties": {
+          "targetUserId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "User.id — prioritaire si les deux fournis"
+          },
+          "invitationId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "StaffInvitation.id — alternative à targetUserId"
+          }
+        },
+        "description": "Au moins `targetUserId` ou `invitationId` requis. Supprime invitation + user orphelin en attente."
       },
       "CreateStaffBody": {
         "type": "object",

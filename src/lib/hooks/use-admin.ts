@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi } from '@/lib/admin/api'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import { getAuthToken } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -7,10 +7,14 @@ import { useToast } from '@/providers/toast-provider'
 import type {
   CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload,
   CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload,
-  GenerateParentCodePayload, InviteStaffPayload, AttendanceSettings, BulkMoratoriumPayload,
+  GenerateParentCodePayload, InviteStaffPayload, RevokeStaffInvitationPayload, AttendanceSettings, BulkMoratoriumPayload,
   FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
   StudentSecurityAction, ConfirmPaymentProofPayload, UpdateMoratoriumPolicyPayload,
 } from '@/types/admin'
+import type {
+  CreatePreEnrollmentPayload,
+  PreEnrollmentStatus,
+} from '@/types/pre-enrollment'
 
 // ── Dashboard ──────────────────────────────────────────────────────
 export function useAdminStats() {
@@ -788,13 +792,25 @@ export function useMobilePending() {
   })
 }
 
+export function useAdminStudentFeeSchedule(studentId: number, sessionId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'fee-schedule', studentId, sessionId],
+    queryFn: () => financeApi.getStudentFeeSchedule(studentId, sessionId),
+    enabled: Number.isFinite(studentId) && studentId > 0,
+    staleTime: 30_000,
+  })
+}
+
 export function useProcessManualPayment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: ManualPaymentPayload) => financeApi.processManualPayment(payload),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
+      if (variables.studentId) {
+        qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', variables.studentId] })
+      }
     },
   })
 }
@@ -886,6 +902,76 @@ export function useStudentInvoices(studentId: number) {
     staleTime: 60_000,
     enabled: !!studentId,
     refetchOnWindowFocus: false,
+  })
+}
+
+export function useAdminStudentPaymentsDetailed(
+  studentId: number,
+  params?: Parameters<typeof financeApi.getStudentPaymentsDetailed>[1],
+) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'student-payments-detailed', studentId, params],
+    queryFn: () => financeApi.getStudentPaymentsDetailed(studentId, params),
+    staleTime: 30_000,
+    enabled: studentId > 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+// ── Pré-inscriptions web ───────────────────────────────────────────────────
+
+export function usePreEnrollments(params?: { status?: string; page?: number; limit?: number; schoolId?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'pre-enrollments', params],
+    queryFn: () => preEnrollmentApi.list(params),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useSchoolSections(schoolId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'school', 'sections', schoolId],
+    queryFn: () => schoolAcademicApi.listSections(schoolId),
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useSchoolOptions(sectionId: number, schoolId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'school', 'options', sectionId, schoolId],
+    queryFn: () => schoolAcademicApi.listOptions(sectionId, schoolId),
+    staleTime: 120_000,
+    enabled: sectionId > 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useSchoolClasses(sectionId: number, optionId: number, academicYear?: string, schoolId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'school', 'classes', sectionId, optionId, academicYear, schoolId],
+    queryFn: () => schoolAcademicApi.listClasses(sectionId, optionId, academicYear, schoolId),
+    staleTime: 120_000,
+    enabled: sectionId > 0 && optionId > 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCreatePreEnrollment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreatePreEnrollmentPayload) => preEnrollmentApi.create(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'pre-enrollments'] }),
+  })
+}
+
+export function useUpdatePreEnrollmentStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, status, comment }: { id: number; status: PreEnrollmentStatus; comment?: string }) =>
+      preEnrollmentApi.updateStatus(id, { status, comment }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'pre-enrollments'] }),
   })
 }
 
@@ -1330,7 +1416,15 @@ export function useInviteStaff() {
 export function useRevokeStaffInvitation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (targetUserId: number) => invitationsApi.revokeStaffInvitation(targetUserId),
+    mutationFn: (payload: RevokeStaffInvitationPayload) => invitationsApi.revokeStaffInvitation(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invitations'] }),
+  })
+}
+
+export function useResendStaffInvitation() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (targetUserId: number) => invitationsApi.resendStaffInvitation(targetUserId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invitations'] }),
   })
 }

@@ -96,12 +96,13 @@ export function getApiErrorMessage(error: unknown): string {
       if (fieldErrors) return fieldErrors
     }
     const msg = data?.message
+    const code = data?.code
     if (Array.isArray(msg)) return msg.join(' · ')
     const resolved = resolveApiErrorMessage(data)
     if (resolved !== 'Une erreur inattendue est survenue') return resolved
     if (typeof msg === 'string' && msg) return msg
-    if (error.response?.status === 409) {
-      return 'Une session caisse est déjà ouverte pour ce guichet.'
+    if (error.response?.status === 409 && !code) {
+      return 'Conflit : cette ressource existe déjà.'
     }
   }
   if (error instanceof Error && error.message && error.message !== 'Network Error') {

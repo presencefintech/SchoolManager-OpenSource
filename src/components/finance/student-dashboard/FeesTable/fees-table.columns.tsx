@@ -10,6 +10,7 @@ const STATUS_CFG: Record<
   { label: string; className: string }
 > = {
   PAID: { label: 'Payé', className: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' },
+  PARTIALLY_PAID: { label: 'Partiel', className: 'bg-amber-50 text-amber-800 ring-amber-600/20' },
   DUE: { label: 'Dû', className: 'bg-red-50 text-red-700 ring-red-600/20' },
   OVERDUE: { label: 'En retard', className: 'bg-red-100 text-red-800 ring-red-700/25' },
   UPCOMING: { label: 'À venir', className: 'bg-sky-50 text-sky-700 ring-sky-600/20' },
