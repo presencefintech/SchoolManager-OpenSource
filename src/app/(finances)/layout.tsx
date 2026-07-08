@@ -5,11 +5,12 @@ import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import { useRef, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck, UserCircle, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote, CalendarCheck, RotateCcw, ClipboardCheck, UserCircle, BarChart3, Radio } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
+import { FinanceRealtimeProvider, useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 
 const NAV_LINKS = [
   { label: 'Dashboard',        href: '/finances/dashboard',       icon: LayoutDashboard },
@@ -28,6 +29,7 @@ const NAV_LINKS = [
 function FinanceNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const { status: realtimeStatus } = useFinanceRealtimeStatus()
   const queryClient = useQueryClient()
   const hasAnimated = useRef(false)
   const [mounted, setMounted] = useState(false)
@@ -55,7 +57,15 @@ function FinanceNav() {
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">presenceFintech</p>
-          <p className="text-[11px] text-zinc-400 leading-tight">Finance</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-[11px] text-zinc-400 leading-tight">Guichet Finance · RDC</p>
+            {realtimeStatus === 'live' && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                <Radio size={8} />
+                LIVE
+              </span>
+            )}
+          </div>
         </div>
       </Link>
 
@@ -121,12 +131,14 @@ function FinanceNav() {
 
 export default function FinancesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
-      <FinanceNav />
-      <main className="flex-1 ml-64 min-h-screen bg-zinc-50">
-        <EmailVerificationBanner />
-        <ErrorBoundary>{children}</ErrorBoundary>
-      </main>
-    </div>
+    <FinanceRealtimeProvider>
+      <div className="flex min-h-screen">
+        <FinanceNav />
+        <main className="flex-1 ml-64 min-h-screen bg-[#f5f7fb]">
+          <EmailVerificationBanner />
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </main>
+      </div>
+    </FinanceRealtimeProvider>
   )
 }

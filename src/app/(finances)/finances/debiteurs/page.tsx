@@ -1,10 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar } from 'lucide-react'
+import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar, BarChart3 } from 'lucide-react'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
-import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums, useStudentPaymentsDetailed } from '@/lib/hooks/use-finance'
+import { StudentPaymentHistory } from '@/components/finance/student-dashboard/StudentPaymentHistory'
+import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
+import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -33,7 +36,6 @@ export default function DebiteursPage() {
 
   const { data: debtorsData, isLoading: loadingDebtors } = useDebtors(minDebt)
   const { data: studentProfile, isLoading: loadingProfile } = useStudentFinanceProfile(searchedId)
-  const { data: paymentsPage, isLoading: loadingPayments } = useStudentPaymentsDetailed(searchedId)
   const { data: walletData, isLoading: loadingWallet } = useStudentWallet(searchedId)
   const { data: highRiskData, isLoading: loadingRisk } = useHighRisk()
   const { data: moratoriumsData, isLoading: loadingMoratoriums } = useFinanceMoratoriums({ status: 'ACTIVE' })
@@ -60,39 +62,42 @@ export default function DebiteursPage() {
   const totalDebt = debtors.reduce((acc, d) => acc + (Number(d.feesBalance) || 0), 0)
 
   return (
-    <div className="px-8 py-8 space-y-6">
-      {/* Header */}
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Débiteurs & Risques</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Suivi des impayés et profils à risque</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {debtors.length > 0 && (
-            <>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-100 bg-red-50 text-xs font-medium text-red-700">
-                <TrendingDown size={13} />
-                {debtors.length} débiteur(s)
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-100 bg-white text-xs font-medium text-zinc-700 shadow-sm">
-                <DollarSign size={13} className="text-red-500" />
-                {formatMoney(totalDebt)}
-              </div>
-            </>
-          )}
-          <button onClick={handleExport} disabled={exportDebtors.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40">
-            <Download size={12} /> Export CSV
-          </button>
-          <button onClick={handleReminders} disabled={triggering || reminderDone}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs disabled:opacity-40 ${reminderDone ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
-            <Bell size={12} /> {reminderDone ? 'Relances envoyées' : 'Relancer'}
-          </button>
-        </div>
-      </motion.div>
+    <FinancePageShell>
+      <FinancePageHeader
+        title="Débiteurs & Risques"
+        subtitle="Suivi des impayés, profils à risque et relances — ERP scolaire RDC"
+        actions={
+          <>
+            <Link
+              href="/finances/suivi-financier?status=DEBTOR"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50 shadow-sm transition-colors"
+            >
+              <BarChart3 size={13} />
+              Suivi détaillé
+            </Link>
+            {debtors.length > 0 && (
+              <>
+                <div className="flex items-center gap-1.5 rounded-xl border border-red-100 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700">
+                  <TrendingDown size={13} />
+                  {debtors.length} débiteur(s)
+                </div>
+                <div className="flex items-center gap-1.5 rounded-xl border border-zinc-100 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 shadow-sm">
+                  <DollarSign size={13} className="text-red-500" />
+                  {formatMoney(totalDebt)}
+                </div>
+              </>
+            )}
+            <button onClick={handleExport} disabled={exportDebtors.isPending}
+              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40">
+              <Download size={12} /> Export CSV
+            </button>
+            <button onClick={handleReminders} disabled={triggering || reminderDone}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs disabled:opacity-40 ${reminderDone ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
+              <Bell size={12} /> {reminderDone ? 'Relances envoyées' : 'Relancer'}
+            </button>
+          </>
+        }
+      />
 
       {/* Filtre */}
       <div className="flex items-center gap-3">
@@ -307,8 +312,14 @@ export default function DebiteursPage() {
                 label="Rechercher un élève"
               />
               {searchedId > 0 && (
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap items-center gap-3">
                   <StudentFeeScheduleLink studentId={searchedId} variant="inline" />
+                  <Link
+                    href={`/finances/eleves/${searchedId}`}
+                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+                  >
+                    Fiche complète & encaissement →
+                  </Link>
                 </div>
               )}
             </div>
@@ -372,42 +383,9 @@ export default function DebiteursPage() {
                   </motion.div>
                 )}
 
-                {/* Historique paiements */}
-                {searchedId > 0 && (loadingPayments || (paymentsPage?.data?.length ?? 0) > 0) && (
+                {searchedId > 0 && (
                   <motion.div variants={fadeUp}>
-                    <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">Historique paiements</p>
-                    {loadingPayments ? (
-                      <div className="space-y-2">
-                        <Sk className="h-8" />
-                        <Sk className="h-8" />
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 max-h-44 overflow-y-auto">
-                        {(paymentsPage?.data ?? []).map((p) => (
-                          <div key={p.id} className="flex items-center justify-between py-1.5 border-b border-zinc-50 last:border-0">
-                            <div className="min-w-0 pr-2">
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">{p.methodLabel || p.method || '—'}</span>
-                              {p.status && (
-                                <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded font-medium ${
-                                  p.status === 'CONFIRMED' ? 'bg-emerald-50 text-emerald-700' :
-                                  p.status === 'PENDING' ? 'bg-amber-50 text-amber-700' :
-                                  'bg-red-50 text-red-700'
-                                }`}>{p.status}</span>
-                              )}
-                              {p.feeSummary && (
-                                <p className="text-[10px] text-zinc-500 mt-0.5 truncate">{p.feeSummary}</p>
-                              )}
-                              {p.createdAt && (
-                                <p className="text-[10px] text-zinc-400 mt-0.5">{new Date(p.createdAt).toLocaleDateString('fr-FR')}</p>
-                              )}
-                            </div>
-                            <span className="text-xs font-semibold text-zinc-900 shrink-0">
-                              {formatMoney(Number(p.amount))}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <StudentPaymentHistory studentId={searchedId} compact className="mt-2" />
                   </motion.div>
                 )}
               </motion.div>
@@ -460,6 +438,6 @@ export default function DebiteursPage() {
             )}
           </div>
         </div>
-    </div>
+    </FinancePageShell>
   )
 }

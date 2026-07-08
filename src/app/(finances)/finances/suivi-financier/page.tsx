@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { Filter, Printer, Download, RefreshCw, Users, CheckCircle2, AlertTriangle } from 'lucide-react'
+import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import {
   useStudentsFinancial,
   useExportStudentsFinancialPrint,
@@ -12,6 +14,7 @@ import {
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 import type { StudentFinancialRow, StudentsFinancialPrintReport } from '@/types/finance'
+import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -159,47 +162,41 @@ export default function SuiviFinancierPage() {
     'rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40 min-w-[140px]'
 
   return (
-    <div className="px-8 py-8 space-y-6">
-      <motion.div
-        className="flex flex-wrap items-center justify-between gap-4"
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Suivi financier</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">
-            Filtrage par classe, section, option et statut de paiement
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
-          >
-            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-            Actualiser
-          </button>
-          <button
-            type="button"
-            disabled={exportPrint.isPending}
-            onClick={() => handleExport('csv')}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
-          >
-            <Download size={14} />
-            Export CSV
-          </button>
-          <button
-            type="button"
-            disabled={exportPrint.isPending}
-            onClick={() => handleExport('json')}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            <Printer size={14} />
-            Exporter pour impression
-          </button>
-        </div>
-      </motion.div>
+    <FinancePageShell>
+      <FinancePageHeader
+        title="Suivi financier"
+        subtitle="Filtrage par classe, section, option et statut — registre ERP RDC"
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+            >
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+              Actualiser
+            </button>
+            <button
+              type="button"
+              disabled={exportPrint.isPending}
+              onClick={() => handleExport('csv')}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              <Download size={14} />
+              Export CSV
+            </button>
+            <button
+              type="button"
+              disabled={exportPrint.isPending}
+              onClick={() => handleExport('json')}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Printer size={14} />
+              Exporter pour impression
+            </button>
+          </>
+        }
+      />
 
       {meta && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -207,14 +204,22 @@ export default function SuiviFinancierPage() {
             <p className="text-xs text-zinc-500">Résultats</p>
             <p className="text-2xl font-bold text-zinc-900">{meta.total}</p>
           </div>
-          <div className="rounded-xl border border-red-100 bg-red-50/50 p-4">
+          <button
+            type="button"
+            onClick={() => { setStatus('DEBTOR'); setPage(1) }}
+            className="rounded-xl border border-red-100 bg-red-50/50 p-4 text-left hover:bg-red-50 transition-colors"
+          >
             <p className="text-xs text-red-600 flex items-center gap-1"><AlertTriangle size={12} /> Débiteurs</p>
             <p className="text-2xl font-bold text-red-800">{meta.debtors}</p>
-          </div>
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+          </button>
+          <button
+            type="button"
+            onClick={() => { setStatus('PAID'); setPage(1) }}
+            className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-left hover:bg-emerald-50 transition-colors"
+          >
             <p className="text-xs text-emerald-700 flex items-center gap-1"><CheckCircle2 size={12} /> En ordre</p>
             <p className="text-2xl font-bold text-emerald-800">{meta.paid}</p>
-          </div>
+          </button>
           <div className="rounded-xl border border-zinc-200 bg-white p-4">
             <p className="text-xs text-zinc-500">Solde total</p>
             <p className="text-2xl font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance)}</p>
@@ -304,14 +309,20 @@ export default function SuiviFinancierPage() {
                 <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Payé</th>
                 <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Solde</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Statut</th>
+                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50">
               {rows.map((row: StudentFinancialRow) => (
                 <tr key={row.id} className="hover:bg-zinc-50/80 transition-colors">
                   <td className="px-5 py-3">
-                    <p className="text-sm font-medium text-zinc-900">{row.fullName}</p>
-                    <p className="text-xs text-zinc-400">{row.matricule}</p>
+                    <Link
+                      href={`/finances/eleves/${row.id}`}
+                      className="block group"
+                    >
+                      <p className="text-sm font-medium text-zinc-900 group-hover:text-emerald-700">{row.fullName}</p>
+                      <p className="text-xs text-zinc-400">{row.matricule}</p>
+                    </Link>
                   </td>
                   <td className="px-5 py-3 text-sm text-zinc-600">
                     {row.className ?? '—'}
@@ -338,6 +349,9 @@ export default function SuiviFinancierPage() {
                     )}>
                       {row.financialStatus === 'DEBTOR' ? 'Débiteur' : 'En ordre'}
                     </span>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <StudentFeeScheduleLink studentId={row.id} />
                   </td>
                 </tr>
               ))}
@@ -369,6 +383,6 @@ export default function SuiviFinancierPage() {
           </button>
         </div>
       )}
-    </div>
+    </FinancePageShell>
   )
 }

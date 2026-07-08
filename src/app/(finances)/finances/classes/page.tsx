@@ -16,6 +16,8 @@ function downloadBlob(blob: Blob, filename: string) {
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
+import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
+import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 
 function Sk({ className }: { className?: string }) {
   return <div className={`rounded-xl bg-zinc-100 animate-pulse ${className ?? ''}`} />
@@ -120,7 +122,8 @@ function ClassDetail({ classId }: { classId: number }) {
                   <th className="text-left py-1.5 pr-4 font-semibold text-zinc-500">Matricule</th>
                   <th className="text-right py-1.5 pr-4 font-semibold text-zinc-500">Total dû</th>
                   <th className="text-right py-1.5 pr-4 font-semibold text-zinc-500">Payé</th>
-                  <th className="text-right py-1.5 font-semibold text-zinc-500">Solde</th>
+                  <th className="text-right py-1.5 pr-4 font-semibold text-zinc-500">Solde</th>
+                  <th className="text-right py-1.5 font-semibold text-zinc-500">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 max-h-56 overflow-y-auto">
@@ -133,8 +136,11 @@ function ClassDetail({ classId }: { classId: number }) {
                       <td className="py-2 pr-4 font-mono text-zinc-400">{s.matricule ?? '—'}</td>
                       <td className="py-2 pr-4 text-right text-zinc-600">{enr ? formatMoney(Number(enr.totalAmount)) : '—'}</td>
                       <td className="py-2 pr-4 text-right text-emerald-600">{enr ? formatMoney(Number(enr.paidAmount)) : '—'}</td>
-                      <td className={`py-2 text-right font-semibold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      <td className={`py-2 pr-4 text-right font-semibold ${balance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
                         {enr ? formatMoney(balance) : '—'}
+                      </td>
+                      <td className="py-2 text-right">
+                        {s.id ? <StudentFeeScheduleLink studentId={Number(s.id)} /> : null}
                       </td>
                     </tr>
                   )
@@ -164,11 +170,12 @@ export default function ClassesPage() {
   const classes: any[] = Array.isArray(classesData) ? classesData : (classesData as any)?.data ?? []
 
   return (
-    <div className="px-8 py-8 space-y-6">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <h1 className="text-2xl font-bold text-zinc-900">Classes</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Suivi financier par classe</p>
-      </motion.div>
+    <FinancePageShell>
+      <FinancePageHeader
+        title="Classes"
+        subtitle="Suivi financier par classe — drill-down vers la fiche élève"
+        accent="slate"
+      />
 
       <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
@@ -238,6 +245,6 @@ export default function ClassesPage() {
           </div>
         )}
       </motion.div>
-    </div>
+    </FinancePageShell>
   )
 }

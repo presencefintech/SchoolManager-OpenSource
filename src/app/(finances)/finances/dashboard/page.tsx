@@ -5,16 +5,57 @@ import { motion } from 'framer-motion'
 import {
   DollarSign, ClipboardList, CheckCircle, Users,
   RotateCcw, Banknote, RefreshCw, AlertTriangle, CalendarCheck, ShieldCheck, TrendingUp,
+  Radio, ClipboardCheck, BarChart3, Search,
 } from 'lucide-react'
 import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
   useExecutiveDashboard, useFinanceIntegrity,
 } from '@/lib/hooks/use-finance'
+import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
 import { PaymentCategoryDonutChart, PaymentMethodBarChart, PaymentMethodCountBarChart } from '@/components/charts/finance-transactions-charts'
+import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
+
+const QUICK_LINKS = [
+  { href: '/finances/paiements', label: 'Paiements', icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50' },
+  { href: '/finances/caisse', label: 'Caisse', icon: Banknote, tone: 'text-blue-600 bg-blue-50' },
+  { href: '/finances/verifications', label: 'Vérifications', icon: ClipboardCheck, tone: 'text-amber-600 bg-amber-50' },
+  { href: '/finances/suivi-financier', label: 'Suivi', icon: BarChart3, tone: 'text-violet-600 bg-violet-50' },
+  { href: '/finances/debiteurs', label: 'Débiteurs', icon: Users, tone: 'text-red-600 bg-red-50' },
+  { href: '/finances/transactions', label: 'Transactions', icon: Search, tone: 'text-zinc-600 bg-zinc-100' },
+] as const
+
+function LiveIndicator({ status, lastUpdate }: { status: ReturnType<typeof useFinanceRealtimeStatus>['status']; lastUpdate: Date | null }) {
+  const isLive = status === 'live'
+  const label =
+    status === 'live' ? 'Temps réel'
+    : status === 'connecting' ? 'Connexion…'
+    : status === 'polling' ? 'Actualisation auto'
+    : 'Hors ligne'
+
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium ${
+        isLive
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          : 'border-zinc-200 bg-white text-zinc-500'
+      }`}
+      title={lastUpdate ? `Dernière MAJ ${lastUpdate.toLocaleTimeString('fr-FR')}` : undefined}
+    >
+      <span className="relative flex h-2 w-2">
+        {isLive && (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+        )}
+        <span className={`relative inline-flex h-2 w-2 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
+      </span>
+      <Radio size={12} className={isLive ? 'text-emerald-600' : 'text-zinc-400'} />
+      {label}
+    </div>
+  )
+}
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: 'Espèces',
@@ -93,7 +134,8 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeVal
 }
 
 export default function FinanceDashboardPage() {
-  const { data: guichet, isLoading, refetch } = useGuichetDashboard()
+  const { status: realtimeStatus, lastUpdate } = useFinanceRealtimeStatus()
+  const { data: guichet, isLoading, refetch, dataUpdatedAt } = useGuichetDashboard()
   const { data: dailyCash = [] } = useDailyCashReport()
   const { data: debtorsData } = useDebtors(10)
   const sessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)?.currentAcademicSessionId
@@ -156,29 +198,59 @@ export default function FinanceDashboardPage() {
 
   return (
     <div className="min-h-full bg-[#f5f7fb] px-8 py-8 space-y-6">
-      {/* Header */}
+      {/* Hero */}
       <motion.div
-        className="flex items-center justify-between"
+        className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 px-6 py-6 text-white shadow-lg"
         initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
       >
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Finance</h1>
-          <p className="text-sm text-zinc-500 mt-0.5 capitalize" suppressHydrationWarning>{today}</p>
+        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100/90">Guichet finance</p>
+            <h1 className="mt-1 text-2xl font-bold">Tableau de bord</h1>
+            <p className="mt-1 text-sm text-emerald-100/90 capitalize" suppressHydrationWarning>{today}</p>
+            {!isLoading && g && (
+              <p className="mt-3 text-sm font-medium text-white/95">
+                {formatMoney(Number(g?.collectionsToday?.total) || todayTotal)} encaissés aujourd&apos;hui
+                {' · '}
+                {g?.collectionsToday?.count ?? 0} transaction(s)
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <LiveIndicator status={realtimeStatus} lastUpdate={lastUpdate ?? (dataUpdatedAt ? new Date(dataUpdatedAt) : null)} />
+            {g?.closingFinalizedToday && (
+              <div className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+                <CalendarCheck size={13} /> Clôture finalisée
+              </div>
+            )}
+            {g?.openCashSession && (
+              <div className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+                <Banknote size={13} /> Session ouverte
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="rounded-xl border border-white/20 bg-white/10 p-2 text-white/90 backdrop-blur-sm hover:bg-white/20"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          {g?.closingFinalizedToday && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-100 bg-emerald-50 text-xs font-medium text-emerald-700">
-              <CalendarCheck size={13} /> Clôture finalisée
-            </div>
-          )}
-          {g?.openCashSession && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-100 bg-blue-50 text-xs font-medium text-blue-700">
-              <Banknote size={13} /> Session ouverte
-            </div>
-          )}
-          <button onClick={() => refetch()} className="p-2 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50 transition-colors">
-            <RefreshCw size={14} />
-          </button>
+        <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          {QUICK_LINKS.map(({ href, label, icon: Icon, tone }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            >
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${tone}`}>
+                <Icon size={14} />
+              </span>
+              {label}
+            </Link>
+          ))}
         </div>
       </motion.div>
 
@@ -284,6 +356,12 @@ export default function FinanceDashboardPage() {
                 <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{debtors.length}</span>
               )}
               <Link
+                href="/finances/debiteurs"
+                className="text-xs font-medium text-zinc-500 hover:text-emerald-700"
+              >
+                Débiteurs →
+              </Link>
+              <Link
                 href="/finances/suivi-financier?status=DEBTOR"
                 className="text-xs font-medium text-emerald-600 hover:text-emerald-700"
               >
@@ -299,17 +377,20 @@ export default function FinanceDashboardPage() {
           ) : (
             <div className="divide-y divide-zinc-50">
               {debtors.slice(0, 8).map((dbtr: any, i: number) => (
-                <div key={dbtr.id ?? i} className="flex items-center justify-between px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-[10px] font-bold text-red-500">{i + 1}</span>
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900">{dbtr.firstName} {dbtr.lastName}</p>
+                <div key={dbtr.id ?? i} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-[10px] font-bold text-red-500 flex-shrink-0">{i + 1}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-zinc-900 truncate">{dbtr.firstName} {dbtr.lastName}</p>
                       {dbtr.class?.name && <p className="text-xs text-zinc-400">{dbtr.class.name}</p>}
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-red-600">
-                    {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
-                  </span>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-sm font-semibold text-red-600 tabular-nums">
+                      {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
+                    </span>
+                    {dbtr.id ? <StudentFeeScheduleLink studentId={Number(dbtr.id)} /> : null}
+                  </div>
                 </div>
               ))}
             </div>
