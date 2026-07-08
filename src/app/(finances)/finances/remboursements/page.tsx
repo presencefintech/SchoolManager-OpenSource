@@ -24,7 +24,7 @@ import {
   RefundStat,
   RefundStatusBadge,
 } from '@/components/finance/refund-page-ui'
-import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
+import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'

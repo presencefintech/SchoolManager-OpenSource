@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar, BarChart3 } from 'lucide-react'
+import { Users, Filter, DollarSign, TrendingDown, ChevronDown, Download, Bell, AlertTriangle, Wallet, Calendar, BarChart3, PanelRightOpen } from 'lucide-react'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { StudentPaymentHistory } from '@/components/finance/student-dashboard/StudentPaymentHistory'
+import { StudentFinanceDrawer } from '@/components/finance/student-finance-drawer'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
-import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
+import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { RiskEntry, StudentWallet } from '@/types/finance'
@@ -31,8 +32,17 @@ export default function DebiteursPage() {
   const [minDebt, setMinDebt] = useState(10)
   const [minDebtInput, setMinDebtInput] = useState('10')
   const [searchedId, setSearchedId] = useState(0)
+  const [drawerStudentId, setDrawerStudentId] = useState(0)
+  const [drawerStudentName, setDrawerStudentName] = useState('')
   const [expandedDebtor, setExpandedDebtor] = useState<number | null>(null)
   const [reminderDone, setReminderDone] = useState(false)
+
+  function openFinanceDrawer(id: number, name?: string) {
+    if (!Number.isFinite(id) || id <= 0) return
+    setSearchedId(id)
+    setDrawerStudentId(id)
+    setDrawerStudentName(name ?? '')
+  }
 
   const { data: debtorsData, isLoading: loadingDebtors } = useDebtors(minDebt)
   const { data: studentProfile, isLoading: loadingProfile } = useStudentFinanceProfile(searchedId)
@@ -169,12 +179,21 @@ export default function DebiteursPage() {
                       {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
                     </td>
                     <td className="px-5 py-3.5">
-                      {dbtr.id ? (
-                        <StudentFeeScheduleLink
-                          studentId={Number(dbtr.id)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      ) : null}
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        {dbtr.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openFinanceDrawer(Number(dbtr.id), `${dbtr.firstName} ${dbtr.lastName}`)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800 hover:bg-emerald-100"
+                            >
+                              <PanelRightOpen size={11} />
+                              Encaisser
+                            </button>
+                            <StudentFeeScheduleLink studentId={Number(dbtr.id)} />
+                          </>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <ChevronDown size={14} className={`text-zinc-400 transition-transform ${expandedDebtor === dbtr.id ? 'rotate-180' : ''}`} />
@@ -308,17 +327,28 @@ export default function DebiteursPage() {
             <div className="mb-5">
               <FinanceStudentSearchField
                 studentId={searchedId}
-                onSelect={(id) => setSearchedId(id)}
+                onSelect={(id, student) => {
+                  setSearchedId(id)
+                  if (student) setDrawerStudentName(student.name)
+                }}
                 label="Rechercher un élève"
               />
               {searchedId > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openFinanceDrawer(searchedId, drawerStudentName || profile?.profile ? `${profile.profile.firstName} ${profile.profile.lastName}` : undefined)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                  >
+                    <PanelRightOpen size={13} />
+                    Panneau encaissement
+                  </button>
                   <StudentFeeScheduleLink studentId={searchedId} variant="inline" />
                   <Link
                     href={`/finances/eleves/${searchedId}`}
                     className="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
                   >
-                    Fiche complète & encaissement →
+                    Fiche plein écran →
                   </Link>
                 </div>
               )}
@@ -438,6 +468,13 @@ export default function DebiteursPage() {
             )}
           </div>
         </div>
+
+      <StudentFinanceDrawer
+        studentId={drawerStudentId}
+        studentName={drawerStudentName || (profile?.profile ? `${profile.profile.firstName} ${profile.profile.lastName}` : undefined)}
+        open={drawerStudentId > 0}
+        onClose={() => setDrawerStudentId(0)}
+      />
     </FinancePageShell>
   )
 }

@@ -7,7 +7,7 @@ import {
   DollarSign, RefreshCw, Search, Banknote, ClipboardCheck, Users, BarChart3,
 } from 'lucide-react'
 import { useDailyCashReport } from '@/lib/hooks/use-finance'
-import { FinanceStudentSearchField } from '@/components/finances/student-search-field'
+import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { fadeUp } from '@/lib/animations'

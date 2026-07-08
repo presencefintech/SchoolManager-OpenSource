@@ -13,6 +13,7 @@ import {
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatMoney } from '@/lib/finance/currency'
+import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import axios from 'axios'
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -97,30 +98,43 @@ export default function CaissePage() {
   }
 
   return (
-    <div className="px-8 py-8 space-y-6">
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Session de caisse</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Ouverture, suivi et clôture de session</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()} className="p-2 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50">
-            <RefreshCw size={14} />
-          </button>
-          {hasOpenSession && (
+    <FinancePageShell>
+      <FinancePageHeader
+        title="Session de caisse"
+        subtitle="Ouverture, suivi et clôture de session — guichet ERP RDC"
+        badge={
+          hasOpenSession ? (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
+              OUVERTE
+            </span>
+          ) : (
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500">
+              FERMÉE
+            </span>
+          )
+        }
+        actions={
+          <>
             <button
-              onClick={handleExport}
-              disabled={exportSession.isPending}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+              type="button"
+              onClick={() => refetch()}
+              className="rounded-xl border border-zinc-200 p-2 text-zinc-400 hover:bg-zinc-50"
             >
-              <Download size={12} /> Exporter session
+              <RefreshCw size={14} />
             </button>
-          )}
-        </div>
-      </motion.div>
+            {hasOpenSession && (
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exportSession.isPending}
+                className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+              >
+                <Download size={12} /> Exporter session
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* État session actuelle */}
       <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
@@ -285,6 +299,6 @@ export default function CaissePage() {
           </motion.div>
         )}
       </div>
-    </div>
+    </FinancePageShell>
   )
 }
