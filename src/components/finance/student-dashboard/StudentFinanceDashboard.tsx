@@ -1,11 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
+import { AlertCircle, CheckCircle2, RefreshCw, ArrowLeft } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FeesTable } from '@/components/finance/student-dashboard/FeesTable/FeesTable'
 import { PaymentModal } from '@/components/finance/student-dashboard/PaymentModal/PaymentModal'
 import { PrintReceiptButton } from '@/components/finance/student-dashboard/receipts/PrintReceiptButton'
+import { StudentPaymentHistory } from '@/components/finance/student-dashboard/StudentPaymentHistory'
 import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-schedule'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -34,6 +37,7 @@ function DashboardSkeleton() {
 }
 
 export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinanceDashboardProps) {
+  const qc = useQueryClient()
   const { data, isLoading, isError, error, refetch, isFetching } = useStudentFeeSchedule(
     studentId,
     sessionId,
@@ -70,6 +74,24 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
 
   return (
     <div className="space-y-6">
+      <nav className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <Link
+          href="/finances/debiteurs"
+          className="inline-flex items-center gap-1 hover:text-emerald-700 transition-colors"
+        >
+          <ArrowLeft size={12} />
+          Débiteurs
+        </Link>
+        <span className="text-zinc-300">·</span>
+        <Link href="/finances/suivi-financier" className="hover:text-emerald-700 transition-colors">
+          Suivi financier
+        </Link>
+        <span className="text-zinc-300">·</span>
+        <Link href="/finances/paiements" className="hover:text-emerald-700 transition-colors">
+          Paiements rapides
+        </Link>
+      </nav>
+
       <div>
         <h1 className="text-2xl font-semibold text-zinc-900">Échéancier financier</h1>
         <p className="mt-1 text-sm text-zinc-500">
@@ -127,6 +149,8 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
         />
       </div>
 
+      <StudentPaymentHistory studentId={studentId} />
+
       <PaymentModal
         open={payLine != null}
         onClose={() => setPayLine(null)}
@@ -137,6 +161,7 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
         onSuccess={(paymentId) => {
           setLastPaymentId(paymentId)
           void refetch()
+          void qc.invalidateQueries({ queryKey: ['finance', 'student-payments-detailed', studentId] })
         }}
       />
     </div>
