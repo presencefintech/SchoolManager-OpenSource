@@ -9,7 +9,7 @@ export function triggerBlobDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url)
 }
 
-/** Extrait le message d'erreur JSON renvoyé par l'API quand responseType est blob. */
+/** Extrait le message d'errur JSON renvoyé par l'API quand responseType est blob. */
 export async function readBlobErrorMessage(blob: Blob): Promise<string> {
   try {
     const text = await blob.text()
