@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
@@ -77,6 +77,14 @@ function openPrintReport(report: StudentsFinancialPrintReport) {
 }
 
 export default function SuiviFinancierPage() {
+  return (
+    <Suspense fallback={null}>
+      <SuiviFinancierContent />
+    </Suspense>
+  )
+}
+
+function SuiviFinancierContent() {
   const searchParams = useSearchParams()
   const initialStatus = searchParams.get('status') === 'DEBTOR' || searchParams.get('status') === 'PAID'
     ? (searchParams.get('status') as 'DEBTOR' | 'PAID')
