@@ -44,9 +44,103 @@ export interface FraudAlert {
 
 export interface ControlDashboardStats {
   pipeline: { healthy: boolean; queueDepth: number }
-  security: { alerts: number; blockedIPs: number }
-  integrity: { errors: number }
-  workers: { active: number; failed: number }
+  security: {
+    alerts: number
+    blockedIPs: number
+    gatekeeper: { livenessFailure: number; imageQuality: number; other: number }
+    fraudAlertActive: boolean
+  }
+  integrity: {
+    errors: number
+    withSeal: number
+    verified: number
+    unchecked: number
+    status: 'healthy' | 'warning' | 'critical' | 'unavailable'
+  }
+  workers: { active: number; failed: number; waiting: number; health: string }
+  performance: {
+    apiAvgMs: number
+    workerAvgMs: number
+    scansPerMinute: number
+  }
+  scanFlow: ScanFlowPoint[]
+  generatedAt?: string
+}
+
+export interface ScanFlowPoint {
+  label: string
+  timestamp: string
+  count: number
+}
+
+export interface AttendanceActivityItem {
+  id: string
+  presenceId: number
+  studentName: string
+  method: string
+  status: string
+  scannedAt: string
+}
+
+export interface ActiveScanSession {
+  sessionId: string
+  classId: number
+  teacherId: number
+  sessionNonce: string
+  startedAt: string
+  expiresAt: string
+  scanCount: number
+  maxScans: number
+  status: string
+}
+
+export interface PresenceSyncBatch {
+  id: string
+  schoolId: number
+  actorId: number
+  itemCount: number
+  successCount: number
+  failedCount: number
+  duplicateCount: number
+  correlationId: string | null
+  createdAt: string
+  completedAt: string | null
+  successRate: number
+}
+
+export interface PresenceSyncBatchDetail extends PresenceSyncBatch {
+  results: Array<{
+    studentId?: number
+    status?: string
+    error?: string
+    duplicate?: boolean
+  }>
+}
+
+export interface AdminPaymentRealtimeItem {
+  id: string
+  type: 'confirmed' | 'failed'
+  paymentId: number
+  studentId?: number
+  studentName?: string
+  amount?: number
+  currency?: string
+  provider?: string
+  reason?: string
+  message?: string
+  timestamp: string
+}
+
+export interface AdminEnrollmentRealtimeItem {
+  id: string
+  type: 'approved' | 'request'
+  studentId: number
+  schoolId: number
+  matricule?: string
+  fullName?: string
+  /** Identité RDC pour affichage détail admin */
+  rdcFullName?: string
+  timestamp: string
 }
 
 // Staff
@@ -85,6 +179,8 @@ export interface StudentListItem {
   id: number
   firstName: string
   lastName: string
+  postnom?: string | null
+  prenom?: string | null
   matricule?: string
   status: string
   className?: string
@@ -108,6 +204,8 @@ export interface StudentDetail {
   id: number
   firstName: string
   lastName: string
+  postnom?: string | null
+  prenom?: string | null
   matricule?: string
   status: string
   email?: string
@@ -287,6 +385,8 @@ export interface EnrollmentDetail {
 export interface CreateEnrollmentPayload {
   firstName: string
   lastName: string
+  postnom: string
+  prenom?: string
   gender: 'M' | 'F' | 'MALE' | 'FEMALE'
   birthDate: string
   classId: number
@@ -877,6 +977,7 @@ export interface BulkMoratoriumPayload {
   reason: string
 }
 
+/** @deprecated Legacy endpoint — préférer CreateFeeStructurePayload */
 export interface FeeStructurePayload {
   classId?: number
   totalAmount: number
@@ -884,6 +985,34 @@ export interface FeeStructurePayload {
   academicSessionId?: number
   categoryId?: number
   dueDate?: string
+}
+
+export type FeeBillingPeriod = 'ONE_TIME' | 'ANNUAL' | 'MONTHLY'
+
+export interface FeeCategoryItem {
+  id: number
+  name: string
+  code: string
+  description?: string | null
+  billingPeriod: FeeBillingPeriod
+  dueDayOfMonth?: number | null
+  isActive: boolean
+}
+
+export interface CreateFeeCategoryPayload {
+  name: string
+  code: string
+  description?: string
+  billingPeriod: FeeBillingPeriod
+  dueDayOfMonth?: number
+}
+
+export interface CreateFeeStructurePayload {
+  sessionId: number
+  categoryId: number
+  amount: number
+  classId?: number | null
+  description?: string
 }
 
 export interface LinkOrphanPayload {
@@ -1083,12 +1212,120 @@ export interface TeacherScanEntry {
   scannedAt: string
 }
 
-// School Settings
+// School Settings — Sprint 1 attendance (GET/PATCH /admin/schools/.../attendance-settings)
+export interface AttendanceMethods {
+  manual: boolean
+  qrCode: boolean
+  rfid: boolean
+  facialRecognition: boolean
+  fingerprint: boolean
+}
+
+export interface AttendanceValidationRules {
+  requireGPS: boolean
+  allowOffline: boolean
+  requireLiveness: boolean
+  dualQrRequired: boolean
+  maxClockSkewMs: number
+  enforceSchoolGeofence: boolean
+}
+
+export interface SchoolGeofence {
+  latitude: number | null
+  longitude: number | null
+  radiusKm: number
+  radiusMeters: number
+  configured: boolean
+}
+
+export interface AttendanceNotificationSettings {
+  parentPresenceNotificationsEnabled: boolean
+}
+
+export interface AttendanceAbsenceSettings {
+  autoMarkEnabled: boolean
+  cutoffHour: number
+  cutoffMinute: number
+  timezone: string
+}
+
 export interface AttendanceSettings {
-  startHour: number
-  startMinute: number
-  gracePeriod: number
-  lateThreshold?: number
-  absentThreshold?: number
-  [key: string]: unknown
+  schoolId: number
+  source: 'database' | 'legacy'
+  methods: AttendanceMethods
+  enabledPresenceModes: string[]
+  offlineSyncEnabled: boolean
+  validationRules: AttendanceValidationRules
+  geofence: SchoolGeofence
+  notificationSettings: AttendanceNotificationSettings
+  absenceSettings: AttendanceAbsenceSettings
+  updatedAt: string | null
+}
+
+export type PatchAttendanceSettingsPayload = {
+  methods?: Partial<AttendanceMethods>
+  offlineSyncEnabled?: boolean
+  validationRules?: Partial<AttendanceValidationRules>
+  geofence?: { latitude: number; longitude: number; radiusKm: number }
+  notificationSettings?: Partial<AttendanceNotificationSettings>
+  absenceSettings?: Partial<AttendanceAbsenceSettings>
+}
+
+export interface AttendanceNotificationDelivery {
+  id: number
+  schoolId: number
+  userId: number
+  parentId: number | null
+  studentId: number
+  presenceId: number | null
+  correlationId: string
+  attendanceEvent: string
+  channel: string | null
+  status: string
+  title: string
+  message: string
+  failureReason: string | null
+  sentAt: string | null
+  deliveredAt: string | null
+  readAt: string | null
+  acknowledgedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AttendanceReadinessChecks {
+  settingsProvisioned: boolean
+  qrCodeEnabled: boolean
+  geofenceConfigured: boolean
+  academicSessionOpen: boolean
+  dualQrRequired: boolean
+  offlineSyncEnabled: boolean
+  parentPresenceNotificationsEnabled: boolean
+}
+
+export interface AttendanceReadiness {
+  schoolId: number
+  ready: boolean
+  score: number
+  checks: AttendanceReadinessChecks
+  metricsLastHour?: {
+    dualQrValidated: number
+    dualQrRejected: number
+    syncBatches: number
+  }
+  recommendations: string[]
+}
+
+export interface AttendanceProvisionResult {
+  provisioned: boolean
+  schoolId: number
+  message: string
+}
+
+export interface SchoolBranding {
+  name: string
+  address: string | null
+  phone: string | null
+  city: string | null
+  logoUrl: string | null
 }

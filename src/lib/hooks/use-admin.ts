@@ -1,14 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi } from '@/lib/admin/api'
+import { useEmpirePollingInterval } from '@/lib/realtime/empire-realtime-provider'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi, attendanceNotificationsApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
-import { getAuthToken } from '@/lib/api/auth-storage'
+import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
 import type {
   CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload,
   CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload,
-  GenerateParentCodePayload, InviteStaffPayload, RevokeStaffInvitationPayload, AttendanceSettings, BulkMoratoriumPayload,
-  FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
+  GenerateParentCodePayload, InviteStaffPayload, RevokeStaffInvitationPayload, AttendanceSettings, PatchAttendanceSettingsPayload, SchoolBranding, BulkMoratoriumPayload,
+  FeeStructurePayload, CreateFeeStructurePayload, CreateFeeCategoryPayload,
+  LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
   StudentSecurityAction, ConfirmPaymentProofPayload, UpdateMoratoriumPolicyPayload,
 } from '@/types/admin'
 import type {
@@ -18,12 +20,13 @@ import type {
 
 // ── Dashboard ──────────────────────────────────────────────────────
 export function useAdminStats() {
+  const refetchInterval = useEmpirePollingInterval(60_000)
   return useQuery({
     queryKey: ['admin', 'stats'],
     queryFn: dashboardApi.getStats,
     enabled: !!getAuthToken(),
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    refetchInterval,
     refetchOnMount: 'always',
   })
 }
@@ -32,12 +35,13 @@ const LIVE_FEED_DEFAULT_PARAMS = { limit: 25 }
 
 export function useLiveFeed(params?: { classId?: number; page?: number; limit?: number }) {
   const resolved = params ?? LIVE_FEED_DEFAULT_PARAMS
+  const refetchInterval = useEmpirePollingInterval(15_000, 120_000)
   return useQuery({
     queryKey: ['admin', 'live-feed', resolved],
     queryFn: () => dashboardApi.getLiveFeed(resolved),
     enabled: !!getAuthToken(),
     staleTime: 0,
-    refetchInterval: 15_000,
+    refetchInterval,
     refetchOnWindowFocus: false,
     refetchOnMount: 'always',
   })
@@ -64,12 +68,13 @@ export function useFraudAlerts() {
 }
 
 export function useControlStats() {
+  const refetchInterval = useEmpirePollingInterval(30_000)
   return useQuery({
     queryKey: ['admin', 'control-stats'],
     queryFn: dashboardApi.getControlStats,
     enabled: !!getAuthToken(),
     staleTime: 30_000,
-    refetchInterval: 30_000,
+    refetchInterval,
     retry: 1,
     refetchOnMount: 'always',
   })
@@ -401,21 +406,23 @@ export function useUpdateBiometrics() {
 // ── Presences ─────────────────────────────────────────────────────
 
 export function usePresenceLiveFeed(params?: { classId?: number; page?: number; limit?: number }) {
+  const refetchInterval = useEmpirePollingInterval(15_000, 120_000)
   return useQuery({
     queryKey: ['admin', 'presences', 'live', params],
     queryFn: () => presencesApi.getLiveFeed(params),
     staleTime: 0,
-    refetchInterval: 15_000,
+    refetchInterval,
     refetchOnWindowFocus: false,
   })
 }
 
 export function usePresenceStats() {
+  const refetchInterval = useEmpirePollingInterval(60_000)
   return useQuery({
     queryKey: ['admin', 'presences', 'stats'],
     queryFn: presencesApi.getStats,
     staleTime: 30_000,
-    refetchInterval: 60_000,
+    refetchInterval,
   })
 }
 
@@ -522,6 +529,43 @@ export function usePresenceReasonCodes() {
     queryKey: ['admin', 'presences', 'reason-codes'],
     queryFn: presencesApi.getReasonCodes,
     staleTime: 3600_000,
+  })
+}
+
+export function useActiveScanSessions(params?: { classId?: number; limit?: number }) {
+  const refetchInterval = useEmpirePollingInterval(30_000)
+  return useQuery({
+    queryKey: ['admin', 'presences', 'scan-sessions', params],
+    queryFn: () => presencesApi.listActiveScanSessions(params),
+    staleTime: 15_000,
+    refetchInterval,
+  })
+}
+
+export function useRevokeScanSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (sessionId: string) => presencesApi.revokeScanSession(sessionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'presences', 'scan-sessions'] }),
+  })
+}
+
+export function useSyncBatches(params?: { limit?: number }) {
+  const refetchInterval = useEmpirePollingInterval(60_000, 120_000)
+  return useQuery({
+    queryKey: ['admin', 'presences', 'sync-batches', params],
+    queryFn: () => presencesApi.listSyncBatches(params),
+    staleTime: 30_000,
+    refetchInterval,
+  })
+}
+
+export function useSyncBatchDetail(batchId: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'presences', 'sync-batches', 'detail', batchId],
+    queryFn: () => presencesApi.getSyncBatch(batchId!),
+    enabled: !!batchId,
+    staleTime: 60_000,
   })
 }
 
@@ -844,7 +888,7 @@ export function useTriggerManualAudit() {
   })
 }
 
-export function useFeeStructures(params?: { classId?: number; sessionId?: number }) {
+export function useFeeStructures(params?: { classId?: number; sessionId?: number; isActive?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fee-structures', params],
     queryFn: () => financeApi.listFeeStructures(params),
@@ -852,6 +896,33 @@ export function useFeeStructures(params?: { classId?: number; sessionId?: number
   })
 }
 
+export function useFeeCategories(params?: { isActive?: boolean; billingPeriod?: string }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-categories', params],
+    queryFn: () => financeApi.listFeeCategories(params),
+    staleTime: 60_000,
+  })
+}
+
+export function useCreateFeeCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateFeeCategoryPayload) => financeApi.createFeeCategory(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-categories'] })
+    },
+  })
+}
+
+export function useCreateFeeStructure() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateFeeStructurePayload) => financeApi.createFeeStructure(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
+  })
+}
+
+/** @deprecated Utiliser useCreateFeeStructure */
 export function useSetupFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
@@ -872,7 +943,7 @@ export function useBulkApplyFees() {
 export function useDeleteFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (feeId: number) => financeApi.deleteFeeStructure(feeId),
+    mutationFn: (feeId: number) => financeApi.softDeleteFeeStructure(feeId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
   })
 }
@@ -1205,6 +1276,64 @@ export function useFinanceDetailedReport() {
   })
 }
 
+export function useFinanceAggregateReport(params: {
+  period: string
+  anchor?: string
+  persist?: boolean
+}) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'aggregate-report', params],
+    queryFn: () => financeApi.getAggregateReport(params),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceCurrencyConfig() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'currency-config'],
+    queryFn: financeApi.getCurrencyConfig,
+    staleTime: 300_000,
+  })
+}
+
+export function useFinanceExchangeRates() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'exchange-rates'],
+    queryFn: () => financeApi.listExchangeRates(30),
+    staleTime: 120_000,
+  })
+}
+
+export function useCreateExchangeRate() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: financeApi.createExchangeRate,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'exchange-rates'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'currency-config'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
+      toast.success('Taux enregistré', 'Historique immuable mis à jour.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useUpdateCurrencyConfig() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: financeApi.updateCurrencyConfig,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'currency-config'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
+      toast.success('Devise mise à jour', 'Paramètres d\'affichage enregistrés.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
 export function useFinanceInsights() {
   return useQuery({
     queryKey: ['admin', 'finance', 'insights'],
@@ -1486,8 +1615,63 @@ export function useAttendanceSettings() {
 export function useUpdateAttendanceSettings() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: Partial<AttendanceSettings>) => schoolsApi.updateAttendanceSettings(payload),
+    mutationFn: (payload: PatchAttendanceSettingsPayload) => schoolsApi.updateAttendanceSettings(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'schools'] }),
+  })
+}
+
+export function useAttendanceNotificationDeliveries(params?: { status?: string; limit?: number }) {
+  const schoolId = getAuthSchoolId()
+  return useQuery({
+    queryKey: ['admin', 'attendance-notifications', schoolId, params],
+    queryFn: () => attendanceNotificationsApi.list(Number(schoolId), params),
+    enabled: !!schoolId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useAttendanceReadiness() {
+  return useQuery({
+    queryKey: ['admin', 'schools', 'attendance-readiness'],
+    queryFn: schoolsApi.getAttendanceReadiness,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useProvisionAttendanceSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: schoolsApi.provisionAttendanceSettings,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'schools'] })
+    },
+  })
+}
+
+export function useSchoolBranding() {
+  return useQuery({
+    queryKey: ['admin', 'schools', 'branding'],
+    queryFn: schoolsApi.getBranding,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useUpdateSchoolBranding() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: Partial<Pick<SchoolBranding, 'address' | 'phone' | 'city' | 'logoUrl'>>) =>
+      schoolsApi.updateBranding(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'schools', 'branding'] })
+      toast.success('Identité enregistrée', 'Logo et adresse mis à jour pour les reçus.')
+    },
+    onError: (err) => {
+      toast.error('Enregistrement impossible', getApiErrorMessage(err))
+    },
   })
 }
 

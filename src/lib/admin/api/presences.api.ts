@@ -14,6 +14,7 @@ import type {
   AdminPresenceRecordResult, BulkPresenceRecordResult,
   AttendanceSheetDraft, PendingAttendanceSheetSummary, SealedAttendanceSheetResult,
   SubmittedAttendanceSheetResult, PresenceReasonCodeEntry, AttendanceSheetStatus,
+  ActiveScanSession, PresenceSyncBatch, PresenceSyncBatchDetail,
 } from '@/types/admin'
 
 function normalizeSecurityAlert(raw: Record<string, unknown>): PresenceSecurityAlert {
@@ -185,4 +186,30 @@ export const presencesApi = {
         {},
       )
       .then((r) => ({ data: r.data.data, message: r.data.message })),
+
+  listActiveScanSessions: (params?: { classId?: number; teacherId?: number; limit?: number }) =>
+    apiClient
+      .get<{ success: boolean; data: { sessions: ActiveScanSession[]; count: number } }>(
+        '/admin/presences/scan-sessions/active',
+        { params },
+      )
+      .then((r) => r.data.data),
+
+  revokeScanSession: (sessionId: string) =>
+    apiClient
+      .patch<{ success: boolean; message?: string }>(`/admin/presences/scan-sessions/${sessionId}/revoke`)
+      .then((r) => r.data),
+
+  listSyncBatches: (params?: { limit?: number; cursor?: string; actorId?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: { batches: PresenceSyncBatch[]; count: number; nextCursor?: string | null }
+      }>('/admin/presences/sync-batches', { params })
+      .then((r) => r.data.data),
+
+  getSyncBatch: (batchId: string) =>
+    apiClient
+      .get<{ success: boolean; data: PresenceSyncBatchDetail }>(`/admin/presences/sync-batches/${batchId}`)
+      .then((r) => r.data.data),
 }

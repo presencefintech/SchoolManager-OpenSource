@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { fraudApi } from '@/lib/superAdmin/api/fraud.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { FraudAnalysisResult } from '@/types/super-admin'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const INPUT = 'w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-red-200 placeholder:text-zinc-300'
@@ -204,7 +205,7 @@ export default function FraudPage() {
                     <div className="flex-1 min-w-0">
                       {flag.student && (
                         <p className="text-xs font-medium text-zinc-700 truncate">
-                          {flag.student.firstName} {flag.student.lastName}
+                          {formatStudentFullName(flag.student)}
                         </p>
                       )}
                       {flag.payment && (

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, Check, ClipboardList, Lock, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   useBulkRecordPresence,
   useStudents,
@@ -493,7 +494,7 @@ export function BulkPresenceGrid({
                 const isFailed = failedIds.has(student.id)
                 const isDuplicate = duplicateIds.has(student.id)
                 const name =
-                  `${student.firstName ?? ''} ${student.lastName ?? ''}`.trim() ||
+                  formatStudentFullName(student) ||
                   `Élève #${student.id}`
                 const reason = reasonByStudent[student.id]
 

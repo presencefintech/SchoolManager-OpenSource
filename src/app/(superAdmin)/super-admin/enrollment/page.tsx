@@ -17,6 +17,7 @@ import { enrollmentApi } from '@/lib/superAdmin/api/enrollment.api'
 import { StudentCard } from '@/components/StudentCard'
 import { mapEnrollmentToStudentCard } from '@/lib/student-card/utils'
 import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/export-actions'
+import { formatRdcFullName } from '@/lib/utils/student-name.util'
 import type { StudentCardData } from '@/types/student-card'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -228,6 +229,8 @@ function readSchoolIdFromParams(params: URLSearchParams): number | null {
 type CreateFormState = {
   firstName: string
   lastName: string
+  postnom: string
+  prenom: string
   schoolId: string
   classId: string
   birthDate: string
@@ -243,7 +246,7 @@ type CreateFormState = {
 }
 
 const INITIAL_CREATE: CreateFormState = {
-  firstName: '', lastName: '', schoolId: '', classId: '',
+  firstName: '', lastName: '', postnom: '', prenom: '', schoolId: '', classId: '',
   birthDate: '', gender: '', placeOfBirth: '', nationality: '',
   academicYear: '', overrideReason: '', photo: null, photoPreview: null,
   creating: false, result: null,
@@ -277,6 +280,7 @@ function EnrollmentPageContent() {
   const sf = (f: Partial<CreateFormState>) => setCreateForm(prev => ({ ...prev, ...f }))
   const {
     firstName: createFirstName, lastName: createLastName,
+    postnom: createPostnom, prenom: createPrenom,
     schoolId: createSchoolId, classId: createClassId,
     birthDate: createBirthDate, gender: createGender,
     placeOfBirth: createPlaceOfBirth, nationality: createNationality,
@@ -315,7 +319,7 @@ function EnrollmentPageContent() {
   const selectedAuditSchool = schools?.find((s) => s.id === schoolId)
   const overrideReasonValid = createOverrideReason.trim().length >= 10
   const createFormValid =
-    Boolean(createFirstName.trim() && createLastName.trim() && createSchoolId && createClassId && createBirthDate && createGender)
+    Boolean(createFirstName.trim() && createLastName.trim() && createPostnom.trim() && createSchoolId && createClassId && createBirthDate && createGender)
     && overrideReasonValid
 
   /* purge */
@@ -482,6 +486,8 @@ function EnrollmentPageContent() {
         {
           firstName: createFirstName.trim(),
           lastName: createLastName.trim(),
+          postnom: createPostnom.trim(),
+          ...(createPrenom.trim() ? { prenom: createPrenom.trim() } : {}),
           schoolId: Number(createSchoolId),
           classId: Number(createClassId),
           birthDate: createBirthDate,
@@ -514,7 +520,7 @@ function EnrollmentPageContent() {
       )
       sf({ result: {
         type: 'success',
-        message: `Élève créé : ${student.firstName} ${student.lastName} (ID #${student.id}${matricule}) — carte disponible ci-dessous`,
+        message: `Élève créé : ${formatRdcFullName(student)} (ID #${student.id}${matricule}) — carte disponible ci-dessous`,
       } })
       setStudentId(String(student.id))
       resetCreateFields(keepPhotoBlob)
@@ -733,15 +739,24 @@ function EnrollmentPageContent() {
               </div>
 
               <div className="p-6 space-y-8">
-                <FormBlock step={1} title="Identité civile">
+                <FormBlock step={1} title="Identité civile (RDC)">
+                  <p className="text-[11px] text-zinc-500 -mt-1">Ordre officiel : Nom · Postnom · Prénom</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className={labelCls}>Prénom <span className="text-red-500">*</span></label>
-                      <input type="text" placeholder="Jean" value={createFirstName} onChange={(e) => sf({ firstName: e.target.value })} className={inputCls} autoComplete="off" />
+                      <label className={labelCls}>Nom <span className="text-red-500">*</span></label>
+                      <input type="text" placeholder="Mukendi" value={createLastName} onChange={(e) => sf({ lastName: e.target.value })} className={inputCls} autoComplete="family-name" />
                     </div>
                     <div>
-                      <label className={labelCls}>Nom <span className="text-red-500">*</span></label>
-                      <input type="text" placeholder="Dupont" value={createLastName} onChange={(e) => sf({ lastName: e.target.value })} className={inputCls} autoComplete="off" />
+                      <label className={labelCls}>Postnom <span className="text-red-500">*</span></label>
+                      <input type="text" placeholder="Kabila" value={createPostnom} onChange={(e) => sf({ postnom: e.target.value })} className={inputCls} autoComplete="off" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Prénom <span className="text-red-500">*</span></label>
+                      <input type="text" placeholder="Jean" value={createFirstName} onChange={(e) => sf({ firstName: e.target.value })} className={inputCls} autoComplete="given-name" />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Prénom administratif</label>
+                      <input type="text" placeholder="Optionnel — si différent du prénom ci-dessus" value={createPrenom} onChange={(e) => sf({ prenom: e.target.value })} className={inputCls} autoComplete="off" />
                     </div>
                     <div>
                       <label className={labelCls}>Date de naissance <span className="text-red-500">*</span></label>

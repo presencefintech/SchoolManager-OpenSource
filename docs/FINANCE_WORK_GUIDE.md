@@ -40,8 +40,27 @@ npm run dev   # http://localhost:3001
 
 **Pages à valider :**
 
-- Admin : `/admin/finance`, `/admin/finance/paiements`, `/admin/finance/audit`
-- Guichet : `/finances/dashboard`, `/finances/paiements`
+- Admin : `/admin/finance`, `/admin/finance/paiements`, `/admin/finance/audit`, `/admin/settings` (branding école)
+- Guichet : `/finances/dashboard`, `/finances/paiements`, `/finances/cloture`
+- **Public (tous rôles + parents)** : `/verify`, `/verify/receipt/{token}`
+
+## Branches Git — juillet 2026
+
+| Branche | Périmètre | Rôles impactés |
+|---------|-----------|----------------|
+| `feat/finance-payment-modal` | Ticket thermique, modal paiement, branding | FINANCE, ADMIN |
+| `feat/receipt-verify-pf` | PF-VERIFY-v1, pages `/verify` | Public, FINANCE, ADMIN |
+| `feat/finance-reporting-api` | ReportingEngine HTTP (à venir) | ADMIN |
+| `feat/exchange-rate-admin` | Taux de change historisés (à venir) | ADMIN |
+
+## Rôles — vérification reçu
+
+| Rôle | Accès app | Vérification reçu |
+|------|-----------|-------------------|
+| `FINANCE` | `/finances/*` | Nav → `/verify` (public) |
+| `ADMIN` | `/admin/*` | Nav Finance → `/verify` (public) |
+| `PARENT` | App mobile | Scan QR (caméra) → page web |
+| Public | — | `/verify` sans login |
 
 ## Note produit — Pilotage multi-baremes (a conserver)
 

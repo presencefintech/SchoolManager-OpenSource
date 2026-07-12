@@ -14,6 +14,7 @@ import { PrintReceiptButton } from '@/components/finance/student-dashboard/recei
 import { exportRowsToCsv } from '@/lib/finance/export-csv'
 import { fadeUp } from '@/lib/animations'
 import { formatMoney } from '@/lib/finance/currency'
+import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const METHOD_LABEL: Record<string, string> = {
@@ -120,7 +121,7 @@ export default function TransactionsPage() {
       transactions.map((t) => ({
         id: t.id,
         eleve: t.student
-          ? `${t.student.firstName ?? ''} ${t.student.lastName ?? ''}`.trim()
+          ? formatRdcFullName(t.student)
           : t.studentId ?? '',
         matricule: t.student?.matricule ?? '',
         montant: t.amount ?? '',
@@ -313,7 +314,7 @@ export default function TransactionsPage() {
                         cls: 'bg-zinc-100 text-zinc-600 ring-zinc-200',
                       }
                       const studentName = t.student
-                        ? `${t.student.firstName ?? ''} ${t.student.lastName ?? ''}`.trim()
+                        ? formatStudentFullName(t.student)
                         : null
 
                       return (

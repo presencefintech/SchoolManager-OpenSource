@@ -57,7 +57,7 @@ Détail flux Flutter : **[frontend-integration-guide.md](./frontend-integration-
 | Config modes pointage (admin) | **`swagger-docs/admin.json`** → `/admin/schools/{schoolId}/attendance-settings` | OpenAPI 3 | Complet | `enabledPresenceModes` par école |
 | Finance — compte élève | **`openapi-parent-finances.json`** | OpenAPI 3 | Complet | wallet, finances, invoices, pending |
 | Finance — Paiements | **`openapi-parent-finances.json`** | OpenAPI 3 | Complet | `POST /payments/pay` · `serverAmount` · `GET /payments/{id}/receipt` |
-| Finance — Reçus sécurisés | **`flutter-parent-receipt.md`** + OpenAPI | Guide + REST | Complet | PDF stream parent · verify QR public `/api/v1/receipts/verify/{token}` |
+| Finance — Reçus sécurisés | **`flutter-parent-receipt.md`** + **`receipt-verify.md`** | Guide + REST | Complet | PDF stream · verify QR · lookup PF · pages `/verify` |
 | Finance — Payment Intent | **`openapi-parent-finances.json`** | OpenAPI 3 | Complet | `/finance/intents*` (18 routes finance) |
 | **Finance — Profil règlement (KYC)** | **[school-payment-profile.md](./school-payment-profile.md)** · **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** | Guide REST | Complet | Admin `payment-profile` · Superadmin `payment-profiles` · gate parent `online_enabled` |
 | Finance — Moratoires | **`openapi-parent-finances.json`** + admin | OpenAPI 3 | Complet | `GET/POST .../moratorium*` parent · `MoratoriumPublicInfo` dans wallet/finances · admin `moratoriums/policy` |
@@ -70,21 +70,24 @@ Détail flux Flutter : **[frontend-integration-guide.md](./frontend-integration-
 | **Admin — structure scolaire** | **`openapi/admin.json`** | `/admin/structure/sections`, `/admin/structure/options` | OpenAPI 3 | Inscription + création classes |
 | **Admin — actions métier UX** | **[admin-business-actions.md](./admin-business-actions.md)** | `/admin/enrollments/sessions`, `…/admin-profile`, export pending, alertes présence | Guide REST | Complet |
 | Finance web (guichet) | **`swagger-docs/finance.json`** | OpenAPI 3 | Complet | `/api/v1/finance/*` + **lecture KYC** `GET /admin/finance/payment-profile` (**40 ops**) |
-| **Reçus — vérification publique** | **`flutter-parent-receipt.md`** | Guide | Complet | `GET /api/v1/receipts/verify/{token}` — sans auth |
+| **Reçus — vérification publique** | **`receipt-verify.md`** + **`flutter-parent-receipt.md`** | Guide | Complet | QR + code PF — sans auth |
 
 ---
 
-## API publique — vérification reçu (QR)
+## API publique — vérification reçu (QR + code PF)
 
 | Méthode | Route | Auth | Description |
 |---------|-------|------|-------------|
-| `GET` | `/api/v1/receipts/verify/{token}` | Aucune | Valide un reçu scanné (token QR du PDF) |
+| `GET` | `/api/v1/receipts/verify/{token}` | Aucune | Scan QR — token `p{id}_{hmac32}` |
+| `GET` | `/api/v1/receipts/lookup?receiptNumber=&code=` | Aucune | Saisie manuelle — code `PF-0001-2601-A7F3` |
 
-Schéma réponse : `ReceiptVerificationResult` dans `openapi-parent-finances.json` (composant documentaire — route hors préfixe parent).
+**Pages web (public) :** `/verify` · `/verify/receipt/{token}`
+
+**Rôles utilisateurs :** public (parents) · accès nav `FINANCE` / `ADMIN` → lien « Vérifier reçu »
 
 Rate limit : 60 req / 15 min / IP.
 
-Guide intégration : **[flutter-parent-receipt.md](./flutter-parent-receipt.md)** §2.2.
+Guides : **[receipt-verify.md](./receipt-verify.md)** · **[flutter-parent-receipt.md](./flutter-parent-receipt.md)** §2.2–2.3.
 
 ## Documentation OpenAPI — Admin & Finance
 
@@ -163,7 +166,7 @@ Canal opérationnel mobile. Déclenché après webhook `PAYMENT_CONFIRMED` ou r�
 | `receiptReady`, `receiptInProgress` | PDF généré ou en cours (historique paiements) |
 
 **Téléchargement :** `GET /mobile/parents/payments/{id}/receipt` — PDF stream ou JSON pending (`reason`: `RECEIPT_NOT_GENERATED`, etc.).  
-**Vérification QR :** `GET /api/v1/receipts/verify/{token}` (public). Voir [`flutter-parent-receipt.md`](./flutter-parent-receipt.md).
+**Vérification reçu :** QR `GET /api/v1/receipts/verify/{token}` · lookup PF `GET /api/v1/receipts/lookup` · pages `/verify`. Voir [`receipt-verify.md`](./receipt-verify.md).
 | `status` | `CONFIRMED` \| `RECONCILED` |
 | `nextStep` | Toujours `COMPLETE` |
 
@@ -279,5 +282,6 @@ Parcours validé : auth parent + admin → sockets → paiement → webhook → 
 | [`tests-report.md`](./tests-report.md) | Détail tests unitaires/intégration |
 | [`school-payment-profile.md`](./school-payment-profile.md) | Profil règlement KYC multitenant |
 | [`flutter-parent-receipt.md`](./flutter-parent-receipt.md) | Reçus sécurisés — PDF, QR, modèles Dart |
+| [`receipt-verify.md`](./receipt-verify.md) | PF-VERIFY-v1 — QR, code PF, rôles, pages `/verify` |
 | [`staging-deploy.md`](./staging-deploy.md) | Procédure déploiement |
 | [`compliance-audit-staging.md`](./compliance-audit-staging.md) | Audit conformité |

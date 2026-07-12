@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { X, ExternalLink } from 'lucide-react'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
+import { useGuichetDashboard } from '@/lib/hooks/use-finance'
 
 interface StudentFinanceDrawerProps {
   studentId: number
@@ -17,6 +18,10 @@ export function StudentFinanceDrawer({
   open,
   onClose,
 }: StudentFinanceDrawerProps) {
+  const { data: guichet } = useGuichetDashboard()
+  const academicSessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)
+    ?.currentAcademicSessionId ?? undefined
+
   if (!open || studentId <= 0) return null
 
   return (
@@ -55,7 +60,10 @@ export function StudentFinanceDrawer({
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-5">
-          <StudentFinanceDashboard studentId={studentId} />
+          <StudentFinanceDashboard
+            studentId={studentId}
+            sessionId={academicSessionId ?? undefined}
+          />
         </div>
       </aside>
     </div>

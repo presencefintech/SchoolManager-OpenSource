@@ -16,6 +16,7 @@ function downloadBlob(blob: Blob, filename: string) {
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 
@@ -132,7 +133,7 @@ function ClassDetail({ classId }: { classId: number }) {
                   const balance = Number(enr?.balance ?? 0)
                   return (
                     <tr key={s.id} className="hover:bg-zinc-100/60">
-                      <td className="py-2 pr-4 font-medium text-zinc-800">{s.firstName} {s.lastName}</td>
+                      <td className="py-2 pr-4 font-medium text-zinc-800">{formatStudentFullName(s)}</td>
                       <td className="py-2 pr-4 font-mono text-zinc-400">{s.matricule ?? '—'}</td>
                       <td className="py-2 pr-4 text-right text-zinc-600">{enr ? formatMoney(Number(enr.totalAmount)) : '—'}</td>
                       <td className="py-2 pr-4 text-right text-emerald-600">{enr ? formatMoney(Number(enr.paidAmount)) : '—'}</td>

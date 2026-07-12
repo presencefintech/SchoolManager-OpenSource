@@ -12,6 +12,7 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { ClassDetail } from '@/types/admin'
 import { formatMoney } from '@/lib/finance/currency'
@@ -356,7 +357,7 @@ export default function ClassDetailPage() {
                 <tbody>
                   {students.map(s => (
                     <tr key={s.id} className="border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
-                      <td className="px-5 py-3 font-medium text-zinc-900">{s.firstName} {s.lastName}</td>
+                      <td className="px-5 py-3 font-medium text-zinc-900">{formatStudentFullName(s)}</td>
                       <td className="px-5 py-3 text-zinc-500 font-mono text-xs">{s.matricule ?? '—'}</td>
                       <td className="px-5 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-500'}`}>

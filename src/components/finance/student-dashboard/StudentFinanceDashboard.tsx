@@ -3,15 +3,24 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, CheckCircle2, RefreshCw, ArrowLeft } from 'lucide-react'
+import { AlertCircle, CheckCircle2, RefreshCw, ArrowLeft, DollarSign } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FeesTable } from '@/components/finance/student-dashboard/FeesTable/FeesTable'
 import { PaymentModal } from '@/components/finance/student-dashboard/PaymentModal/PaymentModal'
 import { PrintReceiptButton } from '@/components/finance/student-dashboard/receipts/PrintReceiptButton'
 import { StudentPaymentHistory } from '@/components/finance/student-dashboard/StudentPaymentHistory'
+import {
+  FeeAttributionPanel,
+  type FeeAttributionValue,
+} from '@/components/finance/fee-attribution-picker'
 import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-schedule'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
+import {
+  buildContiguousSelectionThrough,
+  getSelectableFeeLines,
+  selectionTotalAmount,
+} from '@/lib/finance/fee-schedule.utils'
 import type { FeeScheduleLineDto } from '@/types/finance'
 
 interface StudentFinanceDashboardProps {
@@ -43,8 +52,27 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
     sessionId,
   )
 
-  const [payLine, setPayLine] = useState<FeeScheduleLineDto | null>(null)
+  const [attribution, setAttribution] = useState<FeeAttributionValue | null>(null)
+  const [payModalOpen, setPayModalOpen] = useState(false)
   const [lastPaymentId, setLastPaymentId] = useState<number | null>(null)
+
+  function openPaymentModal(nextAttribution: FeeAttributionValue | null) {
+    if (!nextAttribution || nextAttribution.lines.length === 0) return
+    setAttribution(nextAttribution)
+    setPayModalOpen(true)
+  }
+
+  function handleQuickPay(line: FeeScheduleLineDto) {
+    if (!data) return
+    setLastPaymentId(null)
+    const lines = buildContiguousSelectionThrough(line, data.lines)
+    if (lines.length === 0) return
+    openPaymentModal({
+      sessionId: data.sessionId,
+      lines,
+      totalAmount: selectionTotalAmount(lines),
+    })
+  }
 
   if (isLoading) {
     return <DashboardSkeleton />
@@ -128,12 +156,39 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
         />
       </div>
 
+      <div className="rounded-2xl border border-zinc-200/60 bg-white p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-zinc-900">Encaissement</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Cochez un ou plusieurs mois — paiement d&apos;avance possible, sans sauter un mois impayé
+            </p>
+          </div>
+          {attribution && attribution.lines.length > 0 && (
+            <button
+              type="button"
+              onClick={() => openPaymentModal(attribution)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 shrink-0"
+            >
+              <DollarSign size={14} />
+              Encaisser {formatMoney(attribution.totalAmount, currency)}
+            </button>
+          )}
+        </div>
+        <FeeAttributionPanel
+          studentId={studentId}
+          sessionId={sessionId}
+          value={attribution}
+          onChange={setAttribution}
+        />
+      </div>
+
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-zinc-900">Détail des frais</h2>
           <p className="text-xs text-zinc-400">
-            {summary.dueCount + summary.overdueCount > 0
-              ? 'Cliquez Payer sur une ligne due ou en retard'
+            {getSelectableFeeLines(data.lines).length > 0
+              ? 'Raccourci : Payer sur une ligne inclut les mois précédents'
               : summary.totalAmountPaid > 0
                 ? `${formatMoney(summary.totalAmountPaid, currency)} encaissés`
                 : 'Aucune ligne payable'}
@@ -142,24 +197,33 @@ export function StudentFinanceDashboard({ studentId, sessionId }: StudentFinance
         <FeesTable
           lines={data.lines}
           currency={currency}
-          onPayLine={(line) => {
-            setLastPaymentId(null)
-            setPayLine(line)
-          }}
+          onPayLine={handleQuickPay}
         />
+        {data.lines.length === 0 && (
+          <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50/80 px-4 py-3 text-xs text-amber-900">
+            Aucune ligne d&apos;échéancier pour cette session. L&apos;administrateur doit créer une catégorie
+            et un barème sur{' '}
+            <span className="font-medium">Admin → Finance → Factures & Frais</span> pour la session{' '}
+            {data.sessionLabel}.
+          </p>
+        )}
       </div>
 
       <StudentPaymentHistory studentId={studentId} />
 
       <PaymentModal
-        open={payLine != null}
-        onClose={() => setPayLine(null)}
+        open={payModalOpen}
+        onClose={() => {
+          setPayModalOpen(false)
+          setAttribution(null)
+        }}
         studentId={studentId}
         academicSessionId={academicSessionId}
-        line={payLine}
+        selection={attribution}
         currency={currency}
         onSuccess={(paymentId) => {
           setLastPaymentId(paymentId)
+          setAttribution(null)
           void refetch()
           void qc.invalidateQueries({ queryKey: ['finance', 'student-payments-detailed', studentId] })
         }}

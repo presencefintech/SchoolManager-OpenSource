@@ -1,13 +1,13 @@
 'use client'
 
-import { FinanceRealtimeProvider } from '@/lib/finance/hooks/finance-realtime-provider'
+import { FinanceAdminSubNav } from '@/components/admin/finance/finance-admin-subnav'
 
+/** Finance admin hérite du socket Empire monté dans `(admin)/layout`. */
 export default function AdminFinanceLayout({ children }: { children: React.ReactNode }) {
   return (
-    <FinanceRealtimeProvider>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
-        {children}
-      </div>
-    </FinanceRealtimeProvider>
+    <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6">
+      <FinanceAdminSubNav />
+      {children}
+    </div>
   )
 }

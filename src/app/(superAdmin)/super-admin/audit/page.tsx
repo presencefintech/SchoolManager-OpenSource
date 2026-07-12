@@ -15,6 +15,7 @@ import {
   useCoreAuditLogs,
 } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
@@ -420,7 +421,7 @@ export default function AuditPage() {
                     {anomalies.data.slice(0, 5).map((e) => (
                       <div key={e.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
                         <span className="text-sm text-zinc-600 truncate max-w-[200px]">
-                          {e.presence ? `${e.presence.student.firstName} ${e.presence.student.lastName}` : `Event #${e.id}`}
+                          {e.presence ? formatStudentFullName(e.presence.student) : `Event #${e.id}`}
                         </span>
                         <ScoreBadge score={e.fraudScore} />
                       </div>

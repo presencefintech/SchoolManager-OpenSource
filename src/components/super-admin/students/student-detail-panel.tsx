@@ -9,6 +9,7 @@ import {
   CreditCard, Printer, FileDown, Loader2, Lock, LockOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatRdcFullName } from '@/lib/utils/student-name.util'
 import {
   useStudentDashboard,
   useStudentActivity,
@@ -160,7 +161,7 @@ export function StudentDetailPanel({ studentId, schoolId, open, onClose }: Stude
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-sm font-semibold text-zinc-900 truncate">
-            {dashboard.profile.firstName} {dashboard.profile.lastName}
+            {formatRdcFullName(dashboard.profile)}
           </h3>
           <span className={cn('px-1.5 py-0.5 text-[10px] rounded-full ring-1', statusBadgeClass(dashboard.profile.status))}>
             {dashboard.profile.status}

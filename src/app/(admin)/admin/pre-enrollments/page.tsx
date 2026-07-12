@@ -23,6 +23,7 @@ import {
   PRE_ENROLLMENT_STATUS_CLASSES,
   PRE_ENROLLMENT_STATUS_LABELS,
 } from '@/types/pre-enrollment'
+import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 
 const STATUS_FILTERS: { value: '' | PreEnrollmentStatus; label: string }[] = [
   { value: '', label: 'Tous' },
@@ -66,8 +67,10 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
   const { data: options = [] } = useSchoolOptions(sectionId)
   const { data: classes = [] } = useSchoolClasses(sectionId, optionId, academicYear)
   const [form, setForm] = useState({
-    firstName: '',
     lastName: '',
+    postnom: '',
+    firstName: '',
+    prenom: '',
     gender: 'M' as 'M' | 'F',
     dateOfBirth: '',
     placeOfBirth: '',
@@ -100,8 +103,10 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
     setError(null)
     const payload: CreatePreEnrollmentPayload = {
       studentInfo: {
-        firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
+        postnom: form.postnom.trim(),
+        firstName: form.firstName.trim(),
+        ...(form.prenom.trim() ? { prenom: form.prenom.trim() } : {}),
         gender: form.gender,
         dateOfBirth: form.dateOfBirth,
         placeOfBirth: form.placeOfBirth.trim(),
@@ -140,12 +145,20 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="space-y-5 p-6">
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="text-xs font-medium text-zinc-500">Nom *</label>
+              <input required className={inputCls} value={form.lastName} onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-zinc-500">Postnom *</label>
+              <input required className={inputCls} value={form.postnom} onChange={(e) => setForm((p) => ({ ...p, postnom: e.target.value }))} />
+            </div>
+            <div>
               <label className="text-xs font-medium text-zinc-500">Prénom *</label>
               <input required className={inputCls} value={form.firstName} onChange={(e) => setForm((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-500">Nom *</label>
-              <input required className={inputCls} value={form.lastName} onChange={(e) => setForm((p) => ({ ...p, lastName: e.target.value }))} />
+              <label className="text-xs font-medium text-zinc-500">Prénom admin (opt.)</label>
+              <input className={inputCls} value={form.prenom} onChange={(e) => setForm((p) => ({ ...p, prenom: e.target.value }))} placeholder="Si différent du prénom" />
             </div>
             <div>
               <label className="text-xs font-medium text-zinc-500">Genre *</label>
@@ -251,8 +264,10 @@ export default function PreEnrollmentsPage() {
     return items.filter((item) => {
       const info = item.studentInfo
       const haystack = [
-        info.firstName,
         info.lastName,
+        info.postnom,
+        info.firstName,
+        info.prenom,
         info.parentPhone,
         info.emergencyContactName,
         item.academicChoices.sectionName,
@@ -386,9 +401,9 @@ export default function PreEnrollmentsPage() {
                   >
                     <td className="px-5 py-3">
                       <p className="text-sm font-medium text-zinc-900">
-                        {item.studentInfo.firstName} {item.studentInfo.lastName}
+                        {formatRdcFullName(item.studentInfo)}
                       </p>
-                      <p className="text-xs text-zinc-400">{item.studentInfo.parentPhone}</p>
+                      <p className="text-xs text-zinc-400">{formatStudentFullName(item.studentInfo)} · {item.studentInfo.parentPhone}</p>
                     </td>
                     <td className="px-5 py-3 text-sm text-zinc-600">
                       {item.academicChoices.sectionName ?? `Section #${item.academicChoices.sectionId}`}
@@ -419,8 +434,9 @@ export default function PreEnrollmentsPage() {
             <div className="space-y-4 p-5">
               <div>
                 <p className="text-base font-semibold text-zinc-900">
-                  {selected.studentInfo.firstName} {selected.studentInfo.lastName}
+                  {formatRdcFullName(selected.studentInfo)}
                 </p>
+                <p className="text-xs text-zinc-500">{formatStudentFullName(selected.studentInfo)}</p>
                 <div className="mt-2"><StatusBadge status={selected.status} /></div>
               </div>
 

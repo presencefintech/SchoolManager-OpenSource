@@ -21,6 +21,7 @@ import {
 import { financeApi } from '@/lib/superAdmin/api/finance.api'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) =>
@@ -536,7 +537,7 @@ export default function FinancePage() {
             ) : highRisk && highRisk.length > 0 ? (
               <div className="divide-y divide-zinc-100 max-h-72 overflow-y-auto">
                 {highRisk.map((profile, i) => {
-                  const fullName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim()
+                  const fullName = formatStudentFullName(profile)
                   const name = profile.studentName ?? (fullName || `#${profile.studentId ?? profile.id}`)
                   const debt = profile.totalDebt ?? profile.feesBalance
                   return (

@@ -8,6 +8,7 @@ import type {
   StudentDetail,
   Moratorium, MoratoriumRecoveryRate,
 } from '@/types/admin'
+import { formatRdcFullName, type StudentIdentityFields } from '@/lib/utils/student-name.util'
 
 /** Prisma Decimal / string → number */
 export function toAmount(value: unknown): number {
@@ -196,9 +197,9 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
 }
 
 export function formatStudentDisplayName(
-  student: { firstName?: string; lastName?: string; matricule?: string; id?: number },
+  student: StudentIdentityFields & { matricule?: string; id?: number },
 ): string {
-  const name = [student.firstName, student.lastName].filter(Boolean).join(' ').trim()
+  const name = formatRdcFullName(student)
   if (name) return name
   if (student.matricule) return student.matricule
   if (student.id) return `Élève #${student.id}`
@@ -211,7 +212,7 @@ export function normalizePendingVerification(row: Record<string, unknown>): Pend
   const studentName =
     (student.name as string | undefined)
     ?? (row.studentName as string | undefined)
-    ?? ([student.firstName, student.lastName].filter(Boolean).join(' ').trim() || '—')
+    ?? (formatRdcFullName(student as StudentIdentityFields) || '—')
 
   return {
     verificationId: Number(row.verificationId ?? row.id),

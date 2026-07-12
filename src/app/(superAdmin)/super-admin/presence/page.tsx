@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useSchools, usePresenceDashboard } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
@@ -600,7 +601,7 @@ export default function PresencePage() {
                     </div>
                   ) : (
                     dashboard.liveFeed.map((item) => {
-                      const name = `${item.student.firstName} ${item.student.lastName}`
+                      const name = formatStudentFullName(item.student)
                       const statusColor =
                         item.status === 'PRESENT' ? 'bg-emerald-400'
                         : item.status === 'LATE'   ? 'bg-amber-400'
@@ -664,7 +665,7 @@ export default function PresencePage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-zinc-800 truncate">
-                            {s.firstName} {s.lastName}
+                            {formatStudentFullName(s)}
                           </p>
                           <p className="text-[11px] text-zinc-400">{s.class?.name ?? 'Classe inconnue'}</p>
                         </div>

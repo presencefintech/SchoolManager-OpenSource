@@ -352,13 +352,20 @@ export function EnrollmentCreateModal({
               </span>
             </div>
 
-            <FormSection icon={UserPlus} title="Identité civile">
+            <FormSection icon={UserPlus} title="Identité civile (RDC)">
+              <p className="text-[11px] text-zinc-500 -mt-1">Ordre officiel : Nom · Postnom · Prénom</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Nom" required error={errors.lastName?.message}>
+                  <input {...register('lastName')} className={inputCls} autoComplete="family-name" />
+                </Field>
+                <Field label="Postnom" required error={errors.postnom?.message}>
+                  <input {...register('postnom')} className={inputCls} />
+                </Field>
                 <Field label="Prénom" required error={errors.firstName?.message}>
                   <input {...register('firstName')} className={inputCls} autoComplete="given-name" />
                 </Field>
-                <Field label="Nom" required error={errors.lastName?.message}>
-                  <input {...register('lastName')} className={inputCls} autoComplete="family-name" />
+                <Field label="Prénom administratif" error={errors.prenom?.message}>
+                  <input {...register('prenom')} placeholder="Optionnel — si différent du prénom ci-dessus" className={inputCls} />
                 </Field>
                 <Field label="Date de naissance" required error={errors.birthDate?.message}>
                   <input type="date" {...register('birthDate')} className={inputCls} />

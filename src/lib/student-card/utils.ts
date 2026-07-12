@@ -6,6 +6,7 @@ import type {
   StudentCardGender,
 } from '@/types/student-card'
 import { QR_MAX_PAYLOAD_LENGTH, validateQrPayload } from './validate-qr'
+import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
 
 const STATUS_STRIPE: Record<StudentCardFinancialStatus, string> = {
   current: '#059669',
@@ -43,6 +44,8 @@ export function buildStudentCardData(input: {
   studentId: number
   firstName: string
   lastName: string
+  postnom?: string | null
+  prenom?: string | null
   matricule?: string | null
   photoUrl?: string | null
   qrPayload: string
@@ -60,10 +63,14 @@ export function buildStudentCardData(input: {
   isUpToDate?: boolean | null
   isPaymentLocked?: boolean | null
 }): StudentCardData {
+  const identity = formatStudentIdentityView(input)
   return {
     studentId: input.studentId,
     firstName: input.firstName,
     lastName: input.lastName,
+    postnom: identity.postnom,
+    prenom: identity.prenom,
+    rdcFullName: identity.fullName,
     matricule: input.matricule ?? null,
     className: input.className ?? null,
     section: input.section ?? null,
@@ -128,6 +135,8 @@ export function mapDashboardToStudentCard(
     studentId: profile.id,
     firstName: profile.firstName,
     lastName: profile.lastName,
+    postnom: profile.postnom,
+    prenom: profile.prenom,
     matricule: profile.matricule,
     photoUrl: profile.photoUrl,
     qrPayload: resolveCardQrPayload(profile.id, profile.matricule),
@@ -167,6 +176,8 @@ export function mapEnrollmentToStudentCard(
     studentId: student.id,
     firstName: student.firstName,
     lastName: student.lastName,
+    postnom: student.postnom,
+    prenom: student.prenom,
     matricule: student.matricule,
     photoUrl: context.photoUrl ?? student.photoUrl,
     qrPayload,

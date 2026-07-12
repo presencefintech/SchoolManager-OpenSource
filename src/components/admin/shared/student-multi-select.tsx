@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { useStudents } from '@/lib/hooks/use-admin'
 import type { StudentListItem } from '@/types/admin'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 interface Props {
   studentIds: number[]
@@ -54,7 +55,7 @@ export function StudentMultiSelect({ studentIds, onSelect, label = 'Élèves', r
               key={s.id}
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-medium"
             >
-              {s.firstName} {s.lastName}
+              {formatStudentFullName(s)}
               <button type="button" onClick={() => remove(s.id)} className="hover:text-emerald-600">
                 <X size={11} />
               </button>
@@ -83,7 +84,7 @@ export function StudentMultiSelect({ studentIds, onSelect, label = 'Élèves', r
                 onClick={() => pick(s)}
                 className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50"
               >
-                <span className="font-medium text-zinc-900">{s.firstName} {s.lastName}</span>
+                <span className="font-medium text-zinc-900">{formatStudentFullName(s)}</span>
                 {s.matricule && <span className="text-zinc-400 ml-1">({s.matricule})</span>}
                 {s.className && <span className="block text-xs text-zinc-400">{s.className}</span>}
               </button>

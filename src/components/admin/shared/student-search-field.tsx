@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useStudents } from '@/lib/hooks/use-admin'
 import type { StudentListItem } from '@/types/admin'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 interface Props {
   studentId: number
@@ -48,7 +49,7 @@ export function StudentSearchField({ studentId, onSelect, label = 'Élève', req
         <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50/80">
           <div className="min-w-0">
             <p className="text-sm text-emerald-900 truncate">
-              {display.firstName} {display.lastName}
+              {formatStudentFullName(display)}
               {display.matricule ? ` · ${display.matricule}` : ''}
             </p>
             {display.className && (
@@ -80,7 +81,7 @@ export function StudentSearchField({ studentId, onSelect, label = 'Élève', req
                     onClick={() => pick(s)}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-zinc-50"
                   >
-                    <span className="font-medium text-zinc-900">{s.firstName} {s.lastName}</span>
+                    <span className="font-medium text-zinc-900">{formatStudentFullName(s)}</span>
                     {s.matricule && <span className="text-zinc-400 ml-1">({s.matricule})</span>}
                     {s.className && <span className="block text-xs text-zinc-400">{s.className}</span>}
                   </button>

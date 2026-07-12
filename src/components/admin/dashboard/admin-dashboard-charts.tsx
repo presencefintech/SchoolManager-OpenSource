@@ -4,7 +4,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts'
-import type { HeatmapEntry, WeeklyTrendPoint } from '@/types/admin'
+import type { HeatmapEntry, WeeklyTrendPoint, ScanFlowPoint } from '@/types/admin'
 import type { BarDatum, PieDatum } from '@/components/charts/presence-analytics-charts'
 import { PresencePieChart, PresenceClassBarChart } from '@/components/charts/presence-analytics-charts'
 
@@ -169,5 +169,37 @@ export function ClassEnrollmentChart({ data }: { data: BarDatum[] }) {
         </BarChart>
       </ResponsiveContainer>
     </ChartFrame>
+  )
+}
+
+export function ScanFlowChart({ data }: { data: ScanFlowPoint[] }) {
+  const chartData = data.length > 0 ? data : [{ label: '—', timestamp: '', count: 0 }]
+  const hasData = data.some((p) => p.count > 0)
+
+  return (
+    <div className="relative">
+      {!hasData && (
+        <p className="absolute top-0 left-0 right-0 text-center text-[11px] text-slate-400 z-10 pointer-events-none">
+          Débit scans — en attente d&apos;activité
+        </p>
+      )}
+      <ChartFrame height={140}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 8, fill: '#64748b' }}
+              tickLine={false}
+              axisLine={false}
+              interval="preserveStartEnd"
+            />
+            <YAxis tick={{ fontSize: 9, fill: '#64748b' }} tickLine={false} axisLine={false} allowDecimals={false} />
+            <RechartsTooltip content={<ChartTooltip valueLabel="scans" />} />
+            <Bar dataKey="count" fill="#6366f1" radius={[3, 3, 0, 0]} maxBarSize={12} opacity={hasData ? 1 : 0.35} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartFrame>
+    </div>
   )
 }

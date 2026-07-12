@@ -10,6 +10,7 @@ import {
   EyeOff, Bell, Settings2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   usePresenceStats, usePresenceLiveFeed, usePresenceHeatmap, usePresenceAlerts,
   useValidatePresence, useDeletePresence,
@@ -576,7 +577,7 @@ export default function PresencesPage() {
                         <div className="min-w-0">
                           <div className="mb-0.5 flex items-center gap-2">
                             <span className="text-sm font-semibold text-zinc-800">
-                              {alert.presence?.student?.firstName} {alert.presence?.student?.lastName}
+                              {formatStudentFullName(alert.presence?.student ?? {})}
                             </span>
                             {alert.presence?.student?.matricule && (
                               <span className="font-mono text-xs text-zinc-400">
@@ -684,7 +685,7 @@ export default function PresencesPage() {
         impact={
           alertAction
             ? [
-          `Élève : ${alertAction.alert.presence?.student?.firstName} ${alertAction.alert.presence?.student?.lastName}`,
+          `Élève : ${formatStudentFullName(alertAction.alert.presence?.student ?? {})}`,
           labelFraudScore(alertAction.alert.fraudScore, alertAction.alert.isSuspectedFraud),
               ]
             : []

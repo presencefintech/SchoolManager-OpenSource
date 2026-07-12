@@ -5,9 +5,13 @@ import { AlertTriangle, Loader2, X } from 'lucide-react'
 import { useProcessPayment, useResolvedCashSession } from '@/lib/hooks/use-finance'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
-import type { FeeScheduleLineDto, ProcessPaymentResponse } from '@/types/finance'
+import type { ProcessPaymentResponse } from '@/types/finance'
 import { cn } from '@/lib/utils'
-import { lineRemainingAmount } from '@/lib/finance/fee-schedule.utils'
+import {
+  buildPaymentFeeLines,
+  formatFeePeriodLabel,
+} from '@/lib/finance/fee-schedule.utils'
+import type { FeeAttributionValue } from '@/components/finance/fee-attribution-picker'
 
 const METHODS = [
   { value: 'CASH', label: 'Espèces' },
@@ -25,7 +29,7 @@ interface PaymentModalProps {
   onClose: () => void
   studentId: number
   academicSessionId: number
-  line: FeeScheduleLineDto | null
+  selection: FeeAttributionValue | null
   currency: FinanceCurrencyCode
   onSuccess: (paymentId: number) => void
 }
@@ -35,7 +39,7 @@ export function PaymentModal({
   onClose,
   studentId,
   academicSessionId,
-  line,
+  selection,
   currency,
   onSuccess,
 }: PaymentModalProps) {
@@ -49,32 +53,37 @@ export function PaymentModal({
   const [method, setMethod] = useState<PayMethod>('CASH')
   const [reference, setReference] = useState('')
   const [comment, setComment] = useState('')
-  const [payAmount, setPayAmount] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
   useEffect(() => {
-    if (!open || !line) return
+    if (!open) return
     setMethod('CASH')
     setReference('')
     setComment('')
     setErrorMsg('')
-    setPayAmount(String(lineRemainingAmount(line)))
-  }, [open, line])
+  }, [open, selection])
 
-  if (!open || !line) return null
+  if (!open || !selection || selection.lines.length === 0) return null
 
-  const maxAmount = lineRemainingAmount(line)
-  const amount = Number(payAmount) || 0
+  const totalAmount = selection.totalAmount
   const needsRef = method !== 'CASH'
   const requiresCashSession =
     method === 'CASH' && !hasOpenSession && !couldNotVerify && !sessionLoading
+  const isMulti = selection.lines.length > 1
+  const structureCount = new Set(selection.lines.map((sel) => sel.line.feeStructureId)).size
+  const primaryLine = selection.lines[0].line
+  const modalTitle =
+    isMulti && structureCount > 1
+      ? `Encaisser ${selection.lines.length} lignes`
+      : isMulti
+        ? `Encaisser ${selection.lines.length} mois`
+        : 'Encaisser un paiement'
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErrorMsg('')
 
-    const currentLine = line
-    if (!currentLine) return
+    if (!selection) return
 
     if (requiresCashSession) {
       setErrorMsg("Ouvrez une session de caisse dans Caisse avant d'encaisser des espèces.")
@@ -84,29 +93,29 @@ export function PaymentModal({
       setErrorMsg('Référence obligatoire (min. 3 caractères) pour ce mode de paiement.')
       return
     }
-    if (currentLine.billingPeriod === 'MONTHLY' && !currentLine.monthYear) {
-      setErrorMsg('Période mensuelle manquante sur cette ligne.')
-      return
-    }
 
-    if (amount <= 0 || amount > maxAmount + 0.01) {
-      setErrorMsg(`Montant invalide — maximum ${formatMoney(maxAmount, line.currency || currency)}`)
-      return
+    for (const sel of selection.lines) {
+      if (sel.line.billingPeriod === 'MONTHLY' && !sel.line.monthYear) {
+        setErrorMsg('Période mensuelle manquante sur une ligne sélectionnée.')
+        return
+      }
     }
 
     try {
+      const feeLines = buildPaymentFeeLines(selection.lines)
       const result = (await processPayment({
         studentId,
-        amount,
+        amount: totalAmount,
         method,
         sessionId: academicSessionId,
-        feeStructureId: currentLine.feeStructureId,
-        monthYear: currentLine.monthYear ?? undefined,
+        fees: feeLines.length > 1 ? feeLines : undefined,
+        feeStructureId: feeLines.length === 1 ? feeLines[0].feeStructureId : undefined,
+        monthYear: feeLines.length === 1 ? feeLines[0].monthYear : undefined,
         reference: needsRef ? reference.trim() : undefined,
         comment: comment.trim() || undefined,
       })) as ProcessPaymentResponse
 
-      const paymentId = result?.paymentId ?? result?.id
+      const paymentId = result.paymentId ?? result.id ?? result.payment?.id
       if (!paymentId) {
         setErrorMsg('Paiement enregistré mais identifiant reçu introuvable.')
         return
@@ -121,17 +130,21 @@ export function PaymentModal({
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-modal-title"
       >
-        <div className="flex items-start justify-between px-6 pt-6 pb-2">
+        <div className="flex items-start justify-between px-6 pt-6 pb-2 shrink-0">
           <div>
             <h2 id="payment-modal-title" className="text-base font-semibold text-zinc-900">
-              Encaisser un paiement
+              {modalTitle}
             </h2>
-            <p className="text-xs text-zinc-500 mt-1">{line.categoryName}</p>
+            <p className="text-xs text-zinc-500 mt-1">
+              {structureCount > 1
+                ? `${structureCount} barèmes · ${primaryLine.categoryName}`
+                : primaryLine.categoryName}
+            </p>
           </div>
           <button
             type="button"
@@ -144,58 +157,51 @@ export function PaymentModal({
           </button>
         </div>
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="px-6 pb-6 space-y-4">
+        <form
+          onSubmit={(e) => void handleSubmit(e)}
+          className="px-6 pb-6 space-y-4 overflow-y-auto"
+        >
           <div className="rounded-xl bg-zinc-50 border border-zinc-100 px-4 py-3 space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="text-zinc-400">Barème</span>
-              <span className="font-medium tabular-nums text-zinc-700">
-                {formatMoney(line.amount, line.currency || currency)}
-              </span>
-            </div>
-            {(line.amountPaid ?? 0) > 0 && (
-              <div className="flex justify-between text-xs">
-                <span className="text-zinc-400">Déjà payé</span>
-                <span className="font-medium tabular-nums text-amber-700">
-                  {formatMoney(line.amountPaid ?? 0, line.currency || currency)}
-                </span>
+            {isMulti ? (
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                {selection.lines.map((sel) => (
+                  <div
+                    key={`${sel.line.feeStructureId}:${sel.line.monthYear ?? ''}`}
+                    className="flex justify-between text-xs gap-2"
+                  >
+                    <span className="text-zinc-600 truncate">
+                      {structureCount > 1
+                        ? `${sel.line.categoryName} · ${formatFeePeriodLabel(sel.line)}`
+                        : formatFeePeriodLabel(sel.line)}
+                    </span>
+                    <span className="font-medium tabular-nums text-zinc-800 shrink-0">
+                      {formatMoney(sel.amount, sel.line.currency || currency)}
+                    </span>
+                  </div>
+                ))}
               </div>
+            ) : (
+              <>
+                <div className="flex justify-between text-xs">
+                  <span className="text-zinc-400">Barème</span>
+                  <span className="font-medium tabular-nums text-zinc-700">
+                    {formatMoney(primaryLine.amount, primaryLine.currency || currency)}
+                  </span>
+                </div>
+                {primaryLine.monthYear ? (
+                  <div className="flex justify-between text-xs">
+                    <span className="text-zinc-400">Période</span>
+                    <span className="text-zinc-600">{formatFeePeriodLabel(primaryLine)}</span>
+                  </div>
+                ) : null}
+              </>
             )}
-            <div className="flex justify-between text-xs">
-              <span className="text-zinc-400">Solde restant</span>
+            <div className="flex justify-between text-xs border-t border-zinc-200/80 pt-2">
+              <span className="text-zinc-500 font-medium">Total à encaisser</span>
               <span className="font-semibold tabular-nums text-zinc-900">
-                {formatMoney(maxAmount, line.currency || currency)}
+                {formatMoney(totalAmount, currency)}
               </span>
             </div>
-            {line.monthYear ? (
-              <div className="flex justify-between text-xs">
-                <span className="text-zinc-400">Période</span>
-                <span className="font-mono text-zinc-600">{line.monthYear}</span>
-              </div>
-            ) : null}
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">
-              Montant à encaisser <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              min={0.01}
-              max={maxAmount}
-              step="0.01"
-              value={payAmount}
-              onChange={(e) => setPayAmount(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            />
-            {maxAmount < line.amount && (
-              <button
-                type="button"
-                onClick={() => setPayAmount(String(maxAmount))}
-                className="mt-1 text-[11px] text-emerald-700 hover:underline"
-              >
-                Encaisser le solde complet ({formatMoney(maxAmount, line.currency || currency)})
-              </button>
-            )}
           </div>
 
           {requiresCashSession && (
@@ -276,7 +282,7 @@ export function PaymentModal({
               )}
             >
               {isPending && <Loader2 size={14} className="animate-spin" />}
-              Confirmer le paiement
+              Confirmer · {formatMoney(totalAmount, currency)}
             </button>
           </div>
         </form>

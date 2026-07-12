@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, GraduationCap, UserPlus, BookOpen, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { useStudents } from '@/lib/hooks/use-admin'
 
 const QUICK_STATUS = [
@@ -90,7 +91,7 @@ export function AdminGlobalSearch() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-zinc-900 truncate">
-                        {s.firstName} {s.lastName}
+                        {formatStudentFullName(s)}
                       </p>
                       <p className="text-[11px] text-zinc-400 truncate">
                         {s.matricule ?? '—'} · {s.className ?? 'Sans classe'}

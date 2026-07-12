@@ -5,9 +5,13 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
+import { useGuichetDashboard } from '@/lib/hooks/use-finance'
 
 export default function StudentFinancePage() {
   const params = useParams()
+  const { data: guichet } = useGuichetDashboard()
+  const academicSessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)
+    ?.currentAcademicSessionId ?? undefined
   const rawId = params?.studentId
   const studentId = Number(Array.isArray(rawId) ? rawId[0] : rawId)
 
@@ -56,7 +60,10 @@ export default function StudentFinancePage() {
           </Link>
         }
       />
-      <StudentFinanceDashboard studentId={studentId} />
+      <StudentFinanceDashboard
+        studentId={studentId}
+        sessionId={academicSessionId ?? undefined}
+      />
     </FinancePageShell>
   )
 }

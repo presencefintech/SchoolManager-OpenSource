@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, User, AlertTriangle, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   useStudents, useStudentDashboard, useClasses,
   useStudentApplications, useApproveApplication, useRejectApplication, useDebtors,
@@ -229,7 +230,7 @@ export default function StudentsPage() {
                                   <User size={12} className="text-emerald-600" />
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-zinc-900">{s.firstName} {s.lastName}</p>
+                                  <p className="text-sm font-medium text-zinc-900">{formatStudentFullName(s)}</p>
                                   <StudentFinanceBadges
                                     className="mt-0.5"
                                     debtAmount={s.debtAmount}
@@ -345,7 +346,7 @@ export default function StudentsPage() {
                       const cfg = APP_STATUS_CFG[app.status] ?? { label: app.status, cls: 'bg-zinc-100 text-zinc-500' }
                       return (
                         <tr key={app.id} className="hover:bg-zinc-50 transition-colors">
-                          <td className="px-5 py-3 text-sm font-medium text-zinc-900">{app.firstName} {app.lastName}</td>
+                          <td className="px-5 py-3 text-sm font-medium text-zinc-900">{formatStudentFullName(app)}</td>
                           <td className="px-5 py-3 text-sm text-zinc-500">{app.email ?? app.phone ?? '—'}</td>
                           <td className="px-5 py-3 text-sm text-zinc-400">
                             {new Date(app.submittedAt).toLocaleDateString('fr-FR')}
@@ -415,7 +416,7 @@ export default function StudentsPage() {
                           <div className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
                             <Wallet size={12} className="text-red-500" />
                           </div>
-                          <p className="text-sm font-medium text-zinc-900">{d.firstName} {d.lastName}</p>
+                          <p className="text-sm font-medium text-zinc-900">{formatStudentFullName(d)}</p>
                         </div>
                       </td>
                       <td className="px-5 py-3 text-sm text-zinc-500">{d.className ?? '—'}</td>

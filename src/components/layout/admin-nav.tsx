@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -48,6 +48,7 @@ const NAV_SECTIONS: NavSection[] = [
         label: 'Finance', href: '/admin/finance', icon: Wallet,
         children: [
           { label: 'Dashboard',         href: '/admin/finance',                 icon: LayoutDashboard },
+          { label: 'Rapports',          href: '/admin/finance/rapports',        icon: BarChart3 },
           { label: 'Paiements',         href: '/admin/finance/paiements',       icon: CreditCard },
           { label: 'Remboursements',    href: '/admin/finance/remboursements',  icon: RotateCcw },
           { label: 'Factures & Frais',  href: '/admin/finance/factures',        icon: FileText },
@@ -55,6 +56,7 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Lots scellés',      href: '/admin/finance/scelles',         icon: Fingerprint },
           { label: 'Profil règlement',  href: '/admin/finance/payment-profile', icon: Building2 },
           { label: 'Audit & Fraude',    href: '/admin/finance/audit',           icon: Shield },
+          { label: 'Vérifier reçu',     href: '/verify',                        icon: QrCode },
         ],
       },
     ],
@@ -65,6 +67,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Invitations',   href: '/admin/invitations',   icon: Mail },
       { label: 'Emails',        href: '/admin/email',         icon: Mail },
       { label: 'Notifications', href: '/admin/notifications', icon: Bell },
+      { label: 'Notifs présence', href: '/admin/attendance-notifications', icon: Activity },
       { label: 'Fraude',        href: '/admin/fraud',         icon: ShieldAlert },
       { label: 'Sanctions',     href: '/admin/sanctions',     icon: Gavel },
       { label: 'Fichiers',      href: '/admin/files',         icon: FolderOpen },

@@ -6,19 +6,21 @@ import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-sched
 import { useAdminStudentFeeSchedule } from '@/lib/hooks/use-admin'
 import {
   feeScheduleLineKey,
-  filterPayableFeeLines,
   formatFeePeriodLabel,
+  getSelectableFeeLines,
+  getStructureMonthlyLines,
   lineRemainingAmount,
+  selectAllRemainingMonths,
+  selectionTotalAmount,
+  toggleContiguousFeeSelection,
+  type FeeLineSelection,
 } from '@/lib/finance/fee-schedule.utils'
 import { FeeScheduleStatusBadge } from '@/components/finance/student-dashboard/FeesTable/fees-table.columns'
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 import type { FeeScheduleLineDto } from '@/types/finance'
 
-export type FeeLineSelection = {
-  line: FeeScheduleLineDto
-  amount: number
-}
+export type { FeeLineSelection }
 
 export type FeeAttributionValue = {
   sessionId: number
@@ -47,10 +49,18 @@ export function FeeAttributionPanel({
   const adminQuery = useAdminStudentFeeSchedule(studentId, sessionId)
   const { data, isLoading, isError, error } = api === 'admin' ? adminQuery : financeQuery
 
-  const payableLines = useMemo(
-    () => filterPayableFeeLines(data?.lines ?? []),
+  const selectableLines = useMemo(
+    () => getSelectableFeeLines(data?.lines ?? []),
     [data?.lines],
   )
+
+  const monthlyStructureIds = useMemo(() => {
+    const ids = new Set<number>()
+    for (const line of selectableLines) {
+      if (line.billingPeriod === 'MONTHLY') ids.add(line.feeStructureId)
+    }
+    return ids
+  }, [selectableLines])
 
   const selectedMap = useMemo(() => {
     const map = new Map<string, number>()
@@ -82,7 +92,7 @@ export function FeeAttributionPanel({
 
   if (!data) return null
 
-  if (payableLines.length === 0) {
+  if (selectableLines.length === 0) {
     return (
       <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-xs text-amber-800">
         Aucune échéance à payer pour {data.sessionLabel}. Les frais sont à jour ou non configurés.
@@ -98,18 +108,12 @@ export function FeeAttributionPanel({
     onChange({
       sessionId: data!.sessionId,
       lines: nextLines,
-      totalAmount: Number(nextLines.reduce((sum, l) => sum + l.amount, 0).toFixed(2)),
+      totalAmount: selectionTotalAmount(nextLines),
     })
   }
 
   function toggleLine(line: FeeScheduleLineDto) {
-    const key = feeScheduleLineKey(line)
-    const current = value?.lines ?? []
-    if (selectedMap.has(key)) {
-      emit(current.filter((sel) => feeScheduleLineKey(sel.line) !== key))
-      return
-    }
-    emit([...current, { line, amount: lineRemainingAmount(line) }])
+    emit(toggleContiguousFeeSelection(line, value?.lines ?? [], data!.lines))
   }
 
   function updateAmount(line: FeeScheduleLineDto, raw: string) {
@@ -128,16 +132,48 @@ export function FeeAttributionPanel({
     )
   }
 
+  function handleSelectAllYear(feeStructureId: number) {
+    emit(selectAllRemainingMonths(feeStructureId, value?.lines ?? [], data!.lines))
+  }
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <label className="block text-xs font-medium text-zinc-500">
-          Attribution des frais <span className="text-red-500">*</span>
+          Mois à encaisser <span className="text-red-500">*</span>
         </label>
         <span className="text-[10px] text-zinc-400">
-          {data.sessionLabel} · multi-sélection · paiement partiel
+          {data.sessionLabel} · multi-mois · avance autorisée
         </span>
       </div>
+
+      <p className="text-[11px] text-zinc-500 rounded-lg bg-zinc-50 border border-zinc-100 px-3 py-2">
+        Paiement séquentiel : impossible de sauter un mois impayé. Cocher un mois inclut
+        automatiquement les mois précédents non soldés. Vous pouvez payer plusieurs mois
+        d&apos;avance (ex. toute l&apos;année restante).
+      </p>
+
+      {monthlyStructureIds.size > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {Array.from(monthlyStructureIds).map((feeStructureId) => {
+            const first = getStructureMonthlyLines(data.lines, feeStructureId)[0]
+            const label = first?.categoryName ?? `Barème #${feeStructureId}`
+            const remaining = getSelectableFeeLines(data.lines).filter(
+              (l) => l.feeStructureId === feeStructureId,
+            ).length
+            return (
+              <button
+                key={feeStructureId}
+                type="button"
+                onClick={() => handleSelectAllYear(feeStructureId)}
+                className="text-[10px] px-2.5 py-1 rounded-lg border border-emerald-200 text-emerald-700 bg-emerald-50/50 hover:bg-emerald-50"
+              >
+                Toute l&apos;année · {label} ({remaining} mois)
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <div
         className={cn(
@@ -145,7 +181,7 @@ export function FeeAttributionPanel({
           compact ? 'max-h-56 overflow-y-auto' : 'max-h-72 overflow-y-auto',
         )}
       >
-        {payableLines.map((line) => {
+        {selectableLines.map((line) => {
           const key = feeScheduleLineKey(line)
           const selected = selectedMap.has(key)
           const remaining = lineRemainingAmount(line)
@@ -176,7 +212,8 @@ export function FeeAttributionPanel({
                       </p>
                       {(line.amountPaid ?? 0) > 0 && (
                         <p className="text-[10px] text-amber-700 mt-1">
-                          Déjà payé {formatMoney(line.amountPaid ?? 0, line.currency)} · reste {formatMoney(remaining, line.currency)}
+                          Déjà payé {formatMoney(line.amountPaid ?? 0, line.currency)} · reste{' '}
+                          {formatMoney(remaining, line.currency)}
                         </p>
                       )}
                     </div>
@@ -219,7 +256,7 @@ export function FeeAttributionPanel({
       {value && value.lines.length > 0 && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-2.5 text-sm">
           <span className="text-zinc-600">
-            {value.lines.length} ligne{value.lines.length > 1 ? 's' : ''} sélectionnée{value.lines.length > 1 ? 's' : ''}
+            {value.lines.length} mois sélectionné{value.lines.length > 1 ? 's' : ''}
           </span>
           <span className="font-semibold tabular-nums text-emerald-800">
             Total {formatMoney(value.totalAmount)}

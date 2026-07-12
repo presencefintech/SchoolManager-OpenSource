@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, Settings2, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { labelMoratoriumType } from '@/lib/business-labels'
+import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 import type { Moratorium, MoratoriumPolicy, MoratoriumType, UpdateMoratoriumPolicyPayload } from '@/types/admin'
 
 export const MORATORIUM_STATUS_STYLES: Record<string, { label: string; cls: string }> = {
@@ -248,7 +249,7 @@ export function MoratoriumDetailPanel({
 
   const studentLabel =
     item.studentName
-    ?? (item.student ? `${item.student.firstName} ${item.student.lastName}`.trim() : '')
+    ?? (item.student ? formatRdcFullName(item.student) : '')
     ?? `Élève #${item.studentId}`
 
   const durationDays = Math.max(
@@ -354,7 +355,7 @@ export function MoratoriumDetailPanel({
 export function moratoriumStudentLabel(m: Moratorium): string {
   return (
     m.studentName
-    ?? (m.student ? `${m.student.firstName} ${m.student.lastName}`.trim() : '')
+    ?? (m.student ? formatRdcFullName(m.student) : '')
     ?? `#${m.studentId}`
   )
 }

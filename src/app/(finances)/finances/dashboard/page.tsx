@@ -13,6 +13,7 @@ import {
 } from '@/lib/hooks/use-finance'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
@@ -381,7 +382,7 @@ export default function FinanceDashboardPage() {
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="w-5 h-5 rounded-full bg-red-50 flex items-center justify-center text-[10px] font-bold text-red-500 flex-shrink-0">{i + 1}</span>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-zinc-900 truncate">{dbtr.firstName} {dbtr.lastName}</p>
+                      <p className="text-sm font-medium text-zinc-900 truncate">{formatStudentFullName(dbtr)}</p>
                       {dbtr.class?.name && <p className="text-xs text-zinc-400">{dbtr.class.name}</p>}
                     </div>
                   </div>
