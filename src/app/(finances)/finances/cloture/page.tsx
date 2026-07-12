@@ -11,6 +11,7 @@ import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
+import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -64,21 +65,20 @@ export default function CloturePage() {
   }
 
   return (
-    <div className="px-8 py-8 space-y-6">
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Clôture journalière</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Aperçu, finalisation et exports de fin de journée</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refetch()} className="p-2 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50">
+    <FinancePageShell>
+      <FinancePageHeader
+        title="Clôture journalière"
+        subtitle="Aperçu, finalisation et exports de fin de journée"
+        actions={
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="rounded-xl border border-zinc-200 p-2 text-zinc-400 hover:bg-zinc-50"
+          >
             <RefreshCw size={14} />
           </button>
-        </div>
-      </motion.div>
+        }
+      />
 
       {success && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-100">
@@ -88,11 +88,17 @@ export default function CloturePage() {
       )}
 
       {/* Aperçu */}
-      <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-zinc-900">Aperçu de la journée</h2>
-          {pv?.date && <span className="text-xs text-zinc-400">{new Date(pv.date).toLocaleDateString('fr-FR')}</span>}
-        </div>
+      <FinancePanel
+        title="Aperçu de la journée"
+        icon={Clock}
+        headerRight={
+          pv?.date ? (
+            <span className="text-xs text-zinc-400">
+              {new Date(pv.date).toLocaleDateString('fr-FR')}
+            </span>
+          ) : undefined
+        }
+      >
         {isLoading ? (
           <div className="p-5 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : pv ? (
@@ -143,7 +149,7 @@ export default function CloturePage() {
             <p className="text-sm text-zinc-400">Aucun aperçu disponible</p>
           </div>
         )}
-      </motion.div>
+      </FinancePanel>
 
       <div className="grid grid-cols-2 gap-6">
         {/* Finaliser */}
@@ -208,6 +214,6 @@ export default function CloturePage() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </FinancePageShell>
   )
 }

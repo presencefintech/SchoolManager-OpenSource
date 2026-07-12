@@ -12,6 +12,8 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PendingPayment } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
+import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
+import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: 'Espèces',
@@ -180,40 +182,29 @@ export default function VerificationsPage() {
   const payments: PendingPayment[] = (data as any)?.data ?? (Array.isArray(data) ? data : [])
 
   return (
-    <div className="px-8 py-8 space-y-6">
-      <motion.div
-        className="flex items-center justify-between"
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-      >
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900">Vérifications</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Paiements en attente de traitement</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {payments.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100 text-xs font-medium text-amber-700">
-              <Clock size={12} />
+    <FinancePageShell>
+      <FinancePageHeader
+        title="Vérifications"
+        subtitle="Paiements en attente de traitement — mobile money, espèces et virements"
+        badge={
+          payments.length > 0 ? (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-100">
               {payments.length} en attente
-            </div>
-          )}
+            </span>
+          ) : undefined
+        }
+        actions={
           <button
+            type="button"
             onClick={() => refetch()}
-            className="p-2 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50"
+            className="rounded-xl border border-zinc-200 p-2 text-zinc-400 hover:bg-zinc-50"
           >
             <RefreshCw size={14} />
           </button>
-        </div>
-      </motion.div>
+        }
+      />
 
-      <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
-        <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ClipboardCheck size={14} className="text-zinc-400" />
-            <h2 className="text-sm font-semibold text-zinc-900">Paiements en attente</h2>
-          </div>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{payments.length}</span>
-        </div>
-
+      <FinancePanel title="Paiements en attente" icon={ClipboardCheck}>
         {isLoading ? (
           <div className="p-5 space-y-3">
             {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
@@ -248,6 +239,11 @@ export default function VerificationsPage() {
                       </p>
                       {p.student?.class?.name && (
                         <p className="text-xs text-zinc-400">{p.student.class.name}</p>
+                      )}
+                      {p.student?.id && (
+                        <div className="mt-1">
+                          <StudentFeeScheduleLink studentId={Number(p.student.id)} variant="inline" />
+                        </div>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-right font-semibold text-zinc-900">
@@ -287,7 +283,7 @@ export default function VerificationsPage() {
             </table>
           </div>
         )}
-      </motion.div>
+      </FinancePanel>
 
       {/* Info CASH */}
       {payments.some(p => p.method === 'CASH') && (
@@ -301,6 +297,6 @@ export default function VerificationsPage() {
       )}
 
       {selected && <VerifyStepModal payment={selected} onClose={() => setSelected(null)} />}
-    </div>
+    </FinancePageShell>
   )
 }
