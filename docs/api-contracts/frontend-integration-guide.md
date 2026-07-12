@@ -348,9 +348,14 @@ GET /api/v1/mobile/parents/payments/{paymentId}/receipt
 
 ```http
 GET /api/v1/receipts/verify/{token}
+GET /api/v1/receipts/lookup?receiptNumber=REC-…&code=PF-…
 ```
 
-Le token est encodé dans le QR du PDF (`p{paymentId}_{hmac32}`).
+Pages web : `/verify` (saisie manuelle) · `/verify/receipt/{token}` (scan).
+
+Le token QR est encodé dans le ticket (`p{paymentId}_{hmac32}`). Code PF imprimé : `PF-{schoolId}-{YYMM}-{checksum}`.
+
+> Guide complet : [`receipt-verify.md`](./receipt-verify.md) · [`flutter-parent-receipt.md`](./flutter-parent-receipt.md) §2.2–2.3
 
 ---
 

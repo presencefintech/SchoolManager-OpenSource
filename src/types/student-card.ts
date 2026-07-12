@@ -9,6 +9,10 @@ export interface StudentCardData {
   studentId: number
   firstName: string
   lastName: string
+  postnom?: string | null
+  prenom?: string | null
+  /** Nom complet RDC pour export PDF (prenom nom postnom) */
+  rdcFullName?: string
   matricule: string | null
   className: string | null
   section: string | null

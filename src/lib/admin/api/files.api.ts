@@ -10,10 +10,16 @@ export const adminFilesApi = {
     fd.append('folder', metadata?.folder ?? 'documents')
     if (metadata?.studentId) fd.append('studentId', String(metadata.studentId))
     return apiClient
-      .post<{ success: boolean; data: { url: string; publicId: string } }>('/admin/files/upload', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      .post<{ success: boolean; data: { fileUrl?: string; url?: string; publicId?: string } }>(
+        '/admin/files/upload',
+        fd,
+        { headers: { 'Content-Type': 'multipart/form-data' } },
+      )
+      .then((r) => {
+        const data = r.data.data
+        const url = data.url ?? data.fileUrl ?? ''
+        return { url, publicId: data.publicId ?? url }
       })
-      .then((r) => r.data.data)
   },
 
   delete: (publicId: string) =>

@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   DollarSign, RefreshCw, Search, Banknote, ClipboardCheck, Users, BarChart3,
 } from 'lucide-react'
-import { useDailyCashReport } from '@/lib/hooks/use-finance'
+import { useDailyCashReport, useGuichetDashboard } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
@@ -16,6 +16,9 @@ import { formatMoney } from '@/lib/finance/currency'
 export default function PaiementsPage() {
   const [studentId, setStudentId] = useState(0)
   const { data: dailyCash = [], refetch: refetchCash, isFetching } = useDailyCashReport()
+  const { data: guichet } = useGuichetDashboard()
+  const academicSessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)
+    ?.currentAcademicSessionId ?? undefined
 
   const cash: { method?: string; _count?: { id?: number }; _sum?: { amount?: number } }[] =
     Array.isArray(dailyCash) ? dailyCash : []
@@ -25,7 +28,7 @@ export default function PaiementsPage() {
     <FinancePageShell>
       <FinancePageHeader
         title="Paiements"
-        subtitle="Recherchez un élève, consultez son échéancier et encaissez ligne par ligne — guichet RDC"
+        subtitle="Recherchez un élève — encaissement multi-mois (minerval, avance annuelle)"
         actions={
           <>
             <Link
@@ -73,14 +76,21 @@ export default function PaiementsPage() {
 
           {studentId > 0 ? (
             <motion.div variants={fadeUp} initial="hidden" animate="show">
-              <StudentFinanceDashboard studentId={studentId} />
+              <StudentFinanceDashboard
+                studentId={studentId}
+                sessionId={academicSessionId ?? undefined}
+              />
             </motion.div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/60 px-6 py-16 text-center">
-              <DollarSign size={32} className="mx-auto mb-3 text-zinc-300" />
+            <div className="rounded-2xl border border-dashed border-zinc-200 bg-white/60 px-6 py-16 text-center space-y-3">
+              <DollarSign size={32} className="mx-auto text-zinc-300" />
               <p className="text-sm font-medium text-zinc-600">Sélectionnez un élève pour encaisser</p>
-              <p className="mt-1 text-xs text-zinc-400">
-                L&apos;échéancier, l&apos;historique et le modal de paiement s&apos;affichent ici
+              <p className="text-xs text-zinc-400 max-w-md mx-auto">
+                Après sélection : panneau <strong>Encaissement</strong> avec cases à cocher par mois,
+                bouton « Toute l&apos;année », paiement multi-mois sans sauter un mois impayé.
+              </p>
+              <p className="text-[11px] text-amber-700 bg-amber-50 inline-block rounded-lg px-3 py-1.5">
+                Les barèmes se configurent dans Admin → Finance → Factures &amp; Frais
               </p>
             </div>
           )}

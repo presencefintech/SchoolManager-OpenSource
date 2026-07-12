@@ -6,8 +6,10 @@ export type PreEnrollmentStatus =
   | 'COMPLETED'
 
 export interface PreEnrollmentStudentInfo {
-  firstName: string
   lastName: string
+  postnom: string
+  firstName: string
+  prenom?: string
   gender: string
   dateOfBirth: string
   placeOfBirth: string
@@ -72,8 +74,10 @@ export interface PreEnrollmentListResponse {
 
 export interface CreatePreEnrollmentPayload {
   studentInfo: {
-    firstName: string
     lastName: string
+    postnom: string
+    firstName: string
+    prenom?: string
     gender: 'M' | 'F'
     dateOfBirth: string
     placeOfBirth: string

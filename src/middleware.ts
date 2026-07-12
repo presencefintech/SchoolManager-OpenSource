@@ -4,7 +4,7 @@ import type { UserRole } from '@/types/auth'
 import { ROLE_HOME } from '@/types/auth'
 import { decodeAccessToken } from '@/lib/auth/verify-access-token'
 
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate']
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify']
 
 const ROLE_PREFIXES: Record<UserRole, string> = {
   ADMIN: '/admin',
@@ -41,7 +41,7 @@ export function middleware(request: NextRequest) {
 
   const role = session.role
 
-  if (isPublic && pathname !== '/verify-email' && pathname !== '/activate') {
+  if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && !pathname.startsWith('/verify')) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
   }
 

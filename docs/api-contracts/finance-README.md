@@ -265,6 +265,8 @@ Ces endpoints sont documentés dans **`swagger-docs/finance.json`** (lecture KYC
 | **Export vérifications pending** | `GET /admin/finance/payments/pending-verifications/export?format=csv` | `admin-business-actions.md` |
 | **Clôture vérification** | `POST /admin/finance/payments/verifications/{id}/mark-processed` | `admin-business-actions.md` |
 | Validation remboursements | `/admin/finance/refunds/{id}/review` | `admin.json` |
+| **Rapports agrégés (ReportingEngine)** | `GET /admin/finance/reports/aggregate` | `admin.json` |
+| **Config devise / taux** | `GET/PATCH /admin/finance/currency-config` · `GET/POST /admin/finance/exchange-rates` | `admin.json` |
 | Barèmes / tarifs (écriture) | routes admin finance | `admin.json` |
 
 Guide KYC : `src/docs/school-payment-profile.md` · passation front : `src/docs/web-admin-payment-handoff.md`
@@ -277,7 +279,7 @@ Guide KYC : `src/docs/school-payment-profile.md` · passation front : `src/docs/
 | Finance admin | `swagger-docs/admin.json` | `/api-docs/admin` |
 | Temps réel | `src/docs/openapi-admin.json` | `/api-docs/admin-realtime` |
 
-**Régénération :** `npm run docs:finance-openapi`
+**Régénération :** `npm run docs:admin-openapi` · `docs:finance-openapi` (ou `docs:openapi` pour tout).
 
 ## Temps réel (Socket.io)
 

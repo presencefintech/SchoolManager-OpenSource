@@ -12,6 +12,7 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PendingPayment } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 
@@ -72,7 +73,7 @@ function VerifyStepModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
         <h2 className="text-base font-semibold text-zinc-900 mb-1">Traitement paiement #{payment.id}</h2>
         <p className="text-xs text-zinc-400 mb-5">
-          {payment.student ? `${payment.student.firstName} ${payment.student.lastName}` : `Élève #${payment.id}`}
+          {payment.student ? formatStudentFullName(payment.student) : `Élève #${payment.id}`}
           {payment.student?.class?.name ? ` · ${payment.student.class.name}` : ''}
         </p>
 
@@ -235,7 +236,7 @@ export default function VerificationsPage() {
                     <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">{p.id}</td>
                     <td className="px-5 py-3.5">
                       <p className="font-medium text-zinc-900">
-                        {p.student ? `${p.student.firstName} ${p.student.lastName}` : '—'}
+                        {p.student ? formatStudentFullName(p.student) : '—'}
                       </p>
                       {p.student?.class?.name && (
                         <p className="text-xs text-zinc-400">{p.student.class.name}</p>

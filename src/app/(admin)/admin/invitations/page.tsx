@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Mail, UserPlus, Trash2, RefreshCw, Copy, Check } from 'lucide-react'
 import { useInvitationStatus, useGenerateParentCode, useRevokeParentCode, useInviteStaff, useRevokeStaffInvitation, useResendStaffInvitation, useStudents } from '@/lib/hooks/use-admin'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import type { InviteStaffPayload, StaffInvitation } from '@/types/admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { PhoneInput } from '@/components/ui/phone-input'
@@ -55,7 +56,7 @@ function ParentCodesTab() {
             <option value="">— Sélectionner un élève —</option>
             {students.map(s => (
               <option key={s.id} value={String(s.id)}>
-                {s.firstName} {s.lastName}{s.className ? ` · ${s.className}` : ''}{s.matricule ? ` (${s.matricule})` : ''}
+                {formatStudentFullName(s)}{s.className ? ` · ${s.className}` : ''}{s.matricule ? ` (${s.matricule})` : ''}
               </option>
             ))}
           </select>
@@ -98,7 +99,7 @@ function ParentCodesTab() {
               {codes.map(c => (
                 <tr key={c.id} className="hover:bg-zinc-50">
                   <td className="px-4 py-2.5 font-medium text-zinc-800">
-                    {c.student ? `${c.student.firstName} ${c.student.lastName}` : `Élève #${c.studentId}`}
+                    {c.student ? formatStudentFullName(c.student) : `Élève #${c.studentId}`}
                     {c.student?.matricule && <span className="ml-1.5 text-xs text-zinc-400">{c.student.matricule}</span>}
                   </td>
                   <td className="px-4 py-2.5">

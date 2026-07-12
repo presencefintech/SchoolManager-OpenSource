@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import Link from 'next/link'
 import {
   GraduationCap, CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
-  TrendingUp, TrendingDown, ArrowRight, AlertTriangle, Server, Zap, RefreshCw,
+  TrendingUp, TrendingDown, ArrowRight, AlertTriangle, Zap, RefreshCw,
   Radio, Users, BookOpen, ClipboardList, FileBarChart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -14,6 +14,7 @@ import {
 } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useAuth } from '@/providers/auth-provider'
+import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 import { useToast } from '@/providers/toast-provider'
 import {
   WeeklyAttendanceChart,
@@ -21,6 +22,14 @@ import {
   AttendanceDonutChart,
   ClassEnrollmentChart,
 } from '@/components/admin/dashboard/admin-dashboard-charts'
+import { AttendanceReadinessPanel } from '@/components/admin/dashboard/attendance-readiness-panel'
+import { AttendanceSettingsBanner } from '@/components/admin/dashboard/attendance-settings-banner'
+import { ControlDashboardPanel } from '@/components/admin/dashboard/control-dashboard-panel'
+import { AttendanceActivityFeed } from '@/components/admin/dashboard/attendance-activity-feed'
+import { DashboardActionWidgets } from '@/components/admin/dashboard/dashboard-action-widgets'
+import { ActiveQrSessionsPanel } from '@/components/admin/dashboard/active-qr-sessions-panel'
+import { SyncBatchesPanel } from '@/components/admin/dashboard/sync-batches-panel'
+import { AdminPlatformEventsPanel } from '@/components/admin/dashboard/admin-platform-events-panel'
 
 const LIVE_FEED_PARAMS = { limit: 25 } as const
 const ACTIVE_CLASSES_PARAMS = { isActive: true } as const
@@ -44,7 +53,6 @@ const SEVERITY_CFG: Record<string, string> = {
   MEDIUM: 'bg-amber-50 text-amber-700',
   HIGH: 'bg-red-50 text-red-700',
 }
-
 
 const KPI_COLORS = {
   indigo: 'bg-indigo-50 text-indigo-600',
@@ -173,6 +181,7 @@ export function AdminDashboardView() {
   const { user, isLoading: authLoading } = useAuth()
   const toast = useToast()
   const { mutate: triggerWeeklyReport, isPending: weeklyReportPending } = useTriggerWeeklyReport()
+  const { status: realtimeStatus } = useAdminRealtimeStatus()
   const {
     data: stats,
     isPending: statsPending,
@@ -269,9 +278,17 @@ export function AdminDashboardView() {
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-100 ring-1 ring-emerald-400/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live · 15s
+              <span className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold ring-1',
+                realtimeStatus === 'live'
+                  ? 'bg-emerald-500/20 text-emerald-100 ring-emerald-400/30'
+                  : 'bg-white/10 text-emerald-100/70 ring-white/20',
+              )}>
+                <span className={cn(
+                  'w-2 h-2 rounded-full',
+                  realtimeStatus === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400',
+                )} />
+                {realtimeStatus === 'live' ? 'Socket live' : realtimeStatus === 'connecting' ? 'Connexion…' : 'Polling'}
               </span>
               <button
                 type="button"
@@ -378,6 +395,10 @@ export function AdminDashboardView() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-5">
+        <AttendanceReadinessPanel />
+        <AttendanceSettingsBanner />
+        <DashboardActionWidgets />
+
         {statsError && !authLoading && (
           <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-50/90 border border-amber-200/80 text-sm text-amber-900">
             <span>
@@ -435,6 +456,15 @@ export function AdminDashboardView() {
           />
         </div>
 
+        <ControlDashboardPanel />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ActiveQrSessionsPanel />
+          <SyncBatchesPanel />
+        </div>
+
+        <AdminPlatformEventsPanel />
+
         {/* Graphiques */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <Panel title="Tendance de présence" subtitle="7 derniers jours (%)" className="lg:col-span-5">
@@ -451,29 +481,19 @@ export function AdminDashboardView() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <Panel
-            title="Effectifs par classe"
-            subtitle="Top 8"
-            className="lg:col-span-5"
-            action={
-              <Link href="/admin/classes" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                Voir tout →
-              </Link>
-            }
-          >
-            {loadingClasses ? <Sk className="h-[220px]" /> : <ClassEnrollmentChart data={classBarData} />}
-          </Panel>
+          <div className="lg:col-span-4 space-y-4">
+            <AttendanceActivityFeed />
 
-          {/* Live feed */}
-          <div className="lg:col-span-4 rounded-xl border border-slate-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-semibold text-slate-800">Flux en direct</span>
+            {/* Live feed REST (complément polling) */}
+            <div className="rounded-xl border border-slate-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-sm font-semibold text-slate-800">Flux API</span>
+                </div>
+                <span className="text-[10px] text-slate-400">15s</span>
               </div>
-              <span className="text-[10px] text-slate-400">15s</span>
-            </div>
-            <div className="flex-1 overflow-y-auto max-h-80">
+              <div className="flex-1 overflow-y-auto max-h-64">
               {loadingFeed ? (
                 <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Sk key={i} className="h-10" />)}</div>
               ) : feedError ? (
@@ -513,8 +533,22 @@ export function AdminDashboardView() {
               ) : (
                 <div className="px-5 py-12 text-center text-sm text-slate-400">Aucun enregistrement</div>
               )}
+              </div>
             </div>
           </div>
+
+          <Panel
+            title="Effectifs par classe"
+            subtitle="Top 8"
+            className="lg:col-span-5"
+            action={
+              <Link href="/admin/classes" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                Voir tout →
+              </Link>
+            }
+          >
+            {loadingClasses ? <Sk className="h-[220px]" /> : <ClassEnrollmentChart data={classBarData} />}
+          </Panel>
 
           <div className="lg:col-span-3 space-y-4">
             <Panel title="Alertes fraude" subtitle="Actives">
@@ -540,29 +574,6 @@ export function AdminDashboardView() {
               <Link href="/admin/fraud" className="mt-3 flex items-center justify-center gap-1 text-xs text-indigo-600 font-medium">
                 Centre fraude <ArrowRight size={12} />
               </Link>
-            </Panel>
-
-            <Panel title="Santé système">
-              {loadingControl ? (
-                <Sk className="h-24" />
-              ) : control ? (
-                <div className="space-y-3 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Workers</span>
-                    <span className="font-semibold text-slate-800 tabular-nums">{control.workers?.active ?? 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Alertes sécurité</span>
-                    <span className="font-semibold tabular-nums">{control.security?.alerts ?? 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 pt-1 text-slate-600">
-                    <Server size={13} className={control.pipeline?.healthy ? 'text-emerald-500' : 'text-amber-500'} />
-                    Pipeline {control.pipeline?.healthy ? 'OK' : 'dégradé'}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 text-center py-4">Indisponible</p>
-              )}
             </Panel>
           </div>
         </div>

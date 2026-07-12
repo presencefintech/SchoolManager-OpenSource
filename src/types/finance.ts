@@ -244,8 +244,16 @@ export interface ManualPaymentRequest {
 }
 
 export interface ProcessPaymentResponse {
+  payment?: {
+    id: number
+    status?: string
+    amount?: number | string
+    reference?: string
+    method?: string
+  }
   paymentId?: number
   id?: number
+  serverAmount?: number
   status?: string
   amount?: number
   reference?: string

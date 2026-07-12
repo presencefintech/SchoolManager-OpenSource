@@ -1,4 +1,5 @@
 import type { FraudAlert } from '@/types/admin'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 export function parseFraudReasons(raw: unknown): string[] {
   if (Array.isArray(raw)) {
@@ -28,9 +29,14 @@ export function mapPresenceSecurityEventToFraudAlert(row: Record<string, unknown
   const reasons = parseFraudReasons(row.fraudReasons)
   const presence = row.presence as Record<string, unknown> | undefined
   const student = presence?.student as Record<string, unknown> | undefined
-  const firstName = typeof student?.firstName === 'string' ? student.firstName : ''
-  const lastName = typeof student?.lastName === 'string' ? student.lastName : ''
-  const studentName = `${firstName} ${lastName}`.trim() || undefined
+  const studentName = student
+    ? formatStudentFullName({
+        firstName: typeof student.firstName === 'string' ? student.firstName : undefined,
+        lastName: typeof student.lastName === 'string' ? student.lastName : undefined,
+        prenom: typeof student.prenom === 'string' ? student.prenom : undefined,
+        postnom: typeof student.postnom === 'string' ? student.postnom : undefined,
+      }) || undefined
+    : undefined
   const className = (presence?.class as Record<string, unknown> | undefined)?.name
 
   const description =

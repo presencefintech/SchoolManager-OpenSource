@@ -33,17 +33,29 @@ L'inscription suit un modèle **SaaS multi-tenant** : un schéma métier unique,
 
 ## Super-admin — ce que le frontend doit savoir
 
-### Champs minimum (rétrocompatible)
-
-Le formulaire actuel à 6 champs reste valide :
+### Champs minimum (identité RDC)
 
 ```typescript
 {
-  firstName, lastName, birthDate, gender, schoolId, classId
+  lastName,      // Nom
+  postnom,       // Postnom (requis)
+  firstName,     // Prénom (legacy, requis)
+  prenom?,       // Prénom administratif (optionnel — repli backend sur firstName)
+  birthDate, gender, schoolId, classId,
+  overrideReason // min 10 car. (UI super-admin)
 }
 ```
 
-Les champs manquants sont complétés **côté serveur** depuis la config école.
+Les champs manquants (lieu de naissance, nationalité, etc.) sont complétés **côté serveur** depuis la config école.
+
+### Affichage des noms
+
+| Contexte | Helper | Format |
+|----------|--------|--------|
+| UI legacy / listes | `formatStudentFullName` | `firstName lastName` |
+| Admin / PDF / exports | `formatRdcFullName` | `prenom nom postnom` |
+
+Voir `docs/RDC_IDENTITY_INTEGRATION.md` et `src/lib/utils/student-name.util.ts`.
 
 ### Champs recommandés à ajouter progressivement
 
@@ -68,7 +80,15 @@ import type { SuperAdminEnrollmentInput } from '@/docs/api-contracts/types/enrol
 
 ```typescript
 interface EnrollmentCreateResult {
-  student: { id: number; firstName: string; lastName: string; matricule: string; ... }
+  student: {
+    id: number
+    firstName: string
+    lastName: string
+    prenom?: string | null
+    postnom?: string | null
+    matricule: string
+    // ...
+  }
   qrcode: string | null
   message: string
   pdfCard?: string        // base64 PDF

@@ -10,6 +10,7 @@ import { useUpdateAdministrativeProfile } from '@/lib/hooks/use-admin'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { StudentDetail } from '@/types/admin'
+import { formatRdcFullName } from '@/lib/utils/student-name.util'
 
 export function AdminProfileModal({
   open,
@@ -73,7 +74,7 @@ export function AdminProfileModal({
             <FileEdit size={16} className="text-emerald-600" />
             <div>
               <h2 className="text-base font-semibold text-zinc-900">Modifier le profil administratif</h2>
-              <p className="text-xs text-zinc-500">{student.firstName} {student.lastName}</p>
+              <p className="text-xs text-zinc-500">{formatRdcFullName(student)}</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400">

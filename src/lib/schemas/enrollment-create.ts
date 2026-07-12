@@ -8,8 +8,11 @@ const idField = (message: string) =>
   )
 
 export const enrollmentCreateSchema = z.object({
-  firstName: z.string().min(2, 'Prénom requis (min. 2 caractères)').max(50),
   lastName: z.string().min(2, 'Nom requis (min. 2 caractères)').max(50),
+  postnom: z.string().min(2, 'Postnom requis (min. 2 caractères)').max(50),
+  firstName: z.string().min(2, 'Prénom requis (min. 2 caractères)').max(50),
+  /** Prénom administratif RDC — optionnel (repli backend sur firstName) */
+  prenom: z.string().min(2).max(50).optional().or(z.literal('')),
   gender: z.enum(['M', 'F', 'MALE', 'FEMALE'], { required_error: 'Genre requis' }),
   birthDate: z.string().min(1, 'Date de naissance requise'),
   sectionId: idField('Section requise'),
@@ -94,6 +97,8 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
   return {
     firstName: data.firstName.trim(),
     lastName: data.lastName.trim(),
+    postnom: data.postnom.trim(),
+    ...(trimOptional(data.prenom) ? { prenom: trimOptional(data.prenom) } : {}),
     gender: data.gender,
     birthDate: data.birthDate,
     classId: data.classId,
@@ -118,8 +123,10 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
 }
 
 export const ENROLLMENT_CREATE_DEFAULTS: EnrollmentCreateForm = {
-  firstName: '',
   lastName: '',
+  postnom: '',
+  firstName: '',
+  prenom: '',
   gender: 'MALE',
   birthDate: '',
   sectionId: 0,

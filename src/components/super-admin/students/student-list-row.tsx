@@ -3,6 +3,7 @@
 import { memo } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { statusBadgeClass } from '@/components/super-admin/students/student-utils'
 import type { StudentListItem } from '@/types/super-admin'
 
@@ -39,7 +40,7 @@ export const StudentListRow = memo(function StudentListRow({
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-zinc-800 truncate">
-          {student.firstName} {student.lastName}
+          {formatStudentFullName(student)}
         </p>
         <p className="text-xs text-zinc-400 truncate">
           {student.class?.name ?? '—'} · {student.matricule ?? 'Pas de matricule'}

@@ -20,7 +20,8 @@ import {
 import type {
   FinanceKpi, PendingVerificationItem, FinanceFraudAlert, AuditLogEntry, TopPayer,
   ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
-  BulkMoratoriumPayload, FeeStructurePayload, LinkOrphanPayload, AdvancedSearchParams,
+  BulkMoratoriumPayload, FeeStructurePayload, CreateFeeStructurePayload,
+  CreateFeeCategoryPayload, FeeCategoryItem, LinkOrphanPayload, AdvancedSearchParams,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
   MoratoriumRecoveryRate, AdminRefundRequest, ConfirmPaymentProofPayload,
   UpdateMoratoriumPolicyPayload,
@@ -30,6 +31,7 @@ import type {
 import { parseContentDispositionFilename, isExportContentType, readBlobErrorMessage } from '@/lib/download-blob'
 import { asFeeStructureList, type FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
+import { formatRdcFullName, type StudentIdentityFields } from '@/lib/utils/student-name.util'
 
 function asItemList<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[]
@@ -42,7 +44,7 @@ function asItemList<T>(data: unknown): T[] {
 function normalizeMobilePending(row: Record<string, unknown>): MobilePendingItem {
   const student = row.student as Record<string, unknown> | undefined
   const studentName = student
-    ? [student.firstName, student.lastName].filter(Boolean).join(' ').trim() || '—'
+    ? formatRdcFullName(student as StudentIdentityFields) || '—'
     : (row.studentName as string | undefined) ?? '—'
 
   return {
@@ -279,17 +281,33 @@ export const financeApi = {
   applyDiscount: (payload: { invoiceId: number; discountAmount: number; reason?: string }) =>
     apiClient.post('/admin/finance/invoices/apply-discount', payload).then(r => r.data.data),
 
-  listFeeStructures: (params?: { classId?: number; sessionId?: number }) =>
+  listFeeStructures: (params?: { classId?: number; sessionId?: number; isActive?: boolean }) =>
     apiClient
       .get('/admin/finance/fee-structures', { params })
       .then((r) => asFeeStructureList(r.data.data) as FeeStructureListItem[]),
 
+  listFeeCategories: (params?: { isActive?: boolean; billingPeriod?: string }) =>
+    apiClient
+      .get('/admin/finance/fee-categories', { params: { limit: 100, ...params } })
+      .then((r) => asItemList<FeeCategoryItem>(r.data.data)),
+
+  createFeeCategory: (payload: CreateFeeCategoryPayload) =>
+    apiClient.post('/admin/finance/fee-categories', payload).then((r) => r.data.data as FeeCategoryItem),
+
+  createFeeStructure: (payload: CreateFeeStructurePayload) =>
+    apiClient.post('/admin/finance/fee-structures', payload).then((r) => r.data.data),
+
+  softDeleteFeeStructure: (feeId: number) =>
+    apiClient.delete(`/admin/finance/fee-structures/${feeId}`).then((r) => r.data),
+
+  /** @deprecated Utiliser createFeeStructure */
   setupFeeStructure: (payload: FeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structure', payload).then(r => r.data.data),
 
   bulkApplyFees: (feeStructureId: number, payload: { studentIds?: number[] }) =>
     apiClient.post(`/admin/finance/fee-structure/${feeStructureId}/apply-bulk`, payload).then(r => r.data.data),
 
+  /** @deprecated Utiliser softDeleteFeeStructure */
   deleteFeeStructure: (feeId: number) =>
     apiClient.delete(`/admin/finance/fee-structure/${feeId}`).then(r => r.data),
 
@@ -420,4 +438,53 @@ export const financeApi = {
     apiClient
       .post('/admin/finance/seal-batches', payload)
       .then((r) => normalizeCreateSealBatchResult(r.data.data)),
+
+  getAggregateReport: (params: {
+    period?: string
+    anchor?: string
+    persist?: boolean
+    forceRecompute?: boolean
+  }) =>
+    apiClient
+      .get('/admin/finance/reports/aggregate', {
+        params: {
+          ...params,
+          persist: params.persist ? 'true' : undefined,
+          forceRecompute: params.forceRecompute ? 'true' : undefined,
+        },
+      })
+      .then((r) => r.data.data as import('@/types/finance-reporting').FinanceAggregateReport),
+
+  getCurrencyConfig: () =>
+    apiClient
+      .get('/admin/finance/currency-config')
+      .then((r) => r.data.data as import('@/types/finance-reporting').SchoolCurrencyConfig),
+
+  updateCurrencyConfig: (payload: {
+    displayCurrency?: 'USD' | 'CDF'
+    exchangeToleranceBps?: number
+  }) =>
+    apiClient
+      .patch('/admin/finance/currency-config', payload)
+      .then((r) => r.data.data as import('@/types/finance-reporting').SchoolCurrencyConfig),
+
+  listExchangeRates: (limit = 50) =>
+    apiClient
+      .get('/admin/finance/exchange-rates', { params: { limit } })
+      .then((r) => (r.data.data as { items: import('@/types/finance-reporting').ExchangeRateRow[] }).items),
+
+  createExchangeRate: (payload: {
+    rate: number
+    toCurrency?: string
+    notes?: string
+    syncLegacyField?: boolean
+  }) =>
+    apiClient
+      .post('/admin/finance/exchange-rates', payload)
+      .then((r) => r.data.data),
+
+  exportAiDataset: (params: { from: string; to: string; granularity?: string }) =>
+    apiClient
+      .get('/admin/finance/reports/ai-export', { params })
+      .then((r) => r.data.data),
 }

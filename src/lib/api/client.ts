@@ -86,6 +86,7 @@ export function getApiErrorMessage(error: unknown): string {
     const data = error.response?.data as {
       message?: string | string[]
       code?: string
+      error?: string
       errors?: { field?: string; message?: string }[]
     } | undefined
     if (data?.errors?.length) {
@@ -96,11 +97,17 @@ export function getApiErrorMessage(error: unknown): string {
       if (fieldErrors) return fieldErrors
     }
     const msg = data?.message
-    const code = data?.code
+    const code = data?.code ?? data?.error
     if (Array.isArray(msg)) return msg.join(' · ')
     const resolved = resolveApiErrorMessage(data)
     if (resolved !== 'Une erreur inattendue est survenue') return resolved
     if (typeof msg === 'string' && msg) return msg
+    if (code === 'FORBIDDEN_ROLE') {
+      return 'Accès refusé — seuls les administrateurs peuvent modifier l\'identité de l\'établissement.'
+    }
+    if (code === 'SCHOOL_CONTEXT_MISSING') {
+      return 'École non identifiée. Déconnectez-vous puis reconnectez-vous.'
+    }
     if (error.response?.status === 409 && !code) {
       return 'Conflit : cette ressource existe déjà.'
     }

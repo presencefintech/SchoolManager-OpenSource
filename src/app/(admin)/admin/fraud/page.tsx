@@ -5,6 +5,7 @@ import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
 import { useFraudAlertsTop, useCheckFraud } from '@/lib/hooks/use-admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -195,7 +196,7 @@ export default function FraudPage() {
                         {(alert.studentId || alert.student) && (
                           <span className="flex items-center gap-1 text-[10px] text-zinc-400">
                             <User size={10} />
-                            {alert.student ? `${alert.student.firstName} ${alert.student.lastName}` : `#${alert.studentId}`}
+                            {alert.student ? formatStudentFullName(alert.student) : `#${alert.studentId}`}
                           </span>
                         )}
                         {alert.createdAt && (

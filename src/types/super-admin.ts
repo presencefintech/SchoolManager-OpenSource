@@ -539,6 +539,8 @@ export interface StudentStats {
 export interface SuperAdminCreateStudentInput {
   firstName: string
   lastName: string
+  postnom: string
+  prenom?: string
   schoolId: number
   classId: number
   birthDate: string
@@ -556,6 +558,8 @@ export interface EnrollmentCreateStudent {
   id: number
   firstName: string
   lastName: string
+  prenom?: string | null
+  postnom?: string | null
   matricule?: string | null
   schoolId?: number
   classId?: number | null
@@ -580,6 +584,8 @@ export interface StudentProfile {
   id: number
   firstName: string
   lastName: string
+  prenom?: string | null
+  postnom?: string | null
   matricule: string | null
   status: string
   photoUrl: string | null

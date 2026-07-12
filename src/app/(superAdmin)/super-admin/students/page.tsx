@@ -17,6 +17,7 @@ import { securityApi } from '@/lib/superAdmin/api/security.api'
 import { StudentListRow } from '@/components/super-admin/students/student-list-row'
 import { ListRowSkeleton, StatGridSkeleton } from '@/components/ui/list-skeleton'
 import { fmtCurrency } from '@/components/super-admin/students/student-utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 const StudentDetailPanel = dynamic(
   () => import('@/components/super-admin/students/student-detail-panel').then((m) => m.StudentDetailPanel),
@@ -234,7 +235,7 @@ function SchoolView({
                     <span className="text-xs font-semibold text-rose-600">{d.firstName[0]}{d.lastName[0]}</span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-medium text-zinc-800 truncate">{d.firstName} {d.lastName}</p>
+                    <p className="text-sm font-medium text-zinc-800 truncate">{formatStudentFullName(d)}</p>
                     <p className="text-xs text-zinc-400 truncate">{d.class?.name ?? '—'} · {d.matricule ?? 'Pas de matricule'}</p>
                   </div>
                   <span className="text-sm font-semibold text-rose-600 tabular-nums">{fmtCurrency(Number(d.feesBalance))}</span>

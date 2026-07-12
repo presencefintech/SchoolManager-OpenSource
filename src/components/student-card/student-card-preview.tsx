@@ -7,6 +7,7 @@ import { CARD, mm } from '@/lib/student-card/card-layout'
 import { fitFontSize } from '@/lib/student-card/fit-font'
 import { STATUS_COLORS } from '@/lib/student-card/card-dimensions'
 import { formatGenderLabel, formatValidityLabel } from '@/lib/student-card/utils'
+import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
 import { cn } from '@/lib/utils'
 import { CardText } from './card-text'
 
@@ -74,11 +75,13 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
     const schoolInitial = data.schoolName.trim()[0]?.toUpperCase() ?? 'E'
     const matricule = data.matricule ?? `ID-${String(data.studentId).padStart(6, '0')}`
 
+    const identity = formatStudentIdentityView(data)
     const typography = useMemo(
       () => ({
         schoolName: fitFontSize(data.schoolName, CARD.font.schoolName, 28, 5.5),
-        lastName: fitFontSize(data.lastName, CARD.font.lastName, 18, 6.5),
-        firstName: fitFontSize(data.firstName, CARD.font.firstName, 16, 6),
+        nom: fitFontSize(identity.nom, CARD.font.lastName, 18, 6.5),
+        postnom: fitFontSize(identity.postnom ?? '', CARD.font.lastName, 16, 6),
+        prenom: fitFontSize(identity.prenom, CARD.font.firstName, 16, 6),
         detailValue: fitFontSize(
           [classLine, data.nationality, data.placeOfBirth].filter(Boolean).join(' '),
           CARD.font.detailValue,
@@ -86,7 +89,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
           4.5,
         ),
       }),
-      [data.schoolName, data.lastName, data.firstName, classLine, data.nationality, data.placeOfBirth],
+      [data.schoolName, identity.nom, identity.postnom, identity.prenom, classLine, data.nationality, data.placeOfBirth],
     )
 
     const originLine = [data.nationality?.trim(), data.placeOfBirth?.trim()]
@@ -282,16 +285,31 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             }}
           >
             <CardText
-              fontSize={typography.lastName}
-              title={data.lastName}
+              fontSize={typography.nom}
+              title={identity.nom}
               style={{
                 fontWeight: 700,
                 textTransform: 'uppercase',
                 color: '#18181b',
               }}
             >
-              {data.lastName}
+              {identity.nom}
             </CardText>
+
+            {identity.postnom ? (
+              <CardText
+                fontSize={typography.postnom}
+                title={identity.postnom}
+                style={{
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  color: '#27272a',
+                  marginTop: mm(0.2),
+                }}
+              >
+                {identity.postnom}
+              </CardText>
+            ) : null}
 
             <div
               style={{
@@ -303,11 +321,11 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               }}
             >
               <CardText
-                fontSize={typography.firstName}
-                title={data.firstName}
+                fontSize={typography.prenom}
+                title={identity.prenom}
                 style={{ fontWeight: 700, color: '#52525b', flex: 1, minWidth: 0 }}
               >
-                {data.firstName}
+                {identity.prenom}
               </CardText>
               {genderLabel ? (
                 <span

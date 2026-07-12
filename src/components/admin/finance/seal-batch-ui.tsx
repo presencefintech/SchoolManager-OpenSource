@@ -5,6 +5,7 @@ import { Check, Copy, Download, Fingerprint, Lock, Plus, Search, ShieldCheck, X 
 import { cn } from '@/lib/utils'
 import { formatMoney } from '@/lib/finance/currency'
 import { formatPaymentMethodLabel } from '@/lib/admin/finance-dashboard.utils'
+import { formatRdcFullName, type StudentIdentityFields } from '@/lib/utils/student-name.util'
 import { useFinancialSealBatchDetail, useVerifySealBatch } from '@/lib/hooks/use-admin'
 import {
   RefundDetailBlock,
@@ -246,7 +247,7 @@ function normalizeSealableRow(raw: unknown): SealablePaymentRow | null {
   const row = raw as Record<string, unknown>
   const student = row.student as Record<string, unknown> | undefined
   const studentName = student
-    ? [student.firstName, student.lastName].filter(Boolean).join(' ').trim() || '—'
+    ? formatRdcFullName(student as StudentIdentityFields) || '—'
     : String(row.studentName ?? '—')
 
   return {

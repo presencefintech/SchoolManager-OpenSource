@@ -12,6 +12,7 @@ import {
 } from '@/lib/presence/presence-reason-codes'
 import { PresenceReasonFields } from '@/components/admin/presences/PresenceReasonFields'
 import { AdminModal } from '@/components/admin/presences/AdminModal'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 
@@ -158,7 +159,7 @@ export function ManualRecordModal({ onClose }: { onClose: () => void }) {
               </option>
               {students.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {`${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || `Élève #${s.id}`}
+                  {formatStudentFullName(s) || `Élève #${s.id}`}
                   {s.matricule ? ` (${s.matricule})` : ''}
                 </option>
               ))}

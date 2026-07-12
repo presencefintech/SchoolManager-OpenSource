@@ -8,6 +8,7 @@ import {
   BarChart3, ShieldAlert, Eye, MessageSquare, Loader2, Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
@@ -423,7 +424,7 @@ export default function MonitoringPage() {
                           <td className="px-4 py-2.5 font-mono text-zinc-500">{ev.id}</td>
                           <td className="px-4 py-2.5 text-zinc-700">
                             {ev.presence
-                              ? `${ev.presence.student.firstName} ${ev.presence.student.lastName}`
+                              ? formatStudentFullName(ev.presence.student)
                               : '—'
                             }
                           </td>

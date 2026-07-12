@@ -12,6 +12,7 @@ import {
 } from '@/lib/hooks/use-admin'
 import type { FinanceFraudAlert, AuditLogEntry } from '@/types/admin'
 import { formatMoney } from '@/lib/finance/currency'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 
@@ -271,7 +272,7 @@ export default function AuditPage() {
               <div key={detail.id} className="px-5 py-3.5 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-zinc-900">
-                    {[detail.firstName, detail.lastName].filter(Boolean).join(' ') || `Élève #${detail.id}`}
+                    {formatStudentFullName(detail) || `Élève #${detail.id}`}
                   </p>
                   <p className="text-xs text-zinc-400">
                     Frais {formatMoney(Number(detail.totalFees ?? 0))} · payé {formatMoney(Number(detail.feesPaid ?? 0))}

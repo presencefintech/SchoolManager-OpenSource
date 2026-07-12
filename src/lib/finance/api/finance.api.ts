@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api/client'
 import { asFeeStructureList } from '@/lib/finance/fee-structure.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
-import type { StudentFeeScheduleDto, StudentsFinancialListResponse, StudentsFinancialPrintReport } from '@/types/finance'
+import type { StudentFeeScheduleDto, StudentsFinancialListResponse, StudentsFinancialPrintReport, ProcessPaymentResponse } from '@/types/finance'
 
 export const financeRoleApi = {
   // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -49,7 +49,11 @@ export const financeRoleApi = {
       amount: number
     }>
   }) =>
-    apiClient.post('/finance/payments/process', payload).then(r => r.data.data),
+    apiClient.post('/finance/payments/process', payload).then((r) => {
+      const data = r.data.data as ProcessPaymentResponse
+      const paymentId = data.payment?.id ?? data.paymentId ?? data.id
+      return { ...data, paymentId, id: paymentId }
+    }),
 
   verifyPaymentStep: (payload: { verificationId: number; action: 'FINANCE' | 'REJECT'; notes?: string }) =>
     apiClient.post(`/finance/payments/${payload.verificationId}/verify-step`, {
@@ -64,8 +68,14 @@ export const financeRoleApi = {
     apiClient.get('/finance/payments/pending').then(r => r.data.data),
 
   // ── Reçus ──────────────────────────────────────────────────────────────────
-  downloadReceipt: async (paymentId: number): Promise<Blob> => {
-    const res = await apiClient.get(`/finance/payments/receipts/${paymentId}/download`, { responseType: 'blob' })
+  downloadReceipt: async (
+    paymentId: number,
+    format: 'A4' | 'Thermal' = 'Thermal',
+  ): Promise<Blob> => {
+    const res = await apiClient.get(`/finance/payments/receipts/${paymentId}/download`, {
+      params: { format },
+      responseType: 'blob',
+    })
     return res.data as Blob
   },
 

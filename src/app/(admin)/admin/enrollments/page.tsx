@@ -9,6 +9,7 @@ import {
   PauseCircle, RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   useEnrollments, useEnrollmentDetail, useClasses,
   useApproveEnrollment, useFinalizeEnrollment, useToggleLock, useSyncBalance,
@@ -63,7 +64,7 @@ function PromoteModal({ enrollment, onClose }: { enrollment: EnrollmentListItem;
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Promouvoir l'élève</h2>
-        <p className="text-sm text-zinc-500 mb-5">{enrollment.firstName} {enrollment.lastName}</p>
+        <p className="text-sm text-zinc-500 mb-5">{formatStudentFullName(enrollment)}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Classe cible</label>
@@ -118,7 +119,7 @@ function UpdateEnrollmentModal({ enrollment, onClose }: { enrollment: Enrollment
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Modifier l'inscription</h2>
-        <p className="text-sm text-zinc-500 mb-5">{enrollment.firstName} {enrollment.lastName}</p>
+        <p className="text-sm text-zinc-500 mb-5">{formatStudentFullName(enrollment)}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Classe</label>
@@ -179,7 +180,7 @@ function TransferEnrollmentModal({ enrollment, onClose }: { enrollment: Enrollme
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Transférer vers une autre école</h2>
-        <p className="text-sm text-zinc-500 mb-5">{enrollment.firstName} {enrollment.lastName}</p>
+        <p className="text-sm text-zinc-500 mb-5">{formatStudentFullName(enrollment)}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Identifiant école cible</label>
@@ -353,9 +354,9 @@ export default function EnrollmentsPage() {
 
   const selectedStudent = enrollments.find((e) => e.id === selectedId)
   const drawerStudentName = selectedStudent
-    ? `${selectedStudent.firstName} ${selectedStudent.lastName}`
+    ? formatRdcFullName(selectedStudent)
     : detail
-      ? `${detail.firstName} ${detail.lastName}`
+      ? formatRdcFullName(detail)
       : 'Élève'
 
   function openDetail(en: EnrollmentListItem) {
@@ -454,7 +455,7 @@ export default function EnrollmentsPage() {
                           onClick={() => openDetail(en)}
                         >
                           <td className="px-5 py-3">
-                            <p className="text-sm font-medium text-zinc-900">{en.firstName} {en.lastName}</p>
+                            <p className="text-sm font-medium text-zinc-900">{formatStudentFullName(en)}</p>
                             {en.matricule && <p className="text-xs text-zinc-400 font-mono mt-0.5">{en.matricule}</p>}
                             <StudentFinanceBadges
                               className="mt-1"
@@ -529,7 +530,7 @@ export default function EnrollmentsPage() {
                                     label: 'Modifier solde',
                                     onClick: () => {
                                       setSelectedId(en.id)
-                                      setSyncConfirm({ studentId: en.id, name: `${en.firstName} ${en.lastName}` })
+                                      setSyncConfirm({ studentId: en.id, name: formatStudentFullName(en) })
                                     },
                                   },
                                   {
@@ -620,7 +621,7 @@ export default function EnrollmentsPage() {
                 <div>
                   <h2 className="text-base font-semibold text-zinc-900">Détail inscription</h2>
                   {detail && (
-                    <p className="text-xs text-zinc-500">{detail.firstName} {detail.lastName} · {detail.matricule ?? '—'}</p>
+                    <p className="text-xs text-zinc-500">{formatRdcFullName(detail)} · {detail.matricule ?? '—'}</p>
                   )}
                 </div>
                 <button onClick={() => setSelectedId(null)} className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400">
@@ -726,7 +727,7 @@ export default function EnrollmentsPage() {
         description={lockConfirm?.isLocked
           ? 'L\'élève pourra à nouveau être modifié et pointer sa présence.'
           : 'Les modifications du dossier seront bloquées jusqu\'au déverrouillage.'}
-        impact={lockConfirm ? [`Élève : ${lockConfirm.firstName} ${lockConfirm.lastName}`] : []}
+        impact={lockConfirm ? [`Élève : ${formatRdcFullName(lockConfirm)}`] : []}
         confirmLabel={lockConfirm?.isLocked ? 'Déverrouiller' : 'Verrouiller'}
         variant={lockConfirm?.isLocked ? 'default' : 'danger'}
         loading={toggleLockMutation.isPending}
@@ -749,7 +750,7 @@ export default function EnrollmentsPage() {
         open={purgeConfirm != null}
         title="Purger le dossier ?"
         description="Cette action supprime définitivement toutes les données de l'élève (RGPD). Elle est irréversible."
-        impact={purgeConfirm ? [`Élève : ${purgeConfirm.firstName} ${purgeConfirm.lastName}`] : []}
+        impact={purgeConfirm ? [`Élève : ${formatRdcFullName(purgeConfirm)}`] : []}
         confirmLabel="Purger définitivement"
         variant="danger"
         loading={purgeMutation.isPending}

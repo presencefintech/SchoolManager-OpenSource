@@ -4,6 +4,10 @@ import {
   isPayableFeeLine,
   lineRemainingAmount,
   buildPaymentFeeLines,
+  getSelectableFeeLines,
+  buildContiguousSelectionThrough,
+  toggleContiguousFeeSelection,
+  selectAllRemainingMonths,
 } from '@/lib/finance/fee-schedule.utils'
 import type { FeeScheduleLineDto } from '@/types/finance'
 
@@ -36,6 +40,50 @@ describe('fee-schedule.utils', () => {
     ]
     expect(filterPayableFeeLines(lines)).toHaveLength(2)
     expect(isPayableFeeLine(line({ status: 'PARTIALLY_PAID' }))).toBe(true)
+  })
+
+  it('includes upcoming months in selectable lines after first unpaid', () => {
+    const lines = [
+      line({ monthYear: '2026-01', status: 'PAID' }),
+      line({ monthYear: '2026-02', status: 'DUE' }),
+      line({ monthYear: '2026-03', status: 'UPCOMING' }),
+      line({ monthYear: '2026-04', status: 'UPCOMING' }),
+    ]
+    const selectable = getSelectableFeeLines(lines)
+    expect(selectable.map((l) => l.monthYear)).toEqual(['2026-02', '2026-03', '2026-04'])
+  })
+
+  it('builds contiguous selection through target month', () => {
+    const lines = [
+      line({ monthYear: '2026-01', status: 'OVERDUE' }),
+      line({ monthYear: '2026-02', status: 'DUE' }),
+      line({ monthYear: '2026-03', status: 'UPCOMING' }),
+    ]
+    const selection = buildContiguousSelectionThrough(lines[2], lines)
+    expect(selection.map((s) => s.line.monthYear)).toEqual(['2026-01', '2026-02', '2026-03'])
+  })
+
+  it('toggle selects contiguous block and prevents skipping', () => {
+    const lines = [
+      line({ monthYear: '2026-01', status: 'OVERDUE' }),
+      line({ monthYear: '2026-02', status: 'DUE' }),
+      line({ monthYear: '2026-03', status: 'UPCOMING' }),
+    ]
+    const afterToggle = toggleContiguousFeeSelection(lines[2], [], lines)
+    expect(afterToggle.map((s) => s.line.monthYear)).toEqual(['2026-01', '2026-02', '2026-03'])
+
+    const uncheckFeb = toggleContiguousFeeSelection(lines[1], afterToggle, lines)
+    expect(uncheckFeb.map((s) => s.line.monthYear)).toEqual(['2026-01'])
+  })
+
+  it('selectAllRemainingMonths selects every open month', () => {
+    const lines = [
+      line({ monthYear: '2026-01', status: 'PAID' }),
+      line({ monthYear: '2026-02', status: 'DUE' }),
+      line({ monthYear: '2026-03', status: 'UPCOMING' }),
+    ]
+    const all = selectAllRemainingMonths(1, [], lines)
+    expect(all.map((s) => s.line.monthYear)).toEqual(['2026-02', '2026-03'])
   })
 
   it('uses remaining amount when available', () => {

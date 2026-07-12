@@ -13,8 +13,10 @@ const StudentMatriculeSchema = z.string().min(10, 'Matricule invalide (format)')
 const genderInputSchema = z.enum(['M', 'F', 'MALE', 'FEMALE']);
 
 const baseStudentSchema = {
-  firstName: z.string().min(2).max(50),
   lastName: z.string().min(2).max(50),
+  postnom: z.string().min(2).max(50),
+  firstName: z.string().min(2).max(50),
+  prenom: z.string().min(2).max(50).optional(),
   gender: genderInputSchema,
   dateOfBirth: z.coerce
     .date({ errorMap: () => ({ message: 'Date de naissance invalide' }) })
