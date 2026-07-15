@@ -184,20 +184,26 @@ function QuickLink({ href, icon: Icon, label, count, gradient, vibrant }: {
 
 export default function FinanceDashboardPage() {
   const [dashboardPeriod, setDashboardPeriod] = useState<'day' | 'month'>('month')
-  const { data: kpis, isLoading } = useFinanceDashboard()
-  const { data: topPayers = [] } = useFinanceTopPayers()
-  const { data: insights } = useFinanceInsights()
-  const { data: endOfDay } = useFinanceEndOfDay()
-  const { data: paymentMethodsBreakdown } = useFinancePaymentMethods(dashboardPeriod)
-  const { data: feeTypesBreakdown } = useFinanceFeeTypes(dashboardPeriod)
-  const { data: efficiencyLevels = [] } = useFinanceEfficiency()
-  const { data: comparativeLevels = [] } = useFinanceComparativeDashboard()
+  const { data: kpis, isLoading, isSuccess: coreReady } = useFinanceDashboard()
+  /** Vague 2 — après le KPI principal pour éviter 13 requêtes simultanées au mount */
+  const secondary = { enabled: coreReady }
+  const { data: topPayers = [] } = useFinanceTopPayers(secondary)
+  const { data: insights } = useFinanceInsights(secondary)
+  const { data: endOfDay } = useFinanceEndOfDay(secondary)
+  const { data: paymentMethodsBreakdown } = useFinancePaymentMethods(dashboardPeriod, secondary)
+  const { data: feeTypesBreakdown } = useFinanceFeeTypes(dashboardPeriod, secondary)
+  const { data: efficiencyLevels = [], isFetched: efficiencyFetched } = useFinanceEfficiency(secondary)
+  const { data: comparativeLevels = [] } = useFinanceComparativeDashboard({
+    enabled: coreReady && efficiencyFetched && efficiencyLevels.length === 0,
+  })
   const collectionLevels = efficiencyLevels.length > 0 ? efficiencyLevels : comparativeLevels
-  const { data: pending = [] } = usePendingVerifications()
-  const { data: alerts = [] } = useFinanceFraudAlerts()
-  const { data: paymentProfile } = usePaymentProfile()
-  const { data: detailedReport } = useFinanceDetailedReport()
-  const { data: healthCheck } = useFinanceHealthCheck()
+  const { data: pending = [] } = usePendingVerifications(secondary)
+  const { data: alerts = [] } = useFinanceFraudAlerts(secondary)
+  const { data: paymentProfile } = usePaymentProfile(secondary)
+  /** Vague 3 — widgets bas de page */
+  const tertiary = { enabled: coreReady && efficiencyFetched }
+  const { data: detailedReport } = useFinanceDetailedReport(tertiary)
+  const { data: healthCheck } = useFinanceHealthCheck(tertiary)
 
   const pendingCount = kpis?.pendingPayments ?? (pending as unknown[]).length
   const fraudCount = kpis?.fraudAlerts ?? (alerts as unknown[]).length

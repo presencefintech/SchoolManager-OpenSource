@@ -919,30 +919,33 @@ export function useFinanceDashboard() {
   })
 }
 
-export function useFinanceTopPayers() {
+export function useFinanceTopPayers(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'top-payers'],
     queryFn: financeApi.getTopPayers,
     staleTime: 300_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceHealthCheck() {
+export function useFinanceHealthCheck(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'health'],
     queryFn: financeApi.getHealthCheck,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceFraudAlerts() {
+export function useFinanceFraudAlerts(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fraud-alerts'],
     queryFn: financeApi.getFraudAlerts,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -955,12 +958,13 @@ export function useFinanceAuditLogs(params?: { page?: number; limit?: number }) 
   })
 }
 
-export function usePendingVerifications() {
+export function usePendingVerifications(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'pending'],
     queryFn: financeApi.getPendingVerifications,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -1203,12 +1207,13 @@ export function useSyncBalance() {
   })
 }
 
-export function usePaymentProfile() {
+export function usePaymentProfile(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'payment-profile'],
     queryFn: () => financeApi.getPaymentProfile(),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -1441,12 +1446,13 @@ export function useCreateSealBatch() {
 
 // ── Finance — hooks manquants ──────────────────────────────────────
 
-export function useFinanceDetailedReport() {
+export function useFinanceDetailedReport(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'detailed-report'],
     queryFn: financeApi.getDetailedReport,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -1508,57 +1514,63 @@ export function useUpdateCurrencyConfig() {
   })
 }
 
-export function useFinanceInsights() {
+export function useFinanceInsights(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'insights'],
     queryFn: financeApi.getInsights,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceComparativeDashboard() {
+export function useFinanceComparativeDashboard(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'comparative'],
     queryFn: financeApi.getComparativeDashboard,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceEfficiency() {
+export function useFinanceEfficiency(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'efficiency'],
     queryFn: financeApi.getEfficiency,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceEndOfDay() {
+export function useFinanceEndOfDay(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'end-of-day'],
     queryFn: financeApi.getEndOfDay,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinancePaymentMethods(period: 'day' | 'month' = 'month') {
+export function useFinancePaymentMethods(period: 'day' | 'month' = 'month', opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'payment-methods', period],
     queryFn: () => financeApi.getPaymentMethods(period),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceFeeTypes(period: 'day' | 'month' = 'month') {
+export function useFinanceFeeTypes(period: 'day' | 'month' = 'month', opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fee-types', period],
     queryFn: () => financeApi.getFeeTypes(period),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 

@@ -106,6 +106,8 @@ export function AdminNav() {
     } else if (href === '/admin/finance') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'dashboard'], queryFn: financeApi.getStrategicDashboard, staleTime: 60_000 })
       queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'pending'], queryFn: financeApi.getPendingVerifications, staleTime: 30_000 })
+      queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'insights'], queryFn: financeApi.getInsights, staleTime: 120_000 })
+      queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'end-of-day'], queryFn: financeApi.getEndOfDay, staleTime: 60_000 })
     } else if (href === '/admin/invitations') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'invitations', 'status'], queryFn: invitationsApi.getStatus, staleTime: 60_000 })
     } else if (href === '/admin/settings') {

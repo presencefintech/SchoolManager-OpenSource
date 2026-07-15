@@ -5,11 +5,12 @@ import type { CashSession } from '@/types/finance'
 
 // ── Dashboard & Analytics ──────────────────────────────────────────────────
 
-export function useExecutiveDashboard() {
+export function useExecutiveDashboard(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['finance', 'dashboard'],
     queryFn: financeRoleApi.getExecutiveDashboard,
     staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -31,30 +32,33 @@ export function useCollectionAnalytics(sessionId?: number) {
   })
 }
 
-export function useDailyCashReport() {
+export function useDailyCashReport(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['finance', 'daily-cash'],
     queryFn: financeRoleApi.getDailyCashReport,
     staleTime: 30_000,
     refetchInterval: 120_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceIntegrity() {
+export function useFinanceIntegrity(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['finance', 'integrity'],
     queryFn: financeRoleApi.checkIntegrity,
     staleTime: 300_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
 /** KYC paiements en ligne parent — GET /admin/finance/payment-profile (lecture FINANCE). */
-export function useFinancePaymentProfile() {
+export function useFinancePaymentProfile(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['finance', 'payment-profile'],
     queryFn: financeRoleApi.getPaymentProfile,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -206,11 +210,12 @@ export function useDownloadReceipt() {
 
 // ── Débiteurs & Risques ────────────────────────────────────────────────────
 
-export function useDebtors(minDebt?: number) {
+export function useDebtors(minDebt?: number, opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['finance', 'debtors', minDebt],
     queryFn: () => financeRoleApi.getDebtors(minDebt),
     staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
