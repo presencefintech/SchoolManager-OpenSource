@@ -7,6 +7,7 @@ import type {
 } from '@/types/student-card'
 import { QR_MAX_PAYLOAD_LENGTH, validateQrPayload } from './validate-qr'
 import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
+import { serializeStudentCardQrPayload } from './build-qr-payload'
 
 const STATUS_STRIPE: Record<StudentCardFinancialStatus, string> = {
   current: '#059669',
@@ -56,6 +57,7 @@ export function buildStudentCardData(input: {
   section?: string | null
   option?: string | null
   academicYear?: string | null
+  dateOfBirth?: string | null
   placeOfBirth?: string | null
   nationality?: string | null
   gender?: StudentCardGender | null
@@ -81,6 +83,7 @@ export function buildStudentCardData(input: {
     schoolCity: input.schoolCity ?? null,
     schoolLogoUrl: input.schoolLogoUrl ?? null,
     academicYear: input.academicYear ?? null,
+    dateOfBirth: input.dateOfBirth?.trim() || null,
     placeOfBirth: input.placeOfBirth?.trim() || null,
     nationality: input.nationality?.trim() || null,
     gender: input.gender ?? null,
@@ -93,7 +96,7 @@ export function buildStudentCardData(input: {
 }
 
 export function buildStudentQrPayload(studentId: number, matricule?: string | null): string {
-  return JSON.stringify({ studentId, matricule: matricule ?? undefined })
+  return serializeStudentCardQrPayload(studentId, matricule)
 }
 
 /**
@@ -146,6 +149,9 @@ export function mapDashboardToStudentCard(
     section: context?.section ?? null,
     option: context?.option ?? null,
     academicYear: context?.academicYear ?? sessionYear,
+    dateOfBirth: profile.birthDate
+      ? new Date(profile.birthDate).toLocaleDateString('fr-FR')
+      : null,
     gender,
     feesBalance: stats.remainingDebt,
     isUpToDate: stats.isUpToDate,

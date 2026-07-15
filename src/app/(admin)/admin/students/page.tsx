@@ -265,7 +265,7 @@ export default function StudentsPage() {
                                     label: 'Imprimer carte',
                                     onClick: () => {
                                       router.push(`/admin/students/${s.id}`)
-                                      toast.info('Carte élève', 'Ouvrez la fiche et utilisez Imprimer (Ctrl+P) pour la carte.')
+                                      toast.info('Carte élève', 'La carte RDC est disponible sur la fiche — bouton Imprimer.')
                                     },
                                   },
                                 ]}

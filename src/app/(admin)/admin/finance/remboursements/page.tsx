@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle2, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react'
-import { useAdminRefundRequests, useReviewRefundRequest, useAdminStudentPaymentsDetailed } from '@/lib/hooks/use-admin'
+import { useAdminRefundRequests, useReviewRefundRequest, useAdminStudentPaymentsDetailed, useAdminRefundRequest } from '@/lib/hooks/use-admin'
 import { useFinanceStudentSearch, useStudentFinanceProfile, useFinanceClassDetail } from '@/lib/hooks/use-finance'
 import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -46,6 +46,7 @@ export default function AdminRefundsPage() {
     status: statusFilter || undefined,
     limit: 50,
   })
+  const { data: selectedDetail } = useAdminRefundRequest(selectedId)
   const review = useReviewRefundRequest()
 
   const items = (data?.items ?? []) as AdminRefundRequest[]
@@ -67,10 +68,11 @@ export default function AdminRefundsPage() {
     })
   }, [items, search])
 
-  const selected =
+  const selectedFromList =
     filtered.find((r) => r.id === selectedId)
     ?? items.find((r) => r.id === selectedId)
     ?? null
+  const selected = selectedDetail ?? selectedFromList
   const selectedLookupKey = selected?.payment?.matricule ?? selected?.payment?.studentName ?? ''
   const { data: selectedHits = [] } = useFinanceStudentSearch(selectedLookupKey)
   const matchedStudent = selectedHits.find((s) =>

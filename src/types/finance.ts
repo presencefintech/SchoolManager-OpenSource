@@ -218,6 +218,20 @@ export interface StudentFeeScheduleDto {
   summary: FeeScheduleSummaryDto
 }
 
+/** GET /finance/students/:id/fee-periods?feeStructureId= */
+export interface StudentFeePeriodStatusDto {
+  feeStructureId: number
+  billingPeriod: FeeBillingPeriod
+  categoryName: string
+  sessionLabel: string
+  paidMonths: MonthYear[]
+  unpaidMonths: MonthYear[]
+  nextDueMonth: MonthYear | null
+  allowedMonthYear: MonthYear | null
+  annualPaid?: boolean
+  oneTimePaid?: boolean
+}
+
 // ── Paiement manuel (OpenAPI ManualPaymentBody) ─────────────────────────────
 
 export type PaymentMethod =
@@ -324,4 +338,89 @@ export interface StudentsFinancialPrintReport {
     solde: number
     statut: string
   }>
+}
+
+/** Politique relances dette + pénalités (SchoolSettings). */
+export interface DebtReminderPolicy {
+  enabled: boolean
+  offsetsDays: number[]
+  quietStartHour: number | null
+  quietEndHour: number | null
+  deadlineDay: number
+  exclusionDay: number
+  minDebtThreshold: number
+  moratoriumBehavior: string
+  lateFeeEnabled: boolean
+  lateFeeAnnualRatePercent: number
+  debtReminderWhatsAppEnabled: boolean
+}
+
+export type DebtReminderPolicyUpdate = Partial<{
+  enabled: boolean
+  offsetsDays: number[]
+  quietStartHour: number | null
+  quietEndHour: number | null
+  lateFeeEnabled: boolean
+  lateFeeAnnualRatePercent: number
+  debtReminderWhatsAppEnabled: boolean
+}>
+
+export interface DebtReminderTriggerInput {
+  dryRun?: boolean
+  classId?: number
+  studentIds?: number[]
+}
+
+export interface DebtReminderCandidate {
+  studentId: number
+  firstName: string
+  lastName?: string
+  balance?: number
+  priority?: string
+}
+
+export interface DebtReminderTriggerResult {
+  schoolId: number
+  queued: number
+  skippedAlreadySent: number
+  skippedPendingPayment: number
+  skippedQuietHours: number
+  skippedCampaignDay: number
+  skippedDisabled: number
+  dryRun: boolean
+  candidates: DebtReminderCandidate[]
+}
+
+export interface DebtReminderJournalItem {
+  id: number
+  studentId: number
+  studentName: string
+  matricule: string
+  campaignKey: string
+  priority: string
+  status: string
+  skipReason: string | null
+  balanceSnapshot: number | null
+  createdAt: string
+}
+
+export interface DebtReminderJournalPage {
+  items: DebtReminderJournalItem[]
+  nextCursor: number | null
+}
+
+export interface DebtReminderHealth {
+  queueAvailable: boolean
+  queueName: string
+  policyEnabled: boolean
+  last24h: Record<string, number>
+  dlqDebtReminders: number
+  workerHint: string
+}
+
+export interface LateFeeRunResult {
+  schoolId: number
+  processed: number
+  accruedTotal: number
+  skipped: number
 }

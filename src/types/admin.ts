@@ -219,6 +219,7 @@ export interface StudentDetail {
   className?: string
   classId?: number
   schoolId: number
+  schoolName?: string
   hasBiometrics: boolean
   isLocked: boolean
   isPaymentLocked?: boolean
@@ -910,6 +911,23 @@ export interface PaymentProfile {
   verifiedAt?: string
   rejectedAt?: string
   updatedAt?: string
+}
+
+export type OnboardingStepStatus = 'DONE' | 'PENDING' | 'BLOCKED' | 'OPTIONAL'
+
+export interface PaymentOnboardingStep {
+  key: string
+  label: string
+  status: OnboardingStepStatus
+  detail?: string
+}
+
+export interface PaymentOnboardingChecklist {
+  schoolId: number
+  readyForOnlinePayments: boolean
+  currentStep: string
+  steps: PaymentOnboardingStep[]
+  profile: PaymentProfile
 }
 
 export interface UpsertPaymentProfilePayload {

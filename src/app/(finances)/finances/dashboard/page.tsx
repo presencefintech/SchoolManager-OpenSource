@@ -9,8 +9,9 @@ import {
 } from 'lucide-react'
 import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
-  useExecutiveDashboard, useFinanceIntegrity,
+  useExecutiveDashboard, useFinanceIntegrity, useFinancePaymentProfile,
 } from '@/lib/hooks/use-finance'
+import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online-payments-banner'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
@@ -136,13 +137,15 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeVal
 
 export default function FinanceDashboardPage() {
   const { status: realtimeStatus, lastUpdate } = useFinanceRealtimeStatus()
-  const { data: guichet, isLoading, refetch, dataUpdatedAt } = useGuichetDashboard()
-  const { data: dailyCash = [] } = useDailyCashReport()
-  const { data: debtorsData } = useDebtors(10)
+  const { data: guichet, isLoading, refetch, dataUpdatedAt, isSuccess: coreReady } = useGuichetDashboard()
+  const secondary = { enabled: coreReady }
+  const { data: dailyCash = [] } = useDailyCashReport(secondary)
+  const { data: debtorsData } = useDebtors(10, secondary)
   const sessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)?.currentAcademicSessionId
   const { data: collection } = useCollectionAnalytics(sessionId ?? undefined)
-  const { data: execData } = useExecutiveDashboard()
-  const { data: integrityData } = useFinanceIntegrity()
+  const { data: execData } = useExecutiveDashboard(secondary)
+  const { data: integrityData } = useFinanceIntegrity(secondary)
+  const { data: paymentProfile } = useFinancePaymentProfile(secondary)
 
   const g = guichet as any
   const cash: DailyCashEntry[] = Array.isArray(dailyCash) ? (dailyCash as DailyCashEntry[]) : []
@@ -254,6 +257,8 @@ export default function FinanceDashboardPage() {
           ))}
         </div>
       </motion.div>
+
+      <GuichetOnlinePaymentsBanner profile={paymentProfile} />
 
       {/* KPIs guichet */}
       {isLoading ? (

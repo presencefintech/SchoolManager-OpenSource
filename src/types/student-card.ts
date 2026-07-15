@@ -23,6 +23,8 @@ export interface StudentCardData {
   schoolCity?: string | null
   schoolLogoUrl?: string | null
   academicYear: string | null
+  /** Date de naissance affichée (déjà formatée fr-FR) */
+  dateOfBirth: string | null
   placeOfBirth: string | null
   nationality: string | null
   gender: StudentCardGender | null

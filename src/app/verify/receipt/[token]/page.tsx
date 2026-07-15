@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { ReceiptVerifyCard } from '@/components/receipt/ReceiptVerifyCard'
 import type { ReceiptVerifyFailureReason, ReceiptVerifyResult } from '@/types/receipt-verify'
 
@@ -63,9 +64,9 @@ export default async function ReceiptVerifyPage({ params }: PageProps) {
 
         <p className="text-center text-[11px] text-zinc-400 leading-relaxed px-4">
           Scannez le QR code ou saisissez le numéro de reçu et le code PF sur{' '}
-          <a href="/verify" className="text-emerald-600 hover:underline">
+          <Link href="/verify" prefetch className="text-emerald-600 hover:underline">
             la page de vérification manuelle
-          </a>
+          </Link>
           .
         </p>
       </div>

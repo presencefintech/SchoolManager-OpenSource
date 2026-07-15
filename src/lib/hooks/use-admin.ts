@@ -12,6 +12,8 @@ import type {
   FeeStructurePayload, CreateFeeStructurePayload, CreateFeeCategoryPayload,
   LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
   StudentSecurityAction, ConfirmPaymentProofPayload, UpdateMoratoriumPolicyPayload,
+  StudentApplication, StudentDetail, StudentListItem, PaginatedResponse, PresenceLiveFeedEntry,
+  PresenceSecurityAlert,
 } from '@/types/admin'
 import type {
   CreatePreEnrollmentPayload,
@@ -183,7 +185,28 @@ export function useApproveApplication() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => studentsApi.approveApplication(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'students', 'applications'] }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'students', 'applications'] })
+      const snapshots = qc.getQueriesData<PaginatedResponse<StudentApplication>>({
+        queryKey: ['admin', 'students', 'applications'],
+      })
+      snapshots.forEach(([key, data]) => {
+        if (!data?.data) return
+        qc.setQueryData(key, {
+          ...data,
+          data: data.data.map((a) => (a.id === id ? { ...a, status: 'APPROVED' as const } : a)),
+        })
+      })
+      return { snapshots }
+    },
+    onError: (_err, _id, ctx) => {
+      ctx?.snapshots.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data)
+      })
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'students', 'applications'] })
+    },
   })
 }
 
@@ -191,7 +214,28 @@ export function useRejectApplication() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => studentsApi.rejectApplication(id, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'students', 'applications'] }),
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'students', 'applications'] })
+      const snapshots = qc.getQueriesData<PaginatedResponse<StudentApplication>>({
+        queryKey: ['admin', 'students', 'applications'],
+      })
+      snapshots.forEach(([key, data]) => {
+        if (!data?.data) return
+        qc.setQueryData(key, {
+          ...data,
+          data: data.data.map((a) => (a.id === id ? { ...a, status: 'REJECTED' as const } : a)),
+        })
+      })
+      return { snapshots }
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.snapshots.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data)
+      })
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'students', 'applications'] })
+    },
   })
 }
 
@@ -200,9 +244,44 @@ export function useSecurityAction() {
   return useMutation({
     mutationFn: ({ id, action, reason }: { id: number; action: StudentSecurityAction; reason?: string }) =>
       studentsApi.securityAction(id, action, reason),
-    onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: ['admin', 'students', id] })
-      qc.invalidateQueries({ queryKey: ['admin', 'students', 'list'] })
+    onMutate: async ({ id, action }) => {
+      const locked = action === 'BLOCK'
+      const detailKey = ['admin', 'students', id] as const
+      await qc.cancelQueries({ queryKey: detailKey })
+      await qc.cancelQueries({ queryKey: ['admin', 'students', 'list'] })
+
+      const previousDetail = qc.getQueryData<StudentDetail>(detailKey)
+      if (previousDetail) {
+        qc.setQueryData<StudentDetail>(detailKey, {
+          ...previousDetail,
+          isPaymentLocked: locked,
+        })
+      }
+
+      const listSnapshots = qc.getQueriesData<PaginatedResponse<StudentListItem>>({
+        queryKey: ['admin', 'students', 'list'],
+      })
+      listSnapshots.forEach(([key, data]) => {
+        if (!data?.data) return
+        qc.setQueryData(key, {
+          ...data,
+          data: data.data.map((s) =>
+            s.id === id ? { ...s, isPaymentLocked: locked } : s,
+          ),
+        })
+      })
+
+      return { previousDetail, listSnapshots }
+    },
+    onError: (_err, { id }, ctx) => {
+      if (ctx?.previousDetail) qc.setQueryData(['admin', 'students', id], ctx.previousDetail)
+      ctx?.listSnapshots.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data)
+      })
+    },
+    onSettled: (_data, _err, { id }) => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'students', id] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'students', 'list'] })
     },
   })
 }
@@ -476,7 +555,30 @@ export function useValidatePresence() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => presencesApi.validate(id, reason),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'presences'] }),
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'presences'] })
+      const feedSnapshots = qc.getQueriesData<{ entries: PresenceLiveFeedEntry[]; total: number }>({
+        queryKey: ['admin', 'presences', 'live'],
+      })
+      feedSnapshots.forEach(([key, data]) => {
+        if (!data?.entries) return
+        qc.setQueryData(key, {
+          ...data,
+          entries: data.entries.map((e) =>
+            e.id === id ? { ...e, status: e.status ?? 'PRESENT' } : e,
+          ),
+        })
+      })
+      return { feedSnapshots }
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.feedSnapshots.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data)
+      })
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
+    },
   })
 }
 
@@ -484,13 +586,31 @@ export function useDeletePresence() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, reason }: { id: number; reason?: string }) => presencesApi.remove(id, reason),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
-      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: ['admin', 'presences'] })
+      const feedSnapshots = qc.getQueriesData<{ entries: PresenceLiveFeedEntry[]; total: number }>({
+        queryKey: ['admin', 'presences', 'live'],
+      })
+      feedSnapshots.forEach(([key, data]) => {
+        if (!data?.entries) return
+        qc.setQueryData(key, {
+          ...data,
+          entries: data.entries.filter((e) => e.id !== id),
+          total: Math.max(0, (data.total ?? data.entries.length) - 1),
+        })
+      })
+      return { feedSnapshots }
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, ctx) => {
+      ctx?.feedSnapshots.forEach(([key, data]) => {
+        if (data) qc.setQueryData(key, data)
+      })
       const msg = err?.response?.data?.message ?? err?.message ?? 'Erreur lors de la suppression'
       console.error('[useDeletePresence]', msg, err?.response?.status)
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
     },
   })
 }
@@ -500,7 +620,24 @@ export function useDismissSecurityAlert() {
   return useMutation({
     mutationFn: ({ eventId, note }: { eventId: number; note?: string }) =>
       presencesApi.dismissSecurityAlert(eventId, note),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'presences', 'alerts'] }),
+    onMutate: async ({ eventId }) => {
+      const key = ['admin', 'presences', 'alerts'] as const
+      await qc.cancelQueries({ queryKey: key })
+      const previous = qc.getQueryData<PresenceSecurityAlert[]>(key)
+      if (previous) {
+        qc.setQueryData(
+          key,
+          previous.filter((a) => a.id !== eventId),
+        )
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['admin', 'presences', 'alerts'], ctx.previous)
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'presences', 'alerts'] })
+    },
   })
 }
 
@@ -782,30 +919,33 @@ export function useFinanceDashboard() {
   })
 }
 
-export function useFinanceTopPayers() {
+export function useFinanceTopPayers(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'top-payers'],
     queryFn: financeApi.getTopPayers,
     staleTime: 300_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceHealthCheck() {
+export function useFinanceHealthCheck(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'health'],
     queryFn: financeApi.getHealthCheck,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceFraudAlerts() {
+export function useFinanceFraudAlerts(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fraud-alerts'],
     queryFn: financeApi.getFraudAlerts,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -818,12 +958,13 @@ export function useFinanceAuditLogs(params?: { page?: number; limit?: number }) 
   })
 }
 
-export function usePendingVerifications() {
+export function usePendingVerifications(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'pending'],
     queryFn: financeApi.getPendingVerifications,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -919,6 +1060,14 @@ export function useCreateFeeStructure() {
   return useMutation({
     mutationFn: (payload: CreateFeeStructurePayload) => financeApi.createFeeStructure(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
+  })
+}
+
+export function useCloneFeeCatalogAdmin() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeApi.cloneFeeCatalog,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-structures'] }),
   })
 }
 
@@ -1058,11 +1207,21 @@ export function useSyncBalance() {
   })
 }
 
-export function usePaymentProfile() {
+export function usePaymentProfile(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'payment-profile'],
     queryFn: () => financeApi.getPaymentProfile(),
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function usePaymentOnboarding() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'payment-profile', 'onboarding'],
+    queryFn: () => financeApi.getPaymentOnboarding(),
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
   })
 }
@@ -1071,7 +1230,9 @@ export function useUpsertPaymentProfile() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: financeApi.upsertPaymentProfile,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'payment-profile'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'payment-profile'] })
+    },
   })
 }
 
@@ -1206,6 +1367,24 @@ export function useAdminRefundRequests(params?: { status?: string; page?: number
   })
 }
 
+export function useAdminRefundRequest(id: number | null) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'refunds', 'detail', id],
+    queryFn: () => financeApi.getRefundRequest(id!),
+    enabled: id != null && id > 0,
+    staleTime: 15_000,
+  })
+}
+
+export function useAdminStudentFeePeriodStatus(studentId: number, feeStructureId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-periods', studentId, feeStructureId],
+    queryFn: () => financeApi.getStudentFeePeriodStatus(studentId, feeStructureId!),
+    enabled: studentId > 0 && !!feeStructureId,
+    staleTime: 30_000,
+  })
+}
+
 export function useReviewRefundRequest() {
   const qc = useQueryClient()
   return useMutation({
@@ -1267,12 +1446,13 @@ export function useCreateSealBatch() {
 
 // ── Finance — hooks manquants ──────────────────────────────────────
 
-export function useFinanceDetailedReport() {
+export function useFinanceDetailedReport(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'detailed-report'],
     queryFn: financeApi.getDetailedReport,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -1334,57 +1514,63 @@ export function useUpdateCurrencyConfig() {
   })
 }
 
-export function useFinanceInsights() {
+export function useFinanceInsights(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'insights'],
     queryFn: financeApi.getInsights,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceComparativeDashboard() {
+export function useFinanceComparativeDashboard(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'comparative'],
     queryFn: financeApi.getComparativeDashboard,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceEfficiency() {
+export function useFinanceEfficiency(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'efficiency'],
     queryFn: financeApi.getEfficiency,
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceEndOfDay() {
+export function useFinanceEndOfDay(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'end-of-day'],
     queryFn: financeApi.getEndOfDay,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinancePaymentMethods(period: 'day' | 'month' = 'month') {
+export function useFinancePaymentMethods(period: 'day' | 'month' = 'month', opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'payment-methods', period],
     queryFn: () => financeApi.getPaymentMethods(period),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 
-export function useFinanceFeeTypes(period: 'day' | 'month' = 'month') {
+export function useFinanceFeeTypes(period: 'day' | 'month' = 'month', opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fee-types', period],
     queryFn: () => financeApi.getFeeTypes(period),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
   })
 }
 

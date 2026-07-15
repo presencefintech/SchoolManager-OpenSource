@@ -1543,6 +1543,313 @@
         }
       }
     },
+    "/admin/finance/reports/aggregate": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Rapport agrégé multi-échelles (ReportingEngine)",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "description": "Période J/H/M/T/S/A",
+            "schema": {
+              "$ref": "#/components/schemas/ReportPeriodCode",
+              "default": "MONTHLY"
+            }
+          },
+          {
+            "name": "anchor",
+            "in": "query",
+            "required": false,
+            "description": "Date ancre ISO",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "persist",
+            "in": "query",
+            "required": false,
+            "description": "Figer un FinancialSnapshot",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "forceRecompute",
+            "in": "query",
+            "required": false,
+            "description": "Ignorer le cache snapshot",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responseSchema": "#/components/schemas/ApiSuccessFinanceAggregateReport",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessFinanceAggregateReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/reports/ai-export": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Export séries temporelles pour IA",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "Date début",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "Date fin",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "description": "Granularité",
+            "schema": {
+              "$ref": "#/components/schemas/ReportPeriodCode",
+              "default": "DAILY"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/currency-config": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Config devise école (base USD + affichage)",
+        "parameters": [],
+        "responseSchema": "#/components/schemas/ApiSuccessSchoolCurrencyConfig",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessSchoolCurrencyConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mettre à jour devise d'affichage / tolérance change",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrencyConfigBody"
+              }
+            }
+          }
+        },
+        "responseSchema": "#/components/schemas/ApiSuccessSchoolCurrencyConfig",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessSchoolCurrencyConfig"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/exchange-rates": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Historique taux immuable",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Nombre de lignes",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ],
+        "responseSchema": "#/components/schemas/ApiSuccessExchangeRateList",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessExchangeRateList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Publier un taux (append-only, ADMIN)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExchangeRateBody"
+              }
+            }
+          }
+        },
+        "extraResponses": {
+          "201": {
+            "description": "Taux enregistré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          }
+        },
+        "responseSchema": "#/components/schemas/ApiSuccess",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Taux enregistré",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/admin/finance/analytics/health-check": {
       "get": {
         "tags": [
@@ -7500,6 +7807,78 @@
         }
       }
     },
+    "/admin/schools/{schoolId}/attendance-notifications": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les livraisons notifications présence",
+        "parameters": [
+          {
+            "name": "schoolId",
+            "in": "path",
+            "required": true,
+            "description": "ID établissement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "description": "Rôles: ADMIN, SUPER_ADMIN, FINANCE. Livraisons orchestrateur Sprint 1 (Push/SMS/WhatsApp/Email).",
+        "responseSchema": "#/components/schemas/ApiSuccess",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
     "/admin/cloudinary/students/{studentId}/photo": {
       "post": {
         "tags": [
@@ -9646,6 +10025,7 @@
           "offlineSyncEnabled",
           "validationRules",
           "notificationSettings",
+          "absenceSettings",
           "updatedAt"
         ],
         "properties": {
@@ -9676,10 +10056,42 @@
             "nullable": true,
             "additionalProperties": true
           },
+          "absenceSettings": {
+            "$ref": "#/components/schemas/AttendanceAbsenceSettings"
+          },
           "updatedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "AttendanceAbsenceSettings": {
+        "type": "object",
+        "required": [
+          "autoMarkEnabled",
+          "cutoffHour",
+          "cutoffMinute",
+          "timezone"
+        ],
+        "properties": {
+          "autoMarkEnabled": {
+            "type": "boolean",
+            "description": "Marquer ABSENT après cutoff si aucun pointage"
+          },
+          "cutoffHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "cutoffMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Africa/Kinshasa"
           }
         }
       },
@@ -9731,6 +10143,25 @@
             "type": "object",
             "nullable": true,
             "additionalProperties": true
+          },
+          "absenceSettings": {
+            "$ref": "#/components/schemas/AttendanceAbsenceSettings"
+          },
+          "geofence": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "latitude": {
+                "type": "number"
+              },
+              "longitude": {
+                "type": "number"
+              },
+              "radiusKm": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
           }
         }
       },
@@ -11249,6 +11680,272 @@
             "nullable": true
           }
         }
+      },
+      "ReportPeriodCode": {
+        "type": "string",
+        "enum": [
+          "DAILY",
+          "WEEKLY",
+          "MONTHLY",
+          "QUARTERLY",
+          "SEMESTER",
+          "ANNUAL",
+          "J",
+          "H",
+          "M",
+          "T",
+          "S",
+          "A"
+        ],
+        "description": "Échelle temporelle — alias J/H/M/T/S/A acceptés"
+      },
+      "SchoolCurrencyConfigDto": {
+        "type": "object",
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "displayCurrency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "CDF"
+            ]
+          },
+          "exchangeToleranceBps": {
+            "type": "integer",
+            "example": 50,
+            "description": "50 = 0,50 %"
+          },
+          "legacyRate": {
+            "type": "number",
+            "description": "Taux legacy School.customExchangeRate"
+          }
+        }
+      },
+      "UpdateCurrencyConfigBody": {
+        "type": "object",
+        "properties": {
+          "displayCurrency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "CDF"
+            ]
+          },
+          "exchangeToleranceBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5000
+          }
+        },
+        "description": "Au moins un champ requis."
+      },
+      "CreateExchangeRateBody": {
+        "type": "object",
+        "required": [
+          "rate"
+        ],
+        "properties": {
+          "toCurrency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "default": "CDF"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 2850
+          },
+          "effectiveAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "syncLegacyField": {
+            "type": "boolean",
+            "description": "Met à jour School.customExchangeRate"
+          }
+        }
+      },
+      "ExchangeRateRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fromCurrency": {
+            "type": "string"
+          },
+          "toCurrency": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "effectiveAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AggregatedReportMetricsDto": {
+        "type": "object",
+        "properties": {
+          "transactionCount": {
+            "type": "integer"
+          },
+          "totalAmountBase": {
+            "type": "string",
+            "description": "Total pivot USD"
+          },
+          "totalAmountDisplay": {
+            "type": "string"
+          },
+          "displayCurrency": {
+            "type": "string"
+          },
+          "byMethod": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "byFeeCategory": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "FinanceAggregateReportDto": {
+        "type": "object",
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "period": {
+            "$ref": "#/components/schemas/ReportPeriodCode"
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/AggregatedReportMetricsDto"
+          },
+          "exchangeRate": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "nullable": true
+              },
+              "rate": {
+                "type": "string"
+              },
+              "fromCurrency": {
+                "type": "string"
+              },
+              "toCurrency": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            }
+          },
+          "fromCache": {
+            "type": "boolean"
+          },
+          "snapshotId": {
+            "type": "integer"
+          }
+        }
+      },
+      "ApiSuccessSchoolCurrencyConfig": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SchoolCurrencyConfigDto"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessFinanceAggregateReport": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/FinanceAggregateReportDto"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessExchangeRateList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ExchangeRateRowDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "responses": {

@@ -71,6 +71,10 @@ export const queryKeys = {
       anomalies: (schoolId: number) => ['superadmin', 'finance', 'anomalies', schoolId] as const,
       auditFull: (schoolId: number) => ['superadmin', 'finance', 'audit-full', schoolId] as const,
       snapshot: (schoolId: number) => ['superadmin', 'finance', 'snapshot', schoolId] as const,
+      groupDashboard: (params?: Record<string, unknown>) =>
+        ['superadmin', 'finance', 'group-dashboard', params] as const,
+      benchmarks: (schoolId: number, params?: Record<string, unknown>) =>
+        ['superadmin', 'finance', 'benchmarks', schoolId, params] as const,
     },
 
     presence: {

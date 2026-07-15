@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -17,6 +18,7 @@ import {
   useFinancePerformance, useFinanceEfficiency, useTopPayers,
   useFinanceAnomalies, useFinanceAuditFull, useEndOfDaySnapshot,
   usePaymentSecurityAudit, useHighRiskProfiles,
+  useGroupFinanceDashboard, useCollectionBenchmarks,
 } from '@/lib/hooks/use-super-admin'
 import { financeApi } from '@/lib/superAdmin/api/finance.api'
 import { cn } from '@/lib/utils'
@@ -85,6 +87,8 @@ export default function FinancePage() {
   const { data: snapshot,    isLoading: loadingSnapshot }   = useEndOfDaySnapshot(id)
   const { data: secAudit,    isLoading: loadingSecAudit }   = usePaymentSecurityAudit(id)
   const { data: highRisk,    isLoading: loadingHighRisk }   = useHighRiskProfiles(id)
+  const { data: groupDash,   isLoading: loadingGroup }      = useGroupFinanceDashboard()
+  const { data: benchmark,   isLoading: loadingBench }      = useCollectionBenchmarks(id)
 
   const schoolName = schools?.find((s) => s.id === schoolId)?.name ?? ''
 
@@ -121,12 +125,176 @@ export default function FinancePage() {
       </motion.div>
 
       {!schoolId ? (
-        <div className="max-w-7xl mx-auto px-8 py-24 flex flex-col items-center gap-4 text-zinc-400">
-          <Building2 size={40} className="text-zinc-200" />
-          <p className="text-sm">Sélectionnez un établissement pour afficher les données financières</p>
+        <div className="max-w-7xl mx-auto px-8 py-8 space-y-6">
+          <div className="flex items-center gap-2 text-zinc-500 text-sm mb-2">
+            <Building2 size={16} />
+            Vue portefeuille multi-écoles — sélectionnez un établissement pour le détail
+          </div>
+
+          {loadingGroup ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+            </div>
+          ) : groupDash ? (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white rounded-2xl border border-zinc-200 px-6 py-5">
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Écoles</p>
+                  <p className="text-3xl font-bold tabular-nums">{groupDash.totals.schoolsCount}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-zinc-200 px-6 py-5">
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Encaissé</p>
+                  <p className="text-3xl font-bold tabular-nums">{fmt(groupDash.totals.collected)}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-zinc-200 px-6 py-5">
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Restant dû</p>
+                  <p className="text-3xl font-bold tabular-nums">{fmt(groupDash.totals.outstanding)}</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-emerald-100 bg-emerald-50/50 px-6 py-5">
+                  <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Taux groupe</p>
+                  <p className="text-3xl font-bold tabular-nums text-emerald-700">{pct(groupDash.totals.collectionRate)}</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-zinc-100">
+                  <h2 className="text-sm font-semibold text-zinc-900">Écoles</h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Période {new Date(groupDash.period.start).toLocaleDateString('fr-FR')} →{' '}
+                    {new Date(groupDash.period.end).toLocaleDateString('fr-FR')}
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-400 border-b border-zinc-50">
+                        <th className="px-6 py-3 font-medium">École</th>
+                        <th className="px-4 py-3 font-medium">Encaissé</th>
+                        <th className="px-4 py-3 font-medium">Dû</th>
+                        <th className="px-4 py-3 font-medium">Débiteurs</th>
+                        <th className="px-4 py-3 font-medium">Taux</th>
+                        <th className="px-4 py-3 font-medium" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupDash.schools.map((s) => (
+                        <tr key={s.schoolId} className="border-b border-zinc-50 hover:bg-zinc-50/80">
+                          <td className="px-6 py-3 font-medium text-zinc-800">{s.schoolName}</td>
+                          <td className="px-4 py-3 tabular-nums">{fmt(s.collected)}</td>
+                          <td className="px-4 py-3 tabular-nums">{fmt(s.outstanding)}</td>
+                          <td className="px-4 py-3 tabular-nums">{s.debtorCount}</td>
+                          <td className="px-4 py-3 tabular-nums font-medium">{pct(s.collectionRate)}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => setSchoolId(s.schoolId)}
+                              className="text-xs text-indigo-600 hover:underline inline-flex items-center gap-1"
+                            >
+                              Détail <ChevronRight size={12} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-zinc-400 text-center py-16">Dashboard groupe indisponible</p>
+          )}
+
+          {/* KYC stays visible without school filter */}
+          <div className="bg-white rounded-2xl border border-zinc-200 p-6">
+            <h2 className="text-sm font-semibold text-zinc-900 mb-1">KYC paiements en ligne</h2>
+            <p className="text-xs text-zinc-400 mb-4">Profils en attente de validation</p>
+            {loadingKyc ? (
+              <Skeleton className="h-20 rounded-xl" />
+            ) : (kycProfiles as Array<{ schoolId?: number; school?: { name?: string }; kycStatus?: string }>).filter(
+              (p) => p.kycStatus === 'PENDING',
+            ).length === 0 ? (
+              <p className="text-sm text-zinc-400">Aucun profil PENDING</p>
+            ) : (
+              <ul className="space-y-2">
+                {(kycProfiles as Array<{ schoolId: number; school?: { name?: string }; kycStatus?: string }>).filter(
+                  (p) => p.kycStatus === 'PENDING',
+                ).map((p) => (
+                  <li key={p.schoolId} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-100 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium">{p.school?.name ?? `École #${p.schoolId}`}</p>
+                      <p className="text-xs text-zinc-400">PENDING</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => verifyMut.mutate(p.schoolId)}
+                        className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs text-white"
+                      >
+                        Valider
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => rejectMut.mutate(p.schoolId)}
+                        className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs"
+                      >
+                        Rejeter
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-8 py-8 space-y-6">
+
+          {/* Benchmark vs pairs */}
+          <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-900">Benchmark recouvrement</h2>
+                <p className="text-xs text-zinc-400 mt-0.5">Comparaison anonymisée vs cohort plateforme</p>
+              </div>
+              <TrendingUp size={16} className="text-indigo-500" />
+            </div>
+            {loadingBench ? (
+              <Skeleton className="h-20 rounded-xl" />
+            ) : benchmark ? (
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="rounded-xl bg-zinc-50 px-4 py-3">
+                  <p className="text-[11px] text-zinc-400">Taux école</p>
+                  <p className="text-xl font-bold tabular-nums">{pct(benchmark.collectionRate)}</p>
+                </div>
+                <div className="rounded-xl bg-zinc-50 px-4 py-3">
+                  <p className="text-[11px] text-zinc-400">Moyenne pairs</p>
+                  <p className="text-xl font-bold tabular-nums">{pct(benchmark.peerAverage)}</p>
+                </div>
+                <div className="rounded-xl bg-zinc-50 px-4 py-3">
+                  <p className="text-[11px] text-zinc-400">Médiane</p>
+                  <p className="text-xl font-bold tabular-nums">{pct(benchmark.peerMedian)}</p>
+                </div>
+                <div className={cn(
+                  'rounded-xl px-4 py-3',
+                  benchmark.deltaVsAverage >= 0 ? 'bg-emerald-50' : 'bg-amber-50',
+                )}>
+                  <p className="text-[11px] text-zinc-500">Écart vs moyenne</p>
+                  <p className={cn(
+                    'text-xl font-bold tabular-nums',
+                    benchmark.deltaVsAverage >= 0 ? 'text-emerald-700' : 'text-amber-700',
+                  )}>
+                    {benchmark.deltaVsAverage >= 0 ? '+' : ''}{pct(benchmark.deltaVsAverage)}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-indigo-50 px-4 py-3">
+                  <p className="text-[11px] text-indigo-500">Rang / {benchmark.cohortSize}</p>
+                  <p className="text-xl font-bold tabular-nums text-indigo-800">#{benchmark.anonymizedRank || '—'}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-400">Benchmark indisponible</p>
+            )}
+          </div>
 
           {/* ══ 1. KPI PERFORMANCE ══════════════════════════════════════════ */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -660,13 +828,14 @@ export default function FinancePage() {
 
           {/* Lien rapide vers exports */}
           <div className="flex justify-end">
-            <a
+            <Link
               href="/super-admin/export"
+              prefetch
               className="inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
             >
               Exporter les données financières
               <ChevronRight size={14} />
-            </a>
+            </Link>
           </div>
 
         </div>

@@ -1,22 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
-  FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage,
+  FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage, CreditCard,
+  FileDown, Printer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   useStudentDetail, useStudentActivity, useDossierStatus, useSecurityAction,
   useEnrollmentDetail, useSyncBalance, useToggleLock, useLogPiiAccess,
   useUploadStudentPhoto, useUploadStudentDocument, useDeleteCloudinaryFile, useUpdateBiometrics,
+  useSchoolBranding,
 } from '@/lib/hooks/use-admin'
 import type { StudentSecurityAction } from '@/types/admin'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
 import { StudentCardPhoto } from '@/components/student-card/student-card-photo'
+import { StudentCard } from '@/components/StudentCard'
+import {
+  buildStudentCardData,
+  buildStudentQrPayload,
+} from '@/lib/student-card/utils'
+import {
+  downloadStudentCardPdf,
+  printStudentCard,
+} from '@/lib/student-card/export-actions'
 import { AdminProfileModal } from '@/components/admin/students/admin-profile-modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -247,6 +258,7 @@ export default function StudentDetailPage() {
   const { data: enrollmentDetail } = useEnrollmentDetail(studentId)
   const { data: activity, isLoading: loadingActivity } = useStudentActivity(studentId)
   const { data: dossier } = useDossierStatus(studentId)
+  const { data: branding } = useSchoolBranding()
   const securityMutation = useSecurityAction()
   const toggleLockMutation = useToggleLock()
   const syncMutation = useSyncBalance()
@@ -263,6 +275,9 @@ export default function StudentDetailPage() {
   const [syncingEnrollmentId, setSyncingEnrollmentId] = useState<number | null>(null)
   const [showAdminProfile, setShowAdminProfile] = useState(false)
   const [showBiometricsUpdate, setShowBiometricsUpdate] = useState(false)
+  const [cardExportReady, setCardExportReady] = useState(false)
+  const [downloadingCard, setDownloadingCard] = useState(false)
+  const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
   const [pendingAction, setPendingAction] = useState<{
     key: string
     kind: 'security' | 'lock'
@@ -272,6 +287,65 @@ export default function StudentDetailPage() {
     danger?: boolean
     currentlyLocked?: boolean
   } | null>(null)
+
+  const cardData = useMemo(() => {
+    if (!student) return null
+    const gender =
+      student.gender === 'M' || student.gender === 'F' || student.gender === 'MALE' || student.gender === 'FEMALE'
+        ? student.gender
+        : null
+    return buildStudentCardData({
+      studentId: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      postnom: student.postnom,
+      prenom: student.prenom,
+      matricule: student.matricule,
+      photoUrl: student.photoUrl,
+      qrPayload: buildStudentQrPayload(student.id, student.matricule),
+      schoolName: branding?.name?.trim() || student.schoolName?.trim() || 'Établissement scolaire',
+      schoolCity: branding?.city,
+      schoolLogoUrl: branding?.logoUrl,
+      className: student.className,
+      academicYear: student.academicYear ?? enrollmentDetail?.academicYear,
+      dateOfBirth: student.dateOfBirth
+        ? new Date(student.dateOfBirth).toLocaleDateString('fr-FR')
+        : null,
+      placeOfBirth: student.placeOfBirth,
+      nationality: student.nationality,
+      gender,
+      feesBalance: student.feesBalance ?? student.debtAmount ?? enrollmentDetail?.feesBalance,
+      isPaymentLocked: student.isPaymentLocked,
+    })
+  }, [student, branding, enrollmentDetail])
+
+  const handleCardElement = useCallback((el: HTMLDivElement | null) => {
+    setCardElement(el)
+  }, [])
+
+  async function handleDownloadCard() {
+    if (!cardData) return
+    setDownloadingCard(true)
+    try {
+      await downloadStudentCardPdf(cardData, `carte_eleve_${studentId}.pdf`, {
+        sourceElement: cardElement,
+      })
+      toast.success('PDF téléchargé')
+    } catch (err) {
+      toast.error('Export PDF impossible', getApiErrorMessage(err))
+    } finally {
+      setDownloadingCard(false)
+    }
+  }
+
+  async function handlePrintCard() {
+    if (!cardData) return
+    try {
+      await printStudentCard(cardData, { sourceElement: cardElement })
+    } catch (err) {
+      toast.error('Impression impossible', getApiErrorMessage(err))
+    }
+  }
 
   async function executePendingAction() {
     if (!pendingAction) return
@@ -416,6 +490,51 @@ export default function StudentDetailPage() {
 
       <div className="max-w-4xl mx-auto px-8 py-6 space-y-5">
 
+        {/* Aperçu carte — toujours visible en premier (desktop + mobile) */}
+        {cardData && (
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-zinc-100">
+              <div className="flex items-center gap-2 min-w-0">
+                <CreditCard size={14} className="text-emerald-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-zinc-800">Carte d&apos;identité élève</p>
+                  <p className="text-[11px] text-zinc-400">
+                    Format CR80 · Nom / Postnom / Prénom · export PDF prêt démo
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleDownloadCard}
+                  disabled={downloadingCard || !cardExportReady}
+                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors"
+                >
+                  {downloadingCard ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePrintCard}
+                  disabled={!cardExportReady}
+                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
+                >
+                  <Printer size={12} />
+                  Imprimer
+                </button>
+              </div>
+            </div>
+            <div className="flex justify-center p-5 overflow-x-auto bg-zinc-50/70">
+              <StudentCard
+                data={cardData}
+                preview
+                onCardElement={handleCardElement}
+                onReady={(s) => setCardExportReady(s.canDownload)}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
           {/* Profile */}
@@ -431,6 +550,9 @@ export default function StudentDetailPage() {
                   <FileEdit size={12} /> Profil administratif
                 </button>
               </div>
+              <InfoRow label="Nom" value={student.lastName} />
+              <InfoRow label="Postnom" value={student.postnom} />
+              <InfoRow label="Prénom" value={student.prenom || student.firstName} />
               <InfoRow label="Classe" value={student.className} />
               <InfoRow label="Email" value={student.email} />
               <InfoRow label="Téléphone" value={student.phone} />

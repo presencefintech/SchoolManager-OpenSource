@@ -5,12 +5,13 @@ import { motion } from 'framer-motion'
 import {
   Building2, Plus, RefreshCw, FileText, Tag,
   Zap, Search, CheckCircle2, XCircle, History,
-  Receipt, Percent, Users, RotateCcw, Trash2,
+  Receipt, Percent, Users, RotateCcw, Trash2, Copy,
 } from 'lucide-react'
 import {
   useSchools,
   useFeeSchoolStructures,
   useStudentInvoiceAudit,
+  useCloneFeeCatalog,
 } from '@/lib/hooks/use-super-admin'
 import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import type { FeeType } from '@/types/super-admin'
@@ -270,6 +271,39 @@ export default function FeesPage() {
 
   const schoolName = schools?.find((s) => s.id === schoolId)?.name ?? ''
 
+  /* ── Clone catalogue ──────────────────────────────────────────────────── */
+  const cloneMut = useCloneFeeCatalog()
+  const [cloneSource, setCloneSource] = useState('')
+  const [cloneTarget, setCloneTarget] = useState('')
+  const [cloneTargetSchool, setCloneTargetSchool] = useState('')
+  const [cloneOverwrite, setCloneOverwrite] = useState(false)
+  const [cloneFb, setCloneFb] = useState<Feedback>(null)
+
+  async function handleCloneCatalog() {
+    const sourceSessionId = Number(cloneSource)
+    const targetSessionId = Number(cloneTarget)
+    if (!sourceSessionId || !targetSessionId) {
+      setCloneFb({ type: 'error', message: 'Sessions source et cible requises.' })
+      return
+    }
+    setCloneFb(null)
+    try {
+      const result = await cloneMut.mutateAsync({
+        sourceSessionId,
+        targetSessionId,
+        targetSchoolId: cloneTargetSchool ? Number(cloneTargetSchool) : undefined,
+        overwriteExisting: cloneOverwrite,
+      })
+      setCloneFb({
+        type: 'success',
+        message: `Cloné : ${result.categoriesCloned} catégorie(s), ${result.structuresCloned} structure(s) → école #${result.targetSchoolId}.`,
+      })
+      if (schoolId) refetchStructures()
+    } catch {
+      setCloneFb({ type: 'error', message: 'Échec du clone catalogue.' })
+    }
+  }
+
   /* ══════════════════════════════════════════════════════════════════════ */
 
   return (
@@ -299,12 +333,138 @@ export default function FeesPage() {
       </motion.div>
 
       {!schoolId ? (
-        <div className="max-w-7xl mx-auto px-8 py-24 flex flex-col items-center gap-4 text-zinc-400">
-          <Building2 size={40} className="text-zinc-200" />
-          <p className="text-sm">Sélectionnez un établissement pour gérer les frais</p>
+        <div className="max-w-7xl mx-auto px-8 py-8 space-y-6">
+          <div className="bg-white rounded-2xl border border-zinc-200 p-7">
+            <div className="flex items-center gap-2 mb-2">
+              <Copy size={16} className="text-indigo-500" />
+              <h2 className="text-base font-semibold text-zinc-900">Cloner un catalogue frais</h2>
+            </div>
+            <p className="text-xs text-zinc-400 mb-5">
+              Session → session (éventuellement cross-école). Indiquez les IDs de sessions académiques.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <div>
+                <label className="text-xs font-medium text-zinc-500 block mb-1">Session source</label>
+                <input
+                  type="number"
+                  value={cloneSource}
+                  onChange={(e) => setCloneSource(e.target.value)}
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm"
+                  placeholder="ID session"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 block mb-1">Session cible</label>
+                <input
+                  type="number"
+                  value={cloneTarget}
+                  onChange={(e) => setCloneTarget(e.target.value)}
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm"
+                  placeholder="ID session"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-zinc-500 block mb-1">École cible (opt.)</label>
+                <input
+                  type="number"
+                  value={cloneTargetSchool}
+                  onChange={(e) => setCloneTargetSchool(e.target.value)}
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm"
+                  placeholder="ID école"
+                />
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-2 text-sm text-zinc-700 pb-2.5">
+                  <input
+                    type="checkbox"
+                    checked={cloneOverwrite}
+                    onChange={(e) => setCloneOverwrite(e.target.checked)}
+                    className="rounded border-zinc-300"
+                  />
+                  Écraser existant
+                </label>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={cloneMut.isPending}
+              onClick={() => void handleCloneCatalog()}
+              className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-40"
+            >
+              {cloneMut.isPending ? 'Clonage…' : 'Cloner le catalogue'}
+            </button>
+            <FeedbackBanner fb={cloneFb} />
+          </div>
+          <div className="flex flex-col items-center gap-3 text-zinc-400 py-8">
+            <Building2 size={32} className="text-zinc-200" />
+            <p className="text-sm">Ou sélectionnez un établissement pour gérer les structures</p>
+          </div>
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-8 py-8 space-y-6">
+
+          <div className="bg-white rounded-2xl border border-zinc-200 p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Copy size={15} className="text-indigo-500" />
+              <h2 className="text-sm font-semibold text-zinc-900">Cloner catalogue vers / depuis une session</h2>
+            </div>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">Source session</label>
+                <input type="number" value={cloneSource} onChange={(e) => setCloneSource(e.target.value)}
+                  className="w-36 border border-zinc-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">Cible session</label>
+                <input type="number" value={cloneTarget} onChange={(e) => setCloneTarget(e.target.value)}
+                  className="w-36 border border-zinc-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 block mb-1">École cible</label>
+                <input type="number" value={cloneTargetSchool || String(schoolId)} onChange={(e) => setCloneTargetSchool(e.target.value)}
+                  className="w-36 border border-zinc-200 rounded-xl px-3 py-2 text-sm" />
+              </div>
+              <label className="flex items-center gap-2 text-xs text-zinc-600 pb-2">
+                <input type="checkbox" checked={cloneOverwrite} onChange={(e) => setCloneOverwrite(e.target.checked)} />
+                Écraser
+              </label>
+              <button
+                type="button"
+                disabled={cloneMut.isPending}
+                onClick={() => {
+                  if (!cloneTargetSchool) setCloneTargetSchool(String(schoolId))
+                  void (async () => {
+                    const sourceSessionId = Number(cloneSource)
+                    const targetSessionId = Number(cloneTarget)
+                    if (!sourceSessionId || !targetSessionId) {
+                      setCloneFb({ type: 'error', message: 'Sessions source et cible requises.' })
+                      return
+                    }
+                    setCloneFb(null)
+                    try {
+                      const result = await cloneMut.mutateAsync({
+                        sourceSessionId,
+                        targetSessionId,
+                        targetSchoolId: Number(cloneTargetSchool || schoolId),
+                        overwriteExisting: cloneOverwrite,
+                      })
+                      setCloneFb({
+                        type: 'success',
+                        message: `Cloné : ${result.categoriesCloned} catégorie(s), ${result.structuresCloned} structure(s) → école #${result.targetSchoolId}.`,
+                      })
+                      refetchStructures()
+                    } catch {
+                      setCloneFb({ type: 'error', message: 'Échec du clone catalogue.' })
+                    }
+                  })()
+                }}
+                className="rounded-xl bg-indigo-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-40"
+              >
+                Cloner
+              </button>
+            </div>
+            <FeedbackBanner fb={cloneFb} />
+          </div>
 
           {/* ══ 1. STRUCTURES + CATÉGORIES ══════════════════════════════════ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -12,6 +12,7 @@ import {
   useConfirmMobilePayment, useConfirmBankTransaction, useResendReceipt,
   useLinkOrphanTransaction, useAdvancedSearch, useProcessManualPayment,
   useMarkVerificationProcessed, useExportPendingVerifications,
+  useAdminStudentFeePeriodStatus,
 } from '@/lib/hooks/use-admin'
 import type { ManualPaymentPayload, AdvancedSearchParams, PendingVerificationItem, PaymentProofType, ConfirmPaymentProofPayload } from '@/types/admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
@@ -25,6 +26,10 @@ import { defaultProofTypeForMethod, labelPaymentProofType } from '@/lib/finance/
 import { formatMoney } from '@/lib/finance/currency'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
+import {
+  ManualCatalogFeePanel,
+  validateManualCatalogPeriod,
+} from '@/components/admin/finance/manual-catalog-fee-panel'
 
 const MOBILE_MONEY_METHODS = new Set(['MOBILE_MONEY', 'ORANGE_MONEY', 'MPESA', 'AIRTEL_MONEY'])
 
@@ -57,6 +62,22 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     setProofType(defaultProofTypeForMethod(form.method))
   }, [form.method])
+
+  const { data: catalogPeriodStatus } = useAdminStudentFeePeriodStatus(
+    form.studentId,
+    useCatalogFallback ? form.feeStructureId : undefined,
+  )
+
+  useEffect(() => {
+    if (
+      useCatalogFallback &&
+      catalogPeriodStatus?.billingPeriod === 'MONTHLY' &&
+      catalogPeriodStatus.allowedMonthYear &&
+      !form.monthYear
+    ) {
+      setForm((p) => ({ ...p, monthYear: catalogPeriodStatus.allowedMonthYear! }))
+    }
+  }, [useCatalogFallback, catalogPeriodStatus?.allowedMonthYear, catalogPeriodStatus?.billingPeriod, form.monthYear])
 
   function handleStudentSelect(id: number) {
     setForm(p => ({ ...p, studentId: id, amount: 0, feeStructureId: undefined, monthYear: undefined, sessionId: undefined }))
@@ -95,6 +116,13 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
     if (proofType === 'OTHER' && manualJustification.trim().length < 10) {
       setError('Un motif explicite (min. 10 caractères) est requis pour le type « Autre ».')
       return
+    }
+    if (useCatalogFallback && form.feeStructureId) {
+      const periodError = validateManualCatalogPeriod(catalogPeriodStatus, form.monthYear)
+      if (periodError) {
+        setError(periodError)
+        return
+      }
     }
     setError(null)
     try {
@@ -148,12 +176,36 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
                   onChange={(e) => {
                     setUseCatalogFallback(e.target.checked)
                     setAttribution(null)
-                    setForm(p => ({ ...p, amount: 0, feeStructureId: undefined, monthYear: undefined, sessionId: undefined }))
+                    setForm(p => ({
+                      ...p,
+                      amount: 0,
+                      feeStructureId: undefined,
+                      monthYear: undefined,
+                      sessionId: undefined,
+                      fees: undefined,
+                    }))
                   }}
                   className="rounded border-zinc-300"
                 />
-                Paiement hors échéancier (montant libre, non ventilé)
+                Paiement hors échéancier (montant libre ou barème catalogue + période serveur)
               </label>
+            )}
+
+            {form.studentId > 0 && useCatalogFallback && (
+              <ManualCatalogFeePanel
+                studentId={form.studentId}
+                feeStructureId={form.feeStructureId}
+                monthYear={form.monthYear}
+                onFeeStructureChange={(feeStructureId) =>
+                  setForm((p) => ({
+                    ...p,
+                    feeStructureId,
+                    monthYear: undefined,
+                    fees: undefined,
+                  }))
+                }
+                onMonthYearChange={(monthYear) => setForm((p) => ({ ...p, monthYear }))}
+              />
             )}
 
             <div>

@@ -1,7 +1,22 @@
 import { apiClient } from '@/lib/api/client'
 import { asFeeStructureList } from '@/lib/finance/fee-structure.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
-import type { StudentFeeScheduleDto, StudentsFinancialListResponse, StudentsFinancialPrintReport, ProcessPaymentResponse } from '@/types/finance'
+import { normalizePaymentProfile } from '@/lib/admin/normalizers'
+import type {
+  StudentFeeScheduleDto,
+  StudentFeePeriodStatusDto,
+  StudentsFinancialListResponse,
+  StudentsFinancialPrintReport,
+  ProcessPaymentResponse,
+  DebtReminderPolicy,
+  DebtReminderPolicyUpdate,
+  DebtReminderTriggerInput,
+  DebtReminderTriggerResult,
+  DebtReminderJournalPage,
+  DebtReminderHealth,
+  LateFeeRunResult,
+} from '@/types/finance'
+import type { FeeCategoryItem, PaymentProfile } from '@/types/admin'
 
 export const financeRoleApi = {
   // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -89,8 +104,35 @@ export const financeRoleApi = {
   getHighRisk: () =>
     apiClient.get('/finance/payments/risks/high-risk').then(r => r.data.data),
 
-  triggerDebtReminders: () =>
-    apiClient.post('/finance/debt-reminders/trigger').then(r => r.data.data),
+  triggerDebtReminders: (payload?: DebtReminderTriggerInput) =>
+    apiClient
+      .post('/finance/debt-reminders/trigger', payload ?? {})
+      .then(r => r.data.data as DebtReminderTriggerResult),
+
+  getDebtReminderPolicy: () =>
+    apiClient
+      .get('/finance/debt-reminders/policy')
+      .then(r => r.data.data as DebtReminderPolicy),
+
+  updateDebtReminderPolicy: (payload: DebtReminderPolicyUpdate) =>
+    apiClient
+      .put('/finance/debt-reminders/policy', payload)
+      .then(r => r.data.data as DebtReminderPolicy),
+
+  listDebtReminderJournal: (params?: { limit?: number; cursor?: number; campaignKey?: string }) =>
+    apiClient
+      .get('/finance/debt-reminders/journal', { params })
+      .then(r => r.data.data as DebtReminderJournalPage),
+
+  getDebtReminderHealth: () =>
+    apiClient
+      .get('/finance/debt-reminders/health')
+      .then(r => r.data.data as DebtReminderHealth),
+
+  runLateFees: () =>
+    apiClient
+      .post('/finance/late-fees/run')
+      .then(r => r.data.data as LateFeeRunResult),
 
   // ── Transactions & Recherche ───────────────────────────────────────────────
   searchTransactions: (params: { status?: string; studentId?: number; startDate?: string; endDate?: string; limit?: number; page?: number }) =>
@@ -115,6 +157,11 @@ export const financeRoleApi = {
         params: sessionId != null && sessionId > 0 ? { sessionId } : undefined,
       })
       .then(r => r.data.data as StudentFeeScheduleDto),
+
+  getStudentFeePeriodStatus: (studentId: number, feeStructureId: number) =>
+    apiClient
+      .get(`/finance/students/${studentId}/fee-periods`, { params: { feeStructureId } })
+      .then(r => r.data.data as StudentFeePeriodStatusDto),
 
   getStudentPaymentsDetailed: (studentId: number, params?: {
     page?: number
@@ -163,6 +210,20 @@ export const financeRoleApi = {
       .get('/finance/fee-structures', { params })
       .then((r) => asFeeStructureList(r.data.data)),
 
+  getFeeCategories: () =>
+    apiClient
+      .get('/finance/fee-categories')
+      .then((r) => {
+        const d = r.data.data
+        return (Array.isArray(d) ? d : (d?.items ?? [])) as FeeCategoryItem[]
+      }),
+
+  /** Lecture KYC — route admin autorisée pour FINANCE (OpenAPI finance.json). */
+  getPaymentProfile: () =>
+    apiClient
+      .get('/admin/finance/payment-profile')
+      .then((r) => normalizePaymentProfile((r.data.data ?? {}) as Record<string, unknown>) as PaymentProfile),
+
   getMoratoriums: (params?: { status?: string }) =>
     apiClient.get('/finance/moratoriums', { params }).then(r => r.data.data),
 
@@ -202,6 +263,30 @@ export const financeRoleApi = {
 
   exportCashSession: async (sessionId: number): Promise<Blob> => {
     const res = await apiClient.get(`/finance/exports/cash-sessions/${sessionId}`, { responseType: 'blob' })
+    return res.data as Blob
+  },
+
+  exportAccountingJournal: async (params?: {
+    startDate?: string
+    endDate?: string
+    method?: string
+    classId?: number
+  }): Promise<Blob> => {
+    const res = await apiClient.get('/finance/exports/accounting-journal', {
+      params,
+      responseType: 'blob',
+    })
+    return res.data as Blob
+  },
+
+  exportGeneralLedger: async (params?: {
+    startDate?: string
+    endDate?: string
+  }): Promise<Blob> => {
+    const res = await apiClient.get('/finance/exports/general-ledger', {
+      params,
+      responseType: 'blob',
+    })
     return res.data as Blob
   },
 

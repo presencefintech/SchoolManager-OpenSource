@@ -3,6 +3,7 @@ import axios from 'axios'
 import {
   normalizePendingVerification,
   normalizePaymentProfile,
+  normalizePaymentOnboarding,
   normalizeSessionEnrollment,
   normalizeStudentListItem,
   normalizeMoratorium,
@@ -23,6 +24,7 @@ import type {
   BulkMoratoriumPayload, FeeStructurePayload, CreateFeeStructurePayload,
   CreateFeeCategoryPayload, FeeCategoryItem, LinkOrphanPayload, AdvancedSearchParams,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
+  PaymentOnboardingChecklist,
   MoratoriumRecoveryRate, AdminRefundRequest, ConfirmPaymentProofPayload,
   UpdateMoratoriumPolicyPayload,
   FinancialSealBatch, FinancialSealBatchListResponse, CreateSealBatchPayload, CreateSealBatchResult,
@@ -275,6 +277,11 @@ export const financeApi = {
       })
       .then(r => r.data.data as import('@/types/finance').StudentFeeScheduleDto),
 
+  getStudentFeePeriodStatus: (studentId: number, feeStructureId: number) =>
+    apiClient
+      .get(`/admin/finance/students/${studentId}/fee-periods`, { params: { feeStructureId } })
+      .then(r => r.data.data as import('@/types/finance').StudentFeePeriodStatusDto),
+
   generateInvoice: (payload: { studentId: number; feeStructureId: number; dueDate?: string }) =>
     apiClient.post('/admin/finance/invoices/generate', payload).then(r => r.data.data),
 
@@ -296,6 +303,20 @@ export const financeApi = {
 
   createFeeStructure: (payload: CreateFeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structures', payload).then((r) => r.data.data),
+
+  cloneFeeCatalog: (payload: {
+    sourceSessionId: number
+    targetSessionId: number
+    targetSchoolId?: number
+    overwriteExisting?: boolean
+  }) =>
+    apiClient
+      .post('/admin/finance/fee-structures/clone-catalog', payload)
+      .then((r) => r.data.data as {
+        categoriesCloned: number
+        structuresCloned: number
+        targetSchoolId: number
+      }),
 
   softDeleteFeeStructure: (feeId: number) =>
     apiClient.delete(`/admin/finance/fee-structures/${feeId}`).then((r) => r.data),
@@ -319,9 +340,21 @@ export const financeApi = {
     apiClient.get('/admin/finance/payment-profile')
       .then((r) => normalizePaymentProfile((r.data.data ?? {}) as Record<string, unknown>)),
 
+  getPaymentOnboarding: (): Promise<PaymentOnboardingChecklist> =>
+    apiClient.get('/admin/finance/payment-profile/onboarding')
+      .then((r) => normalizePaymentOnboarding((r.data.data ?? {}) as Record<string, unknown>)),
+
   upsertPaymentProfile: (payload: UpsertPaymentProfilePayload) =>
     apiClient.put('/admin/finance/payment-profile', payload)
-      .then((r) => normalizePaymentProfile((r.data.data ?? {}) as Record<string, unknown>)),
+      .then((r) => {
+        const data = (r.data.data ?? {}) as Record<string, unknown>
+        return {
+          profile: normalizePaymentProfile(data),
+          onboarding: data.onboarding
+            ? normalizePaymentOnboarding(data.onboarding as Record<string, unknown>)
+            : null,
+        }
+      }),
 
   markVerificationProcessed: (verificationId: number, notes?: string) =>
     apiClient.post(`/admin/finance/payments/verifications/${verificationId}/mark-processed`, { notes })
