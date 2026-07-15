@@ -49,8 +49,8 @@ export function FinanceRealtimeProvider({ children }: { children: ReactNode }) {
 
 export function useFinanceRealtimeStatus() {
   const ctx = useContext(FinanceRealtimeContext)
-  if (ctx) return ctx
   const empire = useEmpireRealtimeContext()
+  if (ctx) return ctx
   if (empire) {
     return {
       status: empire.status,
