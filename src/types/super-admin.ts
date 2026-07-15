@@ -489,6 +489,47 @@ export interface FinanceAuditFull {
   }
 }
 
+export interface SchoolFinanceSnapshot {
+  schoolId: number
+  schoolName: string
+  collected: number
+  outstanding: number
+  debtorCount: number
+  studentCount: number
+  collectionRate: number
+  paymentsCount: number
+}
+
+export interface GroupFinanceDashboard {
+  period: { start: string; end: string }
+  totals: {
+    collected: number
+    outstanding: number
+    debtorCount: number
+    studentCount: number
+    collectionRate: number
+    schoolsCount: number
+  }
+  schools: SchoolFinanceSnapshot[]
+}
+
+export interface CollectionBenchmark {
+  schoolId: number
+  schoolName: string
+  collectionRate: number
+  peerAverage: number
+  peerMedian: number
+  deltaVsAverage: number
+  cohortSize: number
+  anonymizedRank: number
+}
+
+export interface FeeCatalogCloneResult {
+  categoriesCloned: number
+  structuresCloned: number
+  targetSchoolId: number
+}
+
 /* ─── Students ───────────────────────────────────────────────── */
 export interface StudentGlobalStats {
   totalStudents: number

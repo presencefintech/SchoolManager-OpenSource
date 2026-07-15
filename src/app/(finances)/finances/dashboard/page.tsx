@@ -9,8 +9,9 @@ import {
 } from 'lucide-react'
 import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
-  useExecutiveDashboard, useFinanceIntegrity,
+  useExecutiveDashboard, useFinanceIntegrity, useFinancePaymentProfile,
 } from '@/lib/hooks/use-finance'
+import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online-payments-banner'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
@@ -143,6 +144,7 @@ export default function FinanceDashboardPage() {
   const { data: collection } = useCollectionAnalytics(sessionId ?? undefined)
   const { data: execData } = useExecutiveDashboard()
   const { data: integrityData } = useFinanceIntegrity()
+  const { data: paymentProfile } = useFinancePaymentProfile()
 
   const g = guichet as any
   const cash: DailyCashEntry[] = Array.isArray(dailyCash) ? (dailyCash as DailyCashEntry[]) : []
@@ -254,6 +256,8 @@ export default function FinanceDashboardPage() {
           ))}
         </div>
       </motion.div>
+
+      <GuichetOnlinePaymentsBanner profile={paymentProfile} />
 
       {/* KPIs guichet */}
       {isLoading ? (

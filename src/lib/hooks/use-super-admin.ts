@@ -352,6 +352,39 @@ export function useEndOfDaySnapshot(schoolId: number) {
   })
 }
 
+export function useGroupFinanceDashboard(params?: { schoolIds?: string; startDate?: string; endDate?: string }) {
+  return useQuery({
+    queryKey: queryKeys.superadmin.finance.groupDashboard(params),
+    queryFn: () => superAdminApi.getGroupDashboard(params),
+    staleTime: 60_000,
+    enabled: !!getAuthToken(),
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCollectionBenchmarks(
+  schoolId: number,
+  params?: { startDate?: string; endDate?: string },
+) {
+  return useQuery({
+    queryKey: queryKeys.superadmin.finance.benchmarks(schoolId, params),
+    queryFn: () => superAdminApi.getBenchmarks(schoolId, params),
+    staleTime: 60_000,
+    enabled: !!getAuthToken() && !!schoolId,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCloneFeeCatalog() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: superAdminApi.cloneFeeCatalog,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['superadmin', 'fees'] })
+    },
+  })
+}
+
 export function useFinanceAudit(schoolId: number) {
   return useQuery({
     queryKey: queryKeys.superadmin.enrollment.financeAudit(schoolId),

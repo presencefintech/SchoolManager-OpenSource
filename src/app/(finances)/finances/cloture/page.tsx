@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, AlertCircle, Clock, RefreshCw, Bell, Download } from 'lucide-react'
+import Link from 'next/link'
 import {
-  useClosingPreview, useFinalizeClosing, useTriggerDebtReminders,
+  useClosingPreview, useFinalizeClosing,
   useExportPayments, useCurrentSession,
 } from '@/lib/hooks/use-finance'
 import { fadeUp } from '@/lib/animations'
@@ -26,13 +27,11 @@ export default function CloturePage() {
   const { data: preview, isLoading, refetch } = useClosingPreview()
   const { data: session } = useCurrentSession()
   const { mutateAsync: finalize, isPending: finalizing } = useFinalizeClosing()
-  const { mutateAsync: triggerReminders, isPending: triggering } = useTriggerDebtReminders()
   const exportPay = useExportPayments()
 
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [reminderDone, setReminderDone] = useState(false)
 
   const pv = preview as any
   const currentSession = session as any
@@ -54,13 +53,6 @@ export default function CloturePage() {
     try {
       const blob = await exportPay.mutateAsync()
       downloadBlob(blob, `paiements-${new Date().toISOString().slice(0, 10)}.csv`)
-    } catch {}
-  }
-
-  async function handleReminders() {
-    try {
-      await triggerReminders()
-      setReminderDone(true)
     } catch {}
   }
 
@@ -200,17 +192,16 @@ export default function CloturePage() {
               </div>
             </button>
 
-            <button
-              onClick={handleReminders}
-              disabled={triggering || reminderDone}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-40 transition-colors text-left"
+            <Link
+              href="/finances/relances"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-zinc-200 text-sm text-zinc-700 hover:bg-zinc-50 transition-colors text-left"
             >
-              <Bell size={15} className={`flex-shrink-0 ${reminderDone ? 'text-emerald-500' : 'text-zinc-400'}`} />
+              <Bell size={15} className="text-zinc-400 flex-shrink-0" />
               <div>
-                <p className="font-medium">{reminderDone ? 'Relances envoyées' : 'Envoyer les relances de dettes'}</p>
-                <p className="text-xs text-zinc-400">Notifie les débiteurs par SMS / email</p>
+                <p className="font-medium">Configurer / envoyer les relances</p>
+                <p className="text-xs text-zinc-400">Politique, WhatsApp, journal et dry-run</p>
               </div>
-            </button>
+            </Link>
           </div>
         </motion.div>
       </div>

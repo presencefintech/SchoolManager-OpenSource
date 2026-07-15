@@ -113,7 +113,7 @@
           "Payments"
         ],
         "summary": "Encaisser un paiement guichet",
-        "description": "Rôles: FINANCE. Policy: `create Payment`.\n\nRéférence obligatoire si `method` ≠ `CASH`. Recommandé: `feeStructureId` — le serveur recalcule le montant depuis le barème. Si `PAYMENT_STRICT_AMOUNT=true`, `feeStructureId` est **obligatoire**. Si `FINANCE_REQUIRE_CASH_SESSION=true`, une session caisse ouverte est **obligatoire** pour `method=CASH`. Réponse enrichie: `{ payment, serverAmount, feeStructureId, resolvedFrom }`. Header optionnel `X-Idempotency-Key` pour éviter les doublons.",
+        "description": "Rôles: FINANCE. Policy: `create Payment`.\n\nRéférence obligatoire si `method` ≠ `CASH`. Recommandé: `feeStructureId` — le serveur recalcule le montant depuis le barème. Si `PAYMENT_STRICT_AMOUNT=true`, `feeStructureId` est **obligatoire**. Si `FEE_BILLING_PERIOD_ENFORCEMENT=true` et barème `MONTHLY`, `monthYear` (YYYY-MM) est **obligatoire** — paiement séquentiel (pas de trou dans les mois antérieurs). Consulter `GET /finance/students/{id}/fee-periods?feeStructureId=` pour `allowedMonthYear`. Si `FINANCE_REQUIRE_CASH_SESSION=true`, une session caisse ouverte est **obligatoire** pour `method=CASH`. Réponse enrichie: `{ payment, serverAmount, feeStructureId, resolvedFrom }`. Header optionnel `X-Idempotency-Key` pour éviter les doublons.",
         "responses": {
           "201": {
             "description": "Ressource créée",
@@ -413,6 +413,45 @@
             "schema": {
               "type": "integer"
             }
+          }
+        ]
+      }
+    },
+    "/finance/fee-categories": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Catalog"
+        ],
+        "summary": "Catalogue catégories de frais (lecture seule)",
+        "description": "Rôles: FINANCE. Policy: `read FeeCategory`.\n\nRetourne les catégories actives avec `billingPeriod` (ONE_TIME, ANNUAL, MONTHLY).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessFeeCategoryCatalog"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
           }
         ]
       }
@@ -748,7 +787,7 @@
           "Closing"
         ],
         "summary": "Finaliser clôture journalière",
-        "description": "Rôles: FINANCE. Policy: `reconcile FinanceReport`.\n\nPersiste un `FinancialSnapshot` FINALIZED.",
+        "description": "Rôles: FINANCE. Policy: `reconcile FinanceReport`.\n\nPersiste un `FinancialSnapshot` FINALIZED via `ReportingEngine.finalizeDailyClosing` (metricsJson dual USD/CDF + payload legacy methods/reconciliation).",
         "responses": {
           "201": {
             "description": "Ressource créée",
@@ -1437,6 +1476,128 @@
         ]
       }
     },
+    "/finance/students/{id}/fee-periods": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Students"
+        ],
+        "summary": "Périodes payées / impayées pour un barème",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.\n\n**Query obligatoire:** `feeStructureId`. Pour frais `MONTHLY` : retourne `paidMonths`, `unpaidMonths`, `allowedMonthYear` (mois encaissable séquentiellement).",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessStudentFeePeriodStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "feeStructureId",
+            "in": "query",
+            "required": true,
+            "description": "ID barème",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/finance/students/{id}/fee-schedule": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Students"
+        ],
+        "summary": "Échéancier consolidé (tous barèmes)",
+        "description": "Rôles: FINANCE. Policy: `read FinanceReport`.\n\nVue lecture seule : cantine, bus, minerval avec statuts PAID/DUE/OVERDUE.",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessStudentFeeSchedule"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "query",
+            "required": false,
+            "description": "Session académique (défaut = courante)",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
     "/finance/payments/reports/daily-cash": {
       "get": {
         "tags": [
@@ -1823,6 +1984,75 @@
         ]
       }
     },
+    "/finance/receipts/{paymentId}/download": {
+      "get": {
+        "tags": [
+          "Finance",
+          "Documents"
+        ],
+        "summary": "Télécharger reçu PDF (alias court)",
+        "description": "Rôles: FINANCE. Policy: `print Receipt`.\n\nAlias de `GET /finance/payments/receipts/{paymentId}/download` — même handler, PDF enrichi (matricule, périodes, caissier).",
+        "responses": {
+          "200": {
+            "description": "Fichier PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "description": "ID paiement",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "A4",
+                "Thermal"
+              ],
+              "default": "A4"
+            }
+          }
+        ]
+      }
+    },
     "/finance/payments/receipts/{paymentId}/download": {
       "get": {
         "tags": [
@@ -1830,7 +2060,7 @@
           "Documents"
         ],
         "summary": "Télécharger reçu PDF",
-        "description": "Rôles: FINANCE. Policy: `print Receipt`.\n\n**Réponse binaire** `application/pdf` — pas de wrapper JSON.",
+        "description": "Rôles: FINANCE. Policy: `print Receipt`.\n\n**Réponse binaire** `application/pdf` — pas de wrapper JSON. PDF enrichi (matricule, lignes de frais avec période, caissier, solde post-paiement).",
         "responses": {
           "200": {
             "description": "Fichier PDF",
@@ -2388,6 +2618,16 @@
             "type": "integer",
             "minimum": 1,
             "description": "Barème serveur (PaymentCreateAmountResolver). Obligatoire si PAYMENT_STRICT_AMOUNT=true."
+          },
+          "monthYear": {
+            "$ref": "#/components/schemas/MonthYear",
+            "description": "Obligatoire pour frais MONTHLY si FEE_BILLING_PERIOD_ENFORCEMENT=true. Utiliser allowedMonthYear de fee-periods."
+          },
+          "payerPhone": {
+            "type": "string",
+            "minLength": 9,
+            "maxLength": 20,
+            "description": "Téléphone payeur (Mobile Money RDC)"
           },
           "reference": {
             "type": "string",
@@ -3173,6 +3413,75 @@
           }
         }
       },
+      "FeeCategoryCatalogItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "billingPeriod": {
+            "$ref": "#/components/schemas/FeeBillingPeriod"
+          },
+          "dueDayOfMonth": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
+      },
+      "ApiSuccessFeeCategoryCatalog": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FeeCategoryCatalogItem"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessStudentFeePeriodStatus": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/StudentFeePeriodStatus"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessStudentFeeSchedule": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/StudentFeeScheduleDto"
+              }
+            }
+          }
+        ]
+      },
       "PaymentSettlementProvider": {
         "type": "string",
         "enum": [
@@ -3389,6 +3698,1571 @@
             "maxLength": 500
           }
         }
+      },
+      "PaymentProofType": {
+        "type": "string",
+        "enum": [
+          "RECEIPT_PDF",
+          "MOBILE_MONEY_SCREENSHOT",
+          "BANK_TRANSFER_SLIP",
+          "CASH_VOUCHER",
+          "OTHER"
+        ]
+      },
+      "ManualPaymentBody": {
+        "type": "object",
+        "required": [
+          "studentId",
+          "amount",
+          "method"
+        ],
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "BANK_TRANSFER",
+              "MOBILE_MONEY",
+              "CHEQUE",
+              "ORANGE_MONEY",
+              "MPESA",
+              "AIRTEL_MONEY",
+              "CARD",
+              "BANK"
+            ]
+          },
+          "sessionId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "feeStructureId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "monthYear": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "example": "2026-09",
+            "description": "Période YYYY-MM — obligatoire pour frais MONTHLY si FEE_BILLING_PERIOD_ENFORCEMENT=true"
+          },
+          "payerPhone": {
+            "type": "string",
+            "minLength": 9,
+            "maxLength": 20,
+            "description": "Téléphone payeur (Mobile Money RDC)"
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "proofType": {
+            "$ref": "#/components/schemas/PaymentProofType"
+          },
+          "manualJustification": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 255
+          }
+        }
+      },
+      "ConfirmPaymentWithProofBody": {
+        "type": "object",
+        "properties": {
+          "proofType": {
+            "$ref": "#/components/schemas/PaymentProofType"
+          },
+          "manualJustification": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "EnterpriseDashboardDTO": {
+        "type": "object",
+        "description": "Dashboard stratégique finance (GET /admin/finance/dashboard/strategic)",
+        "properties": {
+          "performance": {
+            "type": "object",
+            "properties": {
+              "monthlyRevenue": {
+                "type": "number"
+              },
+              "projectedRevenue": {
+                "type": "number"
+              },
+              "arpu": {
+                "type": "number"
+              },
+              "digitalAdoption": {
+                "type": "number"
+              },
+              "collectionEfficiency": {
+                "type": "number"
+              }
+            }
+          },
+          "audit": {
+            "type": "object",
+            "properties": {
+              "pendingVerifications": {
+                "type": "integer"
+              },
+              "isBenfordValid": {
+                "type": "boolean"
+              },
+              "suspiciousActivity": {
+                "type": "boolean"
+              },
+              "devianceLevel": {
+                "type": "number"
+              },
+              "daysSalesOutstanding": {
+                "type": "number"
+              },
+              "highRiskProfiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FinanceHighRiskProfile"
+                }
+              }
+            }
+          },
+          "treasury": {
+            "type": "object",
+            "properties": {
+              "totalUnpaid": {
+                "type": "number"
+              },
+              "breakEvenRequirement": {
+                "type": "number"
+              },
+              "badDebtEstimate": {
+                "type": "number"
+              }
+            }
+          },
+          "actionsRequired": {
+            "type": "object",
+            "properties": {
+              "criticalAttention": {
+                "type": "boolean"
+              },
+              "collectionStrategy": {
+                "type": "string",
+                "enum": [
+                  "AGGRESSIVE_RECALL",
+                  "NORMAL_FOLLOWUP"
+                ]
+              },
+              "securityAlert": {
+                "type": "string"
+              }
+            }
+          },
+          "serverMetadata": {
+            "type": "object",
+            "properties": {
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "schoolId": {
+                "type": "integer"
+              },
+              "operatorId": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "FinanceHighRiskProfile": {
+        "type": "object",
+        "properties": {
+          "studentName": {
+            "type": "string"
+          },
+          "debtAmount": {
+            "type": "number"
+          },
+          "fraudAlertCount": {
+            "type": "integer"
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH"
+            ]
+          }
+        }
+      },
+      "FinanceFraudAlert": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "studentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FinanceFraudAlertsResponse": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "HIGH"
+            ]
+          },
+          "deviance": {
+            "type": "number"
+          },
+          "benfordValid": {
+            "type": "boolean"
+          },
+          "anomalies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      },
+      "PendingVerificationPayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "method": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "providerRef": {
+            "type": "string",
+            "nullable": true
+          },
+          "proofType": {
+            "$ref": "#/components/schemas/PaymentProofType"
+          },
+          "reconciliationNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PendingVerificationQueueItem": {
+        "type": "object",
+        "description": "File guichet — vérification paiement en attente",
+        "properties": {
+          "verificationId": {
+            "type": "integer"
+          },
+          "paymentId": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "verificationStep": {
+            "type": "integer"
+          },
+          "financeCheck": {
+            "type": "boolean"
+          },
+          "adminCheck": {
+            "type": "boolean"
+          },
+          "suspicion": {
+            "type": "boolean"
+          },
+          "fraudScore": {
+            "type": "number",
+            "nullable": true
+          },
+          "queuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/PendingVerificationPayment"
+          },
+          "student": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "matricule": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "className": {
+                "type": "string",
+                "nullable": true
+              },
+              "balance": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "PendingVerificationListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingVerificationQueueItem"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminRefundRequestDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "paymentId": {
+            "type": "integer"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "PROCESSING",
+              "REJECTED",
+              "PROCESSED",
+              "FAILED",
+              "CANCELLED",
+              "SYNCED"
+            ]
+          },
+          "reviewNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "processedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requestedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "reviewedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "gateway": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "provider": {
+                "type": "string",
+                "nullable": true
+              },
+              "refundRef": {
+                "type": "string",
+                "nullable": true
+              },
+              "status": {
+                "type": "string",
+                "nullable": true
+              },
+              "correlationId": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "payment": {
+            "type": "object",
+            "properties": {
+              "reference": {
+                "type": "string"
+              },
+              "method": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "studentName": {
+                "type": "string"
+              },
+              "matricule": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "AdminRefundListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminRefundRequestDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "ReviewRefundBody": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject"
+            ]
+          },
+          "reviewNotes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "CreateSealBatchBody": {
+        "type": "object",
+        "required": [
+          "paymentIds"
+        ],
+        "properties": {
+          "paymentIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "FinancialSealBatchDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "batchReference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SEALED",
+              "ARCHIVED"
+            ]
+          },
+          "paymentCount": {
+            "type": "integer"
+          },
+          "linkedPaymentCount": {
+            "type": "integer"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "sealHmac": {
+            "type": "string"
+          },
+          "sealedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sealedBy": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FinancialSealBatchListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinancialSealBatchDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateSealBatchResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "batchReference": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SEALED",
+              "ARCHIVED"
+            ]
+          },
+          "paymentCount": {
+            "type": "integer"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "sealHmac": {
+            "type": "string"
+          },
+          "sealedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paymentIds": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "MoratoriumPolicyDto": {
+        "type": "object",
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "maxDays": {
+            "type": "integer"
+          },
+          "maxPerYear": {
+            "type": "integer"
+          },
+          "defaultNotifyBehavior": {
+            "$ref": "#/components/schemas/MoratoriumNotifyBehavior"
+          },
+          "parentRequestEnabled": {
+            "type": "boolean"
+          },
+          "parentMaxRequestDays": {
+            "type": "integer"
+          },
+          "autoApproveMaxDays": {
+            "type": "integer"
+          },
+          "allowedTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MoratoriumType"
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "database",
+              "provisioned"
+            ]
+          }
+        }
+      },
+      "UpdateMoratoriumPolicyBody": {
+        "type": "object",
+        "properties": {
+          "maxMoratoriumDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "maxMoratoriumsPerYear": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          },
+          "moratoriumBehavior": {
+            "$ref": "#/components/schemas/MoratoriumNotifyBehavior"
+          },
+          "parentRequestEnabled": {
+            "type": "boolean"
+          },
+          "parentMaxRequestDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90
+          },
+          "autoApproveMaxDays": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 30
+          }
+        }
+      },
+      "ApproveMoratoriumBody": {
+        "type": "object",
+        "properties": {
+          "internalNote": {
+            "type": "string"
+          }
+        }
+      },
+      "MarkVerificationProcessedBody": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "FeeBillingPeriod": {
+        "type": "string",
+        "enum": [
+          "ONE_TIME",
+          "ANNUAL",
+          "MONTHLY"
+        ],
+        "description": "Périodicité du type de frais (RDC : minerval annuel, cantine/bus mensuel)"
+      },
+      "MonthYear": {
+        "type": "string",
+        "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+        "example": "2026-09",
+        "description": "Mois facturé YYYY-MM"
+      },
+      "StudentFeePeriodStatus": {
+        "type": "object",
+        "description": "État des périodes payées / impayées pour un barème",
+        "properties": {
+          "feeStructureId": {
+            "type": "integer"
+          },
+          "billingPeriod": {
+            "$ref": "#/components/schemas/FeeBillingPeriod"
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "sessionLabel": {
+            "type": "string"
+          },
+          "paidMonths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthYear"
+            }
+          },
+          "unpaidMonths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonthYear"
+            }
+          },
+          "nextDueMonth": {
+            "type": "string",
+            "nullable": true
+          },
+          "allowedMonthYear": {
+            "type": "string",
+            "nullable": true,
+            "description": "Mois encaissable maintenant (paiement séquentiel)"
+          },
+          "annualPaid": {
+            "type": "boolean"
+          },
+          "oneTimePaid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FeeScheduleLineStatus": {
+        "type": "string",
+        "enum": [
+          "PAID",
+          "DUE",
+          "UPCOMING",
+          "OVERDUE"
+        ]
+      },
+      "FeeScheduleLineDto": {
+        "type": "object",
+        "properties": {
+          "feeStructureId": {
+            "type": "integer"
+          },
+          "categoryId": {
+            "type": "integer"
+          },
+          "categoryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "billingPeriod": {
+            "$ref": "#/components/schemas/FeeBillingPeriod"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "monthYear": {
+            "type": "string",
+            "nullable": true
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/FeeScheduleLineStatus"
+          },
+          "paid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StudentFeeScheduleDto": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer"
+          },
+          "sessionId": {
+            "type": "integer"
+          },
+          "sessionLabel": {
+            "type": "string"
+          },
+          "billingStartMonth": {
+            "$ref": "#/components/schemas/MonthYear"
+          },
+          "billingEndMonth": {
+            "$ref": "#/components/schemas/MonthYear"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeScheduleLineDto"
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "lineCount": {
+                "type": "integer"
+              },
+              "paidCount": {
+                "type": "integer"
+              },
+              "dueCount": {
+                "type": "integer"
+              },
+              "overdueCount": {
+                "type": "integer"
+              },
+              "upcomingCount": {
+                "type": "integer"
+              },
+              "totalAmountDue": {
+                "type": "number"
+              },
+              "totalAmountPaid": {
+                "type": "number"
+              },
+              "nextDueDate": {
+                "type": "string",
+                "format": "date",
+                "nullable": true
+              },
+              "nextDueMonthYear": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "FeeCategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Immuable après création — unique par école"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "billingPeriod": {
+            "$ref": "#/components/schemas/FeeBillingPeriod"
+          },
+          "dueDayOfMonth": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 28
+          },
+          "displayOrder": {
+            "type": "integer"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "parentId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdById": {
+            "type": "integer",
+            "nullable": true
+          },
+          "updatedById": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "activeFeeStructureCount": {
+            "type": "integer"
+          },
+          "activeFeeRuleCount": {
+            "type": "integer"
+          }
+        }
+      },
+      "FeeCategoryListResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeCategoryDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateFeeCategoryBody": {
+        "type": "object",
+        "required": [
+          "name",
+          "code",
+          "billingPeriod"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "code": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 48
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "billingPeriod": {
+            "$ref": "#/components/schemas/FeeBillingPeriod"
+          },
+          "dueDayOfMonth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 28
+          },
+          "displayOrder": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "parentId": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "UpdateFeeCategoryBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "billingPeriod": {
+            "$ref": "#/components/schemas/FeeBillingPeriod"
+          },
+          "dueDayOfMonth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 28,
+            "nullable": true
+          },
+          "displayOrder": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "parentId": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true
+          }
+        }
+      },
+      "FeeStructureDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "schoolId": {
+            "type": "integer"
+          },
+          "sessionId": {
+            "type": "integer"
+          },
+          "categoryId": {
+            "type": "integer"
+          },
+          "classId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "scopeKey": {
+            "type": "string",
+            "example": "ALL",
+            "description": "ALL ou class:{id}"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paymentFeeCount": {
+            "type": "integer"
+          },
+          "category": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              },
+              "billingPeriod": {
+                "$ref": "#/components/schemas/FeeBillingPeriod"
+              }
+            }
+          }
+        }
+      },
+      "FeeStructureListResult": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeeStructureDto"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "CreateFeeStructureBody": {
+        "type": "object",
+        "required": [
+          "sessionId",
+          "categoryId",
+          "amount"
+        ],
+        "properties": {
+          "sessionId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "categoryId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "classId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "null = barème école entière (scopeKey ALL)"
+          },
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "default": "USD"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateFeeStructureBody": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "effectiveTo": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ReportPeriodCode": {
+        "type": "string",
+        "enum": [
+          "DAILY",
+          "WEEKLY",
+          "MONTHLY",
+          "QUARTERLY",
+          "SEMESTER",
+          "ANNUAL",
+          "J",
+          "H",
+          "M",
+          "T",
+          "S",
+          "A"
+        ],
+        "description": "Échelle temporelle — alias J/H/M/T/S/A acceptés"
+      },
+      "SchoolCurrencyConfigDto": {
+        "type": "object",
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "displayCurrency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "CDF"
+            ]
+          },
+          "exchangeToleranceBps": {
+            "type": "integer",
+            "example": 50,
+            "description": "50 = 0,50 %"
+          },
+          "legacyRate": {
+            "type": "number",
+            "description": "Taux legacy School.customExchangeRate"
+          }
+        }
+      },
+      "UpdateCurrencyConfigBody": {
+        "type": "object",
+        "properties": {
+          "displayCurrency": {
+            "type": "string",
+            "enum": [
+              "USD",
+              "CDF"
+            ]
+          },
+          "exchangeToleranceBps": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5000
+          }
+        },
+        "description": "Au moins un champ requis."
+      },
+      "CreateExchangeRateBody": {
+        "type": "object",
+        "required": [
+          "rate"
+        ],
+        "properties": {
+          "toCurrency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "default": "CDF"
+          },
+          "rate": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "example": 2850
+          },
+          "effectiveAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "syncLegacyField": {
+            "type": "boolean",
+            "description": "Met à jour School.customExchangeRate"
+          }
+        }
+      },
+      "ExchangeRateRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "fromCurrency": {
+            "type": "string"
+          },
+          "toCurrency": {
+            "type": "string"
+          },
+          "rate": {
+            "type": "string"
+          },
+          "effectiveAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "paymentId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AggregatedReportMetricsDto": {
+        "type": "object",
+        "properties": {
+          "transactionCount": {
+            "type": "integer"
+          },
+          "totalAmountBase": {
+            "type": "string",
+            "description": "Total pivot USD"
+          },
+          "totalAmountDisplay": {
+            "type": "string"
+          },
+          "displayCurrency": {
+            "type": "string"
+          },
+          "byMethod": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "byFeeCategory": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "FinanceAggregateReportDto": {
+        "type": "object",
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "period": {
+            "$ref": "#/components/schemas/ReportPeriodCode"
+          },
+          "periodKey": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/AggregatedReportMetricsDto"
+          },
+          "exchangeRate": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "nullable": true
+              },
+              "rate": {
+                "type": "string"
+              },
+              "fromCurrency": {
+                "type": "string"
+              },
+              "toCurrency": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            }
+          },
+          "fromCache": {
+            "type": "boolean"
+          },
+          "snapshotId": {
+            "type": "integer"
+          }
+        }
+      },
+      "ApiSuccessSchoolCurrencyConfig": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/SchoolCurrencyConfigDto"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessFinanceAggregateReport": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/FinanceAggregateReportDto"
+              }
+            }
+          }
+        ]
+      },
+      "ApiSuccessExchangeRateList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ExchangeRateRowDto"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "responses": {

@@ -48,6 +48,33 @@ export function useFinanceIntegrity() {
   })
 }
 
+/** KYC paiements en ligne parent — GET /admin/finance/payment-profile (lecture FINANCE). */
+export function useFinancePaymentProfile() {
+  return useQuery({
+    queryKey: ['finance', 'payment-profile'],
+    queryFn: financeRoleApi.getPaymentProfile,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useFinanceFeeCategories() {
+  return useQuery({
+    queryKey: ['finance', 'fee-categories'],
+    queryFn: financeRoleApi.getFeeCategories,
+    staleTime: 300_000,
+  })
+}
+
+export function useStudentFeePeriodStatus(studentId: number, feeStructureId?: number) {
+  return useQuery({
+    queryKey: ['finance', 'fee-periods', studentId, feeStructureId],
+    queryFn: () => financeRoleApi.getStudentFeePeriodStatus(studentId, feeStructureId!),
+    enabled: studentId > 0 && !!feeStructureId,
+    staleTime: 30_000,
+  })
+}
+
 // ── Sessions de caisse ─────────────────────────────────────────────────────
 
 export function useCurrentSession() {
@@ -196,8 +223,58 @@ export function useHighRisk() {
 }
 
 export function useTriggerDebtReminders() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: financeRoleApi.triggerDebtReminders,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'debt-reminders'] })
+    },
+  })
+}
+
+export function useDebtReminderPolicy() {
+  return useQuery({
+    queryKey: ['finance', 'debt-reminders', 'policy'],
+    queryFn: financeRoleApi.getDebtReminderPolicy,
+    staleTime: 30_000,
+  })
+}
+
+export function useUpdateDebtReminderPolicy() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeRoleApi.updateDebtReminderPolicy,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'debt-reminders'] })
+    },
+  })
+}
+
+export function useDebtReminderJournal(params?: { limit?: number; cursor?: number; campaignKey?: string }) {
+  return useQuery({
+    queryKey: ['finance', 'debt-reminders', 'journal', params],
+    queryFn: () => financeRoleApi.listDebtReminderJournal(params),
+    staleTime: 15_000,
+  })
+}
+
+export function useDebtReminderHealth() {
+  return useQuery({
+    queryKey: ['finance', 'debt-reminders', 'health'],
+    queryFn: financeRoleApi.getDebtReminderHealth,
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useRunLateFees() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeRoleApi.runLateFees,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'debtors'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'students-financial'] })
+    },
   })
 }
 
@@ -216,6 +293,18 @@ export function useExportPayments() {
 export function useExportCashSession() {
   return useMutation({
     mutationFn: (sessionId: number) => financeRoleApi.exportCashSession(sessionId),
+  })
+}
+
+export function useExportAccountingJournal() {
+  return useMutation({
+    mutationFn: financeRoleApi.exportAccountingJournal,
+  })
+}
+
+export function useExportGeneralLedger() {
+  return useMutation({
+    mutationFn: financeRoleApi.exportGeneralLedger,
   })
 }
 

@@ -4,6 +4,7 @@ import type {
   FinancePerformance, FinanceEfficiencyLevel, TopPayer,
   FinanceAnomaliesResult, EndOfDaySnapshot, FinanceAuditFull,
   PaymentSecurityAuditItem, HighRiskProfile,
+  GroupFinanceDashboard, CollectionBenchmark, FeeCatalogCloneResult,
 } from '@/types/super-admin'
 
 export const financeApi = {
@@ -85,5 +86,25 @@ export const financeApi = {
   rejectKycProfile: (schoolId: number, reason?: string) =>
     apiClient
       .post<{ success: boolean; data: unknown }>(`/superadmin/finance/payment-profiles/${schoolId}/reject`, { reason })
+      .then((r) => r.data.data),
+
+  getGroupDashboard: (params?: { schoolIds?: string; startDate?: string; endDate?: string }) =>
+    apiClient
+      .get<{ success: boolean; data: GroupFinanceDashboard }>('/superadmin/finance/group-dashboard', { params })
+      .then((r) => r.data.data),
+
+  getBenchmarks: (schoolId: number, params?: { startDate?: string; endDate?: string }) =>
+    apiClient
+      .get<{ success: boolean; data: CollectionBenchmark }>(`/superadmin/finance/benchmarks/${schoolId}`, { params })
+      .then((r) => r.data.data),
+
+  cloneFeeCatalog: (payload: {
+    sourceSessionId: number
+    targetSessionId: number
+    targetSchoolId?: number
+    overwriteExisting?: boolean
+  }) =>
+    apiClient
+      .post<{ success: boolean; data: FeeCatalogCloneResult }>('/superadmin/finance/fee-catalog/clone', payload)
       .then((r) => r.data.data),
 }

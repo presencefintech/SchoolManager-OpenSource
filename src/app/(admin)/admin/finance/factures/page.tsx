@@ -10,6 +10,7 @@ import {
   useAcademicSessions, useCreateFeeCategory, useCreateFeeStructure,
   useStudentInvoices, useGenerateInvoice, useApplyDiscount, useSyncBalance,
   useFeeStructures, useFeeCategories, useClasses, useDeleteFeeStructure,
+  useCloneFeeCatalogAdmin,
 } from '@/lib/hooks/use-admin'
 import type { CreateFeeCategoryPayload, CreateFeeStructurePayload, FeeBillingPeriod } from '@/types/admin'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -298,6 +299,7 @@ export default function FacturesPage() {
     isActive: true,
   })
   const { mutateAsync: deleteFeeStructure, isPending: deletingFee } = useDeleteFeeStructure()
+  const { mutateAsync: cloneCatalog, isPending: cloningCatalog } = useCloneFeeCatalogAdmin()
 
   const [feeForm, setFeeForm] = useState<Omit<CreateFeeStructurePayload, 'sessionId'>>({
     categoryId: 0,
@@ -306,6 +308,8 @@ export default function FacturesPage() {
   })
   const [feeSuccess, setFeeSuccess] = useState(false)
   const [feeError, setFeeError] = useState<string | null>(null)
+  const [cloneSourceSessionId, setCloneSourceSessionId] = useState(0)
+  const [cloneMsg, setCloneMsg] = useState<string | null>(null)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [activeStudentId, setActiveStudentId] = useState<number>(0)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -550,6 +554,52 @@ export default function FacturesPage() {
           </div>
         </form>
         {feeError && <p className="mt-2 text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{feeError}</p>}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-zinc-900 mb-1">Cloner le catalogue d’une session</h3>
+        <p className="text-xs text-zinc-400 mb-3">
+          Copie catégories + barèmes vers la session sélectionnée ci-dessus.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Session source</label>
+            <select
+              value={cloneSourceSessionId || ''}
+              onChange={(e) => setCloneSourceSessionId(Number(e.target.value))}
+              className="px-3 py-2 rounded-lg border border-zinc-200 text-sm min-w-[200px]"
+            >
+              <option value="">— Choisir —</option>
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            disabled={cloningCatalog || !cloneSourceSessionId || !selectedSessionId
+              || cloneSourceSessionId === selectedSessionId}
+            onClick={async () => {
+              setCloneMsg(null)
+              try {
+                const result = await cloneCatalog({
+                  sourceSessionId: cloneSourceSessionId,
+                  targetSessionId: selectedSessionId,
+                })
+                setCloneMsg(
+                  `OK — ${result.categoriesCloned} catégorie(s), ${result.structuresCloned} barème(s).`,
+                )
+                toast.success('Catalogue cloné')
+              } catch (e) {
+                setCloneMsg(getApiErrorMessage(e))
+              }
+            }}
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-40"
+          >
+            {cloningCatalog ? 'Clonage…' : 'Cloner vers session courante'}
+          </button>
+        </div>
+        {cloneMsg && <p className="mt-2 text-xs text-zinc-600">{cloneMsg}</p>}
       </div>
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">

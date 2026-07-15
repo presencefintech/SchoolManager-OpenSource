@@ -106,6 +106,8 @@ export function normalizeStudentListItem(raw: Record<string, unknown>): StudentL
     id: Number(raw.id),
     firstName: String(raw.firstName ?? ''),
     lastName: String(raw.lastName ?? ''),
+    postnom: (raw.postnom as string | null | undefined) ?? null,
+    prenom: (raw.prenom as string | null | undefined) ?? null,
     matricule: (raw.matricule as string | undefined) ?? undefined,
     status: String(raw.status ?? ''),
     className: cls?.name ?? (raw.className as string | undefined),
@@ -142,10 +144,14 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
   const totalFees = toAmount(profile.totalFees)
   const totalPaid = toAmount(stats.totalPaid ?? profile.feesPaid)
 
+  const school = profile.school as { name?: string } | undefined
+
   return {
     id: Number(profile.id),
     firstName: String(profile.firstName ?? ''),
     lastName: String(profile.lastName ?? ''),
+    postnom: (profile.postnom as string | null | undefined) ?? null,
+    prenom: (profile.prenom as string | null | undefined) ?? null,
     matricule: profile.matricule as string | undefined,
     status: String(profile.status ?? ''),
     email: profile.email as string | undefined,
@@ -161,6 +167,7 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
     className: cls?.name ?? (profile.className as string | undefined),
     classId: profile.classId != null ? Number(profile.classId) : cls?.id,
     schoolId: Number(profile.schoolId ?? 0),
+    schoolName: school?.name ?? (profile.schoolName as string | undefined),
     hasBiometrics: profile.biometricStatus === 'READY' || Boolean(profile.hasBiometrics),
     isLocked: Boolean(profile.isLocked),
     isPaymentLocked: Boolean(profile.isPaymentLocked),
@@ -245,24 +252,52 @@ export function normalizePendingVerification(row: Record<string, unknown>): Pend
 }
 
 export function normalizePaymentProfile(raw: Record<string, unknown>): PaymentProfile {
+  // PUT renvoie parfois { profile, onboarding }
+  const src =
+    raw.profile && typeof raw.profile === 'object'
+      ? (raw.profile as Record<string, unknown>)
+      : raw
+  return {
+    schoolId: Number(src.schoolId ?? 0),
+    schoolName: src.schoolName as string | undefined,
+    provider: String(src.provider ?? 'FLUTTERWAVE') as PaymentProfile['provider'],
+    legalName: String(src.legalName ?? ''),
+    contactEmail: src.contactEmail as string | undefined,
+    contactPhone: src.contactPhone as string | undefined,
+    settlementBankCode: src.settlementBankCode as string | undefined,
+    settlementAccountMasked: src.settlementAccountMasked as string | undefined,
+    settlementAccountName: src.settlementAccountName as string | undefined,
+    mobileMoneyBusinessId: src.mobileMoneyBusinessId as string | undefined,
+    flwSubaccountId: src.flwSubaccountId as string | undefined,
+    kycStatus: String(src.kycStatus ?? 'NOT_CONFIGURED') as PaymentProfile['kycStatus'],
+    kycNote: src.kycNote as string | undefined,
+    onlinePaymentsEnabled: Boolean(src.onlinePaymentsEnabled),
+    verifiedAt: src.verifiedAt ? String(src.verifiedAt) : undefined,
+    rejectedAt: src.rejectedAt ? String(src.rejectedAt) : undefined,
+    updatedAt: src.updatedAt ? String(src.updatedAt) : undefined,
+  }
+}
+
+export function normalizePaymentOnboarding(raw: Record<string, unknown>): import('@/types/admin').PaymentOnboardingChecklist {
+  const stepsRaw = Array.isArray(raw.steps) ? raw.steps : []
   return {
     schoolId: Number(raw.schoolId ?? 0),
-    schoolName: raw.schoolName as string | undefined,
-    provider: String(raw.provider ?? 'FLUTTERWAVE') as PaymentProfile['provider'],
-    legalName: String(raw.legalName ?? ''),
-    contactEmail: raw.contactEmail as string | undefined,
-    contactPhone: raw.contactPhone as string | undefined,
-    settlementBankCode: raw.settlementBankCode as string | undefined,
-    settlementAccountMasked: raw.settlementAccountMasked as string | undefined,
-    settlementAccountName: raw.settlementAccountName as string | undefined,
-    mobileMoneyBusinessId: raw.mobileMoneyBusinessId as string | undefined,
-    flwSubaccountId: raw.flwSubaccountId as string | undefined,
-    kycStatus: String(raw.kycStatus ?? 'NOT_CONFIGURED') as PaymentProfile['kycStatus'],
-    kycNote: raw.kycNote as string | undefined,
-    onlinePaymentsEnabled: Boolean(raw.onlinePaymentsEnabled),
-    verifiedAt: raw.verifiedAt ? String(raw.verifiedAt) : undefined,
-    rejectedAt: raw.rejectedAt ? String(raw.rejectedAt) : undefined,
-    updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
+    readyForOnlinePayments: Boolean(raw.readyForOnlinePayments),
+    currentStep: String(raw.currentStep ?? 'LEGAL_PROFILE'),
+    steps: stepsRaw.map((s) => {
+      const step = (s ?? {}) as Record<string, unknown>
+      return {
+        key: String(step.key ?? ''),
+        label: String(step.label ?? ''),
+        status: String(step.status ?? 'PENDING') as import('@/types/admin').OnboardingStepStatus,
+        detail: step.detail != null ? String(step.detail) : undefined,
+      }
+    }),
+    profile: normalizePaymentProfile(
+      (raw.profile && typeof raw.profile === 'object'
+        ? (raw.profile as Record<string, unknown>)
+        : {}) as Record<string, unknown>,
+    ),
   }
 }
 

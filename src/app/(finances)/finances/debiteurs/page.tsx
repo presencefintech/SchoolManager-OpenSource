@@ -8,7 +8,7 @@ import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedul
 import { StudentPaymentHistory } from '@/components/finance/student-dashboard/StudentPaymentHistory'
 import { StudentFinanceDrawer } from '@/components/finance/student-finance-drawer'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
-import { useDebtors, useStudentFinanceProfile, useExportDebtors, useTriggerDebtReminders, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
+import { useDebtors, useStudentFinanceProfile, useExportDebtors, useHighRisk, useStudentWallet, useFinanceMoratoriums } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -36,7 +36,6 @@ export default function DebiteursPage() {
   const [drawerStudentId, setDrawerStudentId] = useState(0)
   const [drawerStudentName, setDrawerStudentName] = useState('')
   const [expandedDebtor, setExpandedDebtor] = useState<number | null>(null)
-  const [reminderDone, setReminderDone] = useState(false)
 
   function openFinanceDrawer(id: number, name?: string) {
     if (!Number.isFinite(id) || id <= 0) return
@@ -51,17 +50,12 @@ export default function DebiteursPage() {
   const { data: highRiskData, isLoading: loadingRisk } = useHighRisk()
   const { data: moratoriumsData, isLoading: loadingMoratoriums } = useFinanceMoratoriums({ status: 'ACTIVE' })
   const exportDebtors = useExportDebtors()
-  const { mutateAsync: triggerReminders, isPending: triggering } = useTriggerDebtReminders()
 
   async function handleExport() {
     try {
       const blob = await exportDebtors.mutateAsync()
       downloadBlob(blob, `debiteurs-${new Date().toISOString().slice(0, 10)}.csv`)
     } catch {}
-  }
-
-  async function handleReminders() {
-    try { await triggerReminders(); setReminderDone(true) } catch {}
   }
 
   const debtors: any[] = (debtorsData as any)?.data ?? (Array.isArray(debtorsData) ? debtorsData : [])
@@ -102,10 +96,12 @@ export default function DebiteursPage() {
               className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50 disabled:opacity-40">
               <Download size={12} /> Export CSV
             </button>
-            <button onClick={handleReminders} disabled={triggering || reminderDone}
-              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs disabled:opacity-40 ${reminderDone ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
-              <Bell size={12} /> {reminderDone ? 'Relances envoyées' : 'Relancer'}
-            </button>
+            <Link
+              href="/finances/relances"
+              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-50"
+            >
+              <Bell size={12} /> Relances
+            </Link>
           </>
         }
       />
