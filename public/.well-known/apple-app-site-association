@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["TEAMID.com.example.ecoleAppMobile"],
+        "appIDs": ["TEAMID.com.schoolmanager.app"],
         "components": [
           {
             "/": "/receipt/verify",
