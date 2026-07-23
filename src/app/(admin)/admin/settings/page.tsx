@@ -26,16 +26,27 @@ type AttendanceFormState = {
   absenceSettings: AttendanceAbsenceSettings
 }
 
+const DEFAULT_NOTIFICATION_SETTINGS: AttendanceNotificationSettings = {
+  parentPresenceNotificationsEnabled: false,
+}
+const DEFAULT_ABSENCE_SETTINGS: AttendanceAbsenceSettings = {
+  autoMarkEnabled: false,
+  cutoffHour: 9,
+  cutoffMinute: 0,
+  timezone: 'Africa/Kinshasa',
+}
+
 function settingsToForm(settings: AttendanceSettings): AttendanceFormState {
+  const geofence = settings.geofence ?? { latitude: null, longitude: null, radiusKm: 0.5, radiusMeters: 500, configured: false }
   return {
     methods: { ...settings.methods },
     offlineSyncEnabled: settings.offlineSyncEnabled,
     validationRules: { ...settings.validationRules },
-    geofenceLat: settings.geofence.latitude != null ? String(settings.geofence.latitude) : '',
-    geofenceLng: settings.geofence.longitude != null ? String(settings.geofence.longitude) : '',
-    geofenceRadiusKm: String(settings.geofence.radiusKm ?? 0.5),
-    notificationSettings: { ...settings.notificationSettings },
-    absenceSettings: { ...settings.absenceSettings },
+    geofenceLat: geofence.latitude != null ? String(geofence.latitude) : '',
+    geofenceLng: geofence.longitude != null ? String(geofence.longitude) : '',
+    geofenceRadiusKm: String(geofence.radiusKm ?? 0.5),
+    notificationSettings: { ...DEFAULT_NOTIFICATION_SETTINGS, ...settings.notificationSettings },
+    absenceSettings: { ...DEFAULT_ABSENCE_SETTINGS, ...settings.absenceSettings },
   }
 }
 
@@ -58,23 +69,25 @@ function buildPatch(original: AttendanceSettings, form: AttendanceFormState): Pa
 
   if (
     form.notificationSettings.parentPresenceNotificationsEnabled !==
-    original.notificationSettings.parentPresenceNotificationsEnabled
+    (original.notificationSettings?.parentPresenceNotificationsEnabled ?? false)
   ) {
     patch.notificationSettings = form.notificationSettings
   }
 
+  const originalAbsence = original.absenceSettings ?? DEFAULT_ABSENCE_SETTINGS
   const absenceKeys = Object.keys(form.absenceSettings) as (keyof AttendanceAbsenceSettings)[]
-  if (absenceKeys.some((k) => form.absenceSettings[k] !== original.absenceSettings[k])) {
+  if (absenceKeys.some((k) => form.absenceSettings[k] !== originalAbsence[k])) {
     patch.absenceSettings = form.absenceSettings
   }
 
+  const originalGeofence = original.geofence ?? { latitude: null, longitude: null, radiusKm: 0.5 }
   const lat = form.geofenceLat.trim() ? Number(form.geofenceLat) : null
   const lng = form.geofenceLng.trim() ? Number(form.geofenceLng) : null
   const radiusKm = Number(form.geofenceRadiusKm)
   const geoChanged =
-    lat !== original.geofence.latitude ||
-    lng !== original.geofence.longitude ||
-    radiusKm !== original.geofence.radiusKm
+    lat !== originalGeofence.latitude ||
+    lng !== originalGeofence.longitude ||
+    radiusKm !== originalGeofence.radiusKm
 
   if (geoChanged && lat != null && lng != null && Number.isFinite(radiusKm) && radiusKm > 0) {
     patch.geofence = { latitude: lat, longitude: lng, radiusKm }
@@ -344,7 +357,7 @@ export default function SettingsPage() {
                 />
               </div>
             </div>
-            {settings && !settings.geofence.configured && (
+            {settings && !settings.geofence?.configured && (
               <p className="mt-2 text-xs text-amber-600">Géofence non configurée — requis pour la readiness pilote.</p>
             )}
           </div>
