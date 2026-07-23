@@ -1,20 +1,21 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { fadeUp, stagger } from '@/lib/animations'
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
   QrCode, Plus, ClipboardList, RefreshCw, CheckCheck, Trash2,
-  EyeOff, Bell, Settings2,
+  EyeOff, Bell, Settings2, History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   usePresenceStats, usePresenceLiveFeed, usePresenceHeatmap, usePresenceAlerts,
   useValidatePresence, useDeletePresence,
-  useClasses,
+  useClasses, useSections,
   useDismissSecurityAlert, useValidateSecurityAlert, useNotifySecurityAlert,
 } from '@/lib/hooks/use-admin'
 import type { PresenceSecurityAlert, ClassListItem } from '@/types/admin'
@@ -29,11 +30,25 @@ import { labelFraudScore } from '@/lib/business-labels'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
+import { AttendanceHistoryPanel } from '@/components/admin/presences/AttendanceHistoryPanel'
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 
 const PRESENCE_FILTER_DEFAULTS = { search: '', classId: '', status: '' }
 
-type Tab = 'live' | 'heatmap' | 'alerts' | 'sheets'
+type Tab = 'live' | 'history' | 'heatmap' | 'alerts' | 'sheets'
+
+function parseTab(raw: string | null): Tab {
+  if (
+    raw === 'history' ||
+    raw === 'heatmap' ||
+    raw === 'alerts' ||
+    raw === 'sheets' ||
+    raw === 'live'
+  ) {
+    return raw
+  }
+  return 'live'
+}
 
 type BulkModalState = {
   classId?: number
@@ -95,7 +110,23 @@ function HeatmapChart({ classId }: { classId?: number }) {
 
 export default function PresencesPage() {
   const toast = useToast()
-  const [tab, setTab] = useState<Tab>('live')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')))
+
+  useEffect(() => {
+    setTab(parseTab(searchParams.get('tab')))
+  }, [searchParams])
+
+  const selectTab = (next: Tab) => {
+    setTab(next)
+    const params = new URLSearchParams(searchParams.toString())
+    if (next === 'live') params.delete('tab')
+    else params.set('tab', next)
+    const qs = params.toString()
+    router.replace(qs ? `?${qs}` : '/admin/presences', { scroll: false })
+  }
+
   const {
     draft: filterDraft,
     applied: filters,
@@ -121,7 +152,12 @@ export default function PresencesPage() {
   })
   const { data: alerts, isLoading: loadingAlerts } = usePresenceAlerts()
   const { data: classesData } = useClasses()
+  const { data: sectionsData } = useSections()
   const classes = classesData ?? []
+  const sections = (sectionsData ?? []).map((s: { id: number; name: string }) => ({
+    id: s.id,
+    name: s.name,
+  }))
 
   const validate = useValidatePresence()
   const del = useDeletePresence()
@@ -172,6 +208,7 @@ export default function PresencesPage() {
 
   const TABS: { key: Tab; label: string; icon?: typeof Activity }[] = [
     { key: 'live', label: 'Flux en direct', icon: Activity },
+    { key: 'history', label: 'Historique', icon: History },
     { key: 'heatmap', label: 'Heatmap' },
     { key: 'sheets', label: 'Cahiers d\'appel', icon: ClipboardList },
     { key: 'alerts', label: `Alertes${alerts?.length ? ` (${alerts.length})` : ''}`, icon: ShieldAlert },
@@ -182,7 +219,7 @@ export default function PresencesPage() {
       classId: params?.classId,
       sessionDate: params?.sessionDate,
     })
-    setTab('sheets')
+    selectTab('sheets')
   }
 
   async function confirmAlertAction() {
@@ -374,7 +411,7 @@ export default function PresencesPage() {
               <button
                 key={key}
                 type="button"
-                onClick={() => setTab(key)}
+                onClick={() => selectTab(key)}
                 className={cn(
                   'inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium transition-all',
                   tab === key
@@ -535,6 +572,24 @@ export default function PresencesPage() {
                   <p className="mt-1 text-xs text-zinc-400">Actualisation automatique toutes les 15 secondes</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === 'history' && (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6 shadow-sm">
+              <h3 className="mb-4 text-sm font-semibold text-zinc-800">
+                Historique — présents, retards et absences
+              </h3>
+              <AttendanceHistoryPanel
+                mode="admin"
+                classes={classes.map((c: ClassListItem) => ({
+                  id: c.id,
+                  name: c.name,
+                  sectionId: c.sectionId,
+                }))}
+                sections={sections}
+                initialClassId={filterClassId ?? ''}
+              />
             </div>
           )}
 

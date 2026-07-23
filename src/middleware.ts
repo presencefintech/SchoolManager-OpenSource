@@ -10,6 +10,7 @@ const ROLE_PREFIXES: Record<UserRole, string> = {
   ADMIN: '/admin',
   SUPER_ADMIN: '/super-admin',
   FINANCE: '/finances',
+  DIRECTOR: '/director',
 }
 
 export function middleware(request: NextRequest) {

@@ -20,10 +20,10 @@ import { useQueryLoading } from '@/lib/hooks/use-auth-query'
 import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) => formatMoney(n)
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -100,8 +100,7 @@ const STUDENT_STATUS_CFG: Record<string, { label: string; color: string; bg: str
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
-const fmtShort = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0, notation: 'compact' }).format(n)
+const fmtShort = (n: number) => formatMoneyCompact(n)
 
 function AreaTooltip({ active, payload, label }: { active?: boolean; label?: string; payload?: Array<{ value: number }> }) {
   if (!active || !payload?.length) return null

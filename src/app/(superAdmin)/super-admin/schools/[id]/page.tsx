@@ -26,10 +26,10 @@ import {
 } from '@/lib/hooks/use-super-admin'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney } from '@/lib/finance/currency'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) => formatMoney(n)
 
 const fmtShort = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`

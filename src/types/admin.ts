@@ -161,7 +161,7 @@ export interface CreateStaffPayload {
   lastName: string
   email: string
   password: string
-  role: 'TEACHER' | 'FINANCE'
+  role: 'TEACHER' | 'FINANCE' | 'DIRECTOR'
   phone?: string
 }
 
@@ -427,6 +427,10 @@ export interface PresenceLiveFeedEntry {
   studentName: string
   matricule?: string
   className: string
+  sectionName?: string | null
+  optionName?: string | null
+  day?: string | null
+  time?: string | null
   scannedAt: string
   status: 'PRESENT' | 'ABSENT' | 'LATE'
   method?: string

@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Loader2, X, UserPlus, GraduationCap, Heart, Wallet, Info, Plus } from 'lucide-react'
+import { Loader2, X, UserPlus, GraduationCap, Heart, Wallet, Info, Plus, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   enrollmentCreateSchema,
@@ -25,9 +25,12 @@ import {
   useCreateSection,
   useCreateOption,
   useCreateClass,
+  useParentLookupByPhone,
 } from '@/lib/hooks/use-admin'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { PhoneInput } from '@/components/ui/phone-input'
+import { isValidInternationalPhone } from '@/lib/phone/validation'
 
 const inputCls =
   'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400'
@@ -174,6 +177,7 @@ export function EnrollmentCreateModal({
     reset,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<EnrollmentCreateForm>({
     resolver: zodResolver(enrollmentCreateSchema),
@@ -186,6 +190,25 @@ export function EnrollmentCreateModal({
   const optionId = watch('optionId')
   const classId = watch('classId')
   const academicYear = watch('academicYear')
+  const emergencyContactPhone = watch('emergencyContactPhone')
+  const emergencyContactName = watch('emergencyContactName')
+
+  const phoneIsValid = isValidInternationalPhone(emergencyContactPhone)
+  const { data: parentLookup, isFetching: lookingUpParent } = useParentLookupByPhone(
+    emergencyContactPhone,
+    phoneIsValid,
+  )
+
+  const parentMatch = parentLookup?.found ? parentLookup.parent : null
+  const lastAutofillPhoneRef = useRef('')
+
+  useEffect(() => {
+    if (!open || !parentMatch?.displayName) return
+    if (lastAutofillPhoneRef.current === emergencyContactPhone) return
+    if (emergencyContactName?.trim()) return
+    setValue('emergencyContactName', parentMatch.displayName, { shouldValidate: true })
+    lastAutofillPhoneRef.current = emergencyContactPhone ?? ''
+  }, [open, parentMatch, emergencyContactPhone, emergencyContactName, setValue])
 
   const { data: apiOptions = [], isLoading: loadingOptions } = useOptions(sectionId || undefined)
 
@@ -226,6 +249,7 @@ export function EnrollmentCreateModal({
       setInlineName('')
       prevSectionRef.current = 0
       prevOptionRef.current = 0
+      lastAutofillPhoneRef.current = ''
     }
   }, [open, reset])
 
@@ -576,14 +600,62 @@ export function EnrollmentCreateModal({
               </Field>
             </FormSection>
 
-            <FormSection icon={Heart} title="Contact d'urgence & santé">
+            <FormSection
+              icon={Heart}
+              title="Contact d'urgence & santé"
+              hint="Saisir le mobile du parent : s'il existe déjà, le dossier fratrie est réutilisé."
+            >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Parent / tuteur" error={errors.emergencyContactName?.message}>
                   <input {...register('emergencyContactName')} className={inputCls} autoComplete="name" />
                 </Field>
-                <Field label="Téléphone d'urgence" error={errors.emergencyContactPhone?.message}>
-                  <input type="tel" {...register('emergencyContactPhone')} placeholder="+243…" className={inputCls} />
+                <Field label="Téléphone mobile" error={errors.emergencyContactPhone?.message}>
+                  <Controller
+                    name="emergencyContactPhone"
+                    control={control}
+                    render={({ field }) => (
+                      <PhoneInput
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        defaultCountry="CD"
+                        placeholder="Ex. 81 000 0000"
+                        error={errors.emergencyContactPhone?.message}
+                        showError={false}
+                      />
+                    )}
+                  />
                 </Field>
+              </div>
+
+              {lookingUpParent && phoneIsValid && (
+                <p className="flex items-center gap-2 text-[11px] text-zinc-500">
+                  <Loader2 size={12} className="animate-spin" />
+                  Recherche du parent…
+                </p>
+              )}
+
+              {parentMatch && (
+                <div className="flex items-start gap-2 text-xs text-emerald-900 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2.5">
+                  <Users size={14} className="flex-shrink-0 mt-0.5 text-emerald-600" />
+                  <div className="space-y-0.5">
+                    <p className="font-medium">
+                      Parent trouvé — {parentMatch.displayName}
+                      {parentMatch.id != null ? ` (#${parentMatch.id})` : ''}
+                    </p>
+                    <p className="text-emerald-800/80">
+                      {parentMatch.childrenCount > 0
+                        ? `Déjà lié à ${parentMatch.childrenCount} élève${parentMatch.childrenCount > 1 ? 's' : ''}${
+                            parentMatch.children[0]
+                              ? ` (ex. ${parentMatch.children.map((c) => c.fullName).slice(0, 3).join(', ')})`
+                              : ''
+                          }. Ce numéro sera réutilisé automatiquement.`
+                        : 'Ce numéro est déjà connu dans l’école et sera réutilisé à l’inscription.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Groupe sanguin" error={errors.bloodGroup?.message}>
                   <select {...register('bloodGroup')} className={cn(inputCls, 'pr-8')}>
                     <option value="">—</option>

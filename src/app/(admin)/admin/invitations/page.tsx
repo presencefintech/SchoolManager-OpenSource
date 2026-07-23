@@ -218,6 +218,7 @@ function StaffInvitationsTab() {
             className="px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="TEACHER">Enseignant</option>
             <option value="FINANCE">Finance</option>
+            <option value="DIRECTOR">Directeur</option>
           </select>
         </div>
         <button

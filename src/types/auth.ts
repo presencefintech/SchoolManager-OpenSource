@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'FINANCE'
+export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'FINANCE' | 'DIRECTOR'
 
 export interface AuthUser {
   id: number
@@ -26,4 +26,5 @@ export const ROLE_HOME: Record<UserRole, string> = {
   ADMIN: '/admin/dashboard',
   SUPER_ADMIN: '/super-admin/dashboard',
   FINANCE: '/finances/dashboard',
+  DIRECTOR: '/director/dashboard',
 }

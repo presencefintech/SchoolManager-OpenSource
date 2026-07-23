@@ -13,6 +13,7 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { SmsIntegrationStatus } from '@/types/super-admin'
+import { formatMoney } from '@/lib/finance/currency'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const SKELETON = 'bg-zinc-100 rounded-xl animate-pulse'
@@ -364,7 +365,7 @@ export default function MonitoringPage() {
                         <tr key={a.id} className="hover:bg-zinc-50 transition-colors">
                           <td className="px-4 py-2.5 font-mono text-zinc-500">{a.id}</td>
                           <td className="px-4 py-2.5 font-semibold text-zinc-700">
-                            {a.amount.toLocaleString('fr-FR')} FCFA
+                            {formatMoney(a.amount)}
                           </td>
                           <td className="px-4 py-2.5 font-mono uppercase text-zinc-500">{a.method}</td>
                           <td className="px-4 py-2.5 text-zinc-500">{a.studentId}</td>

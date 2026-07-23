@@ -6,7 +6,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 import { cn } from '@/lib/utils'
 
-const STAFF_ROLES = new Set(['ADMIN', 'FINANCE', 'SUPER_ADMIN'])
+const STAFF_ROLES = new Set(['ADMIN', 'FINANCE', 'SUPER_ADMIN', 'DIRECTOR'])
 
 export function EmailVerificationBanner() {
   const { user, refreshUser } = useAuth()

@@ -10,9 +10,9 @@ import { useSchools, useFinanceReport } from '@/lib/hooks/use-super-admin'
 import { exportApi, type ExportPayload } from '@/lib/superAdmin/api/export.api'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney } from '@/lib/finance/currency'
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) => formatMoney(n)
 
 const METHOD_LABELS: Record<string, string> = {
   CASH: 'Espèces',

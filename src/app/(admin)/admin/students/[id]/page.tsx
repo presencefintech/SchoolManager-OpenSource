@@ -308,9 +308,6 @@ export default function StudentDetailPage() {
       schoolLogoUrl: branding?.logoUrl,
       className: student.className,
       academicYear: student.academicYear ?? enrollmentDetail?.academicYear,
-      dateOfBirth: student.dateOfBirth
-        ? new Date(student.dateOfBirth).toLocaleDateString('fr-FR')
-        : null,
       placeOfBirth: student.placeOfBirth,
       nationality: student.nationality,
       gender,
@@ -497,10 +494,8 @@ export default function StudentDetailPage() {
               <div className="flex items-center gap-2 min-w-0">
                 <CreditCard size={14} className="text-emerald-600 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-zinc-800">Carte d&apos;identité élève</p>
-                  <p className="text-[11px] text-zinc-400">
-                    Format CR80 · Nom / Postnom / Prénom · export PDF prêt démo
-                  </p>
+                  <p className="text-sm font-semibold text-zinc-800">Aperçu carte élève</p>
+                  <p className="text-[11px] text-zinc-400">Format CR80 · vérifiez avant d&apos;imprimer</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -654,7 +649,6 @@ export default function StudentDetailPage() {
               )}
             </div>
           </div>
-
           {/* Right column */}
           <div className="space-y-4">
 
@@ -677,7 +671,6 @@ export default function StudentDetailPage() {
                 </div>
               </div>
             )}
-
             {/* Presence stats */}
             {student.presenceCount !== undefined && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">

@@ -17,10 +17,10 @@ import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import type { FeeType } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney } from '@/lib/finance/currency'
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) => formatMoney(n)
 
 const FEE_TYPES: { value: FeeType; label: string }[] = [
   { value: 'TUITION',   label: 'Scolarité' },
@@ -514,7 +514,7 @@ export default function FeesPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-zinc-500 block mb-1">Montant (XOF)</label>
+                    <label className="text-xs font-medium text-zinc-500 block mb-1">Montant (USD)</label>
                     <input
                       type="number"
                       placeholder="150000"
@@ -743,7 +743,7 @@ export default function FeesPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-zinc-500 block mb-1">Montant remise (XOF)</label>
+                    <label className="text-xs font-medium text-zinc-500 block mb-1">Montant remise (USD)</label>
                     <input
                       type="number"
                       placeholder="Ex : 10000"
