@@ -617,6 +617,39 @@ export interface ClassListItem {
   createdAt: string
 }
 
+export interface ClassPeriodItem {
+  id: number
+  schoolId: number
+  classId: number
+  className: string | null
+  level: string | null
+  teacherId: number
+  teacherName: string | null
+  academicYear: string
+  dayOfWeek: number
+  startMinute: number
+  endMinute: number
+  start: string
+  end: string
+  subject: string | null
+  room: string | null
+  isActive: boolean
+}
+
+export interface CreateClassPeriodPayload {
+  classId: number
+  teacherId: number
+  academicYear: string
+  dayOfWeek: number
+  start: string
+  end: string
+  subject?: string | null
+  room?: string | null
+  isActive?: boolean
+}
+
+export type UpdateClassPeriodPayload = Partial<CreateClassPeriodPayload>
+
 export interface SectionRef {
   id: number
   name: string

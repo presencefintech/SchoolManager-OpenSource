@@ -1,12 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEmpirePollingInterval } from '@/lib/realtime/empire-realtime-provider'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi, attendanceNotificationsApi } from '@/lib/admin/api'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, classPeriodsApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi, attendanceNotificationsApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
 import type {
-  CreateStaffPayload, CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload,
+  CreateStaffPayload,
+  CreateClassPeriodPayload,
+  UpdateClassPeriodPayload,
+  CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload,
   CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload,
   GenerateParentCodePayload, InviteStaffPayload, RevokeStaffInvitationPayload, AttendanceSettings, PatchAttendanceSettingsPayload, SchoolBranding, BulkMoratoriumPayload,
   FeeStructurePayload, CreateFeeStructurePayload, CreateFeeCategoryPayload,
@@ -771,6 +774,47 @@ export function useClasses(params?: { search?: string; isActive?: boolean }) {
     enabled: !!getAuthToken(),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+  })
+}
+
+export function useClassPeriods(params?: {
+  teacherId?: number
+  classId?: number
+  academicYear?: string
+  dayOfWeek?: number
+  activeOnly?: boolean
+}) {
+  return useQuery({
+    queryKey: ['admin', 'class-periods', params],
+    queryFn: () => classPeriodsApi.list(params),
+    enabled: !!getAuthToken(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useCreateClassPeriod() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateClassPeriodPayload) => classPeriodsApi.create(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'class-periods'] }),
+  })
+}
+
+export function useUpdateClassPeriod() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateClassPeriodPayload }) =>
+      classPeriodsApi.update(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'class-periods'] }),
+  })
+}
+
+export function useDeactivateClassPeriod() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => classPeriodsApi.deactivate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'class-periods'] }),
   })
 }
 
