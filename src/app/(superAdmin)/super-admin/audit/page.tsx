@@ -17,10 +17,10 @@ import {
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatMoney } from '@/lib/finance/currency'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) => formatMoney(n)
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />

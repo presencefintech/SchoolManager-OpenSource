@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { ClassListItem, CreateEnrollmentPayload } from '@/types/admin'
+import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 
 const idField = (message: string) =>
   z.preprocess(
@@ -41,7 +42,15 @@ export const enrollmentCreateSchema = z.object({
   ),
   paymentNotes: z.string().max(500).optional().or(z.literal('')),
   emergencyContactName: z.string().min(2, 'Nom du contact requis').max(120).optional().or(z.literal('')),
-  emergencyContactPhone: z.string().min(6, 'Téléphone invalide').max(20).optional().or(z.literal('')),
+  emergencyContactPhone: z
+    .string()
+    .max(20)
+    .optional()
+    .or(z.literal(''))
+    .refine(
+      (v) => !v?.trim() || isValidInternationalPhone(v),
+      'Numéro mobile invalide ou non joignable (SMS)',
+    ),
   bloodGroup: z.string().max(10).optional().or(z.literal('')),
   allergies: z.string().max(500).optional().or(z.literal('')),
   medicalNotes: z.string().max(1000).optional().or(z.literal('')),
@@ -114,7 +123,10 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     feesPaid: data.feesPaid,
     paymentNotes: trimOptional(data.paymentNotes),
     emergencyContactName: trimOptional(data.emergencyContactName),
-    emergencyContactPhone: trimOptional(data.emergencyContactPhone),
+    emergencyContactPhone: (() => {
+      const phone = trimOptional(data.emergencyContactPhone)
+      return phone ? formatPhoneToE164(phone) : undefined
+    })(),
     bloodGroup: trimOptional(data.bloodGroup),
     allergies: trimOptional(data.allergies),
     medicalNotes: trimOptional(data.medicalNotes),

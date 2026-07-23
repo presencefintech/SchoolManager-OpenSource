@@ -17,6 +17,40 @@ import type {
   ActiveScanSession, PresenceSyncBatch, PresenceSyncBatchDetail,
 } from '@/types/admin'
 
+export type AttendanceHistoryItem = {
+  id: number
+  studentId: number
+  studentName: string
+  matricule: string
+  classId: number | null
+  className: string
+  sectionId: number | null
+  sectionName: string | null
+  sectionCode?: string | null
+  optionId: number | null
+  optionName: string | null
+  optionCode?: string | null
+  status: string
+  day: string
+  time: string
+  scannedAt: string
+  method: string
+  lateByMinutes?: number | null
+  absenceReason?: string | null
+}
+
+export type AttendanceHistoryResponse = {
+  data: AttendanceHistoryItem[]
+  pagination: { total: number; page: number; limit: number; totalPages: number }
+  filters?: {
+    from?: string | null
+    to?: string | null
+    status?: string | null
+    sectionId?: number | null
+    sessionId?: number | null
+  }
+}
+
 function normalizeSecurityAlert(raw: Record<string, unknown>): PresenceSecurityAlert {
   const base = raw as unknown as PresenceSecurityAlert
   return {
@@ -35,6 +69,10 @@ export const presencesApi = {
           studentName: p.studentName,
           matricule:   p.matricule,
           className:   p.className,
+          sectionName: p.sectionName ?? null,
+          optionName:  p.optionName ?? null,
+          day:         p.day ?? null,
+          time:        p.time ?? null,
           scannedAt:   p.scannedAt,
           status:      p.status,
           method:      p.method,
@@ -43,6 +81,23 @@ export const presencesApi = {
         }))
         return { entries, total: d?.pagination?.total ?? 0, pagination: d?.pagination }
       }),
+
+  getHistory: (params?: {
+    page?: number
+    limit?: number
+    classId?: number
+    sectionId?: number
+    studentId?: number
+    status?: 'PRESENT' | 'LATE' | 'ABSENT'
+    from?: string
+    to?: string
+    sessionId?: number
+  }) =>
+    apiClient
+      .get<{ success: boolean; data: AttendanceHistoryResponse }>('/admin/presences/history', {
+        params,
+      })
+      .then((r) => r.data.data),
 
   getStats: () =>
     apiClient.get<{ success: boolean; data: any }>('/admin/presences/stats')

@@ -2,22 +2,25 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Plus, Trash2, Loader2, X, Mail, Phone, BookOpen, CheckCircle, TrendingUp } from 'lucide-react'
+import {
+  Users, Plus, Trash2, Loader2, X, Mail, Phone, BookOpen,
+  CheckCircle, TrendingUp, Layers, Settings2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStaff, useCreateStaff, useDisableStaff } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { CreateStaffPayload } from '@/types/admin'
 import { Skeleton } from '@/components/ui/skeleton'
-
-function Sk({ className }: { className?: string }) {
-  return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
-}
+import { AssignDirectorSectionsModal } from '@/components/admin/staff/AssignDirectorSectionsModal'
 
 const ROLE_CFG: Record<string, { label: string; cls: string }> = {
-  ADMIN:   { label: 'Admin',      cls: 'bg-indigo-50 text-indigo-700' },
-  TEACHER: { label: 'Enseignant', cls: 'bg-emerald-50 text-emerald-700' },
-  FINANCE: { label: 'Finance',    cls: 'bg-amber-50 text-amber-700' },
+  ADMIN:    { label: 'Admin',      cls: 'bg-indigo-50 text-indigo-700' },
+  TEACHER:  { label: 'Enseignant', cls: 'bg-emerald-50 text-emerald-700' },
+  FINANCE:  { label: 'Finance',    cls: 'bg-amber-50 text-amber-700' },
+  DIRECTOR: { label: 'Directeur',  cls: 'bg-violet-50 text-violet-700' },
 }
+
+type StaffRoleOption = CreateStaffPayload['role']
 
 export default function StaffPage() {
   const { data: staff, isLoading } = useStaff()
@@ -25,6 +28,10 @@ export default function StaffPage() {
   const disableMutation = useDisableStaff()
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
+  const [assignTarget, setAssignTarget] = useState<{
+    id: number
+    name: string
+  } | null>(null)
   const [form, setForm] = useState<CreateStaffPayload>({
     firstName: '', lastName: '', email: '', password: '', role: 'TEACHER',
   })
@@ -33,9 +40,15 @@ export default function StaffPage() {
     e.preventDefault()
     setError('')
     try {
-      await createMutation.mutateAsync(form)
+      const created = await createMutation.mutateAsync(form)
       setShowModal(false)
       setForm({ firstName: '', lastName: '', email: '', password: '', role: 'TEACHER' })
+      if (form.role === 'DIRECTOR' && created?.id) {
+        setAssignTarget({
+          id: created.id,
+          name: `${form.firstName} ${form.lastName}`.trim(),
+        })
+      }
     } catch (err) {
       setError(getApiErrorMessage(err))
     }
@@ -69,10 +82,11 @@ export default function StaffPage() {
 
       <div className="max-w-5xl mx-auto px-8 py-8 space-y-5">
         {!isLoading && staff && staff.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               { label: 'Total membres', value: staff.length,                                     icon: Users,       bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
               { label: 'Enseignants',   value: staff.filter(m => m.role === 'TEACHER').length,   icon: BookOpen,    bg: 'bg-emerald-50', iconCls: 'text-emerald-600' },
+              { label: 'Directeurs',    value: staff.filter(m => m.role === 'DIRECTOR').length,  icon: Layers,      bg: 'bg-violet-50',  iconCls: 'text-violet-600' },
               { label: 'Finance',       value: staff.filter(m => m.role === 'FINANCE').length,   icon: TrendingUp,  bg: 'bg-amber-50',   iconCls: 'text-amber-600' },
               { label: 'Actifs',        value: staff.filter(m => m.status === 'ACTIVE').length,  icon: CheckCircle, bg: 'bg-blue-50',    iconCls: 'text-blue-600' },
             ].map(({ label, value, icon: Icon, bg, iconCls }) => (
@@ -134,15 +148,32 @@ export default function StaffPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {member.role !== 'ADMIN' && (
-                          <button
-                            onClick={() => handleDisable(member.id)}
-                            disabled={disableMutation.isPending}
-                            className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                        <div className="inline-flex items-center gap-1">
+                          {member.role === 'DIRECTOR' && (
+                            <button
+                              type="button"
+                              title="Affecter les sections"
+                              onClick={() =>
+                                setAssignTarget({
+                                  id: member.id,
+                                  name: `${member.firstName} ${member.lastName}`.trim(),
+                                })
+                              }
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
+                            >
+                              <Settings2 size={14} />
+                            </button>
+                          )}
+                          {member.role !== 'ADMIN' && (
+                            <button
+                              onClick={() => handleDisable(member.id)}
+                              disabled={disableMutation.isPending}
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -208,11 +239,12 @@ export default function StaffPage() {
                 <label className="block text-xs font-medium text-zinc-600 mb-1">Rôle</label>
                 <select
                   value={form.role}
-                  onChange={e => setForm(f => ({ ...f, role: e.target.value as 'TEACHER' | 'FINANCE' }))}
+                  onChange={e => setForm(f => ({ ...f, role: e.target.value as StaffRoleOption }))}
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
                 >
                   <option value="TEACHER">Enseignant</option>
                   <option value="FINANCE">Finance</option>
+                  <option value="DIRECTOR">Directeur (chef de section)</option>
                 </select>
               </div>
               {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
@@ -234,6 +266,14 @@ export default function StaffPage() {
             </form>
           </motion.div>
         </div>
+      )}
+
+      {assignTarget && (
+        <AssignDirectorSectionsModal
+          userId={assignTarget.id}
+          userName={assignTarget.name}
+          onClose={() => setAssignTarget(null)}
+        />
       )}
     </div>
   )

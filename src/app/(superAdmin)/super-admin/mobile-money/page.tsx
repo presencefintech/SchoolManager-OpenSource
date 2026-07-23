@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
+import { formatMoney } from '@/lib/finance/currency'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const INPUT = 'w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 placeholder:text-zinc-300'
@@ -183,7 +184,7 @@ export default function MobileMoneyPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-zinc-700">
-                        {item.payment.amount.toLocaleString('fr-FR')} FCFA
+                        {formatMoney(item.payment.amount)}
                         <span className="ml-1 font-mono text-zinc-400 text-[11px]">· {item.payment.method}</span>
                       </p>
                       <p className="text-[11px] text-zinc-400 truncate mt-0.5">{item.payment.school.name}</p>
@@ -237,7 +238,7 @@ export default function MobileMoneyPage() {
                     <tr key={p.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-2.5 font-mono text-zinc-500">{p.id}</td>
                       <td className="px-4 py-2.5 font-semibold text-zinc-700">
-                        {p.amount.toLocaleString('fr-FR')} FCFA
+                        {formatMoney(p.amount)}
                       </td>
                       <td className="px-4 py-2.5 font-mono uppercase text-zinc-500">{p.method}</td>
                       <td className="px-4 py-2.5 text-zinc-500 truncate max-w-[180px]">{p.school.name}</td>

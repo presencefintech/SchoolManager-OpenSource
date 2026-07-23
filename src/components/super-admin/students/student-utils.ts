@@ -1,5 +1,7 @@
-export function fmtCurrency(n: number, currency = 'USD') {
-  return new Intl.NumberFormat('fr-CD', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n)
+import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
+
+export function fmtCurrency(n: number, currency: FinanceCurrencyCode = 'USD') {
+  return formatMoney(n, currency || 'USD')
 }
 
 export function fmtDate(d: string) {

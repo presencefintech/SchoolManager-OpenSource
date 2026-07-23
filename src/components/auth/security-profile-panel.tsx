@@ -37,7 +37,7 @@ const changePasswordSchema = z
 
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>
 
-const STAFF_ROLES = new Set(['ADMIN', 'FINANCE', 'SUPER_ADMIN'])
+const STAFF_ROLES = new Set(['ADMIN', 'FINANCE', 'SUPER_ADMIN', 'DIRECTOR'])
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Administrateur',

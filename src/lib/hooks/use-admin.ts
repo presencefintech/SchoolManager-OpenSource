@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEmpirePollingInterval } from '@/lib/realtime/empire-realtime-provider'
-import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, classPeriodsApi, structureApi, financeApi, invitationsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi, attendanceNotificationsApi } from '@/lib/admin/api'
+import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, classPeriodsApi, structureApi, financeApi, invitationsApi, parentsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi, attendanceNotificationsApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -1753,6 +1753,20 @@ export function useGenerateParentCode() {
   return useMutation({
     mutationFn: (payload: GenerateParentCodePayload) => invitationsApi.generateParentCode(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invitations'] }),
+  })
+}
+
+/** Lookup parent / contact connu par mobile (réutilisation frères-sœurs). */
+export function useParentLookupByPhone(phone: string | undefined, isValid = true) {
+  const normalized = phone?.trim() ?? ''
+  const enabled = !!getAuthToken() && isValid && normalized.startsWith('+') && normalized.length >= 10
+
+  return useQuery({
+    queryKey: ['admin', 'parents', 'lookup', normalized],
+    queryFn: () => parentsApi.lookupByPhone(normalized),
+    enabled,
+    staleTime: 30_000,
+    retry: false,
   })
 }
 

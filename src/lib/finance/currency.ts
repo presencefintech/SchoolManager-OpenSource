@@ -16,7 +16,7 @@ const MONEY_INSIGHT_KEYS = new Set([
 export function formatMoney(
   amount: number,
   currency: FinanceCurrencyCode = DEFAULT_FINANCE_CURRENCY,
-  options?: { maximumFractionDigits?: number },
+  options?: { maximumFractionDigits?: number; notation?: 'standard' | 'compact' },
 ): string {
   const digits = options?.maximumFractionDigits ?? (currency === 'USD' ? 2 : 0)
 
@@ -26,11 +26,20 @@ export function formatMoney(
       currency,
       maximumFractionDigits: digits,
       minimumFractionDigits: currency === 'USD' ? 0 : digits,
+      notation: options?.notation ?? 'standard',
     }).format(amount)
   } catch {
     const suffix = currency === 'USD' ? ' $' : ` ${currency}`
     return `${amount.toLocaleString('fr-FR', { maximumFractionDigits: digits })}${suffix}`
   }
+}
+
+/** Affichage compact pour graphiques / KPI (ex. 12,5 k $). */
+export function formatMoneyCompact(
+  amount: number,
+  currency: FinanceCurrencyCode = DEFAULT_FINANCE_CURRENCY,
+): string {
+  return formatMoney(amount, currency, { notation: 'compact', maximumFractionDigits: 1 })
 }
 
 export function formatInsightValue(key: string, value: unknown): string {

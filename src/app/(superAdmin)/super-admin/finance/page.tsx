@@ -24,10 +24,10 @@ import { financeApi } from '@/lib/superAdmin/api/finance.api'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
+import { formatMoney } from '@/lib/finance/currency'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
-const fmt = (n: number) =>
-  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) => formatMoney(n)
 
 const pct = (n: number) => `${Math.round(n)}%`
 
@@ -658,7 +658,7 @@ export default function FinancePage() {
                         <td className="px-5 py-3 font-mono text-zinc-700">#{item.paymentId ?? '—'}</td>
                         <td className="px-5 py-3 text-zinc-500 capitalize">{item.method ?? '—'}</td>
                         <td className="px-5 py-3 tabular-nums text-zinc-700">
-                          {item.amount !== undefined ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(item.amount) : '—'}
+                          {item.amount !== undefined ? formatMoney(item.amount) : '—'}
                         </td>
                         <td className="px-5 py-3">
                           {item.presenceMatch === true
@@ -723,7 +723,7 @@ export default function FinancePage() {
                       <div className="flex items-center gap-4 flex-shrink-0 ml-4">
                         {debt !== undefined && (
                           <span className="text-sm font-mono text-red-600 tabular-nums">
-                            {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(debt)}
+                            {formatMoney(debt)}
                           </span>
                         )}
                         {profile.riskScore !== undefined && (

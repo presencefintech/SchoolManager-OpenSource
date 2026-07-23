@@ -11,11 +11,12 @@ import { cn } from '@/lib/utils'
 import { useSchools, useClasses, useCapacityAlerts, useClassSetup, useClassPerformance, useClassAuditTrail } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import type { ClassItem } from '@/types/super-admin'
+import { formatMoney } from '@/lib/finance/currency'
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
-function fmt(n: number) {
-  return new Intl.NumberFormat('fr-CD', { maximumFractionDigits: 0 }).format(n)
+function fmtCount(n: number) {
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(n)
 }
 
 function fmtDate(d: string) {
@@ -192,9 +193,9 @@ function ClassDetail({ cls }: { cls: ClassItem }) {
           ) : perf ? (
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Présences', value: fmt(perf.metrics.attendanceCount), sub: 'total scans', color: 'text-indigo-600' },
-                { label: 'Collecté', value: fmt(perf.metrics.totalPaid), sub: 'USD', color: 'text-emerald-600' },
-                { label: 'Dette', value: fmt(perf.metrics.totalDebt), sub: 'USD', color: 'text-rose-600' },
+                { label: 'Présences', value: fmtCount(perf.metrics.attendanceCount), sub: 'total scans', color: 'text-indigo-600' },
+                { label: 'Collecté', value: formatMoney(perf.metrics.totalPaid), sub: 'USD', color: 'text-emerald-600' },
+                { label: 'Dette', value: formatMoney(perf.metrics.totalDebt), sub: 'USD', color: 'text-rose-600' },
                 { label: 'Taux recouvrement', value: `${Math.round(perf.financial.metrics.recoveryRate)}%`, sub: `${perf.financial.metrics.studentCount} élèves`, color: 'text-amber-600' },
               ].map(({ label, value, sub, color }) => (
                 <div key={label} className="bg-zinc-50 rounded-lg px-3 py-3">
