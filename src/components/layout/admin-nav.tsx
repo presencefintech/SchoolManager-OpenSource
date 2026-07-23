@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, CalendarClock,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
       { label: 'Classes',      href: '/admin/classes',     icon: BookOpen },
+      { label: 'Emploi du temps', href: '/admin/schedule', icon: CalendarClock },
       { label: 'Enseignants',  href: '/admin/teachers',    icon: School },
       { label: 'Personnel',    href: '/admin/staff',       icon: Users },
     ],
