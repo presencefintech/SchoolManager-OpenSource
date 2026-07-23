@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { Suspense, useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -214,6 +214,14 @@ function TransferEnrollmentModal({ enrollment, onClose }: { enrollment: Enrollme
 }
 
 export default function EnrollmentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <EnrollmentsPageContent />
+    </Suspense>
+  )
+}
+
+function EnrollmentsPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()

@@ -138,7 +138,7 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
     <FinanceRealtimeProvider>
       <div className="flex min-h-screen">
         <FinanceNav />
-        <main className="flex-1 ml-64 min-h-screen bg-[#f5f7fb]">
+        <main className="flex-1 min-w-0 ml-64 min-h-screen bg-[#f5f7fb]">
           <EmailVerificationBanner />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
