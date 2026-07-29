@@ -16,7 +16,10 @@ import type {
   LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
   StudentSecurityAction, ConfirmPaymentProofPayload, UpdateMoratoriumPolicyPayload,
   StudentApplication, StudentDetail, StudentListItem, PaginatedResponse, PresenceLiveFeedEntry,
-  PresenceSecurityAlert,
+  PresenceSecurityAlert, FinanceFraudAlert,
+  FinanceCollectionEfficiencyLevel,
+  FinanceEndOfDayClosing,
+  FinanceIntegrityScan,
 } from '@/types/admin'
 import type {
   CreatePreEnrollmentPayload,
@@ -32,7 +35,6 @@ export function useAdminStats() {
     enabled: !!getAuthToken(),
     staleTime: 30_000,
     refetchInterval,
-    refetchOnMount: 'always',
   })
 }
 
@@ -45,10 +47,9 @@ export function useLiveFeed(params?: { classId?: number; page?: number; limit?: 
     queryKey: ['admin', 'live-feed', resolved],
     queryFn: () => dashboardApi.getLiveFeed(resolved),
     enabled: !!getAuthToken(),
-    staleTime: 0,
+    staleTime: 10_000,
     refetchInterval,
     refetchOnWindowFocus: false,
-    refetchOnMount: 'always',
   })
 }
 
@@ -81,7 +82,6 @@ export function useControlStats() {
     staleTime: 30_000,
     refetchInterval,
     retry: 1,
-    refetchOnMount: 'always',
   })
 }
 
@@ -127,12 +127,16 @@ export function useStudentDashboard() {
   })
 }
 
-export function useStudents(params?: { page?: number; limit?: number; search?: string; classId?: number; status?: string }) {
+export function useStudents(
+  params?: { page?: number; limit?: number; search?: string; classId?: number; status?: string },
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['admin', 'students', 'list', params],
     queryFn: () => studentsApi.list(params),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
+    enabled: options?.enabled ?? true,
   })
 }
 
@@ -356,7 +360,8 @@ export function useEnrollmentDetail(studentId: number) {
 export function useCreateEnrollment() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: CreateEnrollmentPayload) => enrollmentsApi.create(payload),
+    mutationFn: (payload: CreateEnrollmentPayload & { idempotencyKey?: string }) =>
+      enrollmentsApi.create(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
   })
 }
@@ -380,8 +385,9 @@ export function useFinalizeEnrollment() {
 export function useToggleLock() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (studentId: number) => enrollmentsApi.toggleLock(studentId),
-    onSuccess: (_, studentId) => {
+    mutationFn: ({ studentId, isLocked }: { studentId: number; isLocked: boolean }) =>
+      enrollmentsApi.toggleLock(studentId, isLocked),
+    onSuccess: (_, { studentId }) => {
       qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
       qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
       qc.invalidateQueries({ queryKey: ['admin', 'students', 'list'] })
@@ -395,6 +401,46 @@ export function useAcademicSessions() {
     queryFn: () => enrollmentsApi.listSessions(),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
+  })
+}
+
+export function useEnrollmentFeePreview(classId?: number) {
+  return useQuery({
+    queryKey: ['admin', 'enrollments', 'fee-preview', classId],
+    queryFn: () => enrollmentsApi.getFeePreview(classId!),
+    enabled: !!classId && classId > 0,
+    staleTime: 60_000,
+  })
+}
+
+export function useIntakeInbox(params?: { kind?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'enrollments', 'intake', params],
+    queryFn: () => enrollmentsApi.getIntakeInbox(params),
+    staleTime: 20_000,
+  })
+}
+
+export function useRentreePack() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      studentId,
+      ...payload
+    }: {
+      studentId: number
+      sessionId?: number
+      classId?: number
+      feesPaid?: number
+      collectDeposit?: boolean
+      paymentNotes?: string
+      type?: string
+      idempotencyKey?: string
+    }) => enrollmentsApi.applyRentreePack(studentId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+    },
   })
 }
 
@@ -983,8 +1029,21 @@ export function useFinanceHealthCheck(opts?: { enabled?: boolean }) {
   })
 }
 
-export function useFinanceFraudAlerts(opts?: { enabled?: boolean }) {
+export function useFinanceAiInsights(
+  horizonDays: 7 | 30 | 90 = 30,
+  opts?: { enabled?: boolean },
+) {
   return useQuery({
+    queryKey: ['admin', 'finance', 'ai-insights', horizonDays],
+    queryFn: () => financeApi.getAiInsights(horizonDays),
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceFraudAlerts(opts?: { enabled?: boolean }) {
+  return useQuery<FinanceFraudAlert[]>({
     queryKey: ['admin', 'finance', 'fraud-alerts'],
     queryFn: financeApi.getFraudAlerts,
     staleTime: 60_000,
@@ -1021,12 +1080,53 @@ export function useMobilePending() {
   })
 }
 
-export function useAdminStudentFeeSchedule(studentId: number, sessionId?: number) {
+export function useAdminStudentFeeSchedule(
+  studentId: number,
+  sessionId?: number,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['admin', 'fee-schedule', studentId, sessionId],
     queryFn: () => financeApi.getStudentFeeSchedule(studentId, sessionId),
-    enabled: Number.isFinite(studentId) && studentId > 0,
+    enabled: (options?.enabled ?? true) && Number.isFinite(studentId) && studentId > 0,
     staleTime: 30_000,
+  })
+}
+
+export function useAdminStudentFeeAssignments(
+  studentId: number,
+  params?: { sessionId?: number; includeRevoked?: boolean },
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ['admin', 'fee-assignments', studentId, params],
+    queryFn: () => financeApi.listStudentFeeAssignments(studentId, params),
+    enabled: (options?.enabled ?? true) && Number.isFinite(studentId) && studentId > 0,
+    staleTime: 30_000,
+  })
+}
+
+export function useCreateStudentFeeAssignment(studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: import('@/types/finance').CreateStudentFeeAssignmentPayload) =>
+      financeApi.createStudentFeeAssignment(studentId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+    },
+  })
+}
+
+export function useRevokeStudentFeeAssignment(studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (assignmentId: number) =>
+      financeApi.revokeStudentFeeAssignment(studentId, assignmentId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+    },
   })
 }
 
@@ -1039,6 +1139,7 @@ export function useProcessManualPayment() {
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
       if (variables.studentId) {
         qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', variables.studentId] })
+        qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', variables.studentId] })
       }
     },
   })
@@ -1172,12 +1273,13 @@ export function useStudentInvoices(studentId: number) {
 export function useAdminStudentPaymentsDetailed(
   studentId: number,
   params?: Parameters<typeof financeApi.getStudentPaymentsDetailed>[1],
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: ['admin', 'finance', 'student-payments-detailed', studentId, params],
     queryFn: () => financeApi.getStudentPaymentsDetailed(studentId, params),
     staleTime: 30_000,
-    enabled: studentId > 0,
+    enabled: (options?.enabled ?? true) && studentId > 0,
     refetchOnWindowFocus: false,
   })
 }
@@ -1212,12 +1314,12 @@ export function useSchoolOptions(sectionId: number, schoolId?: number) {
   })
 }
 
-export function useSchoolClasses(sectionId: number, optionId: number, academicYear?: string, schoolId?: number) {
+export function useSchoolClasses(sectionId: number, optionId?: number, academicYear?: string, schoolId?: number) {
   return useQuery({
-    queryKey: ['admin', 'school', 'classes', sectionId, optionId, academicYear, schoolId],
+    queryKey: ['admin', 'school', 'classes', sectionId, optionId ?? 0, academicYear, schoolId],
     queryFn: () => schoolAcademicApi.listClasses(sectionId, optionId, academicYear, schoolId),
     staleTime: 120_000,
-    enabled: sectionId > 0 && optionId > 0,
+    enabled: sectionId > 0,
     refetchOnWindowFocus: false,
   })
 }
@@ -1521,6 +1623,113 @@ export function useFinanceCurrencyConfig() {
   })
 }
 
+export function useCashFloatPolicy() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'cash-float-policy'],
+    queryFn: financeApi.getCashFloatPolicy,
+    staleTime: 60_000,
+  })
+}
+
+export function useUpdateCashFloatPolicy() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: financeApi.updateCashFloatPolicy,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-float-policy'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'cash-session', 'opening-suggestion'] })
+      toast.success('Politique caisse', 'Fond d’ouverture mis à jour pour cet établissement.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useCashFundTraceability(params?: {
+  varianceDays?: number
+  varianceOnly?: boolean
+  limit?: number
+}) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'cash-fund-traceability', params],
+    queryFn: () => financeApi.getCashFundTraceability(params),
+    staleTime: 20_000,
+    refetchInterval: 60_000,
+  })
+}
+
+export function useDownloadAdminCashSessionReport() {
+  return useMutation({
+    mutationFn: (sessionId: number) => financeApi.downloadCashSessionReport(sessionId),
+  })
+}
+
+export function useAcknowledgeCashSessionReport() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (sessionId: number) => financeApi.acknowledgeCashSessionReport(sessionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
+      toast.success('Rapport visé', 'Le visa promoteur a été enregistré.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useSchoolDayDigest(date?: string) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'day-digest', date ?? 'today'],
+    queryFn: () => financeApi.getSchoolDayDigest(date),
+    staleTime: 30_000,
+  })
+}
+
+export function useDownloadSchoolDayDigestPdf() {
+  return useMutation({
+    mutationFn: (date?: string) => financeApi.downloadSchoolDayDigestPdf(date),
+  })
+}
+
+export function useDemoValuePanel() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'demo-value-panel'],
+    queryFn: () => financeApi.getDemoValuePanel(),
+    staleTime: 60_000,
+  })
+}
+
+export function useGoLiveReadiness() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'go-live-readiness'],
+    queryFn: () => financeApi.getGoLiveReadiness(),
+    staleTime: 60_000,
+  })
+}
+
+export function useWeeklyPromoterDigest() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'week-digest'],
+    queryFn: () => financeApi.getWeeklyPromoterDigest(),
+    staleTime: 60_000,
+  })
+}
+
+export function useSendWeeklyPromoterDigest() {
+  const toast = useToast()
+  return useMutation({
+    mutationFn: () => financeApi.sendWeeklyPromoterDigest(),
+    onSuccess: (data) => {
+      toast.success(
+        data.status === 'sent'
+          ? 'Bilan hebdo envoyé à ADMIN et FINANCE'
+          : 'Aucune activité cette semaine — non envoyé',
+      )
+    },
+    onError: () => toast.error("Impossible d'envoyer le bilan hebdo"),
+  })
+}
+
 export function useFinanceExchangeRates() {
   return useQuery({
     queryKey: ['admin', 'finance', 'exchange-rates'],
@@ -1569,7 +1778,7 @@ export function useFinanceInsights(opts?: { enabled?: boolean }) {
 }
 
 export function useFinanceComparativeDashboard(opts?: { enabled?: boolean }) {
-  return useQuery({
+  return useQuery<FinanceCollectionEfficiencyLevel[]>({
     queryKey: ['admin', 'finance', 'comparative'],
     queryFn: financeApi.getComparativeDashboard,
     staleTime: 120_000,
@@ -1579,7 +1788,7 @@ export function useFinanceComparativeDashboard(opts?: { enabled?: boolean }) {
 }
 
 export function useFinanceEfficiency(opts?: { enabled?: boolean }) {
-  return useQuery({
+  return useQuery<FinanceCollectionEfficiencyLevel[]>({
     queryKey: ['admin', 'finance', 'efficiency'],
     queryFn: financeApi.getEfficiency,
     staleTime: 120_000,
@@ -1589,7 +1798,7 @@ export function useFinanceEfficiency(opts?: { enabled?: boolean }) {
 }
 
 export function useFinanceEndOfDay(opts?: { enabled?: boolean }) {
-  return useQuery({
+  return useQuery<FinanceEndOfDayClosing | null>({
     queryKey: ['admin', 'finance', 'end-of-day'],
     queryFn: financeApi.getEndOfDay,
     staleTime: 60_000,
@@ -1628,7 +1837,7 @@ export function useFinancePresenceSecurity() {
 }
 
 export function useFinanceIntegrityScan() {
-  return useQuery({
+  return useQuery<FinanceIntegrityScan>({
     queryKey: ['admin', 'finance', 'integrity-scan'],
     queryFn: financeApi.checkIntegrity,
     staleTime: 300_000,
@@ -1907,8 +2116,14 @@ export function useUpdateSchoolBranding() {
   const qc = useQueryClient()
   const toast = useToast()
   return useMutation({
-    mutationFn: (payload: Partial<Pick<SchoolBranding, 'address' | 'phone' | 'city' | 'logoUrl'>>) =>
-      schoolsApi.updateBranding(payload),
+    mutationFn: (
+      payload: Partial<
+        Pick<
+          SchoolBranding,
+          'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme'
+        > & { documentAccentColor?: string | null }
+      >,
+    ) => schoolsApi.updateBranding(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['admin', 'schools', 'branding'] })
       toast.success('Identité enregistrée', 'Logo et adresse mis à jour pour les reçus.')

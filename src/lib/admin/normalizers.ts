@@ -53,6 +53,8 @@ export function normalizeEnrollmentListItem(raw: Record<string, unknown>): Enrol
     id: Number(raw.id),
     firstName: String(raw.firstName ?? ''),
     lastName: String(raw.lastName ?? ''),
+    postnom: (raw.postnom as string | null | undefined) ?? null,
+    prenom: (raw.prenom as string | null | undefined) ?? null,
     matricule: (raw.matricule as string | undefined) ?? undefined,
     status: String(raw.status ?? ''),
     className: cls?.name ?? (raw.className as string | undefined),
@@ -102,12 +104,16 @@ export function normalizeEnrollmentDetail(raw: Record<string, unknown>): Enrollm
 
 export function normalizeStudentListItem(raw: Record<string, unknown>): StudentListItem {
   const cls = raw.class as { name?: string } | undefined
+  const firstName = String(raw.firstName ?? '')
+  const lastName = String(raw.lastName ?? '')
+  const postnom = (raw.postnom as string | null | undefined) ?? null
+  const prenom = (raw.prenom as string | null | undefined) ?? null
   return {
     id: Number(raw.id),
-    firstName: String(raw.firstName ?? ''),
-    lastName: String(raw.lastName ?? ''),
-    postnom: (raw.postnom as string | null | undefined) ?? null,
-    prenom: (raw.prenom as string | null | undefined) ?? null,
+    firstName,
+    lastName,
+    postnom,
+    prenom,
     matricule: (raw.matricule as string | undefined) ?? undefined,
     status: String(raw.status ?? ''),
     className: cls?.name ?? (raw.className as string | undefined),
@@ -128,6 +134,18 @@ export function normalizeStudentListItem(raw: Record<string, unknown>): StudentL
   }
 }
 
+/** GET /admin/students/dashboard/main — accepte total/active ou totalStudents/activeCount */
+export function normalizeStudentStats(raw: Record<string, unknown>): import('@/types/admin').StudentStats {
+  return {
+    total: Number(raw.total ?? raw.totalStudents ?? 0),
+    active: Number(raw.active ?? raw.activeCount ?? 0),
+    inactive: Number(raw.inactive ?? raw.inactiveCount ?? 0),
+    suspended: Number(raw.suspended ?? raw.suspendedCount ?? 0),
+    pendingEnrollment: Number(raw.pendingEnrollment ?? raw.preEnrollCount ?? 0),
+    withDebt: Number(raw.withDebt ?? 0),
+  }
+}
+
 /** GET /admin/students/:id/detail — réponse { profile, stats, history } ou plat legacy */
 export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDetail {
   const profile = (raw.profile ?? raw) as Record<string, unknown>
@@ -136,7 +154,7 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
   const cls = profile.class as { name?: string; id?: number } | undefined
   const presences = (history.presences ?? profile.presences) as Array<{ scannedAt?: string }> | undefined
   const parentsLink = profile.parentsLink as Array<{
-    parent?: { firstName?: string; lastName?: string; phone?: string }
+    parent?: { firstName?: string; lastName?: string; prenom?: string; postnom?: string; phone?: string }
   }> | undefined
   const parent = parentsLink?.[0]?.parent
 
@@ -145,6 +163,15 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
   const totalPaid = toAmount(stats.totalPaid ?? profile.feesPaid)
 
   const school = profile.school as { name?: string } | undefined
+
+  const parentName = parent
+    ? formatRdcFullName({
+        firstName: parent.firstName,
+        lastName: parent.lastName,
+        prenom: parent.prenom,
+        postnom: parent.postnom,
+      }) || undefined
+    : (profile.parentName as string | undefined)
 
   return {
     id: Number(profile.id),
@@ -159,9 +186,7 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
     dateOfBirth: profile.dateOfBirth ? String(profile.dateOfBirth) : undefined,
     gender: profile.gender as string | undefined,
     address: profile.address as string | undefined,
-    parentName: parent
-      ? [parent.firstName, parent.lastName].filter(Boolean).join(' ').trim() || undefined
-      : (profile.parentName as string | undefined),
+    parentName,
     parentPhone: (parent?.phone ?? profile.parentPhone) as string | undefined,
     parentEmail: profile.parentEmail as string | undefined,
     className: cls?.name ?? (profile.className as string | undefined),
@@ -228,6 +253,10 @@ export function normalizePendingVerification(row: Record<string, unknown>): Pend
     verificationStep: Number(row.verificationStep ?? 0),
     financeCheck: Boolean(row.financeCheck),
     adminCheck: Boolean(row.adminCheck),
+    financeCheckerName: (row.financeCheckerName as string | null | undefined) ?? null,
+    adminCheckerName: (row.adminCheckerName as string | null | undefined) ?? null,
+    financeCheckAt: row.financeCheckAt != null ? String(row.financeCheckAt) : null,
+    adminCheckAt: row.adminCheckAt != null ? String(row.adminCheckAt) : null,
     superAdminCheck: Boolean(row.superAdminCheck ?? false),
     suspicion: Boolean(row.suspicion),
     fraudScore: row.fraudScore != null ? Number(row.fraudScore) : null,

@@ -19,7 +19,7 @@ import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
-import { EnrollSessionDrawer, MoratoriumDrawer } from '@/components/admin/enrollments/enrollment-business-drawers'
+import { EnrollSessionDrawer, RentreePackDrawer, MoratoriumDrawer } from '@/components/admin/enrollments/enrollment-business-drawers'
 import { EnrollmentCreateModal } from '@/components/admin/enrollments/enrollment-create-modal'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
 import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
@@ -231,6 +231,7 @@ export default function EnrollmentsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [syncingId, setSyncingId] = useState<number | null>(null)
   const [showEnrollSession, setShowEnrollSession] = useState(false)
+  const [showRentreePack, setShowRentreePack] = useState(false)
   const [showMoratorium, setShowMoratorium] = useState(false)
   const [lockConfirm, setLockConfirm] = useState<EnrollmentListItem | null>(null)
   const [syncConfirm, setSyncConfirm] = useState<{ studentId: number; name: string } | null>(null)
@@ -316,7 +317,10 @@ export default function EnrollmentsPage() {
   async function confirmToggleLock() {
     if (!lockConfirm) return
     try {
-      await toggleLockMutation.mutateAsync(lockConfirm.id)
+      await toggleLockMutation.mutateAsync({
+        studentId: lockConfirm.id,
+        isLocked: !lockConfirm.isLocked,
+      })
       toast.success(
         lockConfirm.isLocked ? 'Dossier déverrouillé' : 'Dossier verrouillé',
         lockConfirm.isLocked ? 'Les actions sont à nouveau autorisées.' : 'Les modifications sont suspendues.',
@@ -521,6 +525,11 @@ export default function EnrollmentsPage() {
                                     onClick: () => { setSelectedId(en.id); setShowEnrollSession(true) },
                                   },
                                   {
+                                    id: 'rentree',
+                                    label: 'Pack rentrée',
+                                    onClick: () => { setSelectedId(en.id); setShowRentreePack(true) },
+                                  },
+                                  {
                                     id: 'moratorium',
                                     label: 'Gérer le moratoire',
                                     onClick: () => { setSelectedId(en.id); setShowMoratorium(true) },
@@ -710,6 +719,13 @@ export default function EnrollmentsPage() {
             studentId={selectedId}
             studentName={drawerStudentName}
             onClose={() => setShowEnrollSession(false)}
+          />
+          <RentreePackDrawer
+            open={showRentreePack}
+            studentId={selectedId}
+            studentName={drawerStudentName}
+            defaultClassId={detail?.classId ?? syncDetail?.classId}
+            onClose={() => setShowRentreePack(false)}
           />
           <MoratoriumDrawer
             open={showMoratorium}

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { ClassListItem, CreateEnrollmentPayload } from '@/types/admin'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
+import { sectionRequiresOption, type SectionCycleRef } from '@/lib/academic/rdc-section-cycle'
 
 const idField = (message: string) =>
   z.preprocess(
@@ -8,58 +9,84 @@ const idField = (message: string) =>
     z.number({ required_error: message }).positive(message),
   )
 
-export const enrollmentCreateSchema = z.object({
-  lastName: z.string().min(2, 'Nom requis (min. 2 caractères)').max(50),
-  postnom: z.string().min(2, 'Postnom requis (min. 2 caractères)').max(50),
-  firstName: z.string().min(2, 'Prénom requis (min. 2 caractères)').max(50),
-  /** Prénom administratif RDC — optionnel (repli backend sur firstName) */
-  prenom: z.string().min(2).max(50).optional().or(z.literal('')),
-  gender: z.enum(['M', 'F', 'MALE', 'FEMALE'], { required_error: 'Genre requis' }),
-  birthDate: z.string().min(1, 'Date de naissance requise'),
-  sectionId: idField('Section requise'),
-  optionId: idField('Option requise'),
-  classId: idField('Classe requise'),
-  placeOfBirth: z.string().max(120).optional().or(z.literal('')),
-  nationality: z.string().max(80).optional().or(z.literal('')),
-  academicYear: z
-    .string()
-    .regex(/^\d{4}-\d{4}$/, 'Format : 2025-2026')
-    .optional()
-    .or(z.literal('')),
-  matricule: z.string().min(10).optional().or(z.literal('')),
-  status: z.enum(['ACTIVE', 'PENDING_ENROLLMENT']).default('ACTIVE'),
-  scholarshipPercent: z.preprocess(
-    (v) => (v === '' || v == null ? undefined : Number(v)),
-    z.number().min(0).max(100).optional(),
-  ),
-  totalFees: z.preprocess(
-    (v) => (v === '' || v == null ? undefined : Number(v)),
-    z.number().min(0).optional(),
-  ),
-  feesPaid: z.preprocess(
-    (v) => (v === '' || v == null ? undefined : Number(v)),
-    z.number().min(0).optional(),
-  ),
-  paymentNotes: z.string().max(500).optional().or(z.literal('')),
-  emergencyContactName: z.string().min(2, 'Nom du contact requis').max(120).optional().or(z.literal('')),
-  emergencyContactPhone: z
-    .string()
-    .max(20)
-    .optional()
-    .or(z.literal(''))
-    .refine(
-      (v) => !v?.trim() || isValidInternationalPhone(v),
-      'Numéro mobile invalide ou non joignable (SMS)',
+const optionalIdField = z.preprocess(
+  (v) => (v === '' || v == null || v === 0 ? undefined : Number(v)),
+  z.number().positive().optional(),
+)
+
+export const enrollmentCreateSchema = z
+  .object({
+    lastName: z.string().min(2, 'Nom requis (min. 2 caractères)').max(80),
+    postnom: z.string().min(2, 'Postnom requis (min. 2 caractères)').max(80),
+    firstName: z.string().min(2, 'Prénom requis (min. 2 caractères)').max(80),
+    /** Prénom administratif RDC — optionnel (repli backend sur firstName) */
+    prenom: z.string().min(2).max(80).optional().or(z.literal('')),
+    gender: z.enum(['M', 'F', 'MALE', 'FEMALE'], { required_error: 'Genre requis' }),
+    birthDate: z.string().min(1, 'Date de naissance requise'),
+    sectionId: idField('Section requise'),
+    /** Optionnel en maternelle / primaire — validé dynamiquement via context */
+    optionId: optionalIdField,
+    classId: idField('Classe requise'),
+    placeOfBirth: z.string().max(120).optional().or(z.literal('')),
+    nationality: z.string().max(80).optional().or(z.literal('')),
+    academicYear: z
+      .string()
+      .regex(/^\d{4}-\d{4}$/, 'Format : 2025-2026')
+      .optional()
+      .or(z.literal('')),
+    matricule: z.string().min(10).optional().or(z.literal('')),
+    status: z.enum(['ACTIVE', 'PENDING_ENROLLMENT']).default('ACTIVE'),
+    scholarshipPercent: z.preprocess(
+      (v) => (v === '' || v == null ? undefined : Number(v)),
+      z.number().min(0).max(100).optional(),
     ),
-  bloodGroup: z.string().max(10).optional().or(z.literal('')),
-  allergies: z.string().max(500).optional().or(z.literal('')),
-  medicalNotes: z.string().max(1000).optional().or(z.literal('')),
-  nfcTagId: z.string().min(8).max(64).optional().or(z.literal('')),
-})
+    totalFees: z.preprocess(
+      (v) => (v === '' || v == null ? undefined : Number(v)),
+      z.number().min(0).optional(),
+    ),
+    feesPaid: z.preprocess(
+      (v) => (v === '' || v == null ? undefined : Number(v)),
+      z.number().min(0).optional(),
+    ),
+    /** Encaisser l'acompte comme Payment réel (reçu + caisse) */
+    collectDeposit: z.boolean().default(true),
+    paymentNotes: z.string().max(500).optional().or(z.literal('')),
+    emergencyContactName: z.string().min(2, 'Nom du contact requis').max(120).optional().or(z.literal('')),
+    emergencyContactPhone: z
+      .string()
+      .max(20)
+      .optional()
+      .or(z.literal(''))
+      .refine(
+        (v) => !v?.trim() || isValidInternationalPhone(v),
+        'Numéro mobile invalide ou non joignable (SMS)',
+      ),
+    bloodGroup: z.string().max(10).optional().or(z.literal('')),
+    allergies: z.string().max(500).optional().or(z.literal('')),
+    medicalNotes: z.string().max(1000).optional().or(z.literal('')),
+    nfcTagId: z.string().min(8).max(64).optional().or(z.literal('')),
+  })
 
 export type EnrollmentCreateForm = z.infer<typeof enrollmentCreateSchema>
 
-export type StructureRef = { id: number; name: string }
+/** Schéma avec règle RDC : option requise seulement si le cycle l'exige. */
+export function buildEnrollmentCreateSchema(ctx: {
+  section?: SectionCycleRef | null
+  optionsCount?: number
+}) {
+  return enrollmentCreateSchema.superRefine((data, refineCtx) => {
+    const requires = sectionRequiresOption(ctx.section, ctx.optionsCount ?? 0)
+    if (requires && (data.optionId == null || data.optionId <= 0)) {
+      refineCtx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Option / filière requise pour ce cycle',
+        path: ['optionId'],
+      })
+    }
+  })
+}
+
+export type StructureRef = { id: number; name: string; code?: string | null }
 
 export function deriveSections(classes: ClassListItem[]): StructureRef[] {
   const map = new Map<number, StructureRef>()
@@ -112,7 +139,7 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     birthDate: data.birthDate,
     classId: data.classId,
     sectionId: data.sectionId,
-    optionId: data.optionId,
+    ...(data.optionId != null && data.optionId > 0 ? { optionId: data.optionId } : {}),
     status: data.status,
     placeOfBirth: trimOptional(data.placeOfBirth),
     nationality: trimOptional(data.nationality),
@@ -121,6 +148,7 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     scholarshipPercent: data.scholarshipPercent,
     totalFees: data.totalFees,
     feesPaid: data.feesPaid,
+    collectDeposit: data.collectDeposit !== false,
     paymentNotes: trimOptional(data.paymentNotes),
     emergencyContactName: trimOptional(data.emergencyContactName),
     emergencyContactPhone: (() => {
@@ -152,6 +180,7 @@ export const ENROLLMENT_CREATE_DEFAULTS: EnrollmentCreateForm = {
   scholarshipPercent: undefined,
   totalFees: undefined,
   feesPaid: undefined,
+  collectDeposit: true,
   paymentNotes: '',
   emergencyContactName: '',
   emergencyContactPhone: '',

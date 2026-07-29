@@ -1,5 +1,12 @@
 /** Libellés métier — remplace le jargon technique pour les utilisateurs non-tech */
 
+/** Score 0–1 ou legacy 0–100 → pourcentage 0–100 pour l’UI. */
+export function normalizeFraudScorePercent(raw: unknown): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return n <= 1 ? Math.round(n * 100) : Math.round(n)
+}
+
 export function labelPaymentLocked(locked?: boolean) {
   return locked ? 'Paiement suspendu' : 'Paiements autorisés'
 }
@@ -16,8 +23,9 @@ export function labelBiometricStatus(status?: string) {
 export function labelFraudScore(score: number | null | undefined, suspicion?: boolean) {
   if (suspicion) return 'Vérification requise'
   if (score == null) return 'Risque non évalué'
-  if (score >= 70) return 'Vérification requise — risque élevé'
-  if (score >= 40) return 'Contrôle recommandé'
+  const pct = normalizeFraudScorePercent(score)
+  if (pct >= 70) return 'Vérification requise — risque élevé'
+  if (pct >= 40) return 'Contrôle recommandé'
   return 'Risque faible'
 }
 

@@ -26,6 +26,11 @@ import {
 import { formatMoney, formatInsightValue } from '@/lib/finance/currency'
 import { LazyFinanceEfficiencyBarChart } from '@/components/charts/lazy'
 import { KycStatusBadge } from '@/components/admin/students/student-finance-badges'
+import {
+  FinanceHealthPanel,
+  FinanceDetailedReportPanel,
+} from '@/components/admin/finance/FinanceHealthPanels'
+import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { cn } from '@/lib/utils'
 
 const fadeUp = {
@@ -184,7 +189,7 @@ function QuickLink({ href, icon: Icon, label, count, gradient, vibrant }: {
 
 export default function FinanceDashboardPage() {
   const [dashboardPeriod, setDashboardPeriod] = useState<'day' | 'month'>('month')
-  const { data: kpis, isLoading, isSuccess: coreReady } = useFinanceDashboard()
+  const { data: kpis, isLoading, isError, error, isSuccess: coreReady } = useFinanceDashboard()
   /** Vague 2 — après le KPI principal pour éviter 13 requêtes simultanées au mount */
   const secondary = { enabled: coreReady }
   const { data: topPayers = [] } = useFinanceTopPayers(secondary)
@@ -198,15 +203,15 @@ export default function FinanceDashboardPage() {
   })
   const collectionLevels = efficiencyLevels.length > 0 ? efficiencyLevels : comparativeLevels
   const { data: pending = [] } = usePendingVerifications(secondary)
-  const { data: alerts = [] } = useFinanceFraudAlerts(secondary)
+  const { data: alerts = [], isError: fraudAlertsError } = useFinanceFraudAlerts(secondary)
   const { data: paymentProfile } = usePaymentProfile(secondary)
   /** Vague 3 — widgets bas de page */
   const tertiary = { enabled: coreReady && efficiencyFetched }
   const { data: detailedReport } = useFinanceDetailedReport(tertiary)
   const { data: healthCheck } = useFinanceHealthCheck(tertiary)
 
-  const pendingCount = kpis?.pendingPayments ?? (pending as unknown[]).length
-  const fraudCount = kpis?.fraudAlerts ?? (alerts as unknown[]).length
+  const pendingCount = kpis?.pendingPayments ?? pending.length
+  const fraudCount = alerts.length > 0 ? alerts.length : (kpis?.fraudAlerts ?? 0)
 
   const ins = insights as Record<string, unknown> | undefined
   const display = resolveFinanceDashboardDisplay(kpis, insights)
@@ -220,6 +225,7 @@ export default function FinanceDashboardPage() {
 
   const remaining = Math.max(0, display.totalDue - display.totalPaid)
   const collectedPct = display.totalDue > 0 ? (display.totalPaid / display.totalDue) * 100 : 0
+  const monthlyEncaisse = kpis?.monthlyRevenue ?? kpis?.enterprise?.performance.monthlyRevenue
   const methodBreakdownPeriodLabel =
     dashboardPeriod === 'day' ? "(aujourd'hui)" : '(ce mois)'
   const methodBreakdown = (paymentMethodsBreakdown?.methods?.length
@@ -255,6 +261,18 @@ export default function FinanceDashboardPage() {
       </div>
 
       <div className="mx-auto max-w-7xl space-y-8">
+
+        {isError && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 flex items-start gap-3">
+            <AlertTriangle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-900">Impossible de charger le dashboard stratégique</p>
+              <p className="text-xs text-red-700 mt-1">
+                {(error as Error)?.message ?? 'Vérifiez la connexion API ou vos droits finance.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Hero ── */}
         <motion.section
@@ -320,7 +338,9 @@ export default function FinanceDashboardPage() {
                   {
                     label: 'Encaissé',
                     value: formatMoney(display.totalPaid),
-                    sub: `${collectedPct.toFixed(1)}% du volume`,
+                    sub: monthlyEncaisse != null && monthlyEncaisse > 0
+                      ? `${collectedPct.toFixed(1)}% du volume · ${formatMoney(monthlyEncaisse)} ce mois`
+                      : `${collectedPct.toFixed(1)}% du volume`,
                     icon: DollarSign,
                   },
                   {
@@ -384,6 +404,17 @@ export default function FinanceDashboardPage() {
           </div>
         </motion.section>
 
+        {/* Intelligence financière IA — impact commercial école */}
+        {coreReady && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.12 }}
+          >
+            <FinanceAiInsightsPanel enabled={coreReady} />
+          </motion.div>
+        )}
+
         {/* KYC banner */}
         {paymentProfile && paymentProfile.kycStatus !== 'VERIFIED' && (
           <Link href="/admin/finance/payment-profile">
@@ -424,7 +455,13 @@ export default function FinanceDashboardPage() {
               <MetricTile
                 label="Alertes fraude"
                 value={fraudCount}
-                sub={fraudCount > 0 ? 'À examiner' : 'Aucune anomalie'}
+                sub={
+                  fraudAlertsError
+                    ? 'Erreur de chargement'
+                    : fraudCount > 0
+                      ? 'À examiner'
+                      : 'Aucune anomalie'
+                }
                 icon={ShieldAlert}
                 tone="rose"
                 href="/admin/finance/audit"
@@ -726,14 +763,31 @@ export default function FinanceDashboardPage() {
                 <Panel glow="violet">
                   <PanelHeader icon={BarChart3} title="Insights" subtitle="Indicateurs agrégés de l'établissement" accent="text-violet-600" accentBg="bg-violet-500/10" />
                   <div className="px-6 py-4 grid gap-2">
-                    {Object.entries(ins)
-                      .filter(([, v]) => v != null && typeof v !== 'object')
-                      .slice(0, 5)
-                      .map(([k, v]) => (
+                    {(
+                      [
+                        'totalCollecte',
+                        'soldeRestant',
+                        'efficaciteRecouvrement',
+                        'scoreSante',
+                          'nombreEleves',
+                        'debiteurs',
+                        'encaissementsMois',
+                        'variationMensuelle',
+                        'seuilEquilibreEleves',
+                        'seuilEquilibre',
+                        'etatFinancier',
+                      ] as const
+                    )
+                      .filter((k) => ins[k] != null && typeof ins[k] !== 'object')
+                      .map((k) => (
                         <div key={k} className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                           <span className="text-xs text-slate-500">{formatInsightLabel(k)}</span>
                           <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                            {formatInsightValue(k, v)}
+                            {k === 'variationMensuelle' && typeof ins[k] === 'number'
+                              ? `${Number(ins[k]) >= 0 ? '+' : ''}${Number(ins[k]).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}%`
+                              : k === 'scoreSante' && typeof ins[k] === 'number'
+                                ? `${Number(ins[k])}/100`
+                                : formatInsightValue(k, ins[k])}
                           </span>
                         </div>
                       ))}
@@ -743,44 +797,36 @@ export default function FinanceDashboardPage() {
             )}
 
             {/* Bilan de santé financière */}
-            {healthCheck != null && typeof healthCheck === 'object' && (
+            {healthCheck && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
-                <Panel glow="emerald">
-                  <PanelHeader icon={CheckCircle2} title="Bilan de santé" subtitle="Indicateurs de santé financière de l'établissement" />
-                  <div className="px-6 py-4 grid gap-2">
-                    {Object.entries(healthCheck as Record<string, unknown>)
-                      .filter(([, v]) => v != null && typeof v !== 'object')
-                      .slice(0, 6)
-                      .map(([k, v]) => (
-                        <div key={k} className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                          <span className="text-xs text-slate-500">{formatInsightLabel(k)}</span>
-                          <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                            {formatInsightValue(k, v)}
-                          </span>
-                        </div>
-                      ))}
+                <Panel glow={healthCheck.isHealthy ? 'emerald' : 'amber'}>
+                  <PanelHeader
+                    icon={healthCheck.isHealthy ? CheckCircle2 : AlertTriangle}
+                    title="Bilan de santé"
+                    subtitle="Score, tendances et recommandations actionnables"
+                    accent={healthCheck.isHealthy ? 'text-emerald-600' : 'text-amber-600'}
+                    accentBg={healthCheck.isHealthy ? 'bg-emerald-500/10' : 'bg-amber-500/10'}
+                  />
+                  <div className="px-6 py-4">
+                    <FinanceHealthPanel health={healthCheck} />
                   </div>
                 </Panel>
               </motion.div>
             )}
 
             {/* Rapport détaillé */}
-            {detailedReport != null && typeof detailedReport === 'object' && (
+            {detailedReport && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}>
                 <Panel glow="violet">
-                  <PanelHeader icon={FileText} title="Rapport détaillé" subtitle="Analyse financière approfondie" accent="text-violet-600" accentBg="bg-violet-500/10" />
-                  <div className="px-6 py-4 grid gap-2">
-                    {Object.entries(detailedReport as Record<string, unknown>)
-                      .filter(([, v]) => v != null && typeof v !== 'object')
-                      .slice(0, 6)
-                      .map(([k, v]) => (
-                        <div key={k} className="flex justify-between items-center rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                          <span className="text-xs text-slate-500">{formatInsightLabel(k)}</span>
-                          <span className="text-sm font-semibold text-slate-900 tabular-nums">
-                            {formatInsightValue(k, v)}
-                          </span>
-                        </div>
-                      ))}
+                  <PanelHeader
+                    icon={FileText}
+                    title="Rapport détaillé"
+                    subtitle="Période en cours · modes de paiement · top classes"
+                    accent="text-violet-600"
+                    accentBg="bg-violet-500/10"
+                  />
+                  <div className="px-6 py-4">
+                    <FinanceDetailedReportPanel report={detailedReport} />
                   </div>
                 </Panel>
               </motion.div>

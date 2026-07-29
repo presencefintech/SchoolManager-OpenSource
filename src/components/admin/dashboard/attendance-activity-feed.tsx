@@ -9,6 +9,7 @@ const STATUS_CFG: Record<string, { label: string; dot: string; badge: string }> 
   PRESENT: { label: 'Présent', dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
   ABSENT: { label: 'Absent', dot: 'bg-red-500', badge: 'bg-red-50 text-red-700' },
   LATE: { label: 'Retard', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700' },
+  EXITED: { label: 'Sorti', dot: 'bg-sky-500', badge: 'bg-sky-50 text-sky-700' },
 }
 
 const METHOD_LABELS: Record<string, string> = {
@@ -75,6 +76,18 @@ export function AttendanceActivityFeed() {
                     <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full', cfg.badge)}>
                       {cfg.label}
                     </span>
+                    {(item.direction === 'ARRIVAL' || item.direction === 'EXIT') && (
+                      <span
+                        className={cn(
+                          'text-[10px] font-medium px-2 py-0.5 rounded-full',
+                          item.direction === 'ARRIVAL'
+                            ? 'bg-indigo-50 text-indigo-700'
+                            : 'bg-violet-50 text-violet-700',
+                        )}
+                      >
+                        {item.direction === 'ARRIVAL' ? 'Arrivée' : 'Sortie'}
+                      </span>
+                    )}
                     <span className="text-[10px] text-slate-400 tabular-nums">{fmtTime(item.scannedAt)}</span>
                   </div>
                 </li>

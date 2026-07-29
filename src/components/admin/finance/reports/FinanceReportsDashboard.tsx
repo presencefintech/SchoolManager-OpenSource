@@ -21,6 +21,7 @@ import {
   useFinanceAggregateReport,
   useFinanceCurrencyConfig,
   useFinanceExchangeRates,
+  useSchoolBranding,
 } from '@/lib/hooks/use-admin'
 import { financeApi } from '@/lib/admin/api/finance.api'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -222,6 +223,7 @@ export function FinanceReportsDashboard() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
+  const { data: branding } = useSchoolBranding()
 
   const [period, setPeriod] = useState<ReportPeriodCode>('M')
   const [anchor, setAnchor] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -296,7 +298,7 @@ export function FinanceReportsDashboard() {
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200/90">
-              PresenceFintech · Reporting
+              {branding?.name ? `${branding.name} · Reporting` : 'Reporting financier'}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Rapports financiers</h1>
             <p className="mt-2 max-w-xl text-sm text-slate-300 leading-relaxed">

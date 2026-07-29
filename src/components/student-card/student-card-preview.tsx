@@ -6,6 +6,7 @@ import type { StudentCardAssets } from '@/lib/student-card/resolve-assets'
 import { CARD, mm } from '@/lib/student-card/card-layout'
 import { fitFontSize } from '@/lib/student-card/fit-font'
 import { STATUS_COLORS } from '@/lib/student-card/card-dimensions'
+import { resolveCardTheme } from '@/lib/student-card/card-theme'
 import { formatGenderLabel, formatValidityLabel } from '@/lib/student-card/utils'
 import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
 import { cn } from '@/lib/utils'
@@ -17,19 +18,10 @@ export interface StudentCardPreviewProps {
   className?: string
 }
 
-const PALETTE = {
-  headerFrom: '#0b3d3a',
-  headerTo: '#0f766e',
-  ink: '#0f172a',
-  muted: '#64748b',
-  label: '#94a3b8',
-  amber: '#f59e0b',
-  amberSoft: '#fef3c7',
-  tealSoft: '#ccfbf1',
-  white: '#ffffff',
-} as const
+const LABEL = '#94a3b8'
+const WHITE = '#ffffff'
 
-function MicroLabel({ children }: { children: string }) {
+function MicroLabel({ children, color = LABEL }: { children: string; color?: string }) {
   return (
     <span
       style={{
@@ -38,7 +30,7 @@ function MicroLabel({ children }: { children: string }) {
         fontWeight: 700,
         textTransform: 'uppercase',
         letterSpacing: 0.6,
-        color: PALETTE.label,
+        color,
         lineHeight: 1.05,
         marginBottom: 1,
       }}
@@ -52,10 +44,12 @@ function DetailRow({
   label,
   value,
   fontSize,
+  labelColor = LABEL,
 }: {
   label: string
   value: string | null | undefined
   fontSize: number
+  labelColor?: string
 }) {
   if (!value?.trim()) return null
   return (
@@ -77,7 +71,7 @@ function DetailRow({
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: 0.4,
-          color: PALETTE.label,
+          color: labelColor,
           lineHeight: 1.1,
           whiteSpace: 'nowrap',
         }}
@@ -85,6 +79,7 @@ function DetailRow({
         {label}
       </span>
       <CardText
+        lines={value.trim().length > 22 ? 2 : 1}
         fontSize={fontSize}
         title={value}
         style={{ flex: 1, fontWeight: 700, color: '#334155' }}
@@ -96,11 +91,11 @@ function DetailRow({
 }
 
 /**
- * Carte élève CR80 — niveau senior peer.
- * Identité RDC (Nom / Postnom / Prénom), branding école, QR présence, export WYSIWYG.
+ * Carte élève CR80 — thème école + identité RDC (Nom / Postnom / Prénom).
  */
 export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewProps>(
   function StudentCardPreview({ data, assets, className }, ref) {
+    const theme = resolveCardTheme(data.cardTheme)
     const stripeColor = STATUS_COLORS[data.financialStatus]
     const genderLabel = formatGenderLabel(data.gender)
     const validity = formatValidityLabel(data.academicYear)
@@ -114,17 +109,17 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
     const identity = formatStudentIdentityView(data)
     const typography = useMemo(
       () => ({
-        schoolName: fitFontSize(data.schoolName, CARD.font.schoolName, 28, 5.5),
-        nom: fitFontSize(identity.nom, CARD.font.lastName, 16, 6.5),
-        postnom: fitFontSize(identity.postnom ?? '', CARD.font.lastName, 15, 6),
-        prenom: fitFontSize(identity.prenom, CARD.font.firstName, 15, 6),
+        schoolName: fitFontSize(data.schoolName, CARD.font.schoolName, 26, 5),
+        nom: fitFontSize(identity.nom, CARD.font.lastName, 14, 5.5),
+        postnom: fitFontSize(identity.postnom ?? '', CARD.font.lastName, 14, 5.5),
+        prenom: fitFontSize(identity.prenom, CARD.font.firstName, 14, 5.5),
         detailValue: fitFontSize(
           [classLine, data.nationality, data.placeOfBirth, data.dateOfBirth]
             .filter(Boolean)
             .join(' '),
           CARD.font.detailValue,
-          40,
-          4.5,
+          36,
+          4.2,
         ),
       }),
       [
@@ -158,7 +153,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          backgroundColor: PALETTE.white,
+          backgroundColor: WHITE,
           boxSizing: 'border-box',
           fontFamily: 'Arial, Helvetica, sans-serif',
           textAlign: 'left',
@@ -167,7 +162,6 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
           printColorAdjust: 'exact',
         }}
       >
-        {/* Bande statut financier (discret — lecture admin) */}
         <div
           aria-hidden
           style={{
@@ -181,21 +175,18 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
           }}
         />
 
-        {/* Texture guilloche légère */}
         <div
           aria-hidden
           style={{
             position: 'absolute',
             inset: 0,
             opacity: 0.045,
-            backgroundImage:
-              'repeating-linear-gradient(115deg, #0f766e 0 1px, transparent 1px 7px), repeating-linear-gradient(-25deg, #0f766e 0 1px, transparent 1px 9px)',
+            backgroundImage: `repeating-linear-gradient(115deg, ${theme.headerTo} 0 1px, transparent 1px 7px), repeating-linear-gradient(-25deg, ${theme.headerTo} 0 1px, transparent 1px 9px)`,
             pointerEvents: 'none',
             zIndex: 0,
           }}
         />
 
-        {/* En-tête établissement */}
         <header
           style={{
             position: 'relative',
@@ -206,7 +197,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: `linear-gradient(115deg, ${PALETTE.headerFrom} 0%, ${PALETTE.headerTo} 100%)`,
+            background: `linear-gradient(115deg, ${theme.headerFrom} 0%, ${theme.headerTo} 100%)`,
             paddingLeft: CARD.header.paddingX,
             paddingRight: CARD.header.paddingX,
             paddingTop: CARD.header.paddingY,
@@ -214,7 +205,6 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             boxSizing: 'border-box',
           }}
         >
-          {/* Reflet */}
           <div
             aria-hidden
             style={{
@@ -267,7 +257,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                   style={{
                     fontSize: CARD.font.logoInitial,
                     fontWeight: 800,
-                    color: PALETTE.headerTo,
+                    color: theme.headerTo,
                   }}
                 >
                   {schoolInitial}
@@ -283,6 +273,16 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               >
                 {data.schoolName}
               </CardText>
+              {data.schoolDevise?.trim() ? (
+                <CardText
+                  lines={1}
+                  fontSize={CARD.font.brandSub}
+                  title={data.schoolDevise}
+                  style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.92)', marginTop: 1 }}
+                >
+                  « {data.schoolDevise} »
+                </CardText>
+              ) : null}
               <div
                 style={{
                   display: 'flex',
@@ -298,11 +298,11 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: 0.8,
-                    color: '#fcd34d',
+                    color: theme.accent,
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Carte d&apos;identité élève
+                  {data.schoolSlogan?.trim() || "Carte d'identité élève"}
                 </span>
                 {data.schoolCity?.trim() ? (
                   <CardText
@@ -355,19 +355,16 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
           </div>
         </header>
 
-        {/* Bande holographique */}
         <div
           aria-hidden
           style={{
             height: mm(1.1),
             marginLeft: CARD.header.marginLeft,
-            background:
-              'linear-gradient(90deg, transparent, rgba(15,118,110,0.15), rgba(245,158,11,0.55), rgba(15,118,110,0.2), transparent)',
+            background: `linear-gradient(90deg, transparent, ${theme.headerTo}26, ${theme.accent}8c, ${theme.headerTo}33, transparent)`,
             flexShrink: 0,
           }}
         />
 
-        {/* Corps */}
         <div
           style={{
             position: 'relative',
@@ -384,7 +381,6 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             boxSizing: 'border-box',
           }}
         >
-          {/* Photo */}
           <div
             style={{
               width: CARD.photo.width,
@@ -405,11 +401,10 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 objectPosition: 'center top',
                 display: 'block',
                 borderRadius: 3,
-                border: `1.5px solid ${PALETTE.amber}`,
+                border: `1.5px solid ${theme.accent}`,
                 boxShadow: '0 1px 3px rgba(15,23,42,0.12)',
               }}
             />
-            {/* Puce visuelle */}
             <div
               aria-hidden
               style={{
@@ -417,13 +412,12 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 width: mm(7),
                 height: mm(5),
                 borderRadius: 2,
-                background: 'linear-gradient(135deg, #fcd34d 0%, #f59e0b 50%, #b45309 100%)',
+                background: `linear-gradient(135deg, ${theme.accent} 0%, ${theme.accent}cc 50%, ${theme.headerFrom} 100%)`,
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45)',
               }}
             />
           </div>
 
-          {/* Identité RDC */}
           <div
             style={{
               flex: 1,
@@ -438,12 +432,13 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             <div>
               <MicroLabel>Nom</MicroLabel>
               <CardText
+                lines={identity.nom.length > 14 ? 2 : 1}
                 fontSize={typography.nom}
                 title={identity.nom}
                 style={{
                   fontWeight: 800,
                   textTransform: 'uppercase',
-                  color: PALETTE.ink,
+                  color: theme.ink,
                 }}
               >
                 {identity.nom}
@@ -454,6 +449,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               <div style={{ marginTop: mm(0.45) }}>
                 <MicroLabel>Postnom</MicroLabel>
                 <CardText
+                  lines={identity.postnom.length > 14 ? 2 : 1}
                   fontSize={typography.postnom}
                   title={identity.postnom}
                   style={{
@@ -478,6 +474,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 }}
               >
                 <CardText
+                  lines={identity.prenom.length > 16 ? 2 : 1}
                   fontSize={typography.prenom}
                   title={identity.prenom}
                   style={{ fontWeight: 700, color: '#334155', flex: 1, minWidth: 0 }}
@@ -491,8 +488,8 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                       fontSize: CARD.font.gender,
                       fontWeight: 700,
                       textTransform: 'uppercase',
-                      color: '#0f766e',
-                      backgroundColor: PALETTE.tealSoft,
+                      color: theme.headerTo,
+                      backgroundColor: theme.accentSoft,
                       padding: `1px ${mm(0.8)}px`,
                       borderRadius: 2,
                       lineHeight: 1.2,
@@ -510,8 +507,8 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 alignSelf: 'flex-start',
                 maxWidth: '100%',
                 padding: `${mm(0.55)}px ${mm(1.1)}px`,
-                backgroundColor: PALETTE.amberSoft,
-                border: '1px solid rgba(245,158,11,0.35)',
+                backgroundColor: theme.accentSoft,
+                border: `1px solid ${theme.accent}59`,
                 borderRadius: 3,
                 boxSizing: 'border-box',
               }}
@@ -546,7 +543,6 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             ) : null}
           </div>
 
-          {/* QR présence */}
           <div
             style={{
               width: CARD.qr.colWidth,
@@ -599,7 +595,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 lineHeight: 1.15,
                 textTransform: 'uppercase',
                 letterSpacing: 0.4,
-                color: '#0f766e',
+                color: theme.headerTo,
               }}
             >
               Présence
@@ -612,7 +608,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 fontSize: 4,
                 fontWeight: 600,
                 lineHeight: 1.1,
-                color: PALETTE.muted,
+                color: theme.muted,
               }}
             >
               Scanner le QR
@@ -620,7 +616,6 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
           </div>
         </div>
 
-        {/* Pied officiel */}
         <footer
           style={{
             position: 'relative',
@@ -662,7 +657,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               fontSize: CARD.font.microId,
               fontFamily: 'Consolas, Monaco, monospace',
               fontWeight: 700,
-              color: '#0f766e',
+              color: theme.headerTo,
               marginLeft: mm(0.8),
               lineHeight: 1.1,
               whiteSpace: 'nowrap',

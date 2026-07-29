@@ -17,7 +17,10 @@ import {
   normalizePaymentMethodsBreakdown,
   normalizeFeeTypesBreakdown,
   normalizeIntegrityScan,
+  normalizeFinanceHealth,
+  normalizeDetailedReport,
 } from '@/lib/admin/finance-dashboard.utils'
+import { normalizeFinanceAiInsights } from '@/lib/admin/finance-ai.utils'
 import type {
   FinanceKpi, PendingVerificationItem, FinanceFraudAlert, AuditLogEntry, TopPayer,
   ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
@@ -29,6 +32,7 @@ import type {
   UpdateMoratoriumPolicyPayload,
   FinancialSealBatch, FinancialSealBatchListResponse, CreateSealBatchPayload, CreateSealBatchResult,
   FinancialSealBatchDetail, FinancialSealBatchVerifyResult,
+  AdvancedSearchResult, AdvancedSearchPaymentItem,
 } from '@/types/admin'
 import { parseContentDispositionFilename, isExportContentType, readBlobErrorMessage } from '@/lib/download-blob'
 import { asFeeStructureList, type FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
@@ -58,6 +62,53 @@ function normalizeMobilePending(row: Record<string, unknown>): MobilePendingItem
     operator: String(row.method ?? row.operator ?? 'MOBILE'),
     reference: (row.reference ?? row.providerRef) as string | undefined,
     createdAt: String(row.createdAt ?? ''),
+  }
+}
+
+function resolvePaymentStudentName(row: Record<string, unknown>): string {
+  if (typeof row.studentName === 'string' && row.studentName.trim()) {
+    return row.studentName.trim()
+  }
+  const student = row.student as Record<string, unknown> | undefined
+  if (student) {
+    const formatted = formatRdcFullName(student as StudentIdentityFields)
+    if (formatted) return formatted
+    if (student.id != null) return `Élève #${student.id}`
+  }
+  if (row.studentId != null) return `Élève #${row.studentId}`
+  return '—'
+}
+
+function normalizeAdvancedSearchPayment(row: Record<string, unknown>): AdvancedSearchPaymentItem {
+  return {
+    id: Number(row.id),
+    studentId: row.studentId != null ? Number(row.studentId) : undefined,
+    studentName: resolvePaymentStudentName(row),
+    amount: Number(row.amount ?? 0),
+    currency: row.currency != null ? String(row.currency) : undefined,
+    method: String(row.method ?? ''),
+    status: String(row.status ?? ''),
+    reference: (row.reference as string | null | undefined) ?? null,
+    createdAt: String(row.createdAt ?? ''),
+  }
+}
+
+function normalizeAdvancedSearchResult(raw: unknown): AdvancedSearchResult {
+  if (Array.isArray(raw)) {
+    return {
+      data: raw.map((row) => normalizeAdvancedSearchPayment((row ?? {}) as Record<string, unknown>)),
+      total: raw.length,
+      page: 1,
+      lastPage: 1,
+    }
+  }
+  const payload = (raw ?? {}) as Record<string, unknown>
+  const rows = Array.isArray(payload.data) ? payload.data : []
+  return {
+    data: rows.map((row) => normalizeAdvancedSearchPayment((row ?? {}) as Record<string, unknown>)),
+    total: Number(payload.total ?? rows.length),
+    page: Number(payload.page ?? 1),
+    lastPage: Number(payload.lastPage ?? 1),
   }
 }
 
@@ -153,10 +204,25 @@ export const financeApi = {
 
 
   getDetailedReport: () =>
-    apiClient.get('/admin/finance/reports/detailed').then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/reports/detailed')
+      .then((r) => normalizeDetailedReport(r.data.data)),
 
   getHealthCheck: () =>
-    apiClient.get('/admin/finance/analytics/health-check').then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/analytics/health-check')
+      .then((r) => normalizeFinanceHealth(r.data.data)),
+
+  getAiInsights: (horizonDays: 7 | 30 | 90 = 30) =>
+    apiClient
+      .get('/admin/finance/ai/insights', { params: { horizonDays } })
+      .then((r) => {
+        const normalized = normalizeFinanceAiInsights(r.data?.data ?? r.data)
+        if (!normalized) {
+          throw new Error('Réponse intelligence financière invalide')
+        }
+        return normalized
+      }),
 
   getTopPayers: () =>
     apiClient.get('/admin/finance/analytics/top-payers').then(r => (r.data.data ?? []) as TopPayer[]),
@@ -254,7 +320,9 @@ export const financeApi = {
     apiClient.post('/admin/finance/payments/link-orphan', payload).then(r => r.data.data),
 
   advancedSearch: (params: Record<string, string | number | undefined>) =>
-    apiClient.get('/admin/finance/transactions/advanced-search', { params }).then(r => r.data.data),
+    apiClient
+      .get('/admin/finance/transactions/advanced-search', { params })
+      .then((r) => normalizeAdvancedSearchResult(r.data.data)),
 
   // ── Factures & Frais ───────────────────────────────────────────────────────
   getStudentInvoices: (studentId: number) =>
@@ -268,7 +336,7 @@ export const financeApi = {
   }) =>
     apiClient
       .get(`/admin/finance/students/${studentId}/payments/details`, { params })
-      .then(r => asStudentPaymentsDetailedPage(r.data.data)),
+      .then((r) => asStudentPaymentsDetailedPage(r.data?.data ?? r.data)),
 
   getStudentFeeSchedule: (studentId: number, sessionId?: number) =>
     apiClient
@@ -276,6 +344,36 @@ export const financeApi = {
         params: sessionId ? { sessionId } : undefined,
       })
       .then(r => r.data.data as import('@/types/finance').StudentFeeScheduleDto),
+
+  listStudentFeeAssignments: (
+    studentId: number,
+    params?: { sessionId?: number; includeRevoked?: boolean },
+  ) =>
+    apiClient
+      .get(`/admin/finance/students/${studentId}/fee-assignments`, { params })
+      .then(r => (r.data.data ?? []) as import('@/types/finance').StudentFeeAssignmentDto[]),
+
+  createStudentFeeAssignment: (
+    studentId: number,
+    payload: import('@/types/finance').CreateStudentFeeAssignmentPayload,
+  ) =>
+    apiClient
+      .post(`/admin/finance/students/${studentId}/fee-assignments`, payload)
+      .then(r => r.data.data as import('@/types/finance').StudentFeeAssignmentDto),
+
+  updateStudentFeeAssignment: (
+    studentId: number,
+    assignmentId: number,
+    payload: import('@/types/finance').UpdateStudentFeeAssignmentPayload,
+  ) =>
+    apiClient
+      .patch(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}`, payload)
+      .then(r => r.data.data as import('@/types/finance').StudentFeeAssignmentDto),
+
+  revokeStudentFeeAssignment: (studentId: number, assignmentId: number) =>
+    apiClient
+      .post(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}/revoke`)
+      .then(r => r.data.data as import('@/types/finance').StudentFeeAssignmentDto),
 
   getStudentFeePeriodStatus: (studentId: number, feeStructureId: number) =>
     apiClient
@@ -492,6 +590,70 @@ export const financeApi = {
     apiClient
       .get('/admin/finance/currency-config')
       .then((r) => r.data.data as import('@/types/finance-reporting').SchoolCurrencyConfig),
+
+  getCashFloatPolicy: () =>
+    apiClient
+      .get('/admin/finance/cash-float-policy')
+      .then((r) => r.data.data as import('@/types/finance').CashFloatPolicy),
+
+  updateCashFloatPolicy: (payload: Partial<import('@/types/finance').CashFloatPolicy>) =>
+    apiClient
+      .patch('/admin/finance/cash-float-policy', payload)
+      .then((r) => r.data.data as import('@/types/finance').CashFloatPolicy),
+
+  getCashFundTraceability: (params?: {
+    varianceDays?: number
+    varianceOnly?: boolean
+    limit?: number
+  }) =>
+    apiClient
+      .get('/admin/finance/cash-fund-traceability', { params })
+      .then((r) => r.data.data as import('@/types/finance').CashFundTraceability),
+
+  downloadCashSessionReport: async (sessionId: number): Promise<Blob> => {
+    const res = await apiClient.get(`/admin/finance/cash-sessions/${sessionId}/report`, {
+      responseType: 'blob',
+    })
+    return res.data as Blob
+  },
+
+  acknowledgeCashSessionReport: (sessionId: number) =>
+    apiClient
+      .post(`/admin/finance/cash-sessions/${sessionId}/acknowledge`)
+      .then((r) => r.data.data),
+
+  getSchoolDayDigest: (date?: string) =>
+    apiClient
+      .get('/admin/finance/day-digest', { params: date ? { date } : undefined })
+      .then((r) => r.data.data as import('@/types/finance').SchoolDayDigest),
+
+  downloadSchoolDayDigestPdf: async (date?: string): Promise<Blob> => {
+    const res = await apiClient.get('/admin/finance/day-digest.pdf', {
+      params: date ? { date } : undefined,
+      responseType: 'blob',
+    })
+    return res.data as Blob
+  },
+
+  getDemoValuePanel: () =>
+    apiClient
+      .get('/admin/finance/demo-value-panel')
+      .then((r) => r.data.data as import('@/types/finance').DemoValuePanel),
+
+  getGoLiveReadiness: () =>
+    apiClient
+      .get('/admin/finance/go-live-readiness')
+      .then((r) => r.data.data as import('@/types/finance').GoLiveReadiness),
+
+  getWeeklyPromoterDigest: () =>
+    apiClient
+      .get('/admin/finance/week-digest')
+      .then((r) => r.data.data as import('@/types/finance').WeeklyPromoterDigest),
+
+  sendWeeklyPromoterDigest: () =>
+    apiClient
+      .post('/admin/finance/week-digest/send')
+      .then((r) => r.data.data as { status: 'sent' | 'skipped' }),
 
   updateCurrencyConfig: (payload: {
     displayCurrency?: 'USD' | 'CDF'

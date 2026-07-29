@@ -3,12 +3,14 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, X, Calendar, PauseCircle, UserPlus } from 'lucide-react'
+import { Loader2, X, Calendar, PauseCircle, UserPlus, GraduationCap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   enrollSessionSchema,
+  rentreePackSchema,
   moratoriumDrawerSchema,
   type EnrollSessionForm,
+  type RentreePackForm,
   type MoratoriumDrawerForm,
 } from '@/lib/schemas/enrollment-actions'
 import { labelMoratoriumType } from '@/lib/business-labels'
@@ -17,11 +19,14 @@ import {
   useAcademicSessions,
   useClasses,
   useEnrollInSession,
+  useRentreePack,
+  useEnrollmentFeePreview,
   useCreateMoratorium,
   useAllowedMoratoriumTypes,
 } from '@/lib/hooks/use-admin'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { newIdempotencyKey } from '@/lib/idempotency'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
 
 function DrawerShell({
@@ -189,6 +194,220 @@ export function EnrollSessionDrawer({
           >
             {enrollMutation.isPending && <Loader2 size={14} className="animate-spin" />}
             Confirmer
+          </button>
+        </div>
+      </form>
+    </DrawerShell>
+  )
+}
+
+export function RentreePackDrawer({
+  open,
+  studentId,
+  studentName,
+  defaultClassId,
+  onClose,
+}: {
+  open: boolean
+  studentId: number
+  studentName: string
+  defaultClassId?: number | null
+  onClose: () => void
+}) {
+  const toast = useToast()
+  const { data: sessions = [], isLoading: loadingSessions } = useAcademicSessions()
+  const { data: classesData } = useClasses({ isActive: true })
+  const classes = classesData ?? []
+  const packMutation = useRentreePack()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<RentreePackForm>({
+    resolver: zodResolver(rentreePackSchema),
+    defaultValues: { type: 'RE_ENROLLMENT', collectDeposit: true, classId: defaultClassId ?? undefined },
+  })
+
+  const classId = watch('classId')
+  const feesPaid = watch('feesPaid')
+  const collectDeposit = watch('collectDeposit')
+  const { data: feePreview, isFetching: feeLoading } = useEnrollmentFeePreview(
+    classId && classId > 0 ? classId : defaultClassId && defaultClassId > 0 ? defaultClassId : undefined,
+  )
+
+  useEffect(() => {
+    if (!open) {
+      reset({
+        type: 'RE_ENROLLMENT',
+        collectDeposit: true,
+        classId: defaultClassId ?? undefined,
+        feesPaid: undefined,
+        paymentNotes: '',
+      })
+    }
+  }, [open, reset, defaultClassId])
+
+  useEffect(() => {
+    if (!open || !sessions.length) return
+    const current = sessions.find((s) => s.isCurrent)
+    if (current) setValue('sessionId', current.id)
+  }, [open, sessions, setValue])
+
+  async function onSubmit(data: RentreePackForm) {
+    const idempotencyKey = newIdempotencyKey('rentree')
+    try {
+      const result = (await packMutation.mutateAsync({
+        studentId,
+        sessionId: data.sessionId,
+        classId: data.classId,
+        feesPaid: data.feesPaid,
+        collectDeposit: data.collectDeposit,
+        paymentNotes: data.paymentNotes || undefined,
+        type: data.type,
+        idempotencyKey,
+      })) as {
+        deposit?: { paymentId: number; amount: number; currency: string }
+        depositWarning?: string
+        serverMessage?: string
+      }
+      if (result.depositWarning) {
+        toast.success('Pack rentrée', result.depositWarning)
+      } else if (result.deposit) {
+        toast.success(
+          'Pack rentrée + acompte',
+          `Paiement #${result.deposit.paymentId} · ${result.deposit.amount} ${result.deposit.currency}`,
+        )
+      } else {
+        toast.success('Pack rentrée', result.serverMessage || `${studentName} réinscrit(e) avec barème.`)
+      }
+      onClose()
+    } catch (err) {
+      toast.error('Pack rentrée impossible', getApiErrorMessage(err))
+    }
+  }
+
+  return (
+    <DrawerShell
+      open={open}
+      title="Pack rentrée"
+      subtitle={studentName}
+      icon={GraduationCap}
+      onClose={onClose}
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <p className="text-xs text-zinc-500">
+          Réinscription session + application du barème + acompte optionnel (reçu caisse).
+        </p>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Session académique</label>
+          {loadingSessions ? (
+            <div className="h-10 rounded-lg bg-zinc-100 animate-pulse" />
+          ) : (
+            <select
+              {...register('sessionId')}
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              <option value="">— Session courante —</option>
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}{s.isCurrent ? ' (courante)' : ''}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Classe</label>
+          <select
+            {...register('classId')}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+          >
+            <option value="">— Classe actuelle —</option>
+            {classes.map((c: { id: number; name: string }) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5 space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-zinc-600">
+            <span>Barème {feePreview?.academicYear ?? '—'}</span>
+            {feeLoading && <Loader2 size={12} className="animate-spin" />}
+          </div>
+          {feePreview?.feeLines?.length ? (
+            <ul className="space-y-1">
+              {feePreview.feeLines.map((line) => (
+                <li key={line.feeStructureId} className="flex justify-between text-[11px] text-zinc-700">
+                  <span>{line.categoryName}</span>
+                  <span className="tabular-nums font-medium">
+                    {fmtMoney(line.amount, feePreview.currency)}
+                  </span>
+                </li>
+              ))}
+              <li className="flex justify-between text-xs font-semibold text-zinc-900 border-t border-zinc-200 pt-1 mt-1">
+                <span>Total</span>
+                <span>{fmtMoney(feePreview.totalFees, feePreview.currency)}</span>
+              </li>
+            </ul>
+          ) : (
+            !feeLoading && <p className="text-[11px] text-amber-700">Aucun barème pour cette classe.</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Acompte</label>
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            {...register('feesPaid')}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm"
+            placeholder="0"
+          />
+          {errors.feesPaid && <p className="text-xs text-red-600 mt-1">{errors.feesPaid.message}</p>}
+        </div>
+
+        <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+          <input type="checkbox" {...register('collectDeposit')} className="mt-0.5 rounded border-zinc-300" />
+          <span>
+            Encaisser l&apos;acompte en caisse
+            {feesPaid != null && feesPaid > 0 && collectDeposit !== false && (
+              <span className="block text-[10px] text-emerald-700 mt-0.5">Reçu + notification parent</span>
+            )}
+          </span>
+        </label>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-600 mb-1">Notes</label>
+          <textarea
+            {...register('paymentNotes')}
+            rows={2}
+            className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm resize-none"
+            placeholder="Ex. acompte rentrée…"
+          />
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+          >
+            Annuler
+          </button>
+          <button
+            type="submit"
+            disabled={packMutation.isPending}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium disabled:opacity-50"
+          >
+            {packMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+            Appliquer le pack
           </button>
         </div>
       </form>

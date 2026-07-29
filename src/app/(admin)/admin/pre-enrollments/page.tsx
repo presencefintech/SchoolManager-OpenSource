@@ -24,6 +24,7 @@ import {
   PRE_ENROLLMENT_STATUS_LABELS,
 } from '@/types/pre-enrollment'
 import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
+import { isRdcCycleWithoutOption, sectionRequiresOption } from '@/lib/academic/rdc-section-cycle'
 
 const STATUS_FILTERS: { value: '' | PreEnrollmentStatus; label: string }[] = [
   { value: '', label: 'Tous' },
@@ -65,7 +66,14 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
   const [classroomId, setClassroomId] = useState(0)
   const [academicYear, setAcademicYear] = useState(currentAcademicYear())
   const { data: options = [] } = useSchoolOptions(sectionId)
-  const { data: classes = [] } = useSchoolClasses(sectionId, optionId, academicYear)
+  const selectedSection = sections.find((s) => s.id === sectionId) ?? null
+  const requiresOption = sectionRequiresOption(selectedSection, options.length)
+  const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+  const { data: classes = [] } = useSchoolClasses(
+    sectionId,
+    requiresOption ? optionId : undefined,
+    academicYear,
+  )
   const [form, setForm] = useState({
     lastName: '',
     postnom: '',
@@ -96,8 +104,12 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!sectionId || !optionId || !classroomId) {
-      setError('Sélectionnez une section, une option et une classe')
+    if (!sectionId || !classroomId) {
+      setError('Sélectionnez une section et une classe')
+      return
+    }
+    if (requiresOption && !optionId) {
+      setError('Sélectionnez une option / filière pour ce cycle')
       return
     }
     setError(null)
@@ -120,7 +132,10 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
         medicalNotes: form.medicalNotes.trim() || undefined,
         preferredLanguage: 'fr',
       },
-      academicChoices: { sectionId, optionId },
+      academicChoices: {
+        sectionId,
+        ...(optionId > 0 ? { optionId } : {}),
+      },
       academicYear,
       classroomId,
     }
@@ -186,15 +201,32 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-500">Option *</label>
-              <select required className={inputCls} value={optionId || ''} onChange={(e) => setOptionId(Number(e.target.value))} disabled={!sectionId}>
-                <option value="">—</option>
-                {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              <label className="text-xs font-medium text-zinc-500">
+                {requiresOption ? 'Option *' : 'Option'}
+              </label>
+              <select
+                required={requiresOption}
+                className={inputCls}
+                value={optionId || ''}
+                onChange={(e) => setOptionId(Number(e.target.value))}
+                disabled={!sectionId || cycleWithoutOption}
+              >
+                <option value="">
+                  {cycleWithoutOption ? 'N/A (mat./prim.)' : '—'}
+                </option>
+                {!cycleWithoutOption &&
+                  options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs font-medium text-zinc-500">Classe *</label>
-              <select required className={inputCls} value={classroomId || ''} onChange={(e) => setClassroomId(Number(e.target.value))} disabled={!optionId}>
+              <select
+                required
+                className={inputCls}
+                value={classroomId || ''}
+                onChange={(e) => setClassroomId(Number(e.target.value))}
+                disabled={!sectionId || (requiresOption && !optionId)}
+              >
                 <option value="">—</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -408,7 +440,10 @@ export default function PreEnrollmentsPage() {
                     <td className="px-5 py-3 text-sm text-zinc-600">
                       {item.academicChoices.sectionName ?? `Section #${item.academicChoices.sectionId}`}
                       {' · '}
-                      {item.academicChoices.optionName ?? `Option #${item.academicChoices.optionId}`}
+                      {item.academicChoices.optionName
+                        ?? (item.academicChoices.optionId
+                          ? `Option #${item.academicChoices.optionId}`
+                          : '—')}
                       {item.class?.name ? ` · ${item.class.name}` : ''}
                     </td>
                     <td className="px-5 py-3 text-sm text-zinc-400">
@@ -445,7 +480,7 @@ export default function PreEnrollmentsPage() {
                 <div className="flex justify-between gap-2"><dt className="text-zinc-500">Parent</dt><dd className="text-zinc-800">{selected.studentInfo.parentPhone}</dd></div>
                 <div className="flex justify-between gap-2"><dt className="text-zinc-500">Urgence</dt><dd className="text-zinc-800">{selected.studentInfo.emergencyContactName}</dd></div>
                 <div className="flex justify-between gap-2"><dt className="text-zinc-500">Section</dt><dd className="text-zinc-800">{selected.academicChoices.sectionName ?? selected.academicChoices.sectionId}</dd></div>
-                <div className="flex justify-between gap-2"><dt className="text-zinc-500">Option</dt><dd className="text-zinc-800">{selected.academicChoices.optionName ?? selected.academicChoices.optionId}</dd></div>
+                <div className="flex justify-between gap-2"><dt className="text-zinc-500">Option</dt><dd className="text-zinc-800">{selected.academicChoices.optionName ?? selected.academicChoices.optionId ?? '—'}</dd></div>
                 <div className="flex justify-between gap-2"><dt className="text-zinc-500">Classe</dt><dd className="text-zinc-800">{selected.class?.name ?? (selected.classroomId ? `#${selected.classroomId}` : '—')}</dd></div>
               </dl>
 

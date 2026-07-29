@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { History, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PresenceStatusBadge } from '@/components/admin/presences/PresenceStatusBadge'
+import { PresenceScanBadges } from '@/components/admin/presences/PresenceStatusBadge'
 import {
   presencesApi,
   type AttendanceHistoryItem,
@@ -48,7 +48,7 @@ export function AttendanceHistoryPanel({
 }: Props) {
   const [classId, setClassId] = useState<number | ''>(initialClassId)
   const [sectionId, setSectionId] = useState<number | ''>('')
-  const [status, setStatus] = useState<'' | 'PRESENT' | 'LATE' | 'ABSENT'>('')
+  const [status, setStatus] = useState<'' | 'PRESENT' | 'LATE' | 'ABSENT' | 'EXITED'>('')
   const [from, setFrom] = useState(defaultFrom)
   const [to, setTo] = useState(defaultTo)
 
@@ -128,7 +128,7 @@ export function AttendanceHistoryPanel({
         <select
           value={status}
           onChange={(e) =>
-            setStatus(e.target.value as '' | 'PRESENT' | 'LATE' | 'ABSENT')
+            setStatus(e.target.value as '' | 'PRESENT' | 'LATE' | 'ABSENT' | 'EXITED')
           }
           className="px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
         >
@@ -136,6 +136,7 @@ export function AttendanceHistoryPanel({
           <option value="PRESENT">Présent</option>
           <option value="LATE">Retard</option>
           <option value="ABSENT">Absent</option>
+          <option value="EXITED">Sorti</option>
         </select>
         <button
           type="button"
@@ -202,7 +203,7 @@ export function AttendanceHistoryPanel({
                   </td>
                   <td className="px-4 py-3 text-sm tabular-nums text-zinc-700">{row.time}</td>
                   <td className="px-4 py-3">
-                    <PresenceStatusBadge status={row.status} />
+                    <PresenceScanBadges status={row.status} direction={row.direction} />
                     {row.lateByMinutes != null && row.lateByMinutes > 0 && (
                       <p className="text-[10px] text-amber-700 mt-0.5">+{row.lateByMinutes} min</p>
                     )}

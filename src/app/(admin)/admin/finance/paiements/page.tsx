@@ -37,6 +37,42 @@ function isMobileMoneyMethod(method?: string) {
   return method ? MOBILE_MONEY_METHODS.has(method.toUpperCase()) : false
 }
 
+function paymentStatusClass(status: string) {
+  switch (status.toUpperCase()) {
+    case 'CONFIRMED':
+    case 'RECONCILED':
+      return 'bg-emerald-50 text-emerald-700'
+    case 'PENDING':
+    case 'SUSPICIOUS':
+      return 'bg-amber-50 text-amber-700'
+    case 'REFUNDED':
+      return 'bg-sky-50 text-sky-700'
+    case 'FAILED':
+      return 'bg-red-50 text-red-700'
+    default:
+      return 'bg-zinc-100 text-zinc-600'
+  }
+}
+
+function paymentStatusLabel(status: string) {
+  switch (status.toUpperCase()) {
+    case 'CONFIRMED':
+      return 'Confirmé'
+    case 'PENDING':
+      return 'En attente'
+    case 'FAILED':
+      return 'Échoué'
+    case 'RECONCILED':
+      return 'Réconcilié'
+    case 'REFUNDED':
+      return 'Remboursé'
+    case 'SUSPICIOUS':
+      return 'Suspect'
+    default:
+      return status
+  }
+}
+
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }
 
@@ -421,7 +457,11 @@ export default function PaiementsPage() {
     label?: string
   } | null>(null)
   const [resendingId, setResendingId] = useState<number | null>(null)
-  const { data: searchResults } = useAdvancedSearch(searchParams)
+  const { data: searchResults } = useAdvancedSearch(searchParams, {
+    enabled: Object.keys(searchParams).length > 0,
+  })
+  const searchRows = searchResults?.data ?? []
+  const searchTotal = searchResults?.total ?? searchRows.length
 
   const filteredPending = pending.filter((p: PendingVerificationItem) =>
     !search || p.studentName?.toLowerCase().includes(search.toLowerCase()) || p.reference?.toLowerCase().includes(search.toLowerCase())
@@ -539,8 +579,11 @@ export default function PaiementsPage() {
                 className="w-full px-3 py-1.5 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
                 <option value="">Tous</option>
                 <option value="PENDING">En attente</option>
-                <option value="VALIDATED">Validé</option>
-                <option value="REJECTED">Rejeté</option>
+                <option value="CONFIRMED">Confirmé</option>
+                <option value="RECONCILED">Réconcilié</option>
+                <option value="REFUNDED">Remboursé</option>
+                <option value="FAILED">Échoué</option>
+                <option value="SUSPICIOUS">Suspect</option>
               </select>
             </div>
             <div>
@@ -568,7 +611,7 @@ export default function PaiementsPage() {
                 className="w-full px-3 py-1.5 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
             </div>
             <div className="flex items-end">
-              <button onClick={() => setSearchParams(searchDraft)}
+              <button onClick={() => setSearchParams({ ...searchDraft, page: 1, limit: searchDraft.limit ?? 50 })}
                 className="w-full px-4 py-1.5 rounded-lg bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700">
                 Rechercher
               </button>
@@ -577,7 +620,7 @@ export default function PaiementsPage() {
           {searchResults && (
             <div className="mt-4">
               <p className="text-xs text-zinc-500 mb-2">
-                {Array.isArray(searchResults) ? searchResults.length : (searchResults as any)?.data?.length ?? 0} résultat(s)
+                {searchTotal} résultat{searchTotal !== 1 ? 's' : ''}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -591,19 +634,44 @@ export default function PaiementsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {(Array.isArray(searchResults) ? searchResults : (searchResults as any)?.data ?? []).map((r: any) => (
-                      <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                        <td className="px-3 py-2 text-zinc-900">{r.studentName ?? '—'}</td>
-                        <td className="px-3 py-2 text-zinc-700 font-medium">{formatMoney(Number(r.amount))}</td>
-                        <td className="px-3 py-2"><span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">{r.method}</span></td>
-                        <td className="px-3 py-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === 'VALIDATED' ? 'bg-emerald-50 text-emerald-700' : r.status === 'PENDING' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
-                            {r.status}
-                          </span>
+                    {searchRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-8 text-center text-sm text-zinc-400">
+                          Aucun paiement pour ces critères.
                         </td>
-                        <td className="px-3 py-2 text-zinc-400 text-xs">{new Date(r.createdAt).toLocaleDateString('fr-FR')}</td>
                       </tr>
-                    ))}
+                    ) : (
+                      searchRows.map((r) => (
+                        <tr key={r.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                          <td className="px-3 py-2">
+                            <p className="font-medium text-zinc-900">{r.studentName}</p>
+                            {r.reference && (
+                              <p className="text-[11px] text-zinc-400 font-mono truncate max-w-[180px]">
+                                {r.reference}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-zinc-700 font-medium tabular-nums">
+                            {formatMoney(r.amount, r.currency)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-100 text-zinc-600">
+                              {r.method || '—'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${paymentStatusClass(r.status)}`}>
+                              {paymentStatusLabel(r.status)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-zinc-400 text-xs">
+                            {r.createdAt
+                              ? new Date(r.createdAt).toLocaleDateString('fr-FR')
+                              : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

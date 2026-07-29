@@ -53,12 +53,28 @@ export function AttendanceSettingsBanner() {
         <Chip ok={settings.validationRules.dualQrRequired} label="Dual-QR" />
         <Chip
           ok={settings.notificationSettings.parentPresenceNotificationsEnabled}
-          label="Notifs parents"
+          label="Notifs arrivée"
         />
+        <Chip
+          ok={settings.notificationSettings.parentDepartureNotificationsEnabled ?? false}
+          label="Notifs sortie"
+        />
+        <Chip ok={settings.scheduleSettings?.scanWindowStrict ?? false} label="Fenêtre stricte" />
+        <Chip ok={settings.scheduleSettings?.exitScanEnabled ?? false} label="EXIT" />
         <Chip ok={settings.absenceSettings.autoMarkEnabled} label="Absences auto" />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+        {settings.scheduleSettings && (
+          <span className="inline-flex items-center gap-1">
+            <Clock size={12} />
+            {String(settings.scheduleSettings.startHour).padStart(2, '0')}:
+            {String(settings.scheduleSettings.startMinute).padStart(2, '0')}
+            –
+            {String(settings.scheduleSettings.endHour).padStart(2, '0')}:
+            {String(settings.scheduleSettings.endMinute).padStart(2, '0')}
+          </span>
+        )}
         {settings.absenceSettings.autoMarkEnabled && (
           <span className="inline-flex items-center gap-1">
             <Clock size={12} />
@@ -78,7 +94,8 @@ export function AttendanceSettingsBanner() {
             QR désactivé
           </span>
         )}
-        {!settings.notificationSettings.parentPresenceNotificationsEnabled && (
+        {!settings.notificationSettings.parentPresenceNotificationsEnabled &&
+          !(settings.notificationSettings.parentDepartureNotificationsEnabled ?? false) && (
           <span className="inline-flex items-center gap-1 text-slate-400">
             <Bell size={12} />
             Notifs off

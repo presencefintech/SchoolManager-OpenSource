@@ -59,14 +59,25 @@ const FEED_INVALIDATION_KEYS = [
 
 const PLATFORM_INVALIDATION_KEYS = [
   ['admin', 'enrollments'],
-  ['admin', 'students'],
   ['admin', 'stats'],
-  ['admin', 'classes'],
 ] as const
 
-/** Invalide inscriptions / élèves après événements enrollment ou paiement. */
+/** Paiement confirmé/échoué — pas toute la liste élèves (trop large pour le header search). */
+const PAYMENT_PLATFORM_KEYS = [
+  ['admin', 'stats'],
+  ['admin', 'finance', 'pending'],
+  ['admin', 'finance', 'dashboard'],
+] as const
+
+/** Invalide inscriptions / KPIs après événements enrollment. */
 export function invalidatePlatformQueries(qc: QueryClient): void {
   for (const queryKey of PLATFORM_INVALIDATION_KEYS) {
+    void qc.invalidateQueries({ queryKey: [...queryKey] })
+  }
+}
+
+export function invalidatePaymentPlatformQueries(qc: QueryClient): void {
+  for (const queryKey of PAYMENT_PLATFORM_KEYS) {
     void qc.invalidateQueries({ queryKey: [...queryKey] })
   }
 }

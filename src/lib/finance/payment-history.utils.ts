@@ -62,10 +62,15 @@ export function normalizeStudentPaymentDetail(row: unknown): StudentPaymentDetai
     ? r.fees.map(normalizeFeeLine).filter((f): f is PaymentFeeLine => f != null)
     : []
 
+  const studentName =
+    String(r.studentName ?? '').trim() ||
+    [r.studentFirstName, r.studentLastName].filter(Boolean).join(' ').trim() ||
+    `Élève #${r.studentId ?? id}`
+
   return {
     id,
     studentId: Number(r.studentId ?? 0),
-    studentName: String(r.studentName ?? ''),
+    studentName,
     studentFirstName: String(r.studentFirstName ?? ''),
     studentLastName: String(r.studentLastName ?? ''),
     amount: Number(r.amount ?? 0),
@@ -84,32 +89,57 @@ export function normalizeStudentPaymentDetail(row: unknown): StudentPaymentDetai
   }
 }
 
-/** Accepte `{ data: [...] }` ou un tableau brut. */
+function extractRows(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload
+  if (!payload || typeof payload !== 'object') return []
+  const o = payload as Record<string, unknown>
+
+  // Double enveloppe ApiResponse : { data: { data: [...] } }
+  if (o.data && typeof o.data === 'object' && !Array.isArray(o.data)) {
+    const nested = o.data as Record<string, unknown>
+    if (Array.isArray(nested.data)) return nested.data
+    if (Array.isArray(nested.items)) return nested.items
+    if (Array.isArray(nested.payments)) return nested.payments
+    if (Array.isArray(nested.results)) return nested.results
+  }
+
+  if (Array.isArray(o.data)) return o.data
+  if (Array.isArray(o.items)) return o.items
+  if (Array.isArray(o.payments)) return o.payments
+  if (Array.isArray(o.results)) return o.results
+  return []
+}
+
+function extractMeta(payload: unknown, rowCount: number): Pick<StudentPaymentsDetailedPage, 'total' | 'page' | 'lastPage'> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { total: rowCount, page: 1, lastPage: 1 }
+  }
+  let o = payload as Record<string, unknown>
+  if (o.data && typeof o.data === 'object' && !Array.isArray(o.data) && 'total' in (o.data as object)) {
+    o = o.data as Record<string, unknown>
+  }
+  const total = Number(o.total ?? rowCount)
+  const page = Number(o.page ?? 1)
+  const lastPage = Number(o.lastPage ?? Math.max(1, Math.ceil(total / Math.max(rowCount, 1))))
+  return {
+    total: Number.isFinite(total) ? total : rowCount,
+    page: Number.isFinite(page) && page > 0 ? page : 1,
+    lastPage: Number.isFinite(lastPage) && lastPage > 0 ? lastPage : 1,
+  }
+}
+
+/** Accepte `{ data: [...] }`, double enveloppe, ou un tableau brut. */
 export function asStudentPaymentsDetailedPage(data: unknown): StudentPaymentsDetailedPage {
-  if (Array.isArray(data)) {
-    return {
-      data: data
-        .map(normalizeStudentPaymentDetail)
-        .filter((p): p is StudentPaymentDetail => p != null),
-      total: data.length,
-      page: 1,
-      lastPage: 1,
-    }
-  }
-
-  if (!data || typeof data !== 'object') {
-    return { data: [], total: 0, page: 1, lastPage: 1 }
-  }
-
-  const page = data as Record<string, unknown>
-  const raw = Array.isArray(page.data) ? page.data : []
+  const raw = extractRows(data)
+  const rows = raw
+    .map(normalizeStudentPaymentDetail)
+    .filter((p): p is StudentPaymentDetail => p != null)
+  const meta = extractMeta(data, rows.length)
 
   return {
-    data: raw
-      .map(normalizeStudentPaymentDetail)
-      .filter((p): p is StudentPaymentDetail => p != null),
-    total: Number(page.total ?? raw.length),
-    page: Number(page.page ?? 1),
-    lastPage: Number(page.lastPage ?? 1),
+    data: rows,
+    total: meta.total,
+    page: meta.page,
+    lastPage: meta.lastPage,
   }
 }

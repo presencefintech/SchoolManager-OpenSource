@@ -155,11 +155,12 @@ export default function DirectorPresencesPage() {
   const classes = classesQuery.data ?? []
 
   const statusCounts = useMemo(() => {
-    const counts = { PRESENT: 0, LATE: 0, ABSENT: 0, OTHER: 0 }
+    const counts = { PRESENT: 0, LATE: 0, ABSENT: 0, EXITED: 0, OTHER: 0 }
     for (const e of entries) {
       if (e.status === 'PRESENT') counts.PRESENT += 1
       else if (e.status === 'LATE') counts.LATE += 1
       else if (e.status === 'ABSENT') counts.ABSENT += 1
+      else if (e.status === 'EXITED') counts.EXITED += 1
       else counts.OTHER += 1
     }
     return counts
@@ -329,7 +330,7 @@ export default function DirectorPresencesPage() {
                       </td>
                       <td className="py-3 text-xs text-zinc-400">{row.method || '—'}</td>
                       <td className="py-3">
-                        <PresenceStatusPill status={row.status} />
+                        <PresenceStatusPill status={row.status} direction={row.direction} />
                       </td>
                     </motion.tr>
                   ))}

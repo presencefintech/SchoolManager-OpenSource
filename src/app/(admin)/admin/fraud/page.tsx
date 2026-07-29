@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, User } from 'lucide-react'
 import { useFraudAlertsTop, useCheckFraud } from '@/lib/hooks/use-admin'
+import type { FraudAnalysisResult } from '@/lib/admin/api/fraud.api'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
-import { formatStudentFullName } from '@/lib/utils/student-name.util'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -14,6 +14,7 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 
 const RISK_CFG: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+  CRITICAL: { label: 'Risque critique', cls: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
   HIGH:   { label: 'Risque élevé',  cls: 'bg-red-50 text-red-700 border-red-100',    icon: XCircle },
   MEDIUM: { label: 'Risque moyen',  cls: 'bg-amber-50 text-amber-700 border-amber-100', icon: AlertTriangle },
   LOW:    { label: 'Risque faible', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100', icon: CheckCircle },
@@ -26,7 +27,7 @@ export default function FraudPage() {
   const [form, setForm] = useState({ studentId: 0, amount: '' })
   const [error, setError] = useState('')
 
-  const alertList: any[] = Array.isArray(alerts) ? alerts : (alerts as any)?.data ?? []
+  const alertList = alerts ?? []
 
   async function handleCheck(e: React.FormEvent) {
     e.preventDefault()
@@ -113,7 +114,8 @@ export default function FraudPage() {
               className="mt-5 space-y-3"
             >
               {(() => {
-                const level = (checkResult as any)?.riskLevel ?? (checkResult as any)?.level ?? 'LOW'
+                const analysis = checkResult as FraudAnalysisResult
+                const level = analysis.riskLevel ?? 'LOW'
                 const cfg = RISK_CFG[level] ?? RISK_CFG.LOW
                 const Icon = cfg.icon
                 return (
@@ -121,25 +123,16 @@ export default function FraudPage() {
                     <Icon size={16} className="flex-shrink-0" />
                     <div>
                       <p className="text-sm font-semibold">{cfg.label}</p>
-                      {(checkResult as any)?.reason && (
-                        <p className="text-xs mt-0.5 opacity-80">{(checkResult as any).reason}</p>
+                      <p className="text-xs mt-0.5 opacity-80">
+                        Score {analysis.scorePercent ?? Math.round((analysis.score ?? 0) * 100)} % · {analysis.action}
+                      </p>
+                      {analysis.reasons?.length > 0 && (
+                        <p className="text-xs mt-1 opacity-80">{analysis.reasons.join(' · ')}</p>
                       )}
                     </div>
                   </div>
                 )
               })()}
-
-              {/* Détails */}
-              {Object.entries(checkResult as any)
-                .filter(([k]) => !['riskLevel', 'level', 'reason'].includes(k))
-                .map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between px-3 py-2 bg-zinc-50 rounded-lg">
-                    <span className="text-xs text-zinc-500 capitalize">{k.replace(/([A-Z])/g, ' $1').toLowerCase()}</span>
-                    <span className="text-xs font-semibold text-zinc-800">
-                      {typeof v === 'boolean' ? (v ? 'Oui' : 'Non') : typeof v === 'number' ? Number(v).toLocaleString('fr-FR') : String(v ?? '—')}
-                    </span>
-                  </div>
-                ))}
             </motion.div>
           )}
         </motion.div>
@@ -171,8 +164,8 @@ export default function FraudPage() {
             </div>
           ) : (
             <motion.div variants={stagger} initial="hidden" animate="show" className="divide-y divide-zinc-50">
-              {alertList.map((alert: any, i: number) => {
-                const level = alert.severity ?? alert.riskLevel ?? alert.level ?? 'LOW'
+              {alertList.map((alert, i) => {
+                const level = alert.severity ?? 'LOW'
                 const cfg = RISK_CFG[level] ?? RISK_CFG.LOW
                 const Icon = cfg.icon
                 return (
@@ -183,7 +176,7 @@ export default function FraudPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium text-zinc-900 truncate">
-                          {alert.type ?? alert.alertType ?? 'Alerte'}
+                          {alert.type}
                         </p>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium flex-shrink-0 ${cfg.cls}`}>
                           {cfg.label}
@@ -193,10 +186,10 @@ export default function FraudPage() {
                         <p className="text-xs text-zinc-400 mt-0.5 truncate">{alert.description}</p>
                       )}
                       <div className="flex items-center gap-3 mt-1">
-                        {(alert.studentId || alert.student) && (
+                        {(alert.studentId || alert.studentName) && (
                           <span className="flex items-center gap-1 text-[10px] text-zinc-400">
                             <User size={10} />
-                            {alert.student ? formatStudentFullName(alert.student) : `#${alert.studentId}`}
+                            {alert.studentName ?? `#${alert.studentId}`}
                           </span>
                         )}
                         {alert.createdAt && (

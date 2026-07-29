@@ -45,8 +45,12 @@ export function FeeAttributionPanel({
   api = 'finance',
   compact = false,
 }: FeeAttributionPanelProps) {
-  const financeQuery = useStudentFeeSchedule(studentId, sessionId)
-  const adminQuery = useAdminStudentFeeSchedule(studentId, sessionId)
+  const financeQuery = useStudentFeeSchedule(studentId, sessionId, {
+    enabled: api === 'finance',
+  })
+  const adminQuery = useAdminStudentFeeSchedule(studentId, sessionId, {
+    enabled: api === 'admin',
+  })
   const { data, isLoading, isError, error } = api === 'admin' ? adminQuery : financeQuery
 
   const selectableLines = useMemo(

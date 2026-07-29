@@ -1,3 +1,5 @@
+import type { SchoolCardTheme } from '@/lib/student-card/card-theme'
+
 /**
  * Données affichées sur la carte élève (format badge CR80 — 85.6 × 54 mm).
  */
@@ -11,7 +13,7 @@ export interface StudentCardData {
   lastName: string
   postnom?: string | null
   prenom?: string | null
-  /** Nom complet RDC pour export PDF (prenom nom postnom) */
+  /** Nom complet RDC pour export PDF (Nom Postnom Prénom) */
   rdcFullName?: string
   matricule: string | null
   className: string | null
@@ -22,6 +24,10 @@ export interface StudentCardData {
   schoolName: string
   schoolCity?: string | null
   schoolLogoUrl?: string | null
+  schoolSlogan?: string | null
+  schoolDevise?: string | null
+  /** Thème couleurs personnalisé par école */
+  cardTheme?: SchoolCardTheme | null
   academicYear: string | null
   /** Date de naissance affichée (déjà formatée fr-FR) */
   dateOfBirth: string | null

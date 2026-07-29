@@ -11,6 +11,26 @@ export const enrollSessionSchema = z.object({
 
 export type EnrollSessionForm = z.infer<typeof enrollSessionSchema>
 
+export const rentreePackSchema = z.object({
+  sessionId: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : Number(v)),
+    z.number().positive().optional(),
+  ),
+  classId: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : Number(v)),
+    z.number().positive().optional(),
+  ),
+  feesPaid: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : Number(v)),
+    z.number().min(0).optional(),
+  ),
+  collectDeposit: z.boolean().default(true),
+  paymentNotes: z.string().max(500).optional().or(z.literal('')),
+  type: z.enum(['NEW', 'RE_ENROLLMENT', 'TRANSFER']).default('RE_ENROLLMENT'),
+})
+
+export type RentreePackForm = z.infer<typeof rentreePackSchema>
+
 export const moratoriumDrawerSchema = z.object({
   type: z.enum(['MONTHLY', 'QUARTERLY', 'EXCEPTIONAL', 'SCHOLARSHIP_REVIEW']).default('EXCEPTIONAL'),
   endDate: z.string().min(1, 'Date de fin requise'),

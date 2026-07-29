@@ -8,6 +8,8 @@ export type FeeStructureListItem = {
   categoryName?: string
   billingPeriod?: string
   isActive?: boolean
+  currency?: string
+  assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'
 }
 
 export function normalizeFeeStructureListItem(row: unknown): FeeStructureListItem | null {
@@ -38,6 +40,11 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
     billingPeriod:
       typeof category?.billingPeriod === 'string' ? category.billingPeriod : undefined,
     isActive: r.isActive === undefined ? true : Boolean(r.isActive),
+    currency: typeof r.currency === 'string' ? r.currency : undefined,
+    assignmentMode:
+      r.assignmentMode === 'EXPLICIT' || r.assignmentMode === 'AUTOMATIC'
+        ? r.assignmentMode
+        : undefined,
   }
 }
 
@@ -52,4 +59,20 @@ export function asFeeStructureList(data: unknown): FeeStructureListItem[] {
   return raw
     .map(normalizeFeeStructureListItem)
     .filter((item): item is FeeStructureListItem => item != null)
+}
+
+/** Normalise un libellé libre vers un code UPPER_SNAKE ASCII (aligné backend). */
+export function toFeeCategoryCode(raw: string): string {
+  return raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .replace(/_+/g, '_')
+    .slice(0, 48)
+}
+
+export function isValidFeeCategoryCode(code: string): boolean {
+  return /^[A-Z][A-Z0-9_]{1,47}$/.test(code)
 }

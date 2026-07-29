@@ -5,6 +5,7 @@ import type {
   StudentCardFinancialStatus,
   StudentCardGender,
 } from '@/types/student-card'
+import type { SchoolCardTheme } from '@/lib/student-card/card-theme'
 import { QR_MAX_PAYLOAD_LENGTH, validateQrPayload } from './validate-qr'
 import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
 import { serializeStudentCardQrPayload } from './build-qr-payload'
@@ -53,6 +54,9 @@ export function buildStudentCardData(input: {
   schoolName: string
   schoolCity?: string | null
   schoolLogoUrl?: string | null
+  schoolSlogan?: string | null
+  schoolDevise?: string | null
+  cardTheme?: SchoolCardTheme | null
   className?: string | null
   section?: string | null
   option?: string | null
@@ -82,6 +86,9 @@ export function buildStudentCardData(input: {
     schoolName: input.schoolName,
     schoolCity: input.schoolCity ?? null,
     schoolLogoUrl: input.schoolLogoUrl ?? null,
+    schoolSlogan: input.schoolSlogan?.trim() || null,
+    schoolDevise: input.schoolDevise?.trim() || null,
+    cardTheme: input.cardTheme ?? null,
     academicYear: input.academicYear ?? null,
     dateOfBirth: input.dateOfBirth?.trim() || null,
     placeOfBirth: input.placeOfBirth?.trim() || null,

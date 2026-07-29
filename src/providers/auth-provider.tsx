@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await fetch('/api/auth/session', { credentials: 'include' })
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json().catch(() => ({}))
           if (data.user) {
             persistUserProfile(data.user)
             setUser(data.user)
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/auth/session', { credentials: 'include' })
       if (!res.ok) return
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (data.user) {
         persistUserProfile(data.user)
         setUser(data.user)

@@ -93,6 +93,48 @@ export function createFeesTableColumns(currency: FinanceCurrencyCode): ColumnDef
       ),
     },
     {
+      id: 'amountPaid',
+      accessorFn: (row) => row.amountPaid ?? 0,
+      header: () => <span className="block text-right">Payé</span>,
+      cell: ({ row }) => {
+        const paid = Number(row.original.amountPaid ?? 0)
+        const cur = row.original.currency || currency
+        return (
+          <span
+            className={cn(
+              'block text-right tabular-nums font-medium',
+              paid > 0 ? 'text-emerald-700' : 'text-zinc-400',
+            )}
+          >
+            {formatMoney(paid, cur)}
+          </span>
+        )
+      },
+    },
+    {
+      id: 'amountRemaining',
+      accessorFn: (row) =>
+        row.amountRemaining ?? Math.max(0, Number(row.amount) - Number(row.amountPaid ?? 0)),
+      header: () => <span className="block text-right">Reste</span>,
+      cell: ({ row }) => {
+        const remaining =
+          row.original.amountRemaining ??
+          Math.max(0, Number(row.original.amount) - Number(row.original.amountPaid ?? 0))
+        const cur = row.original.currency || currency
+        const isClear = remaining <= 0.01
+        return (
+          <span
+            className={cn(
+              'block text-right tabular-nums font-semibold',
+              isClear ? 'text-emerald-600' : 'text-red-600',
+            )}
+          >
+            {isClear ? formatMoney(0, cur) : formatMoney(remaining, cur)}
+          </span>
+        )
+      },
+    },
+    {
       accessorKey: 'status',
       header: 'Statut',
       cell: ({ row }) => <FeeScheduleStatusBadge status={row.original.status} />,

@@ -1,7 +1,18 @@
 import { apiClient } from '@/lib/api/client'
-import { asFeeStructureList } from '@/lib/finance/fee-structure.utils'
+import { normalizeFinanceAiInsights } from '@/lib/admin/finance-ai.utils'
+import {
+  mapEnterpriseDashboardToKpi,
+  normalizeCollectionEfficiencyLevels,
+  normalizeFinanceHealth,
+  normalizeFraudAlertsResponse,
+  normalizeIntegrityScan,
+} from '@/lib/admin/finance-dashboard.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
+import { asFeeStructureList } from '@/lib/finance/fee-structure.utils'
 import { normalizePaymentProfile } from '@/lib/admin/normalizers'
+import {
+  normalizeCollectionAnalytics,
+} from '@/lib/finance/collection-analytics.utils'
 import type {
   StudentFeeScheduleDto,
   StudentFeePeriodStatusDto,
@@ -15,6 +26,8 @@ import type {
   DebtReminderJournalPage,
   DebtReminderHealth,
   LateFeeRunResult,
+  GuichetDashboard,
+  CollectionAnalyticsSummary,
 } from '@/types/finance'
 import type { FeeCategoryItem, PaymentProfile } from '@/types/admin'
 
@@ -23,20 +36,72 @@ export const financeRoleApi = {
   getExecutiveDashboard: () =>
     apiClient.get('/finance/payments/analytics/executive').then(r => r.data.data),
 
-  getCollectionAnalytics: (sessionId?: number) =>
-    apiClient.get('/finance/payments/analytics/collection', { params: { sessionId } }).then(r => r.data.data),
+  getCollectionAnalytics: (sessionId: number) =>
+    apiClient
+      .get('/finance/payments/analytics/collection', { params: { sessionId } })
+      .then((r) => normalizeCollectionAnalytics(r.data.data)),
 
   getDailyCashReport: () =>
     apiClient.get('/finance/payments/reports/daily-cash').then(r => r.data.data),
 
   getGuichetDashboard: () =>
-    apiClient.get('/finance/dashboard/guichet').then(r => r.data.data),
+    apiClient.get('/finance/dashboard/guichet').then((r) => r.data.data as GuichetDashboard),
 
   checkIntegrity: () =>
-    apiClient.get('/finance/payments/audit/integrity').then(r => r.data.data),
+    apiClient
+      .get('/finance/payments/audit/integrity')
+      .then((r) => normalizeIntegrityScan(r.data.data)),
+
+  /** Intelligence financière v4 — même endpoint admin (rôle FINANCE autorisé). */
+  getAiInsights: (horizonDays: 7 | 30 | 90 = 30) =>
+    apiClient
+      .get('/admin/finance/ai/insights', { params: { horizonDays } })
+      .then((r) => {
+        const normalized = normalizeFinanceAiInsights(r.data?.data ?? r.data)
+        if (!normalized) throw new Error('Réponse intelligence financière invalide')
+        return normalized
+      }),
+
+  getHealthCheck: () =>
+    apiClient
+      .get('/admin/finance/analytics/health-check')
+      .then((r) => normalizeFinanceHealth(r.data.data)),
+
+  getStrategicDashboard: () =>
+    apiClient
+      .get('/admin/finance/dashboard/strategic')
+      .then((r) => mapEnterpriseDashboardToKpi(r.data.data)),
+
+  getComparativeDashboard: () =>
+    apiClient
+      .get('/admin/finance/dashboard/comparative')
+      .then((r) => normalizeCollectionEfficiencyLevels(r.data.data)),
+
+  getEfficiency: () =>
+    apiClient
+      .get('/admin/finance/dashboard/efficiency')
+      .then((r) => normalizeCollectionEfficiencyLevels(r.data.data)),
+
+  getFraudAlerts: () =>
+    apiClient
+      .get('/admin/finance/audit/fraud-alerts')
+      .then((r) => normalizeFraudAlertsResponse(r.data.data)),
+
+  getAuditLogs: (params?: { page?: number; limit?: number }) =>
+    apiClient
+      .get('/admin/finance/audit/logs', { params })
+      .then((r) => (r.data.data ?? []) as unknown[]),
 
   // ── Sessions de caisse ─────────────────────────────────────────────────────
-  openSession: (payload: { openingFloat: number; openNotes?: string }) =>
+  openSession: (payload: {
+    openingFloat: number
+    openingFloatCdf?: number
+    openNotes?: string
+    currency?: string
+    openingSheet?:
+      | import('@/types/finance').CashDenominationSheet
+      | import('@/types/finance').CashDenominationSheet[]
+  }) =>
     apiClient.post('/finance/cash-sessions/open', payload).then(r => r.data.data),
 
   getCurrentSession: () =>
@@ -45,8 +110,47 @@ export const financeRoleApi = {
   getSessionSummary: (id: number) =>
     apiClient.get(`/finance/cash-sessions/${id}/summary`).then(r => r.data.data),
 
-  closeSession: (id: number, payload: { closingCounted: number; closeNotes?: string }) =>
+  listCashSessionHistory: (params?: { page?: number; limit?: number }) =>
+    apiClient
+      .get('/finance/cash-sessions/history', { params })
+      .then(r => r.data.data as import('@/types/finance').CashSessionHistoryPage),
+
+  getOpeningFloatSuggestion: () =>
+    apiClient
+      .get('/finance/cash-sessions/opening-suggestion')
+      .then(r => r.data.data as import('@/types/finance').OpeningFloatSuggestion),
+
+  getCashFloatPolicy: () =>
+    apiClient
+      .get('/finance/cash-sessions/float-policy')
+      .then(r => r.data.data as import('@/types/finance').CashFloatPolicy),
+
+  closeSession: (
+    id: number,
+    payload: {
+      closingCounted: number
+      closeNotes?: string
+      fxRateAtClose?: number
+      closingSheet?:
+        | import('@/types/finance').CashDenominationSheet
+        | import('@/types/finance').CashDenominationSheet[]
+    },
+  ) =>
     apiClient.post(`/finance/cash-sessions/${id}/close`, payload).then(r => r.data.data),
+
+  addCashSessionMovement: (
+    id: number,
+    payload: {
+      type: import('@/types/finance').CashLedgerMovementType
+      amount: number
+      amountCdf?: number
+      note?: string
+      ref?: string
+    },
+  ) =>
+    apiClient
+      .post(`/finance/cash-sessions/${id}/movements`, payload)
+      .then(r => r.data.data),
 
   // ── Paiements ──────────────────────────────────────────────────────────────
   processPayment: (payload: {
@@ -63,12 +167,22 @@ export const financeRoleApi = {
       monthYear?: string
       amount: number
     }>
-  }) =>
-    apiClient.post('/finance/payments/process', payload).then((r) => {
-      const data = r.data.data as ProcessPaymentResponse
-      const paymentId = data.payment?.id ?? data.paymentId ?? data.id
-      return { ...data, paymentId, id: paymentId }
-    }),
+    proofType?: string
+    manualJustification?: string
+    payerPhone?: string
+    idempotencyKey?: string
+  }) => {
+    const { idempotencyKey, ...body } = payload
+    return apiClient
+      .post('/finance/payments/process', body, {
+        headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : undefined,
+      })
+      .then((r) => {
+        const data = r.data.data as ProcessPaymentResponse
+        const paymentId = data.payment?.id ?? data.paymentId ?? data.id
+        return { ...data, paymentId, id: paymentId }
+      })
+  },
 
   verifyPaymentStep: (payload: { verificationId: number; action: 'FINANCE' | 'REJECT'; notes?: string }) =>
     apiClient.post(`/finance/payments/${payload.verificationId}/verify-step`, {
@@ -95,7 +209,14 @@ export const financeRoleApi = {
   },
 
   getThermalReceipt: (paymentId: number) =>
-    apiClient.get(`/finance/payments/receipts/${paymentId}/thermal`).then(r => r.data.data),
+    apiClient.get(`/finance/payments/receipts/${paymentId}/thermal`).then((r) => {
+      const raw = r.data?.data ?? r.data
+      return raw as {
+        url?: string
+        whatsapp?: string | null
+        receiptData?: Record<string, unknown>
+      }
+    }),
 
   // ── Débiteurs & Risques ────────────────────────────────────────────────────
   getDebtors: (minDebt?: number) =>
@@ -151,6 +272,19 @@ export const financeRoleApi = {
   getStudentWallet: (id: number) =>
     apiClient.get(`/finance/students/${id}/wallet`).then(r => r.data.data),
 
+  getStudentSiblings: (id: number) =>
+    apiClient.get(`/finance/students/${id}/siblings`).then((r) => {
+      const d = r.data.data
+      const list = Array.isArray(d) ? d : (d?.siblings ?? [])
+      return list as {
+        id: number
+        matricule: string
+        name: string
+        className: string | null
+        balance: number
+      }[]
+    }),
+
   getStudentFeeSchedule: (studentId: number, sessionId?: number) =>
     apiClient
       .get(`/finance/students/${studentId}/fee-schedule`, {
@@ -171,7 +305,7 @@ export const financeRoleApi = {
   }) =>
     apiClient
       .get(`/finance/students/${studentId}/payments/details`, { params })
-      .then(r => asStudentPaymentsDetailedPage(r.data.data)),
+      .then((r) => asStudentPaymentsDetailedPage(r.data?.data ?? r.data)),
 
   listStudentsFinancial: (params?: {
     classId?: number
@@ -224,6 +358,12 @@ export const financeRoleApi = {
       .get('/admin/finance/payment-profile')
       .then((r) => normalizePaymentProfile((r.data.data ?? {}) as Record<string, unknown>) as PaymentProfile),
 
+  /** Config devise école (USD/CDF) — lecture FINANCE autorisée. */
+  getCurrencyConfig: () =>
+    apiClient
+      .get('/admin/finance/currency-config')
+      .then((r) => r.data.data as import('@/types/finance-reporting').SchoolCurrencyConfig),
+
   getMoratoriums: (params?: { status?: string }) =>
     apiClient.get('/finance/moratoriums', { params }).then(r => r.data.data),
 
@@ -265,6 +405,19 @@ export const financeRoleApi = {
     const res = await apiClient.get(`/finance/exports/cash-sessions/${sessionId}`, { responseType: 'blob' })
     return res.data as Blob
   },
+
+  /** Rapport Z PDF — généré depuis les encaissements de la session. */
+  exportCashSessionReport: async (sessionId: number): Promise<Blob> => {
+    const res = await apiClient.get(`/finance/cash-sessions/${sessionId}/report`, {
+      responseType: 'blob',
+    })
+    return res.data as Blob
+  },
+
+  submitCashSessionToPromoter: (sessionId: number, payload?: { note?: string }) =>
+    apiClient
+      .post(`/finance/cash-sessions/${sessionId}/submit-to-promoter`, payload ?? {})
+      .then((r) => r.data.data),
 
   exportAccountingJournal: async (params?: {
     startDate?: string

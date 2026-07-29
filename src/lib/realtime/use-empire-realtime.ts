@@ -21,6 +21,7 @@ import {
   invalidateAllAttendanceQueries,
   invalidateAttendanceFeedQueries,
   invalidatePlatformQueries,
+  invalidatePaymentPlatformQueries,
 } from '@/lib/admin/attendance-realtime-cache'
 import type {
   AttendanceActivityItem,
@@ -41,6 +42,18 @@ const FINANCE_SOCKET_EVENTS = [
   'guichet.dashboard.refresh',
 ] as const
 
+/** Clés finance ciblées — jamais le préfixe nu `['finance']` (évite waterfall global). */
+const FINANCE_REFRESH_KEYS = [
+  ['finance', 'guichet-dashboard'],
+  ['finance', 'daily-cash'],
+  ['finance', 'payments', 'pending'],
+  ['finance', 'cash-session'],
+  ['finance', 'dashboard'],
+  ['admin', 'finance', 'dashboard'],
+  ['admin', 'finance', 'pending'],
+  ['admin', 'finance', 'end-of-day'],
+] as const
+
 function pushUnique<T extends { id: string }>(prev: T[], item: T, max: number): T[] {
   return [item, ...prev.filter((x) => x.id !== item.id)].slice(0, max)
 }
@@ -58,7 +71,9 @@ export function useEmpireRealtime() {
   const touch = useCallback(() => setLastUpdate(new Date()), [])
 
   const refreshFinance = useCallback(() => {
-    void qc.invalidateQueries({ queryKey: ['finance'] })
+    for (const queryKey of FINANCE_REFRESH_KEYS) {
+      void qc.invalidateQueries({ queryKey: [...queryKey] })
+    }
     touch()
   }, [qc, touch])
 
@@ -104,7 +119,7 @@ export function useEmpireRealtime() {
     (raw: unknown) => {
       const item = parsePaymentConfirmedAdmin(raw)
       if (item) setRecentPayments((prev) => pushUnique(prev, item, MAX_PLATFORM_ITEMS))
-      invalidatePlatformQueries(qc)
+      invalidatePaymentPlatformQueries(qc)
       refreshFinance()
       touch()
     },
@@ -115,7 +130,7 @@ export function useEmpireRealtime() {
     (raw: unknown) => {
       const item = parsePaymentFailedAdmin(raw)
       if (item) setRecentPayments((prev) => pushUnique(prev, item, MAX_PLATFORM_ITEMS))
-      invalidatePlatformQueries(qc)
+      invalidatePaymentPlatformQueries(qc)
       refreshFinance()
       touch()
     },
@@ -155,7 +170,8 @@ export function useEmpireRealtime() {
       try {
         const res = await fetch('/api/auth/socket-token', { credentials: 'include' })
         if (!res.ok) throw new Error('socket-token')
-        const { token } = (await res.json()) as { token?: string }
+        const data = (await res.json().catch(() => ({}))) as { token?: string }
+        const token = data.token
         if (!token || cancelled) return
 
         const socket = io(origin, {

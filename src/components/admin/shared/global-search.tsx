@@ -25,8 +25,10 @@ export function AdminGlobalSearch() {
     return () => clearTimeout(t)
   }, [query])
 
+  const searchEnabled = debounced.length >= 2
   const { data } = useStudents(
-    debounced.length >= 2 ? { search: debounced, limit: 8, status: status || undefined } : undefined,
+    searchEnabled ? { search: debounced, limit: 8, status: status || undefined } : undefined,
+    { enabled: searchEnabled },
   )
   const results = data?.data ?? []
 

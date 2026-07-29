@@ -55,9 +55,11 @@ export default async function ReceiptVerifyPage({ params }: PageProps) {
       <div className="w-full max-w-md space-y-4">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
-            PresenceFintech
+            {result.valid ? result.schoolName : 'Vérification de reçu'}
           </p>
-          <p className="mt-1 text-sm text-zinc-500">Vérification de reçu scolaire</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            {result.valid ? 'Reçu scolaire authentifié' : 'Vérification de reçu scolaire'}
+          </p>
         </div>
 
         <ReceiptVerifyCard result={result} />
@@ -75,6 +77,6 @@ export default async function ReceiptVerifyPage({ params }: PageProps) {
 }
 
 export const metadata = {
-  title: 'Vérification de reçu | PresenceFintech',
-  description: 'Vérifiez l\'authenticité d\'un reçu de paiement scolaire.',
+  title: 'Vérification de reçu scolaire',
+  description: "Vérifiez l'authenticité d'un reçu de paiement scolaire.",
 }

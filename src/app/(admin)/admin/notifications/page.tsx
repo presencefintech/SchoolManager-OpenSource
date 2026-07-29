@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Send, Users, User, History, RefreshCw, CheckCircle, X } from 'lucide-react'
+import {
+  Bell, Send, Users, User, History, RefreshCw, CheckCircle, X, AlertTriangle, RotateCcw,
+} from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
-import { adminNotificationsApi } from '@/lib/admin/api'
+import { adminNotificationsApi, type NotificationDlqItem } from '@/lib/admin/api/notifications.api'
 import { useStaff } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 
@@ -20,6 +22,13 @@ const ROLES = [
   { value: 'TEACHER', label: 'Enseignants' },
   { value: 'FINANCE', label: 'Finance' },
 ]
+
+const CHANNEL_LABEL: Record<string, string> = {
+  WEBSOCKET: 'Socket',
+  SMS: 'SMS',
+  EMAIL: 'Email',
+  PUSH: 'Push',
+}
 
 function useBroadcastGroup() {
   const qc = useQueryClient()
@@ -47,18 +56,145 @@ function useHistory() {
   })
 }
 
+function useDlq(enabled: boolean) {
+  return useQuery({
+    queryKey: ['admin', 'notif', 'dlq'],
+    queryFn: () => adminNotificationsApi.getDlq({ limit: 100 }),
+    enabled,
+    staleTime: 15_000,
+  })
+}
+
+function useRetryDlq() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (deliveryId: string) => adminNotificationsApi.retryDlq(deliveryId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'notif', 'dlq'] })
+    },
+  })
+}
+
+function DlqPanel({
+  items,
+  loading,
+  onRetry,
+  retryingId,
+  refetch,
+}: {
+  items: NotificationDlqItem[]
+  loading: boolean
+  onRetry: (id: string) => void
+  retryingId: string | null
+  refetch: () => void
+}) {
+  return (
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="show"
+      className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden"
+    >
+      <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+            <AlertTriangle size={14} className="text-amber-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-900">File morte (DLQ)</h2>
+            <p className="text-xs text-zinc-400">Livraisons en échec définitif — relance manuelle</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="p-2 rounded-lg border border-zinc-200 text-zinc-400 hover:bg-zinc-50"
+        >
+          <RefreshCw size={14} />
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="p-5 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Sk key={i} className="h-16" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="py-16 text-center">
+          <CheckCircle size={28} className="mx-auto text-emerald-300 mb-2" />
+          <p className="text-sm text-zinc-500">Aucune livraison en échec</p>
+          <p className="text-xs text-zinc-400 mt-1">La DLQ est vide pour cette école</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-zinc-50">
+          {items.map((item) => (
+            <div key={item.deliveryId} className="px-5 py-4 flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{item.title || 'Sans titre'}</p>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 font-medium">
+                    {CHANNEL_LABEL[item.channel] ?? item.channel}
+                  </span>
+                  {item.notificationType && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">
+                      {item.notificationType}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-zinc-500 mt-0.5 truncate">
+                  {item.userName ?? `User #${item.userId}`} · {item.message}
+                </p>
+                {item.lastError && (
+                  <p className="text-[11px] text-red-600 mt-1 font-mono truncate">{item.lastError}</p>
+                )}
+                <p className="text-[10px] text-zinc-400 mt-1">
+                  {item.attempts} tentative{item.attempts !== 1 ? 's' : ''} ·{' '}
+                  {new Date(item.createdAt).toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={retryingId === item.deliveryId || !item.deliveryId}
+                onClick={() => onRetry(item.deliveryId)}
+                className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                <RotateCcw size={12} className={cn(retryingId === item.deliveryId && 'animate-spin')} />
+                Relancer
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  )
+}
+
 export default function NotificationsPage() {
-  const [tab, setTab] = useState<'group' | 'direct'>('group')
+  const [tab, setTab] = useState<'group' | 'direct' | 'dlq'>('group')
   const [groupForm, setGroupForm] = useState({ title: '', message: '', roles: [] as string[] })
   const [directForm, setDirectForm] = useState({ targetUserId: '', title: '', message: '' })
   const [groupErr, setGroupErr] = useState('')
   const [directErr, setDirectErr] = useState('')
   const [groupOk, setGroupOk] = useState(false)
   const [directOk, setDirectOk] = useState(false)
+  const [dlqErr, setDlqErr] = useState('')
+  const [dlqOk, setDlqOk] = useState('')
 
   const broadcastGroup = useBroadcastGroup()
   const sendDirect = useSendDirect()
+  const retryDlq = useRetryDlq()
   const { data: history, isLoading: histLoading, refetch } = useHistory()
+  const {
+    data: dlqItems = [],
+    isLoading: dlqLoading,
+    refetch: refetchDlq,
+  } = useDlq(tab === 'dlq')
   const { data: staffList = [] } = useStaff()
 
   const histList = (history ?? []) as any[]
@@ -100,35 +236,58 @@ export default function NotificationsPage() {
     } catch (err) { setDirectErr(getApiErrorMessage(err)) }
   }
 
+  async function handleRetry(deliveryId: string) {
+    setDlqErr('')
+    setDlqOk('')
+    try {
+      await retryDlq.mutateAsync(deliveryId)
+      setDlqOk('Relance planifiée')
+    } catch (err) {
+      setDlqErr(getApiErrorMessage(err))
+    }
+  }
+
   const inputCls = 'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 bg-white'
 
   return (
     <div className="min-h-screen bg-[#f5f7fb]">
-      {/* Header */}
       <div className="bg-white border-b border-zinc-200">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-8 py-5">
           <div>
             <h1 className="text-2xl font-semibold text-zinc-900">Notifications</h1>
-            <p className="text-sm text-zinc-400 mt-0.5">Envoyez des messages aux parents, enseignants et équipes</p>
+            <p className="text-sm text-zinc-400 mt-0.5">
+              Diffusion, messages directs et reprise des échecs de livraison
+            </p>
           </div>
-          <button onClick={() => refetch()} className="p-2.5 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50 transition-colors">
+          <button
+            onClick={() => {
+              void refetch()
+              if (tab === 'dlq') void refetchDlq()
+            }}
+            className="p-2.5 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50 transition-colors"
+          >
             <RefreshCw size={15} />
           </button>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-[1fr_380px] gap-6">
-        {/* Composer */}
         <div className="space-y-5">
-          {/* Tabs */}
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-1 flex gap-1">
-            {([['group', 'Diffusion groupe', Users], ['direct', 'Message direct', User]] as const).map(([key, label, Icon]) => (
+            {(
+              [
+                ['group', 'Diffusion groupe', Users],
+                ['direct', 'Message direct', User],
+                ['dlq', 'Échecs DLQ', AlertTriangle],
+              ] as const
+            ).map(([key, label, Icon]) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
                 className={cn(
                   'flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-medium transition-colors',
                   tab === key ? 'bg-emerald-600 text-white shadow-sm' : 'text-zinc-500 hover:bg-zinc-50',
+                  key === 'dlq' && tab !== 'dlq' && 'text-amber-700',
                 )}
               >
                 <Icon size={14} />
@@ -137,7 +296,6 @@ export default function NotificationsPage() {
             ))}
           </div>
 
-          {/* Broadcast group */}
           {tab === 'group' && (
             <motion.div variants={fadeUp} initial="hidden" animate="show"
               className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
@@ -204,7 +362,6 @@ export default function NotificationsPage() {
             </motion.div>
           )}
 
-          {/* Direct */}
           {tab === 'direct' && (
             <motion.div variants={fadeUp} initial="hidden" animate="show"
               className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
@@ -264,9 +421,31 @@ export default function NotificationsPage() {
               </form>
             </motion.div>
           )}
+
+          {tab === 'dlq' && (
+            <div className="space-y-3">
+              {(dlqErr || dlqOk) && (
+                <div
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg border text-xs',
+                    dlqErr ? 'bg-red-50 border-red-100 text-red-700' : 'bg-emerald-50 border-emerald-100 text-emerald-700',
+                  )}
+                >
+                  {dlqErr ? <X size={13} /> : <CheckCircle size={13} />}
+                  {dlqErr || dlqOk}
+                </div>
+              )}
+              <DlqPanel
+                items={dlqItems}
+                loading={dlqLoading}
+                onRetry={handleRetry}
+                retryingId={retryDlq.isPending ? (retryDlq.variables ?? null) : null}
+                refetch={() => { void refetchDlq() }}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Historique */}
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
             <History size={14} className="text-zinc-400" />

@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
   FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage, CreditCard,
-  FileDown, Printer,
+  FileDown, Printer, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -34,7 +34,10 @@ import { useToast } from '@/providers/toast-provider'
 import { labelBiometricStatus } from '@/lib/business-labels'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatStudentDisplayName } from '@/lib/admin/normalizers'
+import { formatStudentInitials, formatRdcFullName } from '@/lib/utils/student-name.util'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
+import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
+import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -306,6 +309,9 @@ export default function StudentDetailPage() {
       schoolName: branding?.name?.trim() || student.schoolName?.trim() || 'Établissement scolaire',
       schoolCity: branding?.city,
       schoolLogoUrl: branding?.logoUrl,
+      schoolSlogan: branding?.slogan,
+      schoolDevise: branding?.devise,
+      cardTheme: branding?.cardTheme ?? null,
       className: student.className,
       academicYear: student.academicYear ?? enrollmentDetail?.academicYear,
       placeOfBirth: student.placeOfBirth,
@@ -349,7 +355,10 @@ export default function StudentDetailPage() {
     setActionLoading(pendingAction.key)
     try {
       if (pendingAction.kind === 'lock') {
-        await toggleLockMutation.mutateAsync(studentId)
+        await toggleLockMutation.mutateAsync({
+          studentId,
+          isLocked: !pendingAction.currentlyLocked,
+        })
         toast.success(
           pendingAction.currentlyLocked ? 'Dossier déverrouillé' : 'Dossier verrouillé',
           pendingAction.currentlyLocked
@@ -415,6 +424,18 @@ export default function StudentDetailPage() {
   const sc = STATUS_CFG[student.status] ?? { label: student.status, cls: 'bg-zinc-100 text-zinc-500' }
   const debtAmount = student.debtAmount ?? 0
   const studentDisplayName = formatStudentDisplayName(student)
+  const studentInitials = formatStudentInitials(student)
+  const identity = {
+    nom: (student.lastName ?? '').trim().toUpperCase() || null,
+    postnom: (student.postnom ?? '').trim().toUpperCase() || null,
+    prenom: (student.prenom || student.firstName || '').trim() || null,
+    prenomUsage:
+      student.prenom &&
+      student.firstName &&
+      student.prenom.trim().toLocaleLowerCase('fr-FR') !== student.firstName.trim().toLocaleLowerCase('fr-FR')
+        ? student.firstName.trim()
+        : null,
+  }
   const dossierItem = dossier as {
     hasPhoto?: boolean; hasBiometrics?: boolean; hasParentContact?: boolean;
     isFinanciallyCleared?: boolean; completionRate?: number
@@ -463,7 +484,7 @@ export default function StudentDetailPage() {
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center">
               <span className="text-sm font-bold text-emerald-700">
-                {student.firstName?.[0]}{student.lastName?.[0]}
+                {studentInitials}
               </span>
             </div>
             <div>
@@ -545,9 +566,11 @@ export default function StudentDetailPage() {
                   <FileEdit size={12} /> Profil administratif
                 </button>
               </div>
-              <InfoRow label="Nom" value={student.lastName} />
-              <InfoRow label="Postnom" value={student.postnom} />
-              <InfoRow label="Prénom" value={student.prenom || student.firstName} />
+              <InfoRow label="Nom complet" value={formatRdcFullName(student)} />
+              <InfoRow label="Nom" value={identity.nom} />
+              <InfoRow label="Postnom" value={identity.postnom} />
+              <InfoRow label="Prénom" value={identity.prenom} />
+              <InfoRow label="Prénom d'usage" value={identity.prenomUsage} />
               <InfoRow label="Classe" value={student.className} />
               <InfoRow label="Email" value={student.email} />
               <InfoRow label="Téléphone" value={student.phone} />
@@ -580,8 +603,8 @@ export default function StudentDetailPage() {
 
             <PhotoDocumentsCard
               studentId={studentId}
-              firstName={student.firstName}
-              lastName={student.lastName}
+              firstName={identity.prenom || student.firstName}
+              lastName={identity.nom || student.lastName}
               photoUrl={student.photoUrl}
               birthCertificateUrl={student.birthCertificateUrl}
               enrollmentFormUrl={student.enrollmentFormUrl}
@@ -599,9 +622,19 @@ export default function StudentDetailPage() {
               </div>
             )}
 
-            {/* Finance */}
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-              <h2 className="text-sm font-semibold text-zinc-700 mb-4">Finance</h2>
+            {/* Finance — agrégats + échéancier dus / non dus */}
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 space-y-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+                  <Wallet size={14} /> Finance
+                </h2>
+                <a
+                  href="/admin/finance/paiements"
+                  className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                >
+                  Guichet paiements →
+                </a>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'À payer', value: student.totalDue ?? enrollmentDetail?.totalFees, color: 'zinc' },
@@ -619,6 +652,17 @@ export default function StudentDetailPage() {
                     </p>
                   </div>
                 ))}
+              </div>
+
+              <div className="border-t border-zinc-100 pt-5 space-y-5">
+                <StudentFeeAssignmentPanel studentId={studentId} />
+                <StudentFinanceDashboard
+                  studentId={studentId}
+                  api="admin"
+                  allowPay={false}
+                  showNav={false}
+                  compactHeader
+                />
               </div>
             </div>
 

@@ -3,17 +3,15 @@
 import { Suspense, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 import { Filter, Printer, Download, RefreshCw, Users, CheckCircle2, AlertTriangle } from 'lucide-react'
-import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
+import { StudentFinancialControlRows } from '@/components/finance/student-financial-control-rows'
 import {
   useStudentsFinancial,
   useExportStudentsFinancialPrint,
   useFinanceClasses,
 } from '@/lib/hooks/use-finance'
 import { formatMoney } from '@/lib/finance/currency'
-import { cn } from '@/lib/utils'
-import type { StudentFinancialRow, StudentsFinancialPrintReport } from '@/types/finance'
+import type { StudentsFinancialPrintReport } from '@/types/finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -60,6 +58,7 @@ function openPrintReport(report: StudentsFinancialPrintReport) {
   @media print{body{padding:12px}}
 </style></head><body>
   <h1>Suivi financier — ${report.schoolName}</h1>
+  ${report.schoolAddress ? `<p class="meta">${report.schoolAddress}${report.schoolPhone ? ` · Tél. ${report.schoolPhone}` : ''}${report.schoolEmail ? ` · ${report.schoolEmail}` : ''}</p>` : [report.schoolPhone ? `Tél. ${report.schoolPhone}` : null, report.schoolEmail].filter(Boolean).length ? `<p class="meta">${[report.schoolPhone ? `Tél. ${report.schoolPhone}` : null, report.schoolEmail].filter(Boolean).join(' · ')}</p>` : ''}
   <p class="meta">Généré le ${new Date(report.generatedAt).toLocaleString('fr-FR')}</p>
   <div class="summary">
     <div>Élèves<strong>${report.summary.total}</strong></div>
@@ -173,7 +172,7 @@ function SuiviFinancierContent() {
     <FinancePageShell>
       <FinancePageHeader
         title="Suivi financier"
-        subtitle="Filtrage par classe, section, option et statut — registre ERP RDC"
+        subtitle="Tableau de contrôle — qui a payé quoi, qui manque (déplier une ligne)"
         actions={
           <>
             <button
@@ -308,63 +307,10 @@ function SuiviFinancierContent() {
             <p className="text-sm text-zinc-400">Aucun élève pour ces filtres</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-zinc-100 bg-zinc-50/80">
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Élève</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Classe</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Frais</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Payé</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Solde</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">Statut</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-50">
-              {rows.map((row: StudentFinancialRow) => (
-                <tr key={row.id} className="hover:bg-zinc-50/80 transition-colors">
-                  <td className="px-5 py-3">
-                    <Link
-                      href={`/finances/eleves/${row.id}`}
-                      className="block group"
-                    >
-                      <p className="text-sm font-medium text-zinc-900 group-hover:text-emerald-700">{row.fullName}</p>
-                      <p className="text-xs text-zinc-400">{row.matricule}</p>
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3 text-sm text-zinc-600">
-                    {row.className ?? '—'}
-                    {(row.sectionName || row.optionName) && (
-                      <p className="text-[10px] text-zinc-400">
-                        {[row.sectionName, row.optionName].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-700">{formatMoney(row.totalFees)}</td>
-                  <td className="px-5 py-3 text-sm text-right tabular-nums text-emerald-700">{formatMoney(row.feesPaid)}</td>
-                  <td className={cn(
-                    'px-5 py-3 text-sm text-right font-semibold tabular-nums',
-                    row.balance > 0 ? 'text-red-600' : 'text-zinc-700',
-                  )}>
-                    {formatMoney(row.balance)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={cn(
-                      'text-xs font-medium px-2 py-0.5 rounded-full',
-                      row.financialStatus === 'DEBTOR'
-                        ? 'bg-red-50 text-red-700'
-                        : 'bg-emerald-50 text-emerald-700',
-                    )}>
-                      {row.financialStatus === 'DEBTOR' ? 'Débiteur' : 'En ordre'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <StudentFeeScheduleLink studentId={row.id} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <StudentFinancialControlRows
+            rows={rows}
+            studentHref={(id) => `/finances/eleves/${id}`}
+          />
         )}
       </div>
 

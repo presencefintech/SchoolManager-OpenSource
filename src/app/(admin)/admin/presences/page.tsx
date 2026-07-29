@@ -23,7 +23,7 @@ import { ManualRecordModal } from '@/components/admin/presences/ManualRecordModa
 import { BulkPresenceGrid } from '@/components/admin/presences/BulkPresenceGrid'
 import { PendingSheetsPanel, type OpenAttendanceSheetParams } from '@/components/admin/presences/PendingSheetsPanel'
 import { QRKioskModal } from '@/components/admin/presences/QRKioskModal'
-import { PresenceStatusBadge } from '@/components/admin/presences/PresenceStatusBadge'
+import { PresenceScanBadges } from '@/components/admin/presences/PresenceStatusBadge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { labelFraudScore } from '@/lib/business-labels'
@@ -501,7 +501,7 @@ export default function PresencesPage() {
                             </td>
                             <td className="px-4 py-3 text-xs text-zinc-600">{entry.className}</td>
                             <td className="px-4 py-3">
-                              <PresenceStatusBadge status={entry.status} />
+                              <PresenceScanBadges status={entry.status} direction={entry.direction} />
                             </td>
                             <td className="px-4 py-3 text-xs uppercase tracking-wide text-zinc-400">
                               {entry.method ?? '—'}

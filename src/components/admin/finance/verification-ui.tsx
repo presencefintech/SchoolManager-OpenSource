@@ -1,6 +1,6 @@
 'use client'
 
-import { labelFraudScore } from '@/lib/business-labels'
+import { labelFraudScore, normalizeFraudScorePercent } from '@/lib/business-labels'
 import { labelPaymentProofType } from '@/lib/finance/payment-proof'
 import { cn } from '@/lib/utils'
 import type { PendingVerificationItem, PaymentProofType } from '@/types/admin'
@@ -23,26 +23,31 @@ export function fmtMoney(amount: number, currency = 'USD') {
 
 export function VerificationStepper({ item }: { item: PendingVerificationItem }) {
   return (
-    <div className="flex items-center gap-1">
-      {STEPS.map((step, i) => {
-        const done = item[step.field]
-        const active = !done && (i === 0 || item[STEPS[i - 1].field])
-        return (
-          <div key={step.key} className="flex items-center gap-1">
-            {i > 0 && <div className={cn('w-3 h-px', done || active ? 'bg-emerald-300' : 'bg-zinc-200')} />}
-            <div
-              className={cn(
-                'flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium',
-                done ? 'bg-emerald-50 text-emerald-700' : active ? 'bg-amber-50 text-amber-700' : 'bg-zinc-50 text-zinc-400',
-              )}
-              title={step.label}
-            >
-              {done ? <CheckCircle2 size={10} /> : active ? <Circle size={10} className="fill-amber-400 text-amber-400" /> : <Circle size={10} />}
-              {step.label}
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1">
+        {STEPS.map((step, i) => {
+          const done = item[step.field]
+          const active = !done && (i === 0 || item[STEPS[i - 1].field])
+          const checker =
+            step.key === 'finance' ? item.financeCheckerName : item.adminCheckerName
+          return (
+            <div key={step.key} className="flex items-center gap-1">
+              {i > 0 && <div className={cn('w-3 h-px', done || active ? 'bg-emerald-300' : 'bg-zinc-200')} />}
+              <div
+                className={cn(
+                  'flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium',
+                  done ? 'bg-emerald-50 text-emerald-700' : active ? 'bg-amber-50 text-amber-700' : 'bg-zinc-50 text-zinc-400',
+                )}
+                title={checker ? `${step.label} · ${checker}` : step.label}
+              >
+                {done ? <CheckCircle2 size={10} /> : active ? <Circle size={10} className="fill-amber-400 text-amber-400" /> : <Circle size={10} />}
+                {step.label}
+                {done && checker ? ` · ${checker.split(' ')[0]}` : ''}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -50,13 +55,14 @@ export function VerificationStepper({ item }: { item: PendingVerificationItem })
 export function FraudScoreBadge({ score, suspicion }: { score: number | null; suspicion?: boolean }) {
   const label = labelFraudScore(score, suspicion)
   if (score == null && !suspicion) return null
+  const pct = score != null ? normalizeFraudScorePercent(score) : 0
   const cls =
-    suspicion || (score != null && score >= 70) ? 'bg-red-50 text-red-700'
-    : score != null && score >= 40 ? 'bg-amber-50 text-amber-700'
+    suspicion || pct >= 70 ? 'bg-red-50 text-red-700'
+    : pct >= 40 ? 'bg-amber-50 text-amber-700'
     : 'bg-zinc-100 text-zinc-600'
   return (
     <span className={cn('inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full', cls)}>
-      {(suspicion || (score != null && score >= 40)) && <AlertTriangle size={10} />}
+      {(suspicion || pct >= 40) && <AlertTriangle size={10} />}
       {label}
     </span>
   )
