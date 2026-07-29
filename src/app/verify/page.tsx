@@ -31,9 +31,13 @@ export default async function VerifyPage({ searchParams }: PageProps) {
       <div className="w-full max-w-md space-y-4">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
-            PresenceFintech
+            {result?.valid ? result.schoolName : 'Vérification de reçu'}
           </p>
-          <p className="mt-1 text-sm text-zinc-500">Vérification de reçu scolaire — RDC</p>
+          <p className="mt-1 text-sm text-zinc-500">
+            {result?.valid
+              ? 'Reçu scolaire authentifié'
+              : 'Vérification de reçu scolaire — RDC'}
+          </p>
         </div>
 
         {hasLookup && result ? <ReceiptVerifyCard result={result} /> : null}
@@ -53,6 +57,6 @@ export default async function VerifyPage({ searchParams }: PageProps) {
 }
 
 export const metadata = {
-  title: 'Vérifier un reçu | PresenceFintech',
-  description: 'Vérifiez l\'authenticité d\'un reçu de paiement scolaire en RDC.',
+  title: 'Vérifier un reçu scolaire',
+  description: "Vérifiez l'authenticité d'un reçu de paiement scolaire en RDC.",
 }

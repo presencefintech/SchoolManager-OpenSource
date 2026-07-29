@@ -8,6 +8,7 @@ interface StudentFeeScheduleLinkProps {
   studentId: number
   className?: string
   variant?: 'button' | 'inline'
+  href?: string
   onClick?: (event: React.MouseEvent) => void
 }
 
@@ -15,11 +16,12 @@ export function StudentFeeScheduleLink({
   studentId,
   className,
   variant = 'button',
+  href: hrefOverride,
   onClick,
 }: StudentFeeScheduleLinkProps) {
   if (!Number.isFinite(studentId) || studentId <= 0) return null
 
-  const href = `/finances/eleves/${studentId}`
+  const href = hrefOverride ?? `/finances/eleves/${studentId}`
 
   if (variant === 'inline') {
     return (

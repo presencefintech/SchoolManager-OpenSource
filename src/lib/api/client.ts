@@ -80,6 +80,9 @@ apiClient.interceptors.response.use(
 
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
+    if (!error.response && (error.code === 'ECONNABORTED' || /timeout/i.test(error.message))) {
+      return 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez avec un fichier plus léger.'
+    }
     if (!error.response && error.code === 'ERR_NETWORK') {
       return 'Connexion au serveur impossible (réseau ou proxy). Réessayez dans quelques secondes.'
     }
@@ -102,6 +105,9 @@ export function getApiErrorMessage(error: unknown): string {
     const resolved = resolveApiErrorMessage(data)
     if (resolved !== 'Une erreur inattendue est survenue') return resolved
     if (typeof msg === 'string' && msg) return msg
+    if (error.response?.status === 429) {
+      return 'Trop de requêtes — patientez une minute avant de réessayer.'
+    }
     if (code === 'FORBIDDEN_ROLE') {
       return 'Accès refusé — seuls les administrateurs peuvent modifier l\'identité de l\'établissement.'
     }

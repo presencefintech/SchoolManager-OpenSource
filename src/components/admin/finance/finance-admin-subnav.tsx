@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, CreditCard, FileText, RotateCcw, Clock,
-  Fingerprint, Building2, Shield, QrCode, BarChart3,
+  Fingerprint, Building2, Shield, QrCode, BarChart3, ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +22,7 @@ const LINKS: FinanceAdminNavLink[] = [
   { href: '/admin/finance/rapports', label: 'Rapports', icon: BarChart3, highlight: true },
   { href: '/admin/finance/factures', label: 'Factures & Frais', icon: FileText, highlight: true },
   { href: '/admin/finance/paiements', label: 'Paiements', icon: CreditCard },
+  { href: '/admin/finance/controle', label: 'Contrôle', icon: ClipboardCheck, highlight: true },
   { href: '/admin/finance/remboursements', label: 'Remboursements', icon: RotateCcw },
   { href: '/admin/finance/moratoriums', label: 'Moratoires', icon: Clock },
   { href: '/admin/finance/scelles', label: 'Scellés', icon: Fingerprint },

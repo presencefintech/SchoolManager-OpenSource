@@ -19,6 +19,7 @@ import { StudentSearchField } from '@/components/admin/shared/student-search-fie
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
+import { isValidFeeCategoryCode, toFeeCategoryCode } from '@/lib/finance/fee-structure.utils'
 
 const BILLING_PERIOD_LABELS: Record<FeeBillingPeriod, string> = {
   ONE_TIME: 'Ponctuel',
@@ -49,15 +50,21 @@ function CreateCategoryModal({
     billingPeriod: 'MONTHLY',
     dueDayOfMonth: 5,
   })
+  const [codeLocked, setCodeLocked] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    const code = toFeeCategoryCode(form.code || form.name)
+    if (!isValidFeeCategoryCode(code)) {
+      setError('Code invalide. Utilisez des lettres (ex. CANTEEN, TUITION, SCOLARITE).')
+      return
+    }
     try {
       const created = await mutateAsync({
         ...form,
-        code: form.code.trim().toUpperCase(),
+        code,
       })
       onCreated(created.id)
       onClose()
@@ -86,7 +93,7 @@ function CreateCategoryModal({
                 setForm((p) => ({
                   ...p,
                   name,
-                  code: p.code || name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').slice(0, 48),
+                  code: codeLocked ? p.code : toFeeCategoryCode(name),
                 }))
               }}
               placeholder="Ex: Scolarité mensuelle"
@@ -98,11 +105,19 @@ function CreateCategoryModal({
             <input
               required
               value={form.code}
-              onChange={(e) => setForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+              onChange={(e) => {
+                setCodeLocked(true)
+                setForm((p) => ({
+                  ...p,
+                  code: toFeeCategoryCode(e.target.value),
+                }))
+              }}
               placeholder="TUITION"
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
-            <p className="mt-1 text-[11px] text-zinc-400">Format UPPER_SNAKE (ex. CANTEEN, TUITION)</p>
+            <p className="mt-1 text-[11px] text-zinc-400">
+              Généré automatiquement (UPPER_SNAKE). Ex. CANTEEN, TUITION, SCOLARITE
+            </p>
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Périodicité *</label>

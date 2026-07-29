@@ -79,6 +79,7 @@ export interface AttendanceActivityItem {
   studentName: string
   method: string
   status: string
+  direction?: 'ARRIVAL' | 'EXIT' | null
   scannedAt: string
 }
 
@@ -328,6 +329,8 @@ export interface EnrollmentListItem {
   id: number
   firstName: string
   lastName: string
+  postnom?: string | null
+  prenom?: string | null
   matricule?: string
   status: string
   className?: string
@@ -353,6 +356,8 @@ export interface EnrollmentDetail {
   id: number
   firstName: string
   lastName: string
+  postnom?: string | null
+  prenom?: string | null
   matricule?: string
   status: string
   className?: string
@@ -401,6 +406,8 @@ export interface CreateEnrollmentPayload {
   scholarshipPercent?: number
   totalFees?: number
   feesPaid?: number
+  /** Si true (défaut), crée un Payment CASH pour feesPaid */
+  collectDeposit?: boolean
   paymentNotes?: string
   emergencyContactName?: string
   emergencyContactPhone?: string
@@ -419,6 +426,9 @@ export interface PaginatedResponse<T> {
 }
 
 // Presences
+/** Direction de pointage (arrivée / sortie). */
+export type PresenceDirection = 'ARRIVAL' | 'EXIT'
+
 export interface PresenceLiveFeedEntry {
   id: number
   studentId?: number
@@ -432,7 +442,8 @@ export interface PresenceLiveFeedEntry {
   day?: string | null
   time?: string | null
   scannedAt: string
-  status: 'PRESENT' | 'ABSENT' | 'LATE'
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXITED'
+  direction?: PresenceDirection | null
   method?: string
   security?: { isSuspicious: boolean; riskScore: number; alerts: string[] } | null
   location?: { lat: number; lng: number } | null
@@ -710,6 +721,36 @@ export interface RolloverPayload {
 }
 
 // Finance
+
+/** Contrat backend — GET /admin/finance/dashboard/strategic */
+export interface EnterpriseDashboardDTO {
+  performance: {
+    monthlyRevenue: number
+    projectedRevenue: number
+    arpu: number
+    digitalAdoption: number
+    collectionEfficiency: number
+  }
+  audit: {
+    pendingVerifications: number
+    isBenfordValid: boolean
+    suspiciousActivity: boolean
+    devianceLevel: number
+    daysSalesOutstanding: number
+    highRiskProfiles: Array<{
+      studentName: string
+      debtAmount: number
+      fraudAlertCount: number
+      riskLevel: 'CRITICAL' | 'HIGH'
+    }>
+  }
+  treasury: {
+    totalUnpaid: number
+    breakEvenRequirement: number
+    badDebtEstimate: number
+  }
+}
+
 export interface FinanceKpi {
   totalRevenue: number
   totalPaid: number
@@ -717,6 +758,9 @@ export interface FinanceKpi {
   collectionRate: number
   pendingPayments: number
   fraudAlerts: number
+  /** Encaissements confirmés du mois en cours (strategic). */
+  monthlyRevenue?: number
+  enterprise?: EnterpriseDashboardDTO
 }
 
 /** GET /admin/finance/dashboard/efficiency — recouvrement par niveau scolaire. */
@@ -904,6 +948,10 @@ export interface PendingVerificationItem {
   verificationStep: number
   financeCheck: boolean
   adminCheck: boolean
+  financeCheckerName?: string | null
+  adminCheckerName?: string | null
+  financeCheckAt?: string | null
+  adminCheckAt?: string | null
   superAdminCheck: boolean
   suspicion: boolean
   fraudScore: number | null
@@ -978,6 +1026,10 @@ export interface UpsertPaymentProfilePayload {
   provider?: PaymentSettlementProvider
 }
 
+/**
+ * Alerte fraude normalisée — utilisée par `/admin/finance` et `/admin/finance/audit`.
+ * Source : `normalizeFraudAlertsResponse()` sur GET `/admin/finance/audit/fraud-alerts`.
+ */
 export interface FinanceFraudAlert {
   id: number
   type: string
@@ -987,6 +1039,27 @@ export interface FinanceFraudAlert {
   amount?: number
   createdAt: string
 }
+
+/**
+ * Contrat backend brut — `FinanceService.detectAndAlertAnomalies`.
+ * Le frontend accepte aussi un tableau legacy `FinanceFraudAlert[]`.
+ */
+export interface FinanceFraudAlertsApiResponse {
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | string
+  deviance?: number
+  benfordValid?: boolean
+  reason?: string
+  suspicious?: boolean
+  anomalies: Array<{
+    id?: number
+    amount?: number
+    method?: string
+    createdAt?: string
+    audit?: { suspicious?: boolean; deviance?: number }
+  }>
+}
+
+export type FinanceFraudAlertsRaw = FinanceFraudAlertsApiResponse | FinanceFraudAlert[]
 
 export interface AuditLogEntry {
   id: number
@@ -1086,6 +1159,25 @@ export interface AdvancedSearchParams {
   maxAmount?: number
   page?: number
   limit?: number
+}
+
+export interface AdvancedSearchPaymentItem {
+  id: number
+  studentId?: number
+  studentName: string
+  amount: number
+  currency?: string
+  method: string
+  status: string
+  reference?: string | null
+  createdAt: string
+}
+
+export interface AdvancedSearchResult {
+  data: AdvancedSearchPaymentItem[]
+  total: number
+  page: number
+  lastPage: number
 }
 
 export interface MobilePendingItem {
@@ -1293,8 +1385,19 @@ export interface SchoolGeofence {
   configured: boolean
 }
 
+export interface AttendanceScheduleSettings {
+  startHour: number
+  startMinute: number
+  endHour: number
+  endMinute: number
+  lateToleranceMinutes: number
+  scanWindowStrict: boolean
+  exitScanEnabled: boolean
+}
+
 export interface AttendanceNotificationSettings {
   parentPresenceNotificationsEnabled: boolean
+  parentDepartureNotificationsEnabled: boolean
 }
 
 export interface AttendanceAbsenceSettings {
@@ -1311,6 +1414,7 @@ export interface AttendanceSettings {
   enabledPresenceModes: string[]
   offlineSyncEnabled: boolean
   validationRules: AttendanceValidationRules
+  scheduleSettings: AttendanceScheduleSettings
   geofence: SchoolGeofence
   notificationSettings: AttendanceNotificationSettings
   absenceSettings: AttendanceAbsenceSettings
@@ -1321,6 +1425,7 @@ export type PatchAttendanceSettingsPayload = {
   methods?: Partial<AttendanceMethods>
   offlineSyncEnabled?: boolean
   validationRules?: Partial<AttendanceValidationRules>
+  scheduleSettings?: Partial<AttendanceScheduleSettings>
   geofence?: { latitude: number; longitude: number; radiusKm: number }
   notificationSettings?: Partial<AttendanceNotificationSettings>
   absenceSettings?: Partial<AttendanceAbsenceSettings>
@@ -1381,6 +1486,14 @@ export interface SchoolBranding {
   name: string
   address: string | null
   phone: string | null
+  email: string | null
   city: string | null
   logoUrl: string | null
+  addressLine: string | null
+  slogan: string | null
+  devise: string | null
+  documentAccentColor: string
+  documentAccentColorOverride: string | null
+  legalFooter: string | null
+  cardTheme?: import('@/lib/student-card/card-theme').SchoolCardTheme | null
 }

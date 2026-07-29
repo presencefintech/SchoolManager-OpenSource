@@ -48,8 +48,12 @@ async function captureCardElement(card: HTMLElement): Promise<Blob> {
       cloned.style.height = `${CARD.heightPx}px`
       cloned.style.overflow = 'hidden'
       cloned.style.boxSizing = 'border-box'
+      cloned.style.transform = 'none'
 
-      doc.querySelectorAll<HTMLElement>('.student-card [style]').forEach((el) => {
+      // Anti-coupure : boîtes texte un peu plus hautes à la capture
+      doc.querySelectorAll<HTMLElement>('.student-card [data-card-text="1"]').forEach((el) => {
+        el.style.setProperty('overflow', 'hidden')
+        el.style.setProperty('word-break', 'break-word')
         el.style.setProperty('-webkit-font-smoothing', 'antialiased')
       })
     },
@@ -199,7 +203,10 @@ const PRINT_PAGE_CSS = `
   }
 `
 
-function openPrintDocument(onMount: (mount: HTMLElement) => void): Window {
+function openPrintDocument(
+  schoolName: string,
+  onMount: (mount: HTMLElement) => void,
+): Window {
   const printWindow = window.open(
     '',
     '_blank',
@@ -209,12 +216,14 @@ function openPrintDocument(onMount: (mount: HTMLElement) => void): Window {
     throw new Error('Fenêtre d\'impression bloquée — autorisez les popups pour ce site.')
   }
 
+  const safeTitle = schoolName.replace(/[<>&"]/g, '') || 'Établissement'
+
   printWindow.document.open()
   printWindow.document.write(`<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Carte élève — PresenceFintech</title>
+  <title>Carte élève — ${safeTitle}</title>
   <style>${PRINT_PAGE_CSS}</style>
 </head>
 <body>
@@ -253,7 +262,7 @@ export async function printStudentCard(
   const fromDom = findStudentCardElement(options?.sourceElement ?? null)
 
   if (fromDom) {
-    const printWindow = openPrintDocument((mount) => {
+    const printWindow = openPrintDocument(data.schoolName, (mount) => {
       const clone = fromDom.cloneNode(true) as HTMLElement
       clone.style.width = `${CARD.widthPx}px`
       clone.style.height = `${CARD.heightPx}px`
@@ -273,7 +282,7 @@ export async function printStudentCard(
   }
 
   let root: Root | undefined
-  const printWindow = openPrintDocument((mount) => {
+  const printWindow = openPrintDocument(data.schoolName, (mount) => {
     root = createRoot(mount)
     root.render(<StudentCardPreview data={data} assets={resolved} />)
   })

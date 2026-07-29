@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { financeQueryKeys } from '@/lib/finance/query-keys'
-import type { CashSession } from '@/types/finance'
+import { resolveAcademicSessionId } from '@/lib/finance/collection-analytics.utils'
+import type { CashSession, GuichetDashboard, CollectionAnalyticsSummary } from '@/types/finance'
+import type { FinanceFraudAlert, FinanceIntegrityScan } from '@/types/admin'
 
 // ── Dashboard & Analytics ──────────────────────────────────────────────────
 
@@ -15,20 +17,37 @@ export function useExecutiveDashboard(opts?: { enabled?: boolean }) {
 }
 
 export function useGuichetDashboard() {
-  return useQuery({
-    queryKey: ['finance', 'guichet-dashboard'],
+  return useQuery<GuichetDashboard>({
+    queryKey: financeQueryKeys.guichetDashboard(),
     queryFn: financeRoleApi.getGuichetDashboard,
     staleTime: 30_000,
     refetchInterval: 120_000,
   })
 }
 
-export function useCollectionAnalytics(sessionId?: number) {
-  return useQuery({
-    queryKey: ['finance', 'collection', sessionId],
-    queryFn: () => financeRoleApi.getCollectionAnalytics(sessionId!),
+/** F-04 — session académique active (depuis guichet dashboard, cache partagé). */
+export function useFinanceAcademicSessionId() {
+  const { data: guichet, isLoading, isSuccess } = useGuichetDashboard()
+  const sessionId = resolveAcademicSessionId(guichet)
+
+  return {
+    sessionId,
+    hasSession: sessionId != null,
+    isLoading,
+    isReady: isSuccess,
+  }
+}
+
+export function useCollectionAnalytics(
+  sessionId?: number | null,
+  opts?: { enabled?: boolean },
+) {
+  const id = sessionId != null && sessionId > 0 ? sessionId : undefined
+  return useQuery<CollectionAnalyticsSummary | null>({
+    queryKey: id != null ? financeQueryKeys.collectionAnalytics(id) : ['finance', 'collection', 'none'],
+    queryFn: () => financeRoleApi.getCollectionAnalytics(id!),
     staleTime: 60_000,
-    enabled: sessionId != null && sessionId > 0,
+    enabled: (opts?.enabled ?? true) && id != null,
   })
 }
 
@@ -43,10 +62,73 @@ export function useDailyCashReport(opts?: { enabled?: boolean }) {
 }
 
 export function useFinanceIntegrity(opts?: { enabled?: boolean }) {
-  return useQuery({
+  return useQuery<FinanceIntegrityScan>({
     queryKey: ['finance', 'integrity'],
     queryFn: financeRoleApi.checkIntegrity,
     staleTime: 300_000,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceRoleAiInsights(
+  horizonDays: 7 | 30 | 90 = 30,
+  opts?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: ['finance', 'ai-insights', horizonDays],
+    queryFn: () => financeRoleApi.getAiInsights(horizonDays),
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceRoleHealthCheck(opts?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['finance', 'health-check'],
+    queryFn: financeRoleApi.getHealthCheck,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceRoleStrategic(opts?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['finance', 'strategic'],
+    queryFn: financeRoleApi.getStrategicDashboard,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceRoleEfficiency(opts?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['finance', 'efficiency'],
+    queryFn: financeRoleApi.getEfficiency,
+    staleTime: 120_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceRoleFraudAlerts(opts?: { enabled?: boolean }) {
+  return useQuery<FinanceFraudAlert[]>({
+    queryKey: ['finance', 'fraud-alerts'],
+    queryFn: financeRoleApi.getFraudAlerts,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useFinanceRoleAuditLogs(params?: { page?: number; limit?: number }, opts?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['finance', 'audit-logs', params],
+    queryFn: () => financeRoleApi.getAuditLogs(params),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
     enabled: opts?.enabled ?? true,
   })
 }
@@ -107,8 +189,9 @@ export function useResolvedCashSession() {
         ? fromGuichet
         : null
 
-  const academicSessionId = (guichet.data as { currentAcademicSessionId?: number | null } | undefined)
-    ?.currentAcademicSessionId
+  const academicSessionId = resolveAcademicSessionId(
+    guichet.data as GuichetDashboard | undefined,
+  )
 
   const isLoading = current.isLoading || guichet.isLoading
   const couldNotVerify =
@@ -132,8 +215,26 @@ export function useSessionSummary(id: number) {
   return useQuery({
     queryKey: ['finance', 'cash-session', id, 'summary'],
     queryFn: () => financeRoleApi.getSessionSummary(id),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
     enabled: id > 0,
+  })
+}
+
+export function useCashSessionHistory(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['finance', 'cash-session', 'history', params],
+    queryFn: () => financeRoleApi.listCashSessionHistory(params),
+    staleTime: 30_000,
+  })
+}
+
+export function useOpeningFloatSuggestion(enabled = true) {
+  return useQuery({
+    queryKey: ['finance', 'cash-session', 'opening-suggestion'],
+    queryFn: () => financeRoleApi.getOpeningFloatSuggestion(),
+    staleTime: 60_000,
+    enabled,
   })
 }
 
@@ -151,12 +252,49 @@ export function useOpenSession() {
 export function useCloseSession() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: { closingCounted: number; closeNotes?: string } }) =>
-      financeRoleApi.closeSession(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number
+      payload: {
+        closingCounted: number
+        closeNotes?: string
+        fxRateAtClose?: number
+        closingSheet?:
+          | import('@/types/finance').CashDenominationSheet
+          | import('@/types/finance').CashDenominationSheet[]
+      }
+    }) => financeRoleApi.closeSession(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
       qc.invalidateQueries({ queryKey: ['finance', 'daily-cash'] })
       qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
+    },
+  })
+}
+
+export function useAddCashSessionMovement() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number
+      payload: {
+        type: import('@/types/finance').CashLedgerMovementType
+        amount: number
+        amountCdf?: number
+        note?: string
+        ref?: string
+      }
+    }) => financeRoleApi.addCashSessionMovement(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
     },
   })
 }
@@ -192,7 +330,12 @@ export function useVerifyPaymentStep() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: financeRoleApi.verifyPaymentStep,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['finance'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['finance', 'payments', 'pending'] })
+      void qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
+      void qc.invalidateQueries({ queryKey: ['finance', 'daily-cash'] })
+      void qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
+    },
   })
 }
 
@@ -204,7 +347,12 @@ export function useVerifyExternal() {
 
 export function useDownloadReceipt() {
   return useMutation({
-    mutationFn: (paymentId: number) => financeRoleApi.downloadReceipt(paymentId),
+    mutationFn: (input: number | { paymentId: number; format?: 'A4' | 'Thermal' }) => {
+      if (typeof input === 'number') {
+        return financeRoleApi.downloadReceipt(input, 'Thermal')
+      }
+      return financeRoleApi.downloadReceipt(input.paymentId, input.format ?? 'Thermal')
+    },
   })
 }
 
@@ -301,6 +449,24 @@ export function useExportCashSession() {
   })
 }
 
+export function useExportCashSessionReport() {
+  return useMutation({
+    mutationFn: (sessionId: number) => financeRoleApi.exportCashSessionReport(sessionId),
+  })
+}
+
+export function useSubmitCashSessionToPromoter() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, note }: { id: number; note?: string }) =>
+      financeRoleApi.submitCashSessionToPromoter(id, note ? { note } : undefined),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
+    },
+  })
+}
+
 export function useExportAccountingJournal() {
   return useMutation({
     mutationFn: financeRoleApi.exportAccountingJournal,
@@ -366,6 +532,15 @@ export function useStudentWallet(id: number) {
   })
 }
 
+export function useStudentSiblings(id: number) {
+  return useQuery({
+    queryKey: ['finance', 'student', id, 'siblings'],
+    queryFn: () => financeRoleApi.getStudentSiblings(id),
+    staleTime: 60_000,
+    enabled: id > 0,
+  })
+}
+
 // ── Élèves (recherche finance) ─────────────────────────────────────────────
 
 export function useFinanceStudentSearch(query: string) {
@@ -398,12 +573,13 @@ export function useStudentConfirmedPayments(studentId: number) {
 export function useStudentPaymentsDetailed(
   studentId: number,
   params?: Parameters<typeof financeRoleApi.getStudentPaymentsDetailed>[1],
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: ['finance', 'student-payments-detailed', studentId, params],
     queryFn: () => financeRoleApi.getStudentPaymentsDetailed(studentId, params),
     staleTime: 30_000,
-    enabled: studentId > 0,
+    enabled: (options?.enabled ?? true) && studentId > 0,
   })
 }
 
@@ -414,6 +590,15 @@ export function useFinanceFeeStructures(params?: { classId?: number }) {
     queryKey: ['finance', 'fee-structures', params],
     queryFn: () => financeRoleApi.getFeeStructures(params),
     staleTime: 120_000,
+  })
+}
+
+export function useFinanceCurrencyConfig() {
+  return useQuery({
+    queryKey: ['finance', 'currency-config'],
+    queryFn: financeRoleApi.getCurrencyConfig,
+    staleTime: 120_000,
+    retry: 1,
   })
 }
 

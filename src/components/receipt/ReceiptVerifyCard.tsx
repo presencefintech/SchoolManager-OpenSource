@@ -11,6 +11,7 @@ import {
   CreditCard,
   Hash,
   MapPin,
+  Mail,
   Phone,
   ShieldAlert,
   ShieldCheck,
@@ -144,6 +145,9 @@ export function ReceiptVerifyCard({ result }: { result: ReceiptVerifyResult }) {
           ) : null}
           {result.schoolPhone ? (
             <Row icon={Phone} label="Téléphone" value={result.schoolPhone} />
+          ) : null}
+          {result.schoolEmail ? (
+            <Row icon={Mail} label="Email" value={result.schoolEmail} />
           ) : null}
         </dl>
 

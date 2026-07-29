@@ -85,12 +85,12 @@ export const schoolAcademicApi = {
       .get('/school/options', { params: { sectionId, ...(schoolId ? { schoolId } : {}) } })
       .then((r) => (Array.isArray(r.data.data) ? r.data.data : []) as SchoolOptionRef[]),
 
-  listClasses: (sectionId: number, optionId: number, academicYear?: string, schoolId?: number) =>
+  listClasses: (sectionId: number, optionId?: number, academicYear?: string, schoolId?: number) =>
     apiClient
       .get('/school/classes', {
         params: {
           sectionId,
-          optionId,
+          ...(optionId && optionId > 0 ? { optionId } : {}),
           ...(academicYear ? { academicYear } : {}),
           ...(schoolId ? { schoolId } : {}),
         },

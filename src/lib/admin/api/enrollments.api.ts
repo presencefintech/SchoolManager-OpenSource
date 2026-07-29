@@ -2,11 +2,10 @@ import { apiClient } from '@/lib/api/client'
 import {
   normalizeEnrollmentDetail,
   normalizeEnrollmentListItem,
-  normalizeSessionEnrollment,
 } from '@/lib/admin/normalizers'
+import { idempotencyHeaders, newIdempotencyKey } from '@/lib/idempotency'
 import type {
   EnrollmentListItem,
-  EnrollmentDetail,
   CreateEnrollmentPayload,
   PaginatedResponse,
   SessionEnrollment,
@@ -35,15 +34,33 @@ export const enrollmentsApi = {
     apiClient.get<{ success: boolean; data: Record<string, unknown> }>(`/admin/enrollments/${studentId}`)
       .then((r) => normalizeEnrollmentDetail(r.data.data)),
 
-  create: (payload: CreateEnrollmentPayload) => {
+  create: (payload: CreateEnrollmentPayload & { idempotencyKey?: string }) => {
+    const { idempotencyKey, ...payloadRest } = payload
     const body = Object.fromEntries(
       Object.entries({
-        ...payload,
-        feesPaid: payload.feesPaid ?? 0,
+        ...payloadRest,
+        feesPaid: payloadRest.feesPaid ?? 0,
       }).filter(([, v]) => v !== undefined && v !== '' && !(typeof v === 'number' && Number.isNaN(v))),
     )
-    return apiClient.post<{ success: boolean; data: Record<string, unknown> }>('/admin/enrollments', body)
-      .then((r) => normalizeEnrollmentDetail(r.data.data))
+    const key = idempotencyKey?.trim() || newIdempotencyKey('enroll')
+    return apiClient
+      .post<{ success: boolean; data: Record<string, unknown>; message?: string }>('/admin/enrollments', body, {
+        headers: idempotencyHeaders(key),
+        timeout: 30_000,
+      })
+      .then((r) => {
+        const data = r.data.data ?? {}
+        const student = (data.student as Record<string, unknown> | undefined) ?? data
+        return {
+          ...normalizeEnrollmentDetail(student),
+          deposit: data.deposit as
+            | { paymentId: number; amount: number; currency: string; reference: string | null }
+            | undefined,
+          depositWarning: data.depositWarning as string | undefined,
+          serverMessage: r.data.message,
+          idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
+        }
+      })
   },
 
   update: (studentId: number, payload: Partial<CreateEnrollmentPayload>) =>
@@ -71,17 +88,23 @@ export const enrollmentsApi = {
     apiClient.put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics/fingerprint`, payload)
       .then((r) => r.data),
 
-  toggleLock: (studentId: number) =>
-    apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/toggle-lock`)
+  toggleLock: (studentId: number, isLocked: boolean) =>
+    apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/toggle-lock`, { isLocked })
       .then((r) => r.data),
 
   promote: (studentId: number, newClassId: number) =>
     apiClient.patch<{ success: boolean }>(`/admin/enrollments/${studentId}/promote`, { newClassId })
       .then((r) => r.data),
 
-  setReminderPause: (studentId: number, paused: boolean) =>
-    apiClient.patch<{ success: boolean }>(`/admin/enrollments/${studentId}/reminder-pause`, { paused })
-      .then((r) => r.data),
+  /** `paused: true` → suspend ~30 jours ; `false` → reprendre (until null). */
+  setReminderPause: (studentId: number, paused: boolean) => {
+    const until = paused
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null
+    return apiClient
+      .patch<{ success: boolean }>(`/admin/enrollments/${studentId}/reminder-pause`, { until })
+      .then((r) => r.data)
+  },
 
   purge: (studentId: number, confirmationToken: string) =>
     apiClient.delete<{ success: boolean }>(`/admin/enrollments/${studentId}/purge`, {
@@ -95,6 +118,81 @@ export const enrollmentsApi = {
   listSessions: () =>
     apiClient.get<{ success: boolean; data: Array<{ id: number; label: string; isCurrent: boolean; status: string }> }>('/admin/enrollments/sessions')
       .then((r) => r.data.data ?? []),
+
+  getFeePreview: (classId: number) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: {
+          sessionId?: number
+          academicYear: string
+          currency: string
+          totalFees: number
+          feeLines: Array<{
+            feeStructureId: number
+            categoryId: number
+            categoryCode: string
+            categoryName: string
+            billingPeriod: string
+            amount: number
+            currency: string
+          }>
+        }
+      }>('/admin/enrollments/fee-preview', { params: { classId } })
+      .then((r) => r.data.data),
+
+  getIntakeInbox: (params?: { kind?: string; page?: number; limit?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: {
+          items: Array<{
+            kind: 'PRE_ENROLLMENT' | 'STUDENT_APPLICATION' | 'PENDING_ENROLLMENT'
+            id: number
+            status: string
+            studentName: string
+            className: string | null
+            classId: number | null
+            createdAt: string
+            href: string
+          }>
+          meta: {
+            total: number
+            page: number
+            limit: number
+            totalPages: number
+            byKind: Record<string, number>
+          }
+        }
+      }>('/admin/enrollments/inbox', { params })
+      .then((r) => r.data.data),
+
+  applyRentreePack: (
+    studentId: number,
+    payload: {
+      sessionId?: number
+      classId?: number
+      feesPaid?: number
+      collectDeposit?: boolean
+      paymentNotes?: string
+      type?: string
+      idempotencyKey?: string
+    },
+  ) => {
+    const { idempotencyKey, ...body } = payload
+    const key = idempotencyKey?.trim() || newIdempotencyKey('rentree')
+    return apiClient
+      .post<{ success: boolean; data: Record<string, unknown>; message?: string }>(
+        `/admin/enrollments/${studentId}/rentree-pack`,
+        body,
+        { headers: idempotencyHeaders(key), timeout: 30_000 },
+      )
+      .then((r) => ({
+        ...(r.data.data ?? {}),
+        serverMessage: r.data.message,
+        idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
+      }))
+  },
 
   enrollInSession: (studentId: number, payload: { sessionId: number; classId?: number; type?: string }) =>
     apiClient.post<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/sessions`, payload)

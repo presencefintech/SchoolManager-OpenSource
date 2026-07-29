@@ -10,7 +10,7 @@ import {
   useFinanceIntegrityScan, useFinanceRiskProfiles, useFinanceDuplicates,
   useFinanceLedger, useFinancePresenceSecurity, useFraudRiskAnalysis, useFinanceCashierAudit,
 } from '@/lib/hooks/use-admin'
-import type { FinanceFraudAlert, AuditLogEntry } from '@/types/admin'
+import type { AuditLogEntry } from '@/types/admin'
 import { formatMoney } from '@/lib/finance/currency'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -26,7 +26,7 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 }
 
 export default function AuditPage() {
-  const { data: alerts = [] } = useFinanceFraudAlerts()
+  const { data: alerts = [], isLoading: alertsLoading, isError: alertsError } = useFinanceFraudAlerts()
   const { data: logs = [] } = useFinanceAuditLogs()
   const { mutate: triggerAudit, isPending: auditing } = useTriggerManualAudit()
   const { data: integrity } = useFinanceIntegrityScan()
@@ -125,15 +125,22 @@ export default function AuditPage() {
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-zinc-900">Alertes fraude</h3>
-          {(alerts as FinanceFraudAlert[]).length > 0 && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{(alerts as FinanceFraudAlert[]).length}</span>
+          {alerts.length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700 font-medium">{alerts.length}</span>
           )}
         </div>
-        {(alerts as FinanceFraudAlert[]).length === 0 ? (
+        {alertsError ? (
+          <div className="px-5 py-8 text-center">
+            <AlertTriangle size={24} className="mx-auto text-red-400 mb-2" />
+            <p className="text-sm text-red-600">Impossible de charger les alertes fraude</p>
+          </div>
+        ) : alertsLoading ? (
+          <motion.div className="px-5 py-8 text-center text-sm text-zinc-400">Chargement…</motion.div>
+        ) : alerts.length === 0 ? (
           <EmptyState icon={CheckCircle} message="Aucune alerte fraude" />
         ) : (
           <div className="divide-y divide-zinc-50">
-            {(alerts as FinanceFraudAlert[]).map((alert) => (
+            {alerts.map((alert) => (
               <div key={alert.id} className="px-5 py-4 flex items-start gap-3">
                 <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${alert.severity === 'HIGH' ? 'bg-red-500' : alert.severity === 'MEDIUM' ? 'bg-amber-500' : 'bg-zinc-400'}`} />
                 <div className="flex-1 min-w-0">

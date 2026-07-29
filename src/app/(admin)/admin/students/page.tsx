@@ -148,7 +148,9 @@ export default function StudentsPage() {
                 </div>
                 <div>
                   <p className="text-[11px] text-zinc-400 uppercase tracking-wide">{label}</p>
-                  <p className="text-lg font-bold text-zinc-900 leading-none tabular-nums">{value ?? '—'}</p>
+                  <p className="text-lg font-bold text-zinc-900 leading-none tabular-nums">
+                    {typeof value === 'number' ? value : '—'}
+                  </p>
                 </div>
               </div>
             ))}
@@ -230,7 +232,9 @@ export default function StudentsPage() {
                                   <User size={12} className="text-emerald-600" />
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-zinc-900">{formatStudentFullName(s)}</p>
+                                  <p className="text-sm font-medium text-zinc-900">
+                                    {formatStudentFullName(s) || `Élève #${s.id}`}
+                                  </p>
                                   <StudentFinanceBadges
                                     className="mt-0.5"
                                     debtAmount={s.debtAmount}

@@ -245,16 +245,23 @@ export default function DebiteursPage() {
                 </tr>
               </thead>
               <tbody>
-                {highRisk.map((r, i) => (
-                  <tr key={r.studentId ?? i} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-5 py-3.5 font-medium text-zinc-900">{formatStudentFullName(r)}</td>
+                {highRisk.map((r, i) => {
+                  const name =
+                    (r.studentName?.trim() || formatStudentFullName(r) || '').trim() ||
+                    (r.matricule ? `Matricule ${r.matricule}` : null) ||
+                    (r.studentId || r.id ? `#${r.studentId ?? r.id}` : '—')
+                  const debt = Number(r.debtAmount ?? r.tuitionBalance ?? r.balance ?? r.feesBalance ?? 0)
+                  const studentId = r.studentId ?? r.id
+                  return (
+                  <tr key={studentId ?? i} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                    <td className="px-5 py-3.5 font-medium text-zinc-900">{name}</td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs">{r.className ?? '—'}</td>
                     <td className="px-5 py-3.5 text-right font-semibold text-red-600">
-                      {formatMoney(Number(r.tuitionBalance ?? r.balance ?? 0))}
+                      {formatMoney(debt)}
                     </td>
                     <td className="px-5 py-3.5">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        r.riskLevel === 'HIGH' ? 'bg-red-100 text-red-700' :
+                        r.riskLevel === 'CRITICAL' || r.riskLevel === 'HIGH' ? 'bg-red-100 text-red-700' :
                         r.riskLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
                         'bg-zinc-100 text-zinc-500'
                       }`}>
@@ -262,10 +269,11 @@ export default function DebiteursPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      {r.studentId ? <StudentFeeScheduleLink studentId={r.studentId} /> : null}
+                      {studentId ? <StudentFeeScheduleLink studentId={studentId} /> : null}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

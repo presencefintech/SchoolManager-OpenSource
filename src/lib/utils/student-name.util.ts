@@ -38,19 +38,24 @@ export function resolveNom(input: StudentIdentityFields): string {
   return nom ? nom.toUpperCase() : ''
 }
 
-/** Affichage legacy UI : firstName lastName */
-export function formatStudentFullName(input: StudentIdentityFields): string {
+/** Affichage legacy UI : firstName lastName uniquement */
+export function formatLegacyFullName(input: StudentIdentityFields): string {
   const first = (input.firstName ?? '').trim()
   const last = (input.lastName ?? '').trim()
   return [first, last].filter(Boolean).join(' ')
 }
 
-/** Affichage administratif RDC : prenom nom postnom */
+/** Affichage administratif RDC : Nom · Postnom · Prénom */
 export function formatRdcFullName(input: StudentIdentityFields): string {
-  const prenom = resolvePrenom(input)
   const nom = resolveNom(input)
   const postnom = (input.postnom ?? '').trim().toUpperCase()
-  return [prenom, nom, postnom].filter(Boolean).join(' ')
+  const prenom = resolvePrenom(input)
+  return [nom, postnom, prenom].filter(Boolean).join(' ')
+}
+
+/** Affichage UI standard — nom RDC complet (Nom · Postnom · Prénom). */
+export function formatStudentFullName(input: StudentIdentityFields): string {
+  return formatRdcFullName(input)
 }
 
 /** Alias explicite — exports, détail admin, cartes, reçus */
@@ -69,7 +74,7 @@ export function formatStudentIdentityView(input: StudentIdentityFields) {
     postnom: (input.postnom ?? '').trim().toUpperCase() || null,
     prenom: resolvePrenom(input),
     fullName: formatRdcFullName(input),
-    legacyFullName: formatStudentFullName(input),
+    legacyFullName: formatLegacyFullName(input),
     initials: formatStudentInitials(input),
   }
 }

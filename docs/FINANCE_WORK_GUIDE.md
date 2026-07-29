@@ -92,16 +92,17 @@ Le dashboard admin doit donc piloter un **modele multi-baremes**, pas un montant
 
 ### Gap actuel a combler (apres F-05)
 
-- Ajouter la vue **par type de frais** (en plus de la vue par niveau)
-- Ajouter des filtres admin : `annee scolaire`, `niveau`, `classe`, `type de frais`
-- Ajouter un tableau de controle : qui a paye quoi, qui manque, qui a valide
+- [x] Ajouter la vue **par type de frais** (en plus de la vue par niveau) — widgets dashboard
+- Ajouter des filtres admin : `annee scolaire`, `niveau`, `classe`, `type de frais` (partiel : classe/section/option)
+- [x] Ajouter un tableau de controle : qui a paye quoi, qui manque — `/finances/suivi-financier` (lignes dépliables) + `/admin/finance/controle`
+- Qui a validé : file `/admin/finance/paiements` (prochaine enrichment noms validateurs)
 
 ### Plan d'execution recommande
 
-- **Increment A (rapide)**  
+- **Increment A (rapide)** ✅  
   Filtres + widgets "par type de frais" sur `/admin/finance`
-- **Increment B (complet)**  
-  Ecran "Controle admin" avec validations, exceptions et visualisation d'audit trail
+- **Increment B (complet)** 🟡  
+  Ecran "Controle admin" livré (`/admin/finance/controle`) — audit trail validateurs à enrichir
 
 ---
 

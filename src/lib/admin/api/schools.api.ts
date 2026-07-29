@@ -27,6 +27,13 @@ export const schoolsApi = {
   getBranding: () =>
     apiClient.get('/admin/schools/branding').then(r => r.data.data as SchoolBranding),
 
-  updateBranding: (payload: Partial<Pick<SchoolBranding, 'address' | 'phone' | 'city' | 'logoUrl'>>) =>
+  updateBranding: (
+    payload: Partial<
+      Pick<
+        SchoolBranding,
+        'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme'
+      > & { documentAccentColor?: string | null }
+    >,
+  ) =>
     apiClient.put('/admin/schools/branding', payload).then(r => r.data.data as SchoolBranding),
 }

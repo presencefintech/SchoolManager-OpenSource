@@ -36,7 +36,8 @@ export interface PreEnrollmentStudentInfo {
 export interface PreEnrollmentAcademicChoices {
   sectionId: number
   sectionName?: string
-  optionId: number
+  /** Absent en maternelle / primaire RDC */
+  optionId?: number
   optionName?: string
   classroomName?: string
 }
@@ -95,7 +96,7 @@ export interface CreatePreEnrollmentPayload {
   classroomId?: number
   academicChoices: {
     sectionId: number
-    optionId: number
+    optionId?: number
   }
   academicYear?: string
   schoolId?: number

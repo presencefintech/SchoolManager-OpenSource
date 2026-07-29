@@ -3,8 +3,6 @@
 import Link from 'next/link'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
-import { useRef, useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import {
   LayoutDashboard,
   Layers,
@@ -32,11 +30,6 @@ function DirectorNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
-  const hasAnimated = useRef(false)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
@@ -50,10 +43,10 @@ function DirectorNav() {
   return (
     <aside
       className={cn(
-        'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col',
+        'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden',
         'bg-white/92 backdrop-blur-md',
         'border-r border-zinc-200/80',
-        'shadow-[1px_0_16px_rgba(0,0,0,0.05)]'
+        'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
       )}
     >
       <Link
@@ -67,45 +60,35 @@ function DirectorNav() {
           <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">
             presenceFintech
           </p>
-          <p className="text-[11px] text-zinc-400 leading-tight mt-0.5">
-            Espace Directeur
-          </p>
+          <p className="text-[11px] text-zinc-400 leading-tight mt-0.5">Espace Directeur</p>
         </div>
       </Link>
 
       <div className="mx-5 h-px bg-zinc-100" />
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
-        {NAV_LINKS.map(({ label, href, icon: Icon }, i) => {
+      <nav className="flex-1 min-h-0 px-3 py-2 space-y-0.5 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
+        {NAV_LINKS.map(({ label, href, icon: Icon }) => {
           const active = pathname.startsWith(href)
-          const shouldAnimate = mounted && !hasAnimated.current
-          if (i === NAV_LINKS.length - 1) hasAnimated.current = true
           return (
-            <motion.div
+            <Link
               key={href}
-              initial={shouldAnimate ? { opacity: 0, x: -10 } : false}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: shouldAnimate ? 0.04 + i * 0.03 : 0, duration: 0.2 }}
+              href={href}
+              className={cn(
+                'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                active
+                  ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
+                  : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
+              )}
             >
-              <Link
-                href={href}
+              <Icon
+                size={16}
                 className={cn(
-                  'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all',
-                  active
-                    ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
-                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
+                  'flex-shrink-0 transition-colors',
+                  active ? 'text-emerald-600' : 'text-zinc-400',
                 )}
-              >
-                <Icon
-                  size={16}
-                  className={cn(
-                    'flex-shrink-0 transition-colors',
-                    active ? 'text-emerald-600' : 'text-zinc-400'
-                  )}
-                />
-                {label}
-              </Link>
-            </motion.div>
+              />
+              {label}
+            </Link>
           )
         })}
       </nav>
@@ -128,6 +111,7 @@ function DirectorNav() {
           </div>
         </Link>
         <button
+          type="button"
           onClick={handleLogout}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
         >

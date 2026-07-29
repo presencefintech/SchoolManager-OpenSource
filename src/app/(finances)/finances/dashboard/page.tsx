@@ -4,30 +4,42 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   DollarSign, ClipboardList, CheckCircle, Users,
-  RotateCcw, Banknote, RefreshCw, AlertTriangle, CalendarCheck, ShieldCheck, TrendingUp,
-  Radio, ClipboardCheck, BarChart3, Search,
+  RotateCcw, Banknote, RefreshCw, CalendarCheck, ShieldCheck, TrendingUp,
+  Radio, ClipboardCheck, BarChart3, Brain,
 } from 'lucide-react'
 import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
   useExecutiveDashboard, useFinanceIntegrity, useFinancePaymentProfile,
+  useFinanceRoleHealthCheck,
 } from '@/lib/hooks/use-finance'
+import { resolveAcademicSessionId } from '@/lib/finance/collection-analytics.utils'
+import {
+  formatIntegrityStatusLabel,
+  isFinanceIntegritySecure,
+} from '@/lib/admin/finance-dashboard.utils'
 import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online-payments-banner'
+import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { DailyCashEntry, ExecutiveDashboard, IntegrityReport } from '@/types/finance'
+import type {
+  DailyCashEntry,
+  ExecutiveDashboard,
+  GuichetDashboard,
+  CollectionAnalyticsSummary,
+} from '@/types/finance'
 import { PaymentCategoryDonutChart, PaymentMethodBarChart, PaymentMethodCountBarChart } from '@/components/charts/finance-transactions-charts'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 
 const QUICK_LINKS = [
+  { href: '/finances/intelligence', label: 'Intelligence', icon: Brain, tone: 'text-violet-600 bg-violet-50' },
   { href: '/finances/paiements', label: 'Paiements', icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50' },
   { href: '/finances/caisse', label: 'Caisse', icon: Banknote, tone: 'text-blue-600 bg-blue-50' },
   { href: '/finances/verifications', label: 'Vérifications', icon: ClipboardCheck, tone: 'text-amber-600 bg-amber-50' },
   { href: '/finances/suivi-financier', label: 'Suivi', icon: BarChart3, tone: 'text-violet-600 bg-violet-50' },
   { href: '/finances/debiteurs', label: 'Débiteurs', icon: Users, tone: 'text-red-600 bg-red-50' },
-  { href: '/finances/transactions', label: 'Transactions', icon: Search, tone: 'text-zinc-600 bg-zinc-100' },
 ] as const
 
 function LiveIndicator({ status, lastUpdate }: { status: ReturnType<typeof useFinanceRealtimeStatus>['status']; lastUpdate: Date | null }) {
@@ -141,19 +153,25 @@ export default function FinanceDashboardPage() {
   const secondary = { enabled: coreReady }
   const { data: dailyCash = [] } = useDailyCashReport(secondary)
   const { data: debtorsData } = useDebtors(10, secondary)
-  const sessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)?.currentAcademicSessionId
-  const { data: collection } = useCollectionAnalytics(sessionId ?? undefined)
+  const sessionId = resolveAcademicSessionId(guichet)
+  const hasAcademicSession = sessionId != null
+  const {
+    data: collection,
+    isLoading: collectionLoading,
+    isFetching: collectionFetching,
+  } = useCollectionAnalytics(sessionId, { enabled: coreReady && hasAcademicSession })
   const { data: execData } = useExecutiveDashboard(secondary)
-  const { data: integrityData } = useFinanceIntegrity(secondary)
+  const { data: integrity } = useFinanceIntegrity(secondary)
   const { data: paymentProfile } = useFinancePaymentProfile(secondary)
+  const { data: health } = useFinanceRoleHealthCheck(secondary)
 
-  const g = guichet as any
+  const g = guichet as GuichetDashboard | undefined
   const cash: DailyCashEntry[] = Array.isArray(dailyCash) ? (dailyCash as DailyCashEntry[]) : []
   const exec = execData as ExecutiveDashboard | undefined
-  const integrity = integrityData as IntegrityReport | undefined
+  const integritySecure = integrity ? isFinanceIntegritySecure(integrity) : false
 
   const debtors: any[] = (debtorsData as any)?.data ?? (Array.isArray(debtorsData) ? debtorsData : [])
-  const coll = collection as any
+  const coll = collection as CollectionAnalyticsSummary | null | undefined
 
   const byMethod: { method: string; amount: number; count: number }[] = g?.collectionsToday?.byMethod ?? []
   const todayTotal = Number(g?.collectionsToday?.total) || byMethod.reduce((acc, m) => acc + (Number(m.amount) || 0), 0)
@@ -210,7 +228,7 @@ export default function FinanceDashboardPage() {
         <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100/90">Guichet finance</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100/90">Finance Premium · Guichet</p>
             <h1 className="mt-1 text-2xl font-bold">Tableau de bord</h1>
             <p className="mt-1 text-sm text-emerald-100/90 capitalize" suppressHydrationWarning>{today}</p>
             {!isLoading && g && (
@@ -259,6 +277,39 @@ export default function FinanceDashboardPage() {
       </motion.div>
 
       <GuichetOnlinePaymentsBanner profile={paymentProfile} />
+
+      {health && (
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex flex-wrap items-center gap-4">
+          <div
+            className={`w-11 h-11 rounded-xl flex items-center justify-center text-lg font-black ${
+              health.isHealthy ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+            }`}
+          >
+            {health.healthScore}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-zinc-900">
+              Santé financière · {health.isHealthy ? 'Sain' : 'Attention'}
+            </p>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Recouvrement {health.efficiency.toFixed(0)}% · {health.debtorsCount} débiteurs · MoM{' '}
+              {health.monthOverMonthPct >= 0 ? '+' : ''}
+              {health.monthOverMonthPct}% · {health.pendingPayments} pending
+            </p>
+          </div>
+          <Link
+            href="/finances/intelligence"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+          >
+            <Brain size={13} className="text-emerald-600" />
+            Intelligence
+          </Link>
+        </div>
+      )}
+
+      <div id="intelligence">
+        <FinanceAiInsightsPanel enabled={coreReady} source="finance" />
+      </div>
 
       {/* KPIs guichet */}
       {isLoading ? (
@@ -404,25 +455,53 @@ export default function FinanceDashboardPage() {
         </div>
       </div>
 
-      {/* Analytics de recouvrement */}
-      {coll && Object.keys(coll).length > 0 && (
-        <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-zinc-400" />
-            <h3 className="text-sm font-semibold text-zinc-900">Analytics de recouvrement</h3>
+      {/* Analytics de recouvrement (session académique) */}
+      <div className="bg-white rounded-2xl border border-zinc-200/70 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+        <div className="px-5 py-4 border-b border-zinc-100 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={14} className="text-emerald-600" />
+            <h3 className="text-sm font-semibold text-zinc-900">Recouvrement · session académique</h3>
           </div>
-          <div className="grid grid-cols-4 gap-0 divide-x divide-zinc-100">
-            {Object.entries(coll).filter(([, v]) => v !== null && v !== undefined && typeof v !== 'object').map(([k, v]) => (
-              <div key={k} className="px-5 py-4">
-                <p className="text-xs text-zinc-500 capitalize mb-1">{k.replace(/([A-Z])/g, ' $1').toLowerCase()}</p>
-                <p className="text-lg font-bold text-zinc-900">
-                  {typeof v === 'number' ? Number(v).toLocaleString('fr-FR') : String(v)}
-                </p>
-              </div>
-            ))}
-          </div>
+          {hasAcademicSession && (
+            <span className="text-[11px] font-medium text-zinc-400 tabular-nums">Session #{sessionId}</span>
+          )}
         </div>
-      )}
+        {!coreReady || collectionLoading || collectionFetching ? (
+          <div className="px-5 py-10 text-center text-sm text-zinc-400">Chargement des analytics…</div>
+        ) : !hasAcademicSession ? (
+          <div className="px-5 py-10 text-center">
+            <CalendarCheck size={28} className="mx-auto text-zinc-300 mb-2" />
+            <p className="text-sm font-medium text-zinc-600">Aucune session académique active</p>
+            <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
+              Définissez une année scolaire courante (admin) pour afficher encaissements du mois, croissance et créances.
+            </p>
+          </div>
+        ) : coll ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-zinc-100">
+            <div className="px-5 py-4">
+              <p className="text-xs text-zinc-500 mb-1">Encaissements du mois</p>
+              <p className="text-xl font-bold text-zinc-900 tabular-nums">{formatMoney(coll.monthlyRevenue)}</p>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-xs text-zinc-500 mb-1">Croissance vs mois précédent</p>
+              <p className={`text-xl font-bold tabular-nums ${coll.growth >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                {coll.growth >= 0 ? '+' : ''}{formatMoney(coll.growth)}
+              </p>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-xs text-zinc-500 mb-1">Taux de recouvrement</p>
+              <p className="text-xl font-bold text-zinc-900 tabular-nums">{coll.collectionEfficiency.toFixed(1)}%</p>
+              <MiniGauge value={coll.collectionEfficiency} hex="#059669" />
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-xs text-zinc-500 mb-1">Créances restantes</p>
+              <p className="text-xl font-bold text-amber-700 tabular-nums">{formatMoney(coll.totalReceivables)}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="px-5 py-10 text-center text-sm text-zinc-400">Données de recouvrement indisponibles</div>
+        )}
+      </div>
 
       {/* Performance & Intégrité */}
       {(exec || integrity) && (
@@ -475,17 +554,22 @@ export default function FinanceDashboardPage() {
               </div>
               <div className="p-5">
                 <div className={`flex items-center gap-2.5 px-4 py-3 rounded-xl mb-4 ${
-                  integrity.status === 'OK' || integrity.status === 'ok'
+                  integritySecure
                     ? 'bg-emerald-50 border border-emerald-100'
                     : 'bg-amber-50 border border-amber-100'
                 }`}>
-                  <ShieldCheck size={16} className={integrity.status === 'OK' || integrity.status === 'ok' ? 'text-emerald-600' : 'text-amber-500'} />
+                  <ShieldCheck size={16} className={integritySecure ? 'text-emerald-600' : 'text-amber-500'} />
                   <div>
-                    <p className={`text-sm font-semibold ${integrity.status === 'OK' || integrity.status === 'ok' ? 'text-emerald-700' : 'text-amber-700'}`}>
-                      Statut : {integrity.status}
+                    <p className={`text-sm font-semibold ${integritySecure ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {formatIntegrityStatusLabel(integrity.status)}
                     </p>
-                    {(!integrity.anomalies || integrity.anomalies.length === 0) && (
+                    {integrity.anomaliesFound === 0 && (
                       <p className="text-xs text-emerald-600">Aucune anomalie détectée</p>
+                    )}
+                    {integrity.totalChecked > 0 && (
+                      <p className="text-xs text-zinc-500">
+                        {integrity.totalChecked} profil{integrity.totalChecked > 1 ? 's' : ''} vérifié{integrity.totalChecked > 1 ? 's' : ''}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -515,13 +599,23 @@ export default function FinanceDashboardPage() {
                     </div>
                   </div>
                 )}
-                {integrity.anomalies && integrity.anomalies.length > 0 && (
+                {integrity.details.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-zinc-100">
-                    <p className="text-xs font-semibold text-red-600 mb-2">{integrity.anomalies.length} anomalie(s) détectée(s)</p>
+                    <p className="text-xs font-semibold text-red-600 mb-2">
+                      {integrity.anomaliesFound} anomalie{integrity.anomaliesFound > 1 ? 's' : ''} détectée{integrity.anomaliesFound > 1 ? 's' : ''}
+                    </p>
                     <div className="space-y-1 max-h-28 overflow-y-auto">
-                      {integrity.anomalies.map((a, i) => (
-                        <div key={i} className="text-xs text-zinc-500 bg-red-50 rounded px-2 py-1">
-                          {typeof a === 'string' ? a : JSON.stringify(a)}
+                      {integrity.details.map((detail) => (
+                        <div key={detail.id} className="text-xs text-zinc-600 bg-red-50 rounded px-2 py-1">
+                          <span className="font-medium text-zinc-800">
+                            {formatStudentFullName({
+                              firstName: detail.firstName,
+                              lastName: detail.lastName,
+                            }) || `Élève #${detail.id}`}
+                          </span>
+                          {detail.tuitionBalance != null && (
+                            <span className="text-red-600"> · solde {formatMoney(detail.tuitionBalance)}</span>
+                          )}
                         </div>
                       ))}
                     </div>

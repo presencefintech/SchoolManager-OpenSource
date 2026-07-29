@@ -39,6 +39,7 @@ export type ReceiptVerifySuccess = {
   schoolCity: string | null
   schoolAddress: string | null
   schoolPhone: string | null
+  schoolEmail: string | null
   schoolLogoUrl: string | null
   motiveSummary: string
   feeLines: ReceiptVerifyFeeLine[]

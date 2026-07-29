@@ -6,6 +6,14 @@ import { useSchoolBranding, useUpdateSchoolBranding } from '@/lib/hooks/use-admi
 import { adminFilesApi } from '@/lib/admin/api/files.api'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { SchoolBranding } from '@/types/admin'
+import {
+  SCHOOL_CARD_THEME_PRESETS,
+  themeFromPreset,
+  resolveCardTheme,
+  type SchoolCardTheme,
+  type SchoolCardThemePreset,
+} from '@/lib/student-card/card-theme'
+import { cn } from '@/lib/utils'
 
 function resolveLogoPreviewUrl(logoUrl: string | null | undefined): string | null {
   if (!logoUrl?.trim()) return null
@@ -14,19 +22,26 @@ function resolveLogoPreviewUrl(logoUrl: string | null | undefined): string | nul
   return logoUrl
 }
 
+const PRESET_KEYS = Object.keys(SCHOOL_CARD_THEME_PRESETS) as SchoolCardThemePreset[]
+
 export function SchoolBrandingSettings() {
   const { data: branding, isLoading, isError, error, refetch } = useSchoolBranding()
   const updateBranding = useUpdateSchoolBranding()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<Partial<SchoolBranding>>({})
+  const [cardTheme, setCardTheme] = useState<SchoolCardTheme>(themeFromPreset('teal'))
   const [dirty, setDirty] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (branding && !dirty) {
-      setForm(branding)
+      setForm({
+        ...branding,
+        documentAccentColorOverride: branding.documentAccentColorOverride,
+      })
+      setCardTheme(resolveCardTheme(branding.cardTheme))
     }
   }, [branding, dirty])
 
@@ -37,6 +52,10 @@ export function SchoolBrandingSettings() {
     if (!file) return
     if (!file.type.startsWith('image/')) {
       setUploadError('Format non supporté — utilisez PNG ou JPG.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Fichier trop volumineux — max 5 Mo.')
       return
     }
 
@@ -57,13 +76,24 @@ export function SchoolBrandingSettings() {
     }
   }
 
+  function applyPreset(preset: SchoolCardThemePreset) {
+    setDirty(true)
+    setCardTheme(themeFromPreset(preset))
+  }
+
   function handleSave() {
     updateBranding.mutate(
       {
         address: form.address?.trim() || null,
         phone: form.phone?.trim() || null,
+        email: form.email?.trim() || null,
+        slogan: form.slogan?.trim() || null,
+        devise: form.devise?.trim() || null,
+        documentAccentColor: form.documentAccentColorOverride?.trim() || null,
+        legalFooter: form.legalFooter?.trim() || null,
         city: form.city?.trim() || null,
         logoUrl: form.logoUrl ?? null,
+        cardTheme,
       },
       { onSuccess: () => setDirty(false) },
     )
@@ -83,7 +113,7 @@ export function SchoolBrandingSettings() {
       <div className="p-5">
         <h3 className="text-sm font-semibold text-zinc-700 mb-1">Identité de l&apos;établissement</h3>
         <p className="text-xs text-zinc-500 mb-4">
-          Logo et adresse affichés sur les reçus de caisse et documents officiels.
+          Logo, adresse et couleurs de la carte élève — appliqués aux reçus, rapports PDF, cartes élèves et e-mails.
         </p>
 
         {loadError ? (
@@ -188,6 +218,250 @@ export function SchoolBrandingSettings() {
                 />
               </div>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">Email de contact</label>
+              <input
+                type="email"
+                value={form.email ?? ''}
+                onChange={(e) => {
+                  setDirty(true)
+                  setForm((current) => ({ ...current, email: e.target.value }))
+                }}
+                placeholder="contact@ecole.cd"
+                disabled={!!loadError}
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">Slogan</label>
+              <input
+                type="text"
+                value={form.slogan ?? ''}
+                onChange={(e) => {
+                  setDirty(true)
+                  setForm((current) => ({ ...current, slogan: e.target.value }))
+                }}
+                placeholder="Excellence et discipline"
+                maxLength={120}
+                disabled={!!loadError}
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+              />
+              <p className="mt-1 text-[10px] text-zinc-400">Phrase courte — reçus, e-mails, rapports.</p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">Devise / motto</label>
+              <input
+                type="text"
+                value={form.devise ?? ''}
+                onChange={(e) => {
+                  setDirty(true)
+                  setForm((current) => ({ ...current, devise: e.target.value }))
+                }}
+                placeholder="Savoir — Travail — Progrès"
+                maxLength={160}
+                disabled={!!loadError}
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+              />
+              <p className="mt-1 text-[10px] text-zinc-400">Valeur ou devise de l&apos;école — cartes élèves et en-têtes.</p>
+            </div>
+            {([form.address, form.city].some((v) => v?.trim()) || branding?.addressLine) ? (
+              <p className="text-[11px] text-zinc-500">
+                En-tête documents :{' '}
+                <span className="font-medium text-zinc-700">
+                  {[form.address?.trim(), form.city?.trim()].filter(Boolean).join(', ') ||
+                    branding?.addressLine}
+                </span>
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5">
+        <h3 className="text-sm font-semibold text-zinc-700 mb-1">Documents PDF &amp; reçus</h3>
+        <p className="text-xs text-zinc-500 mb-4">
+          Couleur d&apos;accent sur les reçus et rapports (hors carte CR80). Laissez vide pour utiliser la couleur du thème carte (
+          <span className="font-mono text-zinc-600">{branding?.documentAccentColor ?? cardTheme.headerTo}</span>
+          ).
+        </p>
+        <div className="space-y-3">
+          <label className="block text-xs font-medium text-zinc-600">
+            Couleur accent documents
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                type="color"
+                value={form.documentAccentColorOverride ?? branding?.documentAccentColor ?? cardTheme.headerTo}
+                disabled={!!loadError}
+                onChange={(e) => {
+                  setDirty(true)
+                  setForm((current) => ({
+                    ...current,
+                    documentAccentColorOverride: e.target.value.toLowerCase(),
+                  }))
+                }}
+                className="h-9 w-12 cursor-pointer rounded border border-zinc-200 bg-white disabled:opacity-50"
+              />
+              <input
+                type="text"
+                value={form.documentAccentColorOverride ?? ''}
+                placeholder={`Défaut : ${cardTheme.headerTo}`}
+                disabled={!!loadError}
+                onChange={(e) => {
+                  setDirty(true)
+                  setForm((current) => ({
+                    ...current,
+                    documentAccentColorOverride: e.target.value,
+                  }))
+                }}
+                className="flex-1 px-2 py-1.5 text-xs font-mono border border-zinc-200 rounded-lg disabled:opacity-50"
+              />
+              <button
+                type="button"
+                disabled={!!loadError}
+                onClick={() => {
+                  setDirty(true)
+                  setForm((current) => ({ ...current, documentAccentColorOverride: null }))
+                }}
+                className="text-[10px] text-zinc-500 underline disabled:opacity-50"
+              >
+                Réinitialiser
+              </button>
+            </div>
+          </label>
+          <label className="block text-xs font-medium text-zinc-600">
+            Pied de page légal
+            <textarea
+              value={form.legalFooter ?? ''}
+              onChange={(e) => {
+                setDirty(true)
+                setForm((current) => ({ ...current, legalFooter: e.target.value }))
+              }}
+              rows={3}
+              maxLength={500}
+              placeholder="Ex. École X — RCCM… · document officiel · ne pas modifier."
+              disabled={!!loadError}
+              className="mt-1 w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none disabled:opacity-50"
+            />
+          </label>
+          <p className="text-[10px] text-zinc-400">
+            Affiché en bas des reçus, rapports Z, synthèses et registres d&apos;appel.
+          </p>
+        </div>
+      </div>
+
+      <div className="p-5">
+        <h3 className="text-sm font-semibold text-zinc-700 mb-1">Style de la carte élève</h3>
+        <p className="text-xs text-zinc-500 mb-4">
+          Choisissez un thème — appliqué à l&apos;aperçu, au PDF téléchargé et aux feuilles A4.
+        </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
+          {PRESET_KEYS.map((key) => {
+            const preset = SCHOOL_CARD_THEME_PRESETS[key]
+            const selected = cardTheme.preset === key
+            return (
+              <button
+                key={key}
+                type="button"
+                disabled={!!loadError}
+                onClick={() => applyPreset(key)}
+                className={cn(
+                  'rounded-xl border p-2.5 text-left transition-all disabled:opacity-50',
+                  selected
+                    ? 'border-emerald-500 ring-2 ring-emerald-200 bg-emerald-50/40'
+                    : 'border-zinc-200 hover:border-zinc-300 bg-white',
+                )}
+              >
+                <div
+                  className="h-8 rounded-md mb-2"
+                  style={{
+                    background: `linear-gradient(115deg, ${preset.headerFrom}, ${preset.headerTo})`,
+                  }}
+                />
+                <p className="text-xs font-semibold text-zinc-800">{preset.label}</p>
+                <div className="mt-1.5 flex gap-1">
+                  {[preset.headerFrom, preset.headerTo, preset.accent].map((c) => (
+                    <span
+                      key={c}
+                      className="h-3 w-3 rounded-full border border-black/10"
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {(
+            [
+              ['headerFrom', 'En-tête (début)'],
+              ['headerTo', 'En-tête (fin)'],
+              ['accent', 'Accent'],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="block text-xs font-medium text-zinc-600">
+              {label}
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  type="color"
+                  value={cardTheme[key]}
+                  disabled={!!loadError}
+                  onChange={(e) => {
+                    setDirty(true)
+                    setCardTheme((t) => ({ ...t, [key]: e.target.value }))
+                  }}
+                  className="h-9 w-12 cursor-pointer rounded border border-zinc-200 bg-white disabled:opacity-50"
+                />
+                <input
+                  type="text"
+                  value={cardTheme[key]}
+                  disabled={!!loadError}
+                  onChange={(e) => {
+                    const v = e.target.value.trim()
+                    if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                      setDirty(true)
+                      setCardTheme((t) => ({ ...t, [key]: v.toLowerCase() }))
+                    }
+                  }}
+                  className="flex-1 px-2 py-1.5 text-xs font-mono border border-zinc-200 rounded-lg disabled:opacity-50"
+                />
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <div
+          className="mt-4 rounded-lg overflow-hidden border border-zinc-200"
+          style={{
+            background: `linear-gradient(115deg, ${cardTheme.headerFrom}, ${cardTheme.headerTo})`,
+          }}
+        >
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-white uppercase tracking-wide">
+                {form.name || 'Votre établissement'}
+              </p>
+              {form.devise ? (
+                <p className="text-[9px] mt-0.5 text-white/90 italic">« {form.devise} »</p>
+              ) : null}
+              {form.slogan ? (
+                <p className="text-[9px] mt-0.5" style={{ color: cardTheme.accent }}>
+                  {form.slogan}
+                </p>
+              ) : (
+                <p className="text-[10px] mt-0.5" style={{ color: cardTheme.accent }}>
+                  Aperçu carte élève
+                </p>
+              )}
+            </div>
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded"
+              style={{ backgroundColor: cardTheme.accentSoft, color: cardTheme.ink }}
+            >
+              CR80
+            </span>
           </div>
         </div>
       </div>

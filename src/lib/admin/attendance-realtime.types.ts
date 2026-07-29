@@ -18,6 +18,7 @@ export interface AttendanceActivityPayload {
   studentName: string
   method: string
   status: string
+  direction?: 'ARRIVAL' | 'EXIT' | null
   scannedAt: string
   classId?: number | null
   studentId?: number
@@ -65,6 +66,8 @@ export function parseAttendanceActivity(raw: unknown): AttendanceActivityPayload
   const scannedAt = typeof p.scannedAt === 'string' ? p.scannedAt : new Date().toISOString()
   const event =
     p.event === 'attendance.recorded' ? 'attendance.recorded' : 'attendance.activity'
+  const direction =
+    p.direction === 'EXIT' ? 'EXIT' : p.direction === 'ARRIVAL' ? 'ARRIVAL' : null
   return {
     event,
     schoolId,
@@ -72,6 +75,7 @@ export function parseAttendanceActivity(raw: unknown): AttendanceActivityPayload
     studentName,
     method,
     status,
+    direction,
     scannedAt,
     classId: p.classId != null ? Number(p.classId) : null,
     studentId: p.studentId != null ? Number(p.studentId) : undefined,
@@ -85,6 +89,7 @@ export function activityToItem(payload: AttendanceActivityPayload) {
     studentName: payload.studentName,
     method: payload.method,
     status: payload.status,
+    direction: payload.direction ?? null,
     scannedAt: payload.scannedAt,
   }
 }

@@ -2,22 +2,20 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useRef, useState, useEffect, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useCallback } from 'react'
 import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import {
-  dashboardApi, staffApi, studentsApi, enrollmentsApi,
-  presencesApi, classesApi, financeApi, invitationsApi, schoolsApi,
-  preEnrollmentApi, adminFraudApi, attendanceNotificationsApi,
+  dashboardApi, studentsApi,
+  presencesApi, financeApi,
 } from '@/lib/admin/api'
 
 type SubLink = { label: string; href: string; icon: React.ElementType }
@@ -34,13 +32,14 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Gestion',
     links: [
-      { label: 'Élèves',       href: '/admin/students',    icon: GraduationCap },
+      { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
+      { label: 'Boîte d\'entrée', href: '/admin/inbox', icon: Inbox },
       { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
-      { label: 'Classes',      href: '/admin/classes',     icon: BookOpen },
+      { label: 'Classes', href: '/admin/classes', icon: BookOpen },
       { label: 'Emploi du temps', href: '/admin/schedule', icon: CalendarClock },
-      { label: 'Enseignants',  href: '/admin/teachers',    icon: School },
-      { label: 'Personnel',    href: '/admin/staff',       icon: Users },
+      { label: 'Enseignants', href: '/admin/teachers', icon: School },
+      { label: 'Personnel', href: '/admin/staff', icon: Users },
     ],
   },
   {
@@ -49,16 +48,18 @@ const NAV_SECTIONS: NavSection[] = [
       {
         label: 'Finance', href: '/admin/finance', icon: Wallet,
         children: [
-          { label: 'Dashboard',         href: '/admin/finance',                 icon: LayoutDashboard },
-          { label: 'Rapports',          href: '/admin/finance/rapports',        icon: BarChart3 },
-          { label: 'Paiements',         href: '/admin/finance/paiements',       icon: CreditCard },
-          { label: 'Remboursements',    href: '/admin/finance/remboursements',  icon: RotateCcw },
-          { label: 'Factures & Frais',  href: '/admin/finance/factures',        icon: FileText },
-          { label: 'Moratoires',        href: '/admin/finance/moratoriums',     icon: Clock },
-          { label: 'Lots scellés',      href: '/admin/finance/scelles',         icon: Fingerprint },
-          { label: 'Profil règlement',  href: '/admin/finance/payment-profile', icon: Building2 },
-          { label: 'Audit & Fraude',    href: '/admin/finance/audit',           icon: Shield },
-          { label: 'Vérifier reçu',     href: '/verify',                        icon: QrCode },
+          { label: 'Dashboard', href: '/admin/finance', icon: LayoutDashboard },
+          { label: 'Rapports', href: '/admin/finance/rapports', icon: BarChart3 },
+          { label: 'Paiements', href: '/admin/finance/paiements', icon: CreditCard },
+          { label: 'Contrôle', href: '/admin/finance/controle', icon: ClipboardList },
+          { label: 'Remboursements', href: '/admin/finance/remboursements', icon: RotateCcw },
+          { label: 'Factures & Frais', href: '/admin/finance/factures', icon: FileText },
+          { label: 'Moratoires', href: '/admin/finance/moratoriums', icon: Clock },
+          { label: 'Lots scellés', href: '/admin/finance/scelles', icon: Fingerprint },
+          { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
+          { label: 'Caisse & fonds', href: '/admin/finance/caisse', icon: Wallet },
+          { label: 'Audit & Fraude', href: '/admin/finance/audit', icon: Shield },
+          { label: 'Vérifier reçu', href: '/verify', icon: QrCode },
         ],
       },
     ],
@@ -66,16 +67,16 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Outils',
     links: [
-      { label: 'Invitations',   href: '/admin/invitations',   icon: Mail },
-      { label: 'Emails',        href: '/admin/email',         icon: Mail },
+      { label: 'Invitations', href: '/admin/invitations', icon: Mail },
+      { label: 'Emails', href: '/admin/email', icon: Mail },
       { label: 'Notifications', href: '/admin/notifications', icon: Bell },
       { label: 'Communiqués', href: '/admin/announcements', icon: Megaphone },
       { label: 'Notifs présence', href: '/admin/attendance-notifications', icon: Activity },
-      { label: 'Fraude',        href: '/admin/fraud',         icon: ShieldAlert },
-      { label: 'Sanctions',     href: '/admin/sanctions',     icon: Gavel },
-      { label: 'Fichiers',      href: '/admin/files',         icon: FolderOpen },
-      { label: 'Monitoring',    href: '/admin/monitoring',    icon: Monitor },
-      { label: 'Paramètres',    href: '/admin/settings',      icon: Settings },
+      { label: 'Fraude', href: '/admin/fraud', icon: ShieldAlert },
+      { label: 'Sanctions', href: '/admin/sanctions', icon: Gavel },
+      { label: 'Fichiers', href: '/admin/files', icon: FolderOpen },
+      { label: 'Monitoring', href: '/admin/monitoring', icon: Monitor },
+      { label: 'Paramètres', href: '/admin/settings', icon: Settings },
       { label: 'Profil & sécurité', href: '/admin/profil-securite', icon: UserCircle },
     ],
   },
@@ -85,53 +86,33 @@ export function AdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
-  const hasAnimated = useRef(false)
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => { setMounted(true) }, [])
 
   const prefetch = useCallback((href: string) => {
     if (!getAuthToken()) return
     if (href === '/admin/dashboard') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'stats'], queryFn: dashboardApi.getStats, staleTime: 30_000 })
-      queryClient.prefetchQuery({ queryKey: ['admin', 'fraud-alerts'], queryFn: dashboardApi.getFraudAlerts, staleTime: 60_000 })
-    } else if (href === '/admin/staff') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'staff'], queryFn: staffApi.list, staleTime: 60_000 })
+      void queryClient.prefetchQuery({
+        queryKey: ['admin', 'stats'],
+        queryFn: dashboardApi.getStats,
+        staleTime: 30_000,
+      })
     } else if (href === '/admin/students') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'students', 'dashboard'], queryFn: studentsApi.getMainDashboard, staleTime: 60_000 })
-      queryClient.prefetchQuery({ queryKey: ['admin', 'students', 'list', undefined], queryFn: () => studentsApi.list(), staleTime: 30_000 })
-    } else if (href === '/admin/enrollments') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'enrollments', 'list', undefined], queryFn: () => enrollmentsApi.list(), staleTime: 30_000 })
+      void queryClient.prefetchQuery({
+        queryKey: ['admin', 'students', 'dashboard'],
+        queryFn: studentsApi.getMainDashboard,
+        staleTime: 60_000,
+      })
     } else if (href === '/admin/presences') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'presences', 'stats'], queryFn: presencesApi.getStats, staleTime: 30_000 })
-      queryClient.prefetchQuery({ queryKey: ['admin', 'presences', 'live', undefined], queryFn: () => presencesApi.getLiveFeed(), staleTime: 0 })
-    } else if (href === '/admin/classes') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'classes', 'list', undefined], queryFn: () => classesApi.list(), staleTime: 60_000 })
-    } else if (href === '/admin/teachers') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'staff'], queryFn: staffApi.list, staleTime: 60_000 })
-    } else if (href === '/admin/pre-enrollments') {
-      const params = { status: 'PENDING', limit: 50 }
-      queryClient.prefetchQuery({ queryKey: ['admin', 'pre-enrollments', params], queryFn: () => preEnrollmentApi.list(params), staleTime: 30_000 })
-    } else if (href === '/admin/fraud') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'fraud-alerts-list'], queryFn: adminFraudApi.getAlerts, staleTime: 60_000 })
-    } else if (href === '/admin/attendance-notifications') {
-      const schoolId = getAuthSchoolId()
-      if (schoolId) {
-        const params = { status: undefined, limit: 50 }
-        queryClient.prefetchQuery({
-          queryKey: ['admin', 'attendance-notifications', schoolId, params],
-          queryFn: () => attendanceNotificationsApi.list(Number(schoolId), params),
-          staleTime: 30_000,
-        })
-      }
+      void queryClient.prefetchQuery({
+        queryKey: ['admin', 'presences', 'stats'],
+        queryFn: presencesApi.getStats,
+        staleTime: 30_000,
+      })
     } else if (href === '/admin/finance') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'dashboard'], queryFn: financeApi.getStrategicDashboard, staleTime: 60_000 })
-      queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'pending'], queryFn: financeApi.getPendingVerifications, staleTime: 30_000 })
-      queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'insights'], queryFn: financeApi.getInsights, staleTime: 120_000 })
-      queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'end-of-day'], queryFn: financeApi.getEndOfDay, staleTime: 60_000 })
-    } else if (href === '/admin/invitations') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'invitations', 'status'], queryFn: invitationsApi.getStatus, staleTime: 60_000 })
-    } else if (href === '/admin/settings') {
-      queryClient.prefetchQuery({ queryKey: ['admin', 'schools', 'attendance-settings'], queryFn: schoolsApi.getAttendanceSettings, staleTime: 300_000 })
+      void queryClient.prefetchQuery({
+        queryKey: ['admin', 'finance', 'dashboard'],
+        queryFn: financeApi.getStrategicDashboard,
+        staleTime: 60_000,
+      })
     }
   }, [queryClient])
 
@@ -139,13 +120,8 @@ export function AdminNav() {
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'AD'
 
-  const totalLinks = NAV_SECTIONS.flatMap(s => s.links).length
-  let linkIndex = 0
-
   return (
-    <aside className="fixed top-0 left-0 h-screen w-60 z-50 flex flex-col bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]">
-
-      {/* Brand */}
+    <aside className="fixed top-0 left-0 h-screen w-60 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]">
       <Link href="/admin/dashboard" className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-200 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
           <span className="text-xs font-bold text-white tracking-tight">PC</span>
@@ -158,8 +134,7 @@ export function AdminNav() {
         </div>
       </Link>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-2 overflow-y-auto space-y-3 [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+      <nav className="flex-1 min-h-0 px-3 py-2 overflow-y-auto overscroll-contain space-y-3 [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
         {NAV_SECTIONS.map(({ title, links }) => (
           <div key={title ?? '__root__'}>
             {title && (
@@ -169,24 +144,16 @@ export function AdminNav() {
             )}
             <div className="space-y-0.5">
               {links.map(({ label, href, icon: Icon, children }) => {
-                const i = linkIndex++
                 const expanded = !!children && pathname.startsWith(href)
                 const active = !children && pathname.startsWith(href)
-                const shouldAnimate = mounted && !hasAnimated.current
-                if (i === totalLinks - 1) hasAnimated.current = true
 
                 return (
-                  <motion.div
-                    key={href}
-                    initial={shouldAnimate ? { opacity: 0, x: -8 } : false}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: shouldAnimate ? 0.03 + i * 0.022 : 0, duration: 0.18 }}
-                  >
+                  <div key={href}>
                     <Link
                       href={href}
                       onMouseEnter={() => prefetch(href)}
                       className={cn(
-                        'group flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-[13px] font-medium transition-all duration-150',
+                        'group flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-[13px] font-medium transition-colors duration-150',
                         expanded
                           ? 'bg-zinc-50 text-zinc-800'
                           : active
@@ -210,46 +177,34 @@ export function AdminNav() {
                       )}
                     </Link>
 
-                    {children && (
-                      <AnimatePresence initial={false}>
-                        {expanded && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.18, ease: 'easeInOut' }}
-                            className="overflow-hidden"
-                          >
-                            <div className="ml-4 pl-3 border-l-2 border-zinc-100 mt-1 mb-1 space-y-0.5">
-                              {children.map(({ label: sub, href: subHref, icon: SubIcon }) => {
-                                const subActive = subHref === href
-                                  ? pathname === subHref
-                                  : pathname.startsWith(subHref)
-                                return (
-                                  <Link
-                                    key={subHref}
-                                    href={subHref}
-                                    className={cn(
-                                      'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                                      subActive
-                                        ? 'bg-zinc-900 text-white'
-                                        : 'text-zinc-400 hover:text-zinc-800 hover:bg-zinc-50',
-                                    )}
-                                  >
-                                    <SubIcon
-                                      size={12}
-                                      className={cn('flex-shrink-0', subActive ? 'text-emerald-400' : 'text-zinc-300')}
-                                    />
-                                    {sub}
-                                  </Link>
-                                )
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    )}
-                  </motion.div>
+                    {children && expanded ? (
+                      <div className="ml-4 pl-3 border-l-2 border-zinc-100 mt-1 mb-1 space-y-0.5">
+                        {children.map(({ label: sub, href: subHref, icon: SubIcon }) => {
+                          const subActive = subHref === href
+                            ? pathname === subHref
+                            : pathname.startsWith(subHref)
+                          return (
+                            <Link
+                              key={subHref}
+                              href={subHref}
+                              className={cn(
+                                'flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                                subActive
+                                  ? 'bg-zinc-900 text-white'
+                                  : 'text-zinc-400 hover:text-zinc-800 hover:bg-zinc-50',
+                              )}
+                            >
+                              <SubIcon
+                                size={12}
+                                className={cn('flex-shrink-0', subActive ? 'text-emerald-400' : 'text-zinc-300')}
+                              />
+                              {sub}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
                 )
               })}
             </div>
@@ -257,7 +212,6 @@ export function AdminNav() {
         ))}
       </nav>
 
-      {/* User footer */}
       <div className="px-3 pb-3 flex-shrink-0 border-t border-zinc-100 pt-2.5">
         <Link
           href="/admin/profil-securite"

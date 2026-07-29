@@ -1,5 +1,8 @@
 import type { FraudAlert } from '@/types/admin'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
+import { normalizeFraudScorePercent } from '@/lib/business-labels'
+
+export { normalizeFraudScorePercent }
 
 export function parseFraudReasons(raw: unknown): string[] {
   if (Array.isArray(raw)) {
@@ -9,12 +12,6 @@ export function parseFraudReasons(raw: unknown): string[] {
     return raw.split(/[,|]/).map((part) => part.trim()).filter(Boolean)
   }
   return []
-}
-
-export function normalizeFraudScorePercent(raw: unknown): number {
-  const n = Number(raw)
-  if (!Number.isFinite(n) || n <= 0) return 0
-  return n <= 1 ? Math.round(n * 100) : Math.round(n)
 }
 
 function fraudSeverityFromScore(score: number): FraudAlert['severity'] {

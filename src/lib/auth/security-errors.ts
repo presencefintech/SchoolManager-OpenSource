@@ -6,6 +6,9 @@ export const SECURITY_ERROR_CODES = {
   INVALID_VERIFICATION_TOKEN: 'INVALID_VERIFICATION_TOKEN',
   EMAIL_ALREADY_VERIFIED: 'EMAIL_ALREADY_VERIFIED',
   AUTH_RATE_LIMIT: 'AUTH_RATE_LIMIT',
+  ENROLLMENT_RATE_LIMIT: 'ENROLLMENT_RATE_LIMIT',
+  ENROLLMENT_FACE_RATE_LIMIT: 'ENROLLMENT_FACE_RATE_LIMIT',
+  ENROLLMENT_SENSITIVE_RATE_LIMIT: 'ENROLLMENT_SENSITIVE_RATE_LIMIT',
 } as const
 
 export type SecurityErrorCode = (typeof SECURITY_ERROR_CODES)[keyof typeof SECURITY_ERROR_CODES]
@@ -23,6 +26,12 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Votre adresse email est déjà confirmée.',
   [SECURITY_ERROR_CODES.AUTH_RATE_LIMIT]:
     'Trop de tentatives. Patientez quelques minutes avant de réessayer.',
+  [SECURITY_ERROR_CODES.ENROLLMENT_RATE_LIMIT]:
+    'Trop d’inscriptions en peu de temps — réessayez dans une minute.',
+  [SECURITY_ERROR_CODES.ENROLLMENT_FACE_RATE_LIMIT]:
+    'Trop de recherches faciales — réessayez dans une minute.',
+  [SECURITY_ERROR_CODES.ENROLLMENT_SENSITIVE_RATE_LIMIT]:
+    'Trop d’actions sensibles (purge/transfert) — réessayez plus tard.',
   TOKEN_EXPIRED_OR_INVALID:
     'Ce lien d\'invitation est invalide ou a expiré.',
   EMAIL_ALREADY_USED:

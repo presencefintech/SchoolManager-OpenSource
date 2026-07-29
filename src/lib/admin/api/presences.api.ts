@@ -31,6 +31,7 @@ export type AttendanceHistoryItem = {
   optionName: string | null
   optionCode?: string | null
   status: string
+  direction?: 'ARRIVAL' | 'EXIT' | null
   day: string
   time: string
   scannedAt: string
@@ -75,6 +76,7 @@ export const presencesApi = {
           time:        p.time ?? null,
           scannedAt:   p.scannedAt,
           status:      p.status,
+          direction:   p.direction === 'EXIT' ? 'EXIT' : p.direction === 'ARRIVAL' ? 'ARRIVAL' : null,
           method:      p.method,
           security:    p.security ?? null,
           location:    p.location ?? null,
@@ -88,7 +90,7 @@ export const presencesApi = {
     classId?: number
     sectionId?: number
     studentId?: number
-    status?: 'PRESENT' | 'LATE' | 'ABSENT'
+    status?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXITED'
     from?: string
     to?: string
     sessionId?: number

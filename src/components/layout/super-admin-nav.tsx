@@ -76,7 +76,7 @@ export function SuperAdminNav() {
       <div className="mx-5 h-px bg-zinc-100" />
 
       {/* Nav links — scroll si la liste dépasse la hauteur écran */}
-      <nav className="flex-1 min-h-0 px-3 py-2 space-y-0.5 overflow-y-auto overscroll-contain">
+      <nav className="flex-1 min-h-0 px-3 py-2 space-y-0.5 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
         {NAV_LINKS.map(({ label, href, icon: Icon }) => {
           const active = pathname.startsWith(href)
 

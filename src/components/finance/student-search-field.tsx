@@ -44,6 +44,14 @@ export function FinanceStudentSearchField({
     onSelect(0)
   }
 
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (results.length > 0) {
+      pick(results[0])
+    }
+  }
+
   return (
     <div className={cn('space-y-1.5', className)}>
       <label className="block text-xs font-medium text-zinc-500">
@@ -77,21 +85,29 @@ export function FinanceStudentSearchField({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Nom, prénom ou matricule (min. 2 car.)"
+              onKeyDown={onKeyDown}
+              autoFocus
+              placeholder="Matricule, nom, postnom ou réf. paiement (Entrée = 1er résultat)"
               className="w-full rounded-xl border border-zinc-200 py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
             />
           </div>
+          <p className="text-[10px] text-zinc-400">
+            Astuce RDC : collez une référence Orange Money / M-Pesa pour retrouver l&apos;élève.
+          </p>
           {debounced.length >= 2 && (
             <div className="max-h-44 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-sm divide-y divide-zinc-100">
               {isFetching ? (
                 <p className="px-3 py-2.5 text-xs text-zinc-400">Recherche…</p>
               ) : results.length ? (
-                results.map((s) => (
+                results.map((s, i) => (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => pick(s)}
-                    className="w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50/60"
+                    className={cn(
+                      'w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50/60',
+                      i === 0 && 'bg-emerald-50/40',
+                    )}
                   >
                     <span className="font-medium text-zinc-900">{s.name}</span>
                     {s.matricule && (
@@ -100,6 +116,11 @@ export function FinanceStudentSearchField({
                     {s.className && (
                       <span className="mt-0.5 block text-xs text-zinc-400">{s.className}</span>
                     )}
+                    {i === 0 ? (
+                      <span className="mt-0.5 block text-[10px] font-medium text-emerald-700">
+                        Entrée pour ouvrir
+                      </span>
+                    ) : null}
                   </button>
                 ))
               ) : (

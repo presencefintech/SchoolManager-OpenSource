@@ -25,6 +25,7 @@ export interface NotificationDlqItem {
   attempts: number
   createdAt: string
   dlqAlertedAt: string | null
+  notificationType?: string | null
 }
 
 /** Métriques file BullMQ — superadmin queue-status */

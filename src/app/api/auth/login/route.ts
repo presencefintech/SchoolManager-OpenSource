@@ -19,18 +19,36 @@ type LoginUpstream = {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
+  const body = await req.json().catch(() => null)
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ message: 'Corps de requête invalide' }, { status: 400 })
+  }
 
-  const upstream = await fetch(`${getBackendUrl()}/api/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(`${getBackendUrl()}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    return NextResponse.json({ message: 'Backend indisponible' }, { status: 502 })
+  }
 
-  const data = (await upstream.json()) as LoginUpstream
+  const text = await upstream.text()
+  let data = {} as LoginUpstream
+  if (text.trim()) {
+    try {
+      data = JSON.parse(text) as LoginUpstream
+    } catch {
+      return NextResponse.json({ message: 'Réponse serveur invalide' }, { status: 502 })
+    }
+  }
 
   if (!upstream.ok) {
-    return NextResponse.json(data, { status: upstream.status })
+    return NextResponse.json(data?.message ? data : { message: 'Connexion échouée' }, {
+      status: upstream.status,
+    })
   }
 
   if (data.mfaRequired) {

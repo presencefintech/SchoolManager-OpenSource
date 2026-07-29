@@ -10,7 +10,7 @@ export const authApi = {
       credentials: 'include',
       body: JSON.stringify(payload),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     if (!res.ok) {
       throw Object.assign(new Error(data.message ?? 'Connexion échouée'), { response: { data } })
     }
@@ -28,7 +28,8 @@ export const authApi = {
     fetch('/api/auth/session', { credentials: 'include' })
       .then(async (r) => {
         if (!r.ok) throw new Error('Session invalide')
-        const data = await r.json()
+        const data = await r.json().catch(() => ({}))
+        if (!data?.user) throw new Error('Session invalide')
         return data.user as AuthUser
       }),
 
@@ -59,8 +60,8 @@ export const authApi = {
     ),
 
   refreshToken: () =>
-    fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' }).then((r) => {
+    fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' }).then(async (r) => {
       if (!r.ok) throw new Error('Refresh échoué')
-      return r.json()
+      return r.json().catch(() => ({}))
     }),
 }

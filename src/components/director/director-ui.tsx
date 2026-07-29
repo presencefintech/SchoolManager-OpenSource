@@ -87,27 +87,54 @@ export function DirectorEmptyState({
   )
 }
 
-export function PresenceStatusPill({ status }: { status: string }) {
+export function PresenceStatusPill({
+  status,
+  direction,
+}: {
+  status: string
+  direction?: string | null
+}) {
+  const label =
+    status === 'PRESENT'
+      ? 'Présent'
+      : status === 'LATE'
+        ? 'Retard'
+        : status === 'ABSENT'
+          ? 'Absent'
+          : status === 'EXITED'
+            ? 'Sorti'
+            : status
+
   return (
-    <span
-      className={cn(
-        'text-[11px] font-semibold px-2 py-0.5 rounded-full',
-        status === 'PRESENT'
-          ? 'bg-emerald-50 text-emerald-700'
-          : status === 'LATE'
-            ? 'bg-amber-50 text-amber-700'
-            : status === 'ABSENT'
-              ? 'bg-red-50 text-red-700'
-              : 'bg-zinc-100 text-zinc-600'
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <span
+        className={cn(
+          'text-[11px] font-semibold px-2 py-0.5 rounded-full',
+          status === 'PRESENT'
+            ? 'bg-emerald-50 text-emerald-700'
+            : status === 'LATE'
+              ? 'bg-amber-50 text-amber-700'
+              : status === 'ABSENT'
+                ? 'bg-red-50 text-red-700'
+                : status === 'EXITED'
+                  ? 'bg-sky-50 text-sky-800'
+                  : 'bg-zinc-100 text-zinc-600'
+        )}
+      >
+        {label}
+      </span>
+      {(direction === 'ARRIVAL' || direction === 'EXIT') && (
+        <span
+          className={cn(
+            'text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+            direction === 'ARRIVAL'
+              ? 'bg-indigo-50 text-indigo-700'
+              : 'bg-violet-50 text-violet-700',
+          )}
+        >
+          {direction === 'ARRIVAL' ? 'Arrivée' : 'Sortie'}
+        </span>
       )}
-    >
-      {status === 'PRESENT'
-        ? 'Présent'
-        : status === 'LATE'
-          ? 'Retard'
-          : status === 'ABSENT'
-            ? 'Absent'
-            : status}
     </span>
   )
 }

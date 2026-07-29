@@ -33,18 +33,19 @@ export function CardText({ children, lines = 1, fontSize, style, title }: CardTe
       : {
           display: '-webkit-box',
           WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
+          WebkitBoxOrient: 'vertical' as const,
           width: '100%',
           minWidth: 0,
           overflow: 'hidden',
+          wordBreak: 'break-word',
           fontSize: box.fontSize,
           lineHeight: box.lineHeight,
           minHeight: box.minHeight,
-          maxHeight: Math.ceil(box.fontSize * box.lineHeight * 2),
+          maxHeight: Math.ceil(box.fontSize * box.lineHeight * 2 + 1),
         }
 
   return (
-    <span style={{ ...base, ...style }} title={title ?? text}>
+    <span data-card-text="1" style={{ ...base, ...style }} title={title ?? text}>
       {children}
     </span>
   )

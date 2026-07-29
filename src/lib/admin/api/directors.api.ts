@@ -57,6 +57,7 @@ export type DirectorPresenceLiveEntry = {
   className: string
   scannedAt: string
   status: string
+  direction?: 'ARRIVAL' | 'EXIT' | null
   method: string
   security?: {
     isSuspicious?: boolean
@@ -148,7 +149,7 @@ export const directorsApi = {
     classId?: number
     sectionId?: number
     studentId?: number
-    status?: 'PRESENT' | 'LATE' | 'ABSENT'
+    status?: 'PRESENT' | 'LATE' | 'ABSENT' | 'EXITED'
     from?: string
     to?: string
     sessionId?: number

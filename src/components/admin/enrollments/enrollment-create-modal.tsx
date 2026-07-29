@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Loader2, X, UserPlus, GraduationCap, Heart, Wallet, Info, Plus, Users } from 'lucide-react'
+import { Loader2, X, UserPlus, GraduationCap, Heart, Wallet, Info, Plus, Users, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   enrollmentCreateSchema,
@@ -16,19 +16,24 @@ import {
   type EnrollmentCreateForm,
   type StructureRef,
 } from '@/lib/schemas/enrollment-create'
+import { sectionRequiresOption, isRdcCycleWithoutOption } from '@/lib/academic/rdc-section-cycle'
 import {
   useClasses,
   useCreateEnrollment,
   useAcademicSessions,
+  useEnrollmentFeePreview,
   useSections,
   useOptions,
   useCreateSection,
   useCreateOption,
   useCreateClass,
   useParentLookupByPhone,
+  useUploadStudentPhoto,
+  useUploadStudentDocument,
 } from '@/lib/hooks/use-admin'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { newIdempotencyKey } from '@/lib/idempotency'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { isValidInternationalPhone } from '@/lib/phone/validation'
 
@@ -47,7 +52,14 @@ type InlineCreate = 'section' | 'option' | 'class' | null
 function mergeStructureRefs(...lists: StructureRef[][]): StructureRef[] {
   const map = new Map<number, StructureRef>()
   for (const list of lists) {
-    for (const item of list) map.set(item.id, item)
+    for (const item of list) {
+      const prev = map.get(item.id)
+      map.set(item.id, {
+        id: item.id,
+        name: item.name,
+        code: item.code ?? prev?.code,
+      })
+    }
   }
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 }
@@ -161,12 +173,18 @@ export function EnrollmentCreateModal({
   const { data: sessions = [], isLoading: loadingSessions } = useAcademicSessions()
   const { data: apiSections = [], isLoading: loadingSections } = useSections()
   const createMutation = useCreateEnrollment()
+  const uploadPhoto = useUploadStudentPhoto()
+  const uploadDoc = useUploadStudentDocument()
   const createSectionMutation = useCreateSection()
   const createOptionMutation = useCreateOption()
   const createClassMutation = useCreateClass()
 
   const [inlineCreate, setInlineCreate] = useState<InlineCreate>(null)
   const [inlineName, setInlineName] = useState('')
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [birthCertFile, setBirthCertFile] = useState<File | null>(null)
+  const [enrollmentFormFile, setEnrollmentFormFile] = useState<File | null>(null)
+  const [uploadingDocs, setUploadingDocs] = useState(false)
 
   const prevSectionRef = useRef(0)
   const prevOptionRef = useRef(0)
@@ -177,6 +195,8 @@ export function EnrollmentCreateModal({
     reset,
     watch,
     setValue,
+    setError,
+    clearErrors,
     control,
     formState: { errors },
   } = useForm<EnrollmentCreateForm>({
@@ -186,12 +206,56 @@ export function EnrollmentCreateModal({
 
   const totalFees = watch('totalFees')
   const feesPaid = watch('feesPaid')
+  const collectDeposit = watch('collectDeposit')
   const sectionId = watch('sectionId')
   const optionId = watch('optionId')
   const classId = watch('classId')
   const academicYear = watch('academicYear')
   const emergencyContactPhone = watch('emergencyContactPhone')
   const emergencyContactName = watch('emergencyContactName')
+
+  const { data: apiOptions = [], isLoading: loadingOptions } = useOptions(sectionId || undefined)
+
+  const sections = useMemo(
+    () =>
+      mergeStructureRefs(
+        apiSections.map((s) => ({ id: s.id, name: s.name, code: s.code ?? undefined })),
+        deriveSections(classes),
+      ),
+    [apiSections, classes],
+  )
+
+  const options = useMemo(
+    () =>
+      mergeStructureRefs(
+        apiOptions.map((o) => ({ id: o.id, name: o.name })),
+        deriveOptions(classes, sectionId || undefined),
+      ),
+    [apiOptions, classes, sectionId],
+  )
+
+  const selectedSection = useMemo(
+    () => sections.find((s) => s.id === sectionId) ?? apiSections.find((s) => s.id === sectionId) ?? null,
+    [sections, apiSections, sectionId],
+  )
+
+  const requiresOption = sectionRequiresOption(selectedSection, options.length)
+  const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+
+  const { data: feePreview, isFetching: feePreviewLoading } = useEnrollmentFeePreview(
+    classId > 0 ? classId : undefined,
+  )
+  const lastFeeClassRef = useRef(0)
+
+  useEffect(() => {
+    if (!feePreview || !classId || classId <= 0) return
+    if (lastFeeClassRef.current === classId) return
+    lastFeeClassRef.current = classId
+    setValue('totalFees', feePreview.totalFees, { shouldValidate: true })
+    if (feePreview.academicYear) {
+      setValue('academicYear', feePreview.academicYear, { shouldValidate: false })
+    }
+  }, [feePreview, classId, setValue])
 
   const phoneIsValid = isValidInternationalPhone(emergencyContactPhone)
   const { data: parentLookup, isFetching: lookingUpParent } = useParentLookupByPhone(
@@ -210,31 +274,15 @@ export function EnrollmentCreateModal({
     lastAutofillPhoneRef.current = emergencyContactPhone ?? ''
   }, [open, parentMatch, emergencyContactPhone, emergencyContactName, setValue])
 
-  const { data: apiOptions = [], isLoading: loadingOptions } = useOptions(sectionId || undefined)
-
-  const sections = useMemo(
-    () => mergeStructureRefs(apiSections.map((s) => ({ id: s.id, name: s.name })), deriveSections(classes)),
-    [apiSections, classes],
-  )
-
-  const options = useMemo(
-    () =>
-      mergeStructureRefs(
-        apiOptions.map((o) => ({ id: o.id, name: o.name })),
-        deriveOptions(classes, sectionId || undefined),
-      ),
-    [apiOptions, classes, sectionId],
-  )
-
   const filteredClasses = useMemo(
     () =>
       filterClassesByStructure(
         classes,
         sectionId || undefined,
-        optionId || undefined,
+        requiresOption ? optionId || undefined : undefined,
         academicYear || undefined,
       ),
-    [classes, sectionId, optionId, academicYear],
+    [classes, sectionId, optionId, academicYear, requiresOption],
   )
 
   const balance =
@@ -247,19 +295,31 @@ export function EnrollmentCreateModal({
       reset(ENROLLMENT_CREATE_DEFAULTS)
       setInlineCreate(null)
       setInlineName('')
+      setPhotoFile(null)
+      setBirthCertFile(null)
+      setEnrollmentFormFile(null)
       prevSectionRef.current = 0
       prevOptionRef.current = 0
       lastAutofillPhoneRef.current = ''
+      lastFeeClassRef.current = 0
     }
   }, [open, reset])
 
   useEffect(() => {
     if (!open) return
+    if (!requiresOption) {
+      setValue('optionId', undefined as unknown as number)
+      clearErrors('optionId')
+    }
+  }, [requiresOption, open, setValue, clearErrors])
+
+  useEffect(() => {
+    if (!open) return
     if (prevSectionRef.current !== sectionId && prevSectionRef.current !== 0) {
-      setValue('optionId', 0)
+      setValue('optionId', undefined as unknown as number)
       setValue('classId', 0)
     }
-    prevSectionRef.current = sectionId
+    prevSectionRef.current = sectionId ?? 0
   }, [sectionId, setValue, open])
 
   useEffect(() => {
@@ -267,7 +327,7 @@ export function EnrollmentCreateModal({
     if (prevOptionRef.current !== optionId && prevOptionRef.current !== 0) {
       setValue('classId', 0)
     }
-    prevOptionRef.current = optionId
+    prevOptionRef.current = optionId ?? 0
   }, [optionId, setValue, open])
 
   useEffect(() => {
@@ -314,12 +374,26 @@ export function EnrollmentCreateModal({
 
   async function handleCreateClass() {
     const name = inlineName.trim()
-    if (!sectionId || !optionId || !academicYear || name.length < 2) return
+    if (!sectionId || !academicYear || name.length < 2) return
     try {
+      let resolvedOptionId = optionId && optionId > 0 ? optionId : undefined
+      if (!resolvedOptionId) {
+        if (options[0]) {
+          resolvedOptionId = options[0].id
+        } else {
+          const createdOpt = await createOptionMutation.mutateAsync({
+            sectionId,
+            name: cycleWithoutOption ? 'Générale' : 'Tronc commun',
+            code: cycleWithoutOption ? 'GEN' : 'TC',
+          })
+          resolvedOptionId = createdOpt.id
+          setValue('optionId', createdOpt.id)
+        }
+      }
       const created = await createClassMutation.mutateAsync({
         name,
         sectionId,
-        optionId,
+        optionId: resolvedOptionId,
         academicYear,
       })
       setValue('classId', created.id)
@@ -334,13 +408,69 @@ export function EnrollmentCreateModal({
   if (!open) return null
 
   async function onSubmit(data: EnrollmentCreateForm) {
+    if (requiresOption && !(data.optionId && data.optionId > 0)) {
+      setError('optionId', { message: 'Option / filière requise pour ce cycle' })
+      return
+    }
+    const idempotencyKey = newIdempotencyKey('enroll')
     try {
-      await createMutation.mutateAsync(toCreateEnrollmentPayload(data))
-      toast.success('Inscription créée', 'Le dossier élève a été enregistré avec succès.')
+      const result = await createMutation.mutateAsync({
+        ...toCreateEnrollmentPayload(data),
+        idempotencyKey,
+      })
+      const studentId = Number((result as { id?: number }).id)
+
+      if (studentId && (photoFile || birthCertFile || enrollmentFormFile)) {
+        setUploadingDocs(true)
+        try {
+          if (photoFile) {
+            await uploadPhoto.mutateAsync({ studentId, file: photoFile })
+          }
+          if (birthCertFile) {
+            await uploadDoc.mutateAsync({
+              studentId,
+              documentType: 'certificates',
+              file: birthCertFile,
+              description: 'Acte de naissance',
+            })
+          }
+          if (enrollmentFormFile) {
+            await uploadDoc.mutateAsync({
+              studentId,
+              documentType: 'reports',
+              file: enrollmentFormFile,
+              description: "Fiche d'inscription",
+            })
+          }
+        } catch (docErr) {
+          toast.success(
+            'Inscription créée',
+            `Dossier OK, mais document non uploadé : ${getApiErrorMessage(docErr)}`,
+          )
+          onSuccess?.()
+          onClose()
+          return
+        } finally {
+          setUploadingDocs(false)
+        }
+      }
+
+      if (result.depositWarning) {
+        toast.success('Inscription créée', result.depositWarning)
+      } else if (result.deposit) {
+        toast.success(
+          'Inscription + acompte',
+          `Paiement #${result.deposit.paymentId} · ${result.deposit.amount} ${result.deposit.currency} — reçu en cours.`,
+        )
+      } else {
+        toast.success('Inscription créée', 'Le dossier élève a été enregistré avec succès.')
+      }
       onSuccess?.()
       onClose()
     } catch (err) {
       toast.error('Inscription impossible', getApiErrorMessage(err))
+    } finally {
+      setUploadingDocs(false)
     }
   }
 
@@ -412,7 +542,11 @@ export function EnrollmentCreateModal({
             <FormSection
               icon={GraduationCap}
               title="Scolarité"
-              hint="Section → Option → Année → Classe. Utilisez + pour créer une entrée manquante."
+              hint={
+                cycleWithoutOption
+                  ? 'Maternelle / primaire : pas de filière — choisissez directement la classe.'
+                  : 'Section → Option (filière) → Année → Classe. Utilisez + pour créer une entrée manquante.'
+              }
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Section" required error={errors.sectionId?.message}>
@@ -440,7 +574,7 @@ export function EnrollmentCreateModal({
                   </div>
                   {inlineCreate === 'section' && (
                     <InlineCreateRow
-                      placeholder="Nom de la section (ex. Secondaire)"
+                      placeholder="Nom de la section (ex. Primaire, Secondaire)"
                       value={inlineName}
                       onChange={setInlineName}
                       onSubmit={handleCreateSection}
@@ -450,37 +584,49 @@ export function EnrollmentCreateModal({
                   )}
                 </Field>
 
-                <Field label="Option" required error={errors.optionId?.message}>
+                <Field
+                  label={requiresOption ? 'Option / filière' : 'Option (non requise)'}
+                  required={requiresOption}
+                  error={errors.optionId?.message}
+                >
                   <div className="flex gap-2">
                     <select
                       {...register('optionId', { valueAsNumber: true })}
-                      disabled={!sectionId || loadingOptions}
-                      className={cn(inputCls, 'flex-1 pr-8')}
+                      disabled={!sectionId || loadingOptions || cycleWithoutOption}
+                      className={cn(inputCls, 'flex-1 pr-8', cycleWithoutOption && 'bg-zinc-50 text-zinc-500')}
                     >
                       <option value={0}>
                         {!sectionId
                           ? 'Sélectionnez d\'abord une section'
-                          : loadingOptions
-                            ? 'Chargement…'
-                            : options.length === 0
-                              ? 'Aucune option — créez-en une'
-                              : 'Choisir une option…'}
+                          : cycleWithoutOption
+                            ? 'Non applicable (maternelle / primaire)'
+                            : loadingOptions
+                              ? 'Chargement…'
+                              : options.length === 0
+                                ? 'Aucune option — créez-en une'
+                                : 'Choisir une option…'}
                       </option>
-                      {options.map((o) => (
-                        <option key={o.id} value={o.id}>{o.name}</option>
-                      ))}
+                      {!cycleWithoutOption &&
+                        options.map((o) => (
+                          <option key={o.id} value={o.id}>{o.name}</option>
+                        ))}
                     </select>
                     <button
                       type="button"
                       title="Créer une option"
-                      disabled={!sectionId}
+                      disabled={!sectionId || cycleWithoutOption}
                       className={addBtnCls}
                       onClick={() => { setInlineCreate('option'); setInlineName('') }}
                     >
                       <Plus size={16} />
                     </button>
                   </div>
-                  {inlineCreate === 'option' && (
+                  {cycleWithoutOption && (
+                    <p className={hintCls}>
+                      En RDC, maternelle et primaire n&apos;ont pas de filière — l&apos;option est ignorée.
+                    </p>
+                  )}
+                  {inlineCreate === 'option' && !cycleWithoutOption && (
                     <InlineCreateRow
                       placeholder="Nom de l'option (ex. Scientifique)"
                       value={inlineName}
@@ -523,17 +669,19 @@ export function EnrollmentCreateModal({
                   <div className="flex gap-2">
                     <select
                       {...register('classId', { valueAsNumber: true })}
-                      disabled={!optionId || !academicYear}
+                      disabled={!sectionId || !academicYear || (requiresOption && !optionId)}
                       className={cn(inputCls, 'flex-1 pr-8')}
                     >
                       <option value={0}>
-                        {!optionId
-                          ? 'Option requise'
-                          : !academicYear
-                            ? 'Année scolaire requise'
-                            : filteredClasses.length === 0
-                              ? 'Aucune classe — créez-en une'
-                              : 'Choisir une classe…'}
+                        {!sectionId
+                          ? 'Section requise'
+                          : requiresOption && !optionId
+                            ? 'Option / filière requise'
+                            : !academicYear
+                              ? 'Année scolaire requise'
+                              : filteredClasses.length === 0
+                                ? 'Aucune classe — créez-en une'
+                                : 'Choisir une classe…'}
                       </option>
                       {filteredClasses.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -544,7 +692,7 @@ export function EnrollmentCreateModal({
                     <button
                       type="button"
                       title="Créer une classe"
-                      disabled={!sectionId || !optionId || !academicYear}
+                      disabled={!sectionId || !academicYear || (requiresOption && !optionId)}
                       className={addBtnCls}
                       onClick={() => { setInlineCreate('class'); setInlineName('') }}
                     >
@@ -578,12 +726,90 @@ export function EnrollmentCreateModal({
               </div>
             </FormSection>
 
-            <FormSection icon={Wallet} title="Frais & bourse" hint="Montants en devise de l'établissement.">
+            <FormSection
+              icon={FileText}
+              title="Documents"
+              hint="Photo, acte de naissance et fiche — uploadés juste après création."
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Field label="Photo élève">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className={cn(inputCls, 'text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-50 file:px-2 file:py-1 file:text-emerald-700')}
+                    onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
+                  />
+                  {photoFile && <p className={hintCls}>{photoFile.name}</p>}
+                </Field>
+                <Field label="Acte de naissance">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className={cn(inputCls, 'text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-50 file:px-2 file:py-1 file:text-emerald-700')}
+                    onChange={(e) => setBirthCertFile(e.target.files?.[0] ?? null)}
+                  />
+                  {birthCertFile && <p className={hintCls}>{birthCertFile.name}</p>}
+                </Field>
+                <Field label="Fiche d'inscription">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className={cn(inputCls, 'text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-50 file:px-2 file:py-1 file:text-emerald-700')}
+                    onChange={(e) => setEnrollmentFormFile(e.target.files?.[0] ?? null)}
+                  />
+                  {enrollmentFormFile && <p className={hintCls}>{enrollmentFormFile.name}</p>}
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection
+              icon={Wallet}
+              title="Frais & acompte"
+              hint="Barème école + acompte encaissé en caisse (reçu / WhatsApp)."
+            >
+              {classId > 0 && (
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2.5 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-medium text-zinc-600">
+                      Barème session {feePreview?.academicYear ?? '—'}
+                      {feePreview?.currency ? ` · ${feePreview.currency}` : ''}
+                    </p>
+                    {feePreviewLoading && <Loader2 size={12} className="animate-spin text-zinc-400" />}
+                  </div>
+                  {feePreview?.feeLines?.length ? (
+                    <ul className="space-y-1">
+                      {feePreview.feeLines.map((line) => (
+                        <li
+                          key={line.feeStructureId}
+                          className="flex items-center justify-between gap-2 text-[11px] text-zinc-700"
+                        >
+                          <span>
+                            {line.categoryName}
+                            <span className="text-zinc-400"> · {line.billingPeriod}</span>
+                          </span>
+                          <span className="tabular-nums font-medium">
+                            {line.amount.toLocaleString('fr-FR', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    !feePreviewLoading && (
+                      <p className="text-[11px] text-amber-700">
+                        Aucun barème pour cette classe — configurez les frais ou saisissez le total manuellement.
+                      </p>
+                    )
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Frais totaux" error={errors.totalFees?.message}>
                   <input type="number" min={0} step="0.01" {...register('totalFees')} className={inputCls} />
                 </Field>
-                <Field label="Déjà payé" error={errors.feesPaid?.message}>
+                <Field label="Acompte (déjà payé)" error={errors.feesPaid?.message}>
                   <input type="number" min={0} step="0.01" {...register('feesPaid')} className={inputCls} />
                 </Field>
                 <Field label="Bourse (%)" error={errors.scholarshipPercent?.message}>
@@ -595,6 +821,21 @@ export function EnrollmentCreateModal({
                   Solde initial estimé : <strong className="text-zinc-700">{balance.toLocaleString('fr-FR')}</strong>
                 </p>
               )}
+              <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+                <input type="checkbox" {...register('collectDeposit')} className="mt-0.5 rounded border-zinc-300" />
+                <span>
+                  Encaisser l&apos;acompte en caisse (Payment + reçu)
+                  {feesPaid != null && feesPaid > 0 && collectDeposit !== false ? (
+                    <span className="block text-[10px] text-emerald-700 mt-0.5">
+                      Un reçu sera généré et le parent notifié si lié.
+                    </span>
+                  ) : (
+                    <span className="block text-[10px] text-zinc-400 mt-0.5">
+                      Décochez uniquement pour un simple solde sans paiement.
+                    </span>
+                  )}
+                </span>
+              </label>
               <Field label="Notes finance" error={errors.paymentNotes?.message}>
                 <textarea {...register('paymentNotes')} rows={2} placeholder="Ex. accord de paiement échelonné…" className={cn(inputCls, 'resize-none')} />
               </Field>
@@ -684,11 +925,11 @@ export function EnrollmentCreateModal({
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || uploadingDocs}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
-              {createMutation.isPending && <Loader2 size={14} className="animate-spin" />}
-              Inscrire l'élève
+              {(createMutation.isPending || uploadingDocs) && <Loader2 size={14} className="animate-spin" />}
+              {uploadingDocs ? 'Documents…' : "Inscrire l'élève"}
             </button>
           </div>
         </form>

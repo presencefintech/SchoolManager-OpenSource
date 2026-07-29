@@ -11,6 +11,8 @@ const SKIP_REQUEST_HEADERS = new Set([
   'transfer-encoding',
   'cookie',
   'authorization',
+  // Content-Length recalculé par fetch selon le body (surtout multipart)
+  'content-length',
 ])
 
 /** Ne pas relayer : fetch décompresse le corps ; ces en-têtes provoquent ERR_CONTENT_DECODING_FAILED */
@@ -44,8 +46,25 @@ async function proxy(req: NextRequest, path: string[]) {
     headers['x-school-id'] = schoolId
   }
 
-  const hasBody = !['GET', 'HEAD'].includes(req.method)
-  const body = hasBody ? await req.text() : undefined
+  const method = req.method.toUpperCase()
+  const hasBody = !['GET', 'HEAD'].includes(method)
+  const contentType = req.headers.get('content-type') ?? ''
+
+  let body: BodyInit | undefined
+  if (hasBody) {
+    // Multipart : ne jamais passer par text() — casse le boundary / binaire → timeout axios 15s
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData()
+      const outgoing = new FormData()
+      formData.forEach((value, key) => outgoing.append(key, value))
+      body = outgoing
+      // Laisser fetch recalculer Content-Type + boundary
+      delete headers['content-type']
+      delete headers['Content-Type']
+    } else {
+      body = await req.arrayBuffer()
+    }
+  }
 
   const upstream = await fetch(target, {
     method: req.method,
