@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -100,6 +100,14 @@ function HeatmapChart({ classId }: { classId?: number }) {
 }
 
 export default function DirectorPresencesPage() {
+  return (
+    <Suspense fallback={null}>
+      <DirectorPresencesPageContent />
+    </Suspense>
+  )
+}
+
+function DirectorPresencesPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')))

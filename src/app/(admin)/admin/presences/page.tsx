@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -109,6 +109,14 @@ function HeatmapChart({ classId }: { classId?: number }) {
 }
 
 export default function PresencesPage() {
+  return (
+    <Suspense fallback={null}>
+      <PresencesPageContent />
+    </Suspense>
+  )
+}
+
+function PresencesPageContent() {
   const toast = useToast()
   const router = useRouter()
   const searchParams = useSearchParams()

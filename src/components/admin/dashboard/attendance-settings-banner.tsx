@@ -49,19 +49,19 @@ export function AttendanceSettingsBanner() {
         {enabledMethods.map((m) => (
           <Chip key={m} ok label={m} />
         ))}
-        <Chip ok={settings.geofence.configured} label="Géofence" />
-        <Chip ok={settings.validationRules.dualQrRequired} label="Dual-QR" />
+        <Chip ok={settings.geofence?.configured ?? false} label="Géofence" />
+        <Chip ok={settings.validationRules?.dualQrRequired ?? false} label="Dual-QR" />
         <Chip
-          ok={settings.notificationSettings.parentPresenceNotificationsEnabled}
+          ok={settings.notificationSettings?.parentPresenceNotificationsEnabled ?? false}
           label="Notifs arrivée"
         />
         <Chip
-          ok={settings.notificationSettings.parentDepartureNotificationsEnabled ?? false}
+          ok={settings.notificationSettings?.parentDepartureNotificationsEnabled ?? false}
           label="Notifs sortie"
         />
         <Chip ok={settings.scheduleSettings?.scanWindowStrict ?? false} label="Fenêtre stricte" />
         <Chip ok={settings.scheduleSettings?.exitScanEnabled ?? false} label="EXIT" />
-        <Chip ok={settings.absenceSettings.autoMarkEnabled} label="Absences auto" />
+        <Chip ok={settings.absenceSettings?.autoMarkEnabled ?? false} label="Absences auto" />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
@@ -75,14 +75,14 @@ export function AttendanceSettingsBanner() {
             {String(settings.scheduleSettings.endMinute).padStart(2, '0')}
           </span>
         )}
-        {settings.absenceSettings.autoMarkEnabled && (
+        {settings.absenceSettings?.autoMarkEnabled && (
           <span className="inline-flex items-center gap-1">
             <Clock size={12} />
             Cutoff {String(settings.absenceSettings.cutoffHour).padStart(2, '0')}:
             {String(settings.absenceSettings.cutoffMinute).padStart(2, '0')}
           </span>
         )}
-        {!settings.geofence.configured && (
+        {!settings.geofence?.configured && (
           <span className="inline-flex items-center gap-1 text-amber-700">
             <MapPin size={12} />
             Géofence à configurer
@@ -94,8 +94,8 @@ export function AttendanceSettingsBanner() {
             QR désactivé
           </span>
         )}
-        {!settings.notificationSettings.parentPresenceNotificationsEnabled &&
-          !(settings.notificationSettings.parentDepartureNotificationsEnabled ?? false) && (
+        {!settings.notificationSettings?.parentPresenceNotificationsEnabled &&
+          !(settings.notificationSettings?.parentDepartureNotificationsEnabled ?? false) && (
           <span className="inline-flex items-center gap-1 text-slate-400">
             <Bell size={12} />
             Notifs off

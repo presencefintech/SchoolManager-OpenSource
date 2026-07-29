@@ -127,7 +127,7 @@ export default function DirectorLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen">
       <DirectorNav />
-      <main className="flex-1 ml-64 min-h-screen bg-zinc-50">
+      <main className="flex-1 min-w-0 ml-64 min-h-screen bg-zinc-50">
         <EmailVerificationBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>
