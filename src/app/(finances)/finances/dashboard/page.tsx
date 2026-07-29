@@ -342,7 +342,7 @@ export default function FinanceDashboardPage() {
                 <KpiCard
                   label="Remboursements en attente"
                   value={g?.pendingRefunds ?? '—'}
-                  sub={g?.approvedRefundsAwaitingProcess > 0 ? `${g.approvedRefundsAwaitingProcess} approuvé(s) à traiter` : undefined}
+                  sub={(g?.approvedRefundsAwaitingProcess ?? 0) > 0 ? `${g?.approvedRefundsAwaitingProcess} approuvé(s) à traiter` : undefined}
                   icon={RotateCcw} color="text-violet-600" bg="bg-violet-50"
                 />
               </motion.div>
