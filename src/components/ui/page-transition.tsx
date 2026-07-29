@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   return (
-    <AnimatePresence mode="wait" initial={false}>
+    <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
         key={pathname}
         initial={{ opacity: 0, y: 10 }}

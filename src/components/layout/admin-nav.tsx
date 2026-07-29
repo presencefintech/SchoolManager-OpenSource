@@ -13,10 +13,11 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
-import { getAuthToken } from '@/lib/api/auth-storage'
+import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import {
   dashboardApi, staffApi, studentsApi, enrollmentsApi,
   presencesApi, classesApi, financeApi, invitationsApi, schoolsApi,
+  preEnrollmentApi, adminFraudApi, attendanceNotificationsApi,
 } from '@/lib/admin/api'
 
 type SubLink = { label: string; href: string; icon: React.ElementType }
@@ -105,6 +106,23 @@ export function AdminNav() {
       queryClient.prefetchQuery({ queryKey: ['admin', 'presences', 'live', undefined], queryFn: () => presencesApi.getLiveFeed(), staleTime: 0 })
     } else if (href === '/admin/classes') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'classes', 'list', undefined], queryFn: () => classesApi.list(), staleTime: 60_000 })
+    } else if (href === '/admin/teachers') {
+      queryClient.prefetchQuery({ queryKey: ['admin', 'staff'], queryFn: staffApi.list, staleTime: 60_000 })
+    } else if (href === '/admin/pre-enrollments') {
+      const params = { status: 'PENDING', limit: 50 }
+      queryClient.prefetchQuery({ queryKey: ['admin', 'pre-enrollments', params], queryFn: () => preEnrollmentApi.list(params), staleTime: 30_000 })
+    } else if (href === '/admin/fraud') {
+      queryClient.prefetchQuery({ queryKey: ['admin', 'fraud-alerts-list'], queryFn: adminFraudApi.getAlerts, staleTime: 60_000 })
+    } else if (href === '/admin/attendance-notifications') {
+      const schoolId = getAuthSchoolId()
+      if (schoolId) {
+        const params = { status: undefined, limit: 50 }
+        queryClient.prefetchQuery({
+          queryKey: ['admin', 'attendance-notifications', schoolId, params],
+          queryFn: () => attendanceNotificationsApi.list(Number(schoolId), params),
+          staleTime: 30_000,
+        })
+      }
     } else if (href === '/admin/finance') {
       queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'dashboard'], queryFn: financeApi.getStrategicDashboard, staleTime: 60_000 })
       queryClient.prefetchQuery({ queryKey: ['admin', 'finance', 'pending'], queryFn: financeApi.getPendingVerifications, staleTime: 30_000 })
