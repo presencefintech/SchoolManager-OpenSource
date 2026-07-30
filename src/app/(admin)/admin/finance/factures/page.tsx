@@ -4,22 +4,34 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   FileText, Plus, CheckCircle, DollarSign, RotateCcw, Layers, Trash2,
-  Info, Tag, X,
+  Info, Tag, X, Pencil,
 } from 'lucide-react'
 import {
-  useAcademicSessions, useCreateFeeCategory, useCreateFeeStructure,
+  useAcademicSessions, useCreateFeeCategory, useUpdateFeeCategory, useDeleteFeeCategory,
+  useCreateFeeStructure, useUpdateFeeStructure,
   useStudentInvoices, useGenerateInvoice, useApplyDiscount, useSyncBalance,
   useFeeStructures, useFeeCategories, useClasses, useDeleteFeeStructure,
   useCloneFeeCatalogAdmin,
 } from '@/lib/hooks/use-admin'
-import type { CreateFeeCategoryPayload, CreateFeeStructurePayload, FeeBillingPeriod } from '@/types/admin'
+import type {
+  CreateFeeCategoryPayload,
+  CreateFeeStructurePayload,
+  FeeBillingPeriod,
+  FeeCategoryItem,
+  UpdateFeeCategoryPayload,
+  UpdateFeeStructurePayload,
+} from '@/types/admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
-import { isValidFeeCategoryCode, toFeeCategoryCode } from '@/lib/finance/fee-structure.utils'
+import {
+  isValidFeeCategoryCode,
+  toFeeCategoryCode,
+  type FeeStructureListItem,
+} from '@/lib/finance/fee-structure.utils'
 
 const BILLING_PERIOD_LABELS: Record<FeeBillingPeriod, string> = {
   ONE_TIME: 'Ponctuel',
@@ -36,37 +48,57 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
   )
 }
 
-function CreateCategoryModal({
+function CategoryModal({
+  initial,
   onClose,
-  onCreated,
+  onSaved,
 }: {
+  initial?: FeeCategoryItem | null
   onClose: () => void
-  onCreated: (categoryId: number) => void
+  onSaved: (categoryId: number) => void
 }) {
-  const { mutateAsync, isPending } = useCreateFeeCategory()
+  const isEdit = initial != null
+  const { mutateAsync: createCategory, isPending: creating } = useCreateFeeCategory()
+  const { mutateAsync: updateCategory, isPending: updating } = useUpdateFeeCategory()
   const [form, setForm] = useState<CreateFeeCategoryPayload>({
-    name: '',
-    code: '',
-    billingPeriod: 'MONTHLY',
-    dueDayOfMonth: 5,
+    name: initial?.name ?? '',
+    code: initial?.code ?? '',
+    billingPeriod: initial?.billingPeriod ?? 'MONTHLY',
+    dueDayOfMonth: initial?.dueDayOfMonth ?? 5,
+    description: initial?.description ?? '',
   })
-  const [codeLocked, setCodeLocked] = useState(false)
+  const [codeLocked, setCodeLocked] = useState(isEdit)
   const [error, setError] = useState<string | null>(null)
+  const isPending = creating || updating
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const code = toFeeCategoryCode(form.code || form.name)
-    if (!isValidFeeCategoryCode(code)) {
-      setError('Code invalide. Utilisez des lettres (ex. CANTEEN, TUITION, SCOLARITE).')
-      return
-    }
     try {
-      const created = await mutateAsync({
+      if (isEdit && initial) {
+        const payload: UpdateFeeCategoryPayload = {
+          name: form.name.trim(),
+          description: form.description?.trim() || null,
+          billingPeriod: form.billingPeriod,
+          dueDayOfMonth:
+            form.billingPeriod === 'MONTHLY' ? (form.dueDayOfMonth ?? 5) : null,
+        }
+        const updated = await updateCategory({ categoryId: initial.id, payload })
+        onSaved(updated.id)
+        onClose()
+        return
+      }
+      const code = toFeeCategoryCode(form.code || form.name)
+      if (!isValidFeeCategoryCode(code)) {
+        setError('Code invalide. Utilisez des lettres (ex. CANTEEN, TUITION, SCOLARITE).')
+        return
+      }
+      const created = await createCategory({
         ...form,
         code,
+        dueDayOfMonth: form.billingPeriod === 'MONTHLY' ? form.dueDayOfMonth : undefined,
       })
-      onCreated(created.id)
+      onSaved(created.id)
       onClose()
     } catch (err) {
       setError(getApiErrorMessage(err))
@@ -77,7 +109,9 @@ function CreateCategoryModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-zinc-900">Nouvelle catégorie de frais</h2>
+          <h2 className="text-lg font-semibold text-zinc-900">
+            {isEdit ? 'Modifier la catégorie' : 'Nouvelle catégorie de frais'}
+          </h2>
           <button type="button" onClick={onClose} className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100">
             <X size={16} />
           </button>
@@ -93,7 +127,7 @@ function CreateCategoryModal({
                 setForm((p) => ({
                   ...p,
                   name,
-                  code: codeLocked ? p.code : toFeeCategoryCode(name),
+                  code: isEdit || codeLocked ? p.code : toFeeCategoryCode(name),
                 }))
               }}
               placeholder="Ex: Scolarité mensuelle"
@@ -104,6 +138,7 @@ function CreateCategoryModal({
             <label className="block text-xs font-medium text-zinc-500 mb-1">Code *</label>
             <input
               required
+              disabled={isEdit}
               value={form.code}
               onChange={(e) => {
                 setCodeLocked(true)
@@ -113,10 +148,12 @@ function CreateCategoryModal({
                 }))
               }}
               placeholder="TUITION"
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-zinc-50 disabled:opacity-70"
             />
             <p className="mt-1 text-[11px] text-zinc-400">
-              Généré automatiquement (UPPER_SNAKE). Ex. CANTEEN, TUITION, SCOLARITE
+              {isEdit
+                ? 'Le code n’est pas modifiable après création.'
+                : 'Généré automatiquement (UPPER_SNAKE). Ex. CANTEEN, TUITION, SCOLARITE'}
             </p>
           </div>
           <div>
@@ -157,7 +194,7 @@ function CreateCategoryModal({
               Annuler
             </button>
             <button type="submit" disabled={isPending} className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium disabled:opacity-50">
-              {isPending ? 'Création...' : 'Créer'}
+              {isPending ? (isEdit ? 'Enregistrement…' : 'Création...') : isEdit ? 'Enregistrer' : 'Créer'}
             </button>
           </div>
         </form>
@@ -306,6 +343,7 @@ export default function FacturesPage() {
   }, [currentSession, selectedSessionId])
 
   const { mutateAsync: createFee, isPending: creatingFee } = useCreateFeeStructure()
+  const { mutateAsync: updateFee, isPending: updatingFee } = useUpdateFeeStructure()
   const { mutate: syncBalance } = useSyncBalance()
   const { data: classes = [] } = useClasses({ isActive: true })
   const { data: feeCategories = [], isLoading: loadingCategories } = useFeeCategories({ isActive: true })
@@ -316,50 +354,113 @@ export default function FacturesPage() {
   const { mutateAsync: deleteFeeStructure, isPending: deletingFee } = useDeleteFeeStructure()
   const { mutateAsync: cloneCatalog, isPending: cloningCatalog } = useCloneFeeCatalogAdmin()
 
-  const [feeForm, setFeeForm] = useState<Omit<CreateFeeStructurePayload, 'sessionId'>>({
+  const emptyFeeForm = (): Omit<CreateFeeStructurePayload, 'sessionId'> => ({
     categoryId: 0,
     amount: 0,
     description: '',
+    assignmentMode: 'AUTOMATIC',
+    effectiveFrom: null,
+    effectiveTo: null,
   })
+
+  const [feeForm, setFeeForm] = useState<Omit<CreateFeeStructurePayload, 'sessionId'>>(emptyFeeForm)
+  const [editingFeeId, setEditingFeeId] = useState<number | null>(null)
   const [feeSuccess, setFeeSuccess] = useState(false)
   const [feeError, setFeeError] = useState<string | null>(null)
   const [cloneSourceSessionId, setCloneSourceSessionId] = useState(0)
   const [cloneMsg, setCloneMsg] = useState<string | null>(null)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<FeeCategoryItem | null>(null)
   const [activeStudentId, setActiveStudentId] = useState<number>(0)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
   const [discountInvoiceId, setDiscountInvoiceId] = useState<number | null>(null)
   const [deleteFeeTarget, setDeleteFeeTarget] = useState<{ id: number; label: string } | null>(null)
+  const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<FeeCategoryItem | null>(null)
+
+  const { mutateAsync: deleteCategory, isPending: deletingCategory } = useDeleteFeeCategory()
 
   const { data: invoices = [], isLoading: loadingInvoices } = useStudentInvoices(activeStudentId)
+  const savingFee = creatingFee || updatingFee
 
   const classById = useMemo(
     () => new Map(classes.map((c) => [c.id, c.name])),
     [classes],
   )
 
-  async function handleCreateFee(e: React.FormEvent) {
+  function startEditFee(fs: FeeStructureListItem) {
+    setEditingFeeId(fs.id)
+    setFeeSuccess(false)
+    setFeeError(null)
+    setFeeForm({
+      categoryId: 0,
+      amount: fs.amount,
+      classId: fs.classId ?? null,
+      description: fs.description ?? '',
+      assignmentMode: fs.assignmentMode ?? 'AUTOMATIC',
+      effectiveFrom: fs.effectiveFrom ?? null,
+      effectiveTo: fs.effectiveTo ?? null,
+    })
+    if (typeof window !== 'undefined') {
+      document.getElementById('fee-structure-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  function cancelEditFee() {
+    setEditingFeeId(null)
+    setFeeForm(emptyFeeForm())
+    setFeeError(null)
+    setFeeSuccess(false)
+  }
+
+  async function handleSaveFee(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedSessionId) {
       setFeeError('Sélectionnez une session académique.')
       return
     }
-    if (!feeForm.categoryId) {
-      setFeeError('Sélectionnez une catégorie de frais.')
-      return
-    }
     setFeeError(null)
     setFeeSuccess(false)
+
     try {
+      if (editingFeeId != null) {
+        if (!feeForm.amount || feeForm.amount <= 0) {
+          setFeeError('Montant invalide.')
+          return
+        }
+        const payload: UpdateFeeStructurePayload = {
+          amount: feeForm.amount,
+          description: feeForm.description?.trim() || null,
+          assignmentMode: feeForm.assignmentMode ?? 'AUTOMATIC',
+          effectiveFrom: feeForm.effectiveFrom || null,
+          effectiveTo: feeForm.effectiveTo || null,
+        }
+        await updateFee({ feeId: editingFeeId, payload })
+        toast.success('Barème mis à jour')
+        setEditingFeeId(null)
+        setFeeForm(emptyFeeForm())
+        setFeeSuccess(true)
+        return
+      }
+
+      if (!feeForm.categoryId) {
+        setFeeError('Sélectionnez une catégorie de frais.')
+        return
+      }
       await createFee({
         sessionId: selectedSessionId,
         categoryId: feeForm.categoryId,
         amount: feeForm.amount,
         classId: feeForm.classId ?? null,
         description: feeForm.description?.trim() || undefined,
+        assignmentMode: feeForm.assignmentMode ?? 'AUTOMATIC',
+        ...(feeForm.effectiveFrom ? { effectiveFrom: feeForm.effectiveFrom } : {}),
+        ...(feeForm.effectiveTo ? { effectiveTo: feeForm.effectiveTo } : {}),
       })
       setFeeSuccess(true)
-      setFeeForm({ categoryId: feeForm.categoryId, amount: 0, description: '' })
+      setFeeForm({
+        ...emptyFeeForm(),
+        categoryId: feeForm.categoryId,
+      })
     } catch (err) {
       setFeeError(getApiErrorMessage(err))
     }
@@ -431,7 +532,10 @@ export default function FacturesPage() {
           </div>
           <button
             type="button"
-            onClick={() => setShowCategoryModal(true)}
+            onClick={() => {
+              setEditingCategory(null)
+              setShowCategoryModal(true)
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
           >
             <Plus size={12} /> Nouvelle catégorie
@@ -448,6 +552,7 @@ export default function FacturesPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Nom</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Code</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Périodicité</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -461,6 +566,27 @@ export default function FacturesPage() {
                       ? ` · jour ${cat.dueDayOfMonth}`
                       : ''}
                   </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingCategory(cat)
+                          setShowCategoryModal(true)
+                        }}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                      >
+                        <Pencil size={11} /> Éditer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteCategoryTarget(cat)}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={11} /> Désactiver
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -468,14 +594,29 @@ export default function FacturesPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
-        <h3 className="text-sm font-semibold text-zinc-900 mb-4">Créer un barème (structure de frais)</h3>
+      <div id="fee-structure-form" className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-zinc-900">
+            {editingFeeId != null
+              ? `Modifier le barème #${editingFeeId}`
+              : 'Créer un barème (structure de frais)'}
+          </h3>
+          {editingFeeId != null && (
+            <button
+              type="button"
+              onClick={cancelEditFee}
+              className="text-xs font-medium text-zinc-500 hover:text-zinc-800"
+            >
+              Annuler l&apos;édition
+            </button>
+          )}
+        </div>
         {feeSuccess && (
           <div className="mb-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
-            <CheckCircle size={14} /> Barème créé — visible au guichet pour la session sélectionnée
+            <CheckCircle size={14} /> Barème enregistré — visible au guichet pour la session sélectionnée
           </div>
         )}
-        <form onSubmit={handleCreateFee} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
+        <form onSubmit={handleSaveFee} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Session académique *</label>
             <select
@@ -496,26 +637,34 @@ export default function FacturesPage() {
             <label className="block text-xs font-medium text-zinc-500 mb-1">Catégorie *</label>
             <div className="flex gap-2">
               <select
-                required
+                required={editingFeeId == null}
+                disabled={editingFeeId != null}
                 value={feeForm.categoryId || ''}
                 onChange={(e) => setFeeForm((p) => ({ ...p, categoryId: Number(e.target.value) }))}
-                className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-zinc-50 disabled:opacity-70"
               >
-                <option value="">— Choisir —</option>
+                <option value="">
+                  {editingFeeId != null ? '— Inchangée (édition) —' : '— Choisir —'}
+                </option>
                 {feeCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name} ({BILLING_PERIOD_LABELS[cat.billingPeriod]})
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
-                onClick={() => setShowCategoryModal(true)}
-                className="shrink-0 rounded-lg border border-zinc-200 px-2.5 text-zinc-500 hover:bg-zinc-50"
-                title="Nouvelle catégorie"
-              >
-                <Plus size={14} />
-              </button>
+              {editingFeeId == null && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingCategory(null)
+                    setShowCategoryModal(true)
+                  }}
+                  className="shrink-0 rounded-lg border border-zinc-200 px-2.5 text-zinc-500 hover:bg-zinc-50"
+                  title="Nouvelle catégorie"
+                >
+                  <Plus size={14} />
+                </button>
+              )}
             </div>
           </div>
           <div>
@@ -533,6 +682,7 @@ export default function FacturesPage() {
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Classe (optionnel)</label>
             <select
+              disabled={editingFeeId != null}
               value={feeForm.classId ?? ''}
               onChange={(e) =>
                 setFeeForm((p) => ({
@@ -540,13 +690,60 @@ export default function FacturesPage() {
                   classId: e.target.value ? Number(e.target.value) : null,
                 }))
               }
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-zinc-50 disabled:opacity-70"
             >
               <option value="">Toutes les classes</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+            {editingFeeId != null && (
+              <p className="mt-1 text-[10px] text-zinc-400">Classe / catégorie non modifiables en édition.</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Attribution *</label>
+            <select
+              value={feeForm.assignmentMode ?? 'AUTOMATIC'}
+              onChange={(e) =>
+                setFeeForm((p) => ({
+                  ...p,
+                  assignmentMode: e.target.value as 'AUTOMATIC' | 'EXPLICIT',
+                }))
+              }
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="AUTOMATIC">Automatique (classe / école)</option>
+              <option value="EXPLICIT">Optionnel (ASSIGN à l&apos;inscription)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Valide du</label>
+            <input
+              type="date"
+              value={feeForm.effectiveFrom?.slice(0, 10) ?? ''}
+              onChange={(e) =>
+                setFeeForm((p) => ({
+                  ...p,
+                  effectiveFrom: e.target.value ? `${e.target.value}T00:00:00.000Z` : null,
+                }))
+              }
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Valide jusqu&apos;au</label>
+            <input
+              type="date"
+              value={feeForm.effectiveTo?.slice(0, 10) ?? ''}
+              onChange={(e) =>
+                setFeeForm((p) => ({
+                  ...p,
+                  effectiveTo: e.target.value ? `${e.target.value}T23:59:59.000Z` : null,
+                }))
+              }
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
           </div>
           <div className="md:col-span-2">
             <label className="block text-xs font-medium text-zinc-500 mb-1">Description (optionnel)</label>
@@ -560,11 +757,17 @@ export default function FacturesPage() {
           <div>
             <button
               type="submit"
-              disabled={creatingFee || feeCategories.length === 0}
+              disabled={savingFee || (editingFeeId == null && feeCategories.length === 0)}
               className="w-full px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
-              <Plus size={13} />
-              {creatingFee ? 'Création...' : 'Créer le barème'}
+              {editingFeeId != null ? <Pencil size={13} /> : <Plus size={13} />}
+              {savingFee
+                ? editingFeeId != null
+                  ? 'Mise à jour…'
+                  : 'Création...'
+                : editingFeeId != null
+                  ? 'Enregistrer les modifications'
+                  : 'Créer le barème'}
             </button>
           </div>
         </form>
@@ -640,6 +843,7 @@ export default function FacturesPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Libellé</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Catégorie</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Classe</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Mode</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Montant</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -657,10 +861,29 @@ export default function FacturesPage() {
                   <td className="px-5 py-3 text-zinc-500 text-xs">
                     {fs.classId ? (classById.get(fs.classId) ?? `Classe #${fs.classId}`) : 'Toutes'}
                   </td>
+                  <td className="px-5 py-3 text-xs">
+                    <span
+                      className={
+                        fs.assignmentMode === 'EXPLICIT'
+                          ? 'rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-800'
+                          : 'rounded bg-emerald-50 px-1.5 py-0.5 font-medium text-emerald-800'
+                      }
+                    >
+                      {fs.assignmentMode === 'EXPLICIT' ? 'Optionnel' : 'Auto'}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 text-zinc-600">{formatMoney(Number(fs.amount))}</td>
                   <td className="px-5 py-3">
-                    <div className="flex items-center justify-end">
+                    <div className="flex items-center justify-end gap-1.5">
                       <button
+                        type="button"
+                        onClick={() => startEditFee(fs)}
+                        className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                      >
+                        <Pencil size={11} /> Éditer
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setDeleteFeeTarget({ id: fs.id, label: fs.label })}
                         className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-red-100 text-red-600 hover:bg-red-50"
                       >
@@ -748,11 +971,16 @@ export default function FacturesPage() {
       </div>
 
       {showCategoryModal && (
-        <CreateCategoryModal
-          onClose={() => setShowCategoryModal(false)}
-          onCreated={(categoryId) => {
+        <CategoryModal
+          key={editingCategory?.id ?? 'new'}
+          initial={editingCategory}
+          onClose={() => {
+            setShowCategoryModal(false)
+            setEditingCategory(null)
+          }}
+          onSaved={(categoryId) => {
             setFeeForm((p) => ({ ...p, categoryId }))
-            toast.success('Catégorie créée')
+            toast.success(editingCategory ? 'Catégorie mise à jour' : 'Catégorie créée')
           }}
         />
       )}
@@ -769,6 +997,28 @@ export default function FacturesPage() {
         loading={deletingFee}
         onConfirm={confirmDeleteFee}
         onCancel={() => setDeleteFeeTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteCategoryTarget != null}
+        title="Désactiver cette catégorie ?"
+        description="La catégorie ne pourra plus être utilisée pour de nouveaux barèmes."
+        impact={deleteCategoryTarget ? [`Catégorie : ${deleteCategoryTarget.name} (${deleteCategoryTarget.code})`] : []}
+        confirmLabel="Désactiver"
+        variant="danger"
+        loading={deletingCategory}
+        onConfirm={async () => {
+          if (!deleteCategoryTarget) return
+          try {
+            await deleteCategory(deleteCategoryTarget.id)
+            toast.success('Catégorie désactivée')
+          } catch (err) {
+            toast.error('Désactivation impossible', getApiErrorMessage(err))
+          } finally {
+            setDeleteCategoryTarget(null)
+          }
+        }}
+        onCancel={() => setDeleteCategoryTarget(null)}
       />
     </div>
   )

@@ -57,6 +57,9 @@ export const enrollmentsApi = {
             | { paymentId: number; amount: number; currency: string; reference: string | null }
             | undefined,
           depositWarning: data.depositWarning as string | undefined,
+          explicitFeePack: data.explicitFeePack as
+            | { assigned: number[]; skipped: Array<{ feeStructureId: number; reason: string }> }
+            | undefined,
           serverMessage: r.data.message,
           idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
         }
@@ -119,27 +122,29 @@ export const enrollmentsApi = {
     apiClient.get<{ success: boolean; data: Array<{ id: number; label: string; isCurrent: boolean; status: string }> }>('/admin/enrollments/sessions')
       .then((r) => r.data.data ?? []),
 
-  getFeePreview: (classId: number) =>
-    apiClient
-      .get<{
-        success: boolean
-        data: {
-          sessionId?: number
-          academicYear: string
-          currency: string
-          totalFees: number
-          feeLines: Array<{
-            feeStructureId: number
-            categoryId: number
-            categoryCode: string
-            categoryName: string
-            billingPeriod: string
-            amount: number
-            currency: string
-          }>
-        }
-      }>('/admin/enrollments/fee-preview', { params: { classId } })
-      .then((r) => r.data.data),
+  getFeePreview: (params: {
+    classId: number
+    sessionId?: number
+    studentId?: number
+    explicitFeeStructureIds?: number[]
+  }) => {
+    const { classId, sessionId, studentId, explicitFeeStructureIds } = params
+    return apiClient
+      .get<{ success: boolean; data: import('@/types/admin').EnrollmentFeePreview }>(
+        '/admin/enrollments/fee-preview',
+        {
+          params: {
+            classId,
+            ...(sessionId != null ? { sessionId } : {}),
+            ...(studentId != null ? { studentId } : {}),
+            ...(explicitFeeStructureIds?.length
+              ? { explicitFeeStructureIds: explicitFeeStructureIds.join(',') }
+              : {}),
+          },
+        },
+      )
+      .then((r) => r.data.data)
+  },
 
   getIntakeInbox: (params?: { kind?: string; page?: number; limit?: number }) =>
     apiClient
@@ -176,6 +181,8 @@ export const enrollmentsApi = {
       collectDeposit?: boolean
       paymentNotes?: string
       type?: string
+      explicitFeeStructureIds?: number[]
+      autoAssignExplicitFees?: boolean
       idempotencyKey?: string
     },
   ) => {

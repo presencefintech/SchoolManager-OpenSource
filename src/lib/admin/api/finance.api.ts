@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api/client'
 import axios from 'axios'
+import { idempotencyHeaders, newIdempotencyKey } from '@/lib/idempotency'
 import {
   normalizePendingVerification,
   normalizePaymentProfile,
@@ -24,8 +25,8 @@ import { normalizeFinanceAiInsights } from '@/lib/admin/finance-ai.utils'
 import type {
   FinanceKpi, PendingVerificationItem, FinanceFraudAlert, AuditLogEntry, TopPayer,
   ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
-  BulkMoratoriumPayload, FeeStructurePayload, CreateFeeStructurePayload,
-  CreateFeeCategoryPayload, FeeCategoryItem, LinkOrphanPayload, AdvancedSearchParams,
+  BulkMoratoriumPayload, FeeStructurePayload, CreateFeeStructurePayload, UpdateFeeStructurePayload,
+  CreateFeeCategoryPayload, UpdateFeeCategoryPayload, FeeCategoryItem, LinkOrphanPayload, AdvancedSearchParams,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
   PaymentOnboardingChecklist,
   MoratoriumRecoveryRate, AdminRefundRequest, ConfirmPaymentProofPayload,
@@ -356,24 +357,42 @@ export const financeApi = {
   createStudentFeeAssignment: (
     studentId: number,
     payload: import('@/types/finance').CreateStudentFeeAssignmentPayload,
-  ) =>
-    apiClient
-      .post(`/admin/finance/students/${studentId}/fee-assignments`, payload)
-      .then(r => r.data.data as import('@/types/finance').StudentFeeAssignmentDto),
+    options?: { idempotencyKey?: string },
+  ) => {
+    const key = options?.idempotencyKey?.trim() || newIdempotencyKey('fee-assign')
+    return apiClient
+      .post(`/admin/finance/students/${studentId}/fee-assignments`, payload, {
+        headers: idempotencyHeaders(key),
+      })
+      .then((r) => r.data.data as import('@/types/finance').StudentFeeAssignmentDto)
+  },
 
   updateStudentFeeAssignment: (
     studentId: number,
     assignmentId: number,
     payload: import('@/types/finance').UpdateStudentFeeAssignmentPayload,
-  ) =>
-    apiClient
-      .patch(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}`, payload)
-      .then(r => r.data.data as import('@/types/finance').StudentFeeAssignmentDto),
+    options?: { idempotencyKey?: string },
+  ) => {
+    const key = options?.idempotencyKey?.trim() || newIdempotencyKey('fee-assign-upd')
+    return apiClient
+      .patch(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}`, payload, {
+        headers: idempotencyHeaders(key),
+      })
+      .then((r) => r.data.data as import('@/types/finance').StudentFeeAssignmentDto)
+  },
 
-  revokeStudentFeeAssignment: (studentId: number, assignmentId: number) =>
-    apiClient
-      .post(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}/revoke`)
-      .then(r => r.data.data as import('@/types/finance').StudentFeeAssignmentDto),
+  revokeStudentFeeAssignment: (
+    studentId: number,
+    assignmentId: number,
+    options?: { idempotencyKey?: string },
+  ) => {
+    const key = options?.idempotencyKey?.trim() || newIdempotencyKey('fee-assign-rev')
+    return apiClient
+      .post(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}/revoke`, null, {
+        headers: idempotencyHeaders(key),
+      })
+      .then((r) => r.data.data as import('@/types/finance').StudentFeeAssignmentDto)
+  },
 
   getStudentFeePeriodStatus: (studentId: number, feeStructureId: number) =>
     apiClient
@@ -399,8 +418,21 @@ export const financeApi = {
   createFeeCategory: (payload: CreateFeeCategoryPayload) =>
     apiClient.post('/admin/finance/fee-categories', payload).then((r) => r.data.data as FeeCategoryItem),
 
+  updateFeeCategory: (categoryId: number, payload: UpdateFeeCategoryPayload) =>
+    apiClient
+      .patch(`/admin/finance/fee-categories/${categoryId}`, payload)
+      .then((r) => r.data.data as FeeCategoryItem),
+
+  softDeleteFeeCategory: (categoryId: number) =>
+    apiClient.delete(`/admin/finance/fee-categories/${categoryId}`).then((r) => r.data),
+
   createFeeStructure: (payload: CreateFeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structures', payload).then((r) => r.data.data),
+
+  updateFeeStructure: (feeId: number, payload: UpdateFeeStructurePayload) =>
+    apiClient
+      .patch(`/admin/finance/fee-structures/${feeId}`, payload)
+      .then((r) => r.data.data),
 
   cloneFeeCatalog: (payload: {
     sourceSessionId: number

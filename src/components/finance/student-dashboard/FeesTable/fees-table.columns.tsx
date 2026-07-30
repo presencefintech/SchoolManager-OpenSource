@@ -37,6 +37,41 @@ export function FeeScheduleStatusBadge({
   )
 }
 
+const ATTRIBUTION_CFG: Record<
+  NonNullable<FeeScheduleLineDto['attributionSource']>,
+  { label: string; className: string }
+> = {
+  AUTOMATIC: { label: 'Auto', className: 'bg-emerald-50 text-emerald-700' },
+  ASSIGN: { label: 'Attribué', className: 'bg-sky-50 text-sky-700' },
+  OVERRIDE: { label: 'Custom', className: 'bg-amber-50 text-amber-800' },
+  EXEMPT: { label: 'Exonéré', className: 'bg-zinc-100 text-zinc-600' },
+}
+
+export function FeeAttributionSourceBadge({
+  source,
+  reason,
+  className,
+}: {
+  source?: FeeScheduleLineDto['attributionSource']
+  reason?: string | null
+  className?: string
+}) {
+  if (!source || source === 'AUTOMATIC') return null
+  const cfg = ATTRIBUTION_CFG[source]
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium',
+        cfg.className,
+        className,
+      )}
+      title={reason ?? undefined}
+    >
+      {cfg.label}
+    </span>
+  )
+}
+
 function formatMonthYear(value: string | null): string {
   if (!value) return '—'
   const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value)
@@ -76,10 +111,23 @@ export function createFeesTableColumns(currency: FinanceCurrencyCode): ColumnDef
       header: 'Catégorie',
       cell: ({ row }) => (
         <div>
-          <p className="font-medium text-zinc-900">{row.original.categoryName}</p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="font-medium text-zinc-900">{row.original.categoryName}</p>
+            <FeeAttributionSourceBadge
+              source={row.original.attributionSource}
+              reason={row.original.attributionReason}
+            />
+          </div>
           {row.original.categoryCode ? (
             <p className="text-xs text-zinc-400 font-mono">{row.original.categoryCode}</p>
           ) : null}
+          {row.original.attributionReason &&
+            row.original.attributionSource &&
+            row.original.attributionSource !== 'AUTOMATIC' && (
+              <p className="text-[10px] text-zinc-400 mt-0.5 truncate max-w-[220px]">
+                {row.original.attributionReason}
+              </p>
+            )}
         </div>
       ),
     },

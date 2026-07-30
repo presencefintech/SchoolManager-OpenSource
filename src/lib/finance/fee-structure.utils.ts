@@ -10,6 +10,8 @@ export type FeeStructureListItem = {
   isActive?: boolean
   currency?: string
   assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
 }
 
 export function normalizeFeeStructureListItem(row: unknown): FeeStructureListItem | null {
@@ -45,6 +47,8 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
       r.assignmentMode === 'EXPLICIT' || r.assignmentMode === 'AUTOMATIC'
         ? r.assignmentMode
         : undefined,
+    effectiveFrom: typeof r.effectiveFrom === 'string' ? r.effectiveFrom : null,
+    effectiveTo: typeof r.effectiveTo === 'string' ? r.effectiveTo : null,
   }
 }
 

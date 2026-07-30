@@ -27,6 +27,8 @@ export const rentreePackSchema = z.object({
   collectDeposit: z.boolean().default(true),
   paymentNotes: z.string().max(500).optional().or(z.literal('')),
   type: z.enum(['NEW', 'RE_ENROLLMENT', 'TRANSFER']).default('RE_ENROLLMENT'),
+  autoAssignExplicitFees: z.boolean().default(false),
+  explicitFeeStructureIds: z.array(z.number().int().positive()).max(50).default([]),
 })
 
 export type RentreePackForm = z.infer<typeof rentreePackSchema>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, X, Calendar, PauseCircle, UserPlus, GraduationCap } from 'lucide-react'
@@ -21,6 +21,7 @@ import {
   useEnrollInSession,
   useRentreePack,
   useEnrollmentFeePreview,
+  useFeeStructures,
   useCreateMoratorium,
   useAllowedMoratoriumTypes,
 } from '@/lib/hooks/use-admin'
@@ -229,15 +230,50 @@ export function RentreePackDrawer({
     formState: { errors },
   } = useForm<RentreePackForm>({
     resolver: zodResolver(rentreePackSchema),
-    defaultValues: { type: 'RE_ENROLLMENT', collectDeposit: true, classId: defaultClassId ?? undefined },
+    defaultValues: {
+      type: 'RE_ENROLLMENT',
+      collectDeposit: true,
+      classId: defaultClassId ?? undefined,
+      autoAssignExplicitFees: false,
+      explicitFeeStructureIds: [],
+    },
   })
 
   const classId = watch('classId')
+  const sessionId = watch('sessionId')
   const feesPaid = watch('feesPaid')
   const collectDeposit = watch('collectDeposit')
-  const { data: feePreview, isFetching: feeLoading } = useEnrollmentFeePreview(
-    classId && classId > 0 ? classId : defaultClassId && defaultClassId > 0 ? defaultClassId : undefined,
+  const autoAssignExplicitFees = watch('autoAssignExplicitFees')
+  const explicitFeeStructureIds = watch('explicitFeeStructureIds') ?? []
+
+  const effectiveClassId =
+    classId && classId > 0 ? classId : defaultClassId && defaultClassId > 0 ? defaultClassId : undefined
+
+  const { data: feeStructures = [] } = useFeeStructures({
+    sessionId: sessionId || undefined,
+    isActive: true,
+  })
+
+  const explicitCatalog = useMemo(
+    () =>
+      feeStructures.filter(
+        (fs) =>
+          fs.assignmentMode === 'EXPLICIT' &&
+          (fs.classId == null || fs.classId === effectiveClassId),
+      ),
+    [feeStructures, effectiveClassId],
   )
+
+  const previewExplicitIds = useMemo(() => {
+    if (autoAssignExplicitFees) return explicitCatalog.map((f) => f.id)
+    return explicitFeeStructureIds
+  }, [autoAssignExplicitFees, explicitCatalog, explicitFeeStructureIds])
+
+  const { data: feePreview, isFetching: feeLoading } = useEnrollmentFeePreview(effectiveClassId, {
+    sessionId: sessionId || undefined,
+    studentId: open ? studentId : undefined,
+    explicitFeeStructureIds: previewExplicitIds.length ? previewExplicitIds : undefined,
+  })
 
   useEffect(() => {
     if (!open) {
@@ -247,6 +283,8 @@ export function RentreePackDrawer({
         classId: defaultClassId ?? undefined,
         feesPaid: undefined,
         paymentNotes: '',
+        autoAssignExplicitFees: false,
+        explicitFeeStructureIds: [],
       })
     }
   }, [open, reset, defaultClassId])
@@ -268,11 +306,16 @@ export function RentreePackDrawer({
         collectDeposit: data.collectDeposit,
         paymentNotes: data.paymentNotes || undefined,
         type: data.type,
+        ...(data.autoAssignExplicitFees ? { autoAssignExplicitFees: true } : {}),
+        ...(data.explicitFeeStructureIds?.length
+          ? { explicitFeeStructureIds: data.explicitFeeStructureIds }
+          : {}),
         idempotencyKey,
       })) as {
         deposit?: { paymentId: number; amount: number; currency: string }
         depositWarning?: string
         serverMessage?: string
+        explicitFeePack?: { assigned: number[] }
       }
       if (result.depositWarning) {
         toast.success('Pack rentrée', result.depositWarning)
@@ -283,6 +326,12 @@ export function RentreePackDrawer({
         )
       } else {
         toast.success('Pack rentrée', result.serverMessage || `${studentName} réinscrit(e) avec barème.`)
+      }
+      if (result.explicitFeePack?.assigned?.length) {
+        toast.success(
+          'Frais optionnels',
+          `${result.explicitFeePack.assigned.length} barème(s) EXPLICIT attribué(s).`,
+        )
       }
       onClose()
     } catch (err) {
@@ -337,14 +386,27 @@ export function RentreePackDrawer({
 
         <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5 space-y-1">
           <div className="flex items-center justify-between text-[11px] text-zinc-600">
-            <span>Barème {feePreview?.academicYear ?? '—'}</span>
+            <span>
+              Quote {feePreview?.academicYear ?? '—'}
+              {feePreview?.mode ? ` · ${feePreview.mode}` : ''}
+            </span>
             {feeLoading && <Loader2 size={12} className="animate-spin" />}
           </div>
           {feePreview?.feeLines?.length ? (
             <ul className="space-y-1">
               {feePreview.feeLines.map((line) => (
-                <li key={line.feeStructureId} className="flex justify-between text-[11px] text-zinc-700">
-                  <span>{line.categoryName}</span>
+                <li
+                  key={`${line.feeStructureId}-${line.source ?? 'auto'}`}
+                  className="flex justify-between text-[11px] text-zinc-700"
+                >
+                  <span>
+                    {line.categoryName}
+                    {line.source && line.source !== 'AUTOMATIC' && (
+                      <span className="ml-1 rounded bg-amber-50 px-1 text-[9px] font-medium uppercase text-amber-700">
+                        {line.source === 'PROPOSED' ? 'optionnel' : line.source}
+                      </span>
+                    )}
+                  </span>
                   <span className="tabular-nums font-medium">
                     {fmtMoney(line.amount, feePreview.currency)}
                   </span>
@@ -359,6 +421,59 @@ export function RentreePackDrawer({
             !feeLoading && <p className="text-[11px] text-amber-700">Aucun barème pour cette classe.</p>
           )}
         </div>
+
+        {explicitCatalog.length > 0 && (
+          <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
+            <p className="text-[11px] font-medium text-amber-900">Frais optionnels (EXPLICIT)</p>
+            <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 rounded border-zinc-300"
+                checked={!!autoAssignExplicitFees}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setValue('autoAssignExplicitFees', checked)
+                  setValue(
+                    'explicitFeeStructureIds',
+                    checked ? explicitCatalog.map((f) => f.id) : [],
+                    { shouldValidate: true },
+                  )
+                }}
+              />
+              <span>Attribuer tous les frais optionnels</span>
+            </label>
+            {!autoAssignExplicitFees && (
+              <ul className="space-y-1.5">
+                {explicitCatalog.map((fs) => {
+                  const checked = explicitFeeStructureIds.includes(fs.id)
+                  return (
+                    <li key={fs.id}>
+                      <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 cursor-pointer">
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded border-zinc-300"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? explicitFeeStructureIds.filter((id) => id !== fs.id)
+                                : [...explicitFeeStructureIds, fs.id]
+                              setValue('explicitFeeStructureIds', next, { shouldValidate: true })
+                            }}
+                          />
+                          {fs.label}
+                        </span>
+                        <span className="tabular-nums font-medium">
+                          {fmtMoney(fs.amount, feePreview?.currency ?? 'USD')}
+                        </span>
+                      </label>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="block text-xs font-medium text-zinc-600 mb-1">Acompte</label>

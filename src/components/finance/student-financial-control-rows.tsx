@@ -48,7 +48,28 @@ function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
           <tbody className="divide-y divide-zinc-50">
             {lines.map((line) => (
               <tr key={`${line.feeStructureId}-${line.monthYear ?? 'once'}-${line.categoryId}`}>
-                <td className="px-3 py-2 font-medium text-zinc-800">{line.categoryName}</td>
+                <td className="px-3 py-2 font-medium text-zinc-800">
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    {line.categoryName}
+                    {line.attributionSource && line.attributionSource !== 'AUTOMATIC' && (
+                      <span
+                        className={cn(
+                          'rounded px-1 py-0.5 text-[9px] font-medium',
+                          line.attributionSource === 'ASSIGN' && 'bg-sky-50 text-sky-700',
+                          line.attributionSource === 'OVERRIDE' && 'bg-amber-50 text-amber-800',
+                          line.attributionSource === 'EXEMPT' && 'bg-zinc-100 text-zinc-600',
+                        )}
+                        title={line.attributionReason ?? undefined}
+                      >
+                        {line.attributionSource === 'ASSIGN'
+                          ? 'Attribué'
+                          : line.attributionSource === 'OVERRIDE'
+                            ? 'Custom'
+                            : 'Exonéré'}
+                      </span>
+                    )}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-zinc-500">{line.monthYear ?? '—'}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{formatMoney(line.amount)}</td>
                 <td className="px-3 py-2 text-right tabular-nums text-emerald-700">

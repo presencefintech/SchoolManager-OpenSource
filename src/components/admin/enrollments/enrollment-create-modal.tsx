@@ -22,6 +22,7 @@ import {
   useCreateEnrollment,
   useAcademicSessions,
   useEnrollmentFeePreview,
+  useFeeStructures,
   useSections,
   useOptions,
   useCreateSection,
@@ -213,6 +214,8 @@ export function EnrollmentCreateModal({
   const academicYear = watch('academicYear')
   const emergencyContactPhone = watch('emergencyContactPhone')
   const emergencyContactName = watch('emergencyContactName')
+  const autoAssignExplicitFees = watch('autoAssignExplicitFees')
+  const explicitFeeStructureIds = watch('explicitFeeStructureIds') ?? []
 
   const { data: apiOptions = [], isLoading: loadingOptions } = useOptions(sectionId || undefined)
 
@@ -242,20 +245,46 @@ export function EnrollmentCreateModal({
   const requiresOption = sectionRequiresOption(selectedSection, options.length)
   const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
 
+  const currentSession = useMemo(() => sessions.find((s) => s.isCurrent), [sessions])
+  const { data: feeStructures = [] } = useFeeStructures({
+    sessionId: currentSession?.id,
+    isActive: true,
+  })
+
+  const explicitCatalog = useMemo(
+    () =>
+      feeStructures.filter(
+        (fs) =>
+          fs.assignmentMode === 'EXPLICIT' &&
+          (fs.classId == null || fs.classId === classId),
+      ),
+    [feeStructures, classId],
+  )
+
+  const previewExplicitIds = useMemo(() => {
+    if (autoAssignExplicitFees) return explicitCatalog.map((f) => f.id)
+    return explicitFeeStructureIds
+  }, [autoAssignExplicitFees, explicitCatalog, explicitFeeStructureIds])
+
   const { data: feePreview, isFetching: feePreviewLoading } = useEnrollmentFeePreview(
     classId > 0 ? classId : undefined,
+    {
+      sessionId: currentSession?.id,
+      explicitFeeStructureIds: previewExplicitIds.length ? previewExplicitIds : undefined,
+    },
   )
-  const lastFeeClassRef = useRef(0)
+  const lastFeeSyncKeyRef = useRef('')
 
   useEffect(() => {
     if (!feePreview || !classId || classId <= 0) return
-    if (lastFeeClassRef.current === classId) return
-    lastFeeClassRef.current = classId
+    const syncKey = `${classId}:${previewExplicitIds.slice().sort((a, b) => a - b).join(',')}:${feePreview.totalFees}`
+    if (lastFeeSyncKeyRef.current === syncKey) return
+    lastFeeSyncKeyRef.current = syncKey
     setValue('totalFees', feePreview.totalFees, { shouldValidate: true })
     if (feePreview.academicYear) {
       setValue('academicYear', feePreview.academicYear, { shouldValidate: false })
     }
-  }, [feePreview, classId, setValue])
+  }, [feePreview, classId, previewExplicitIds, setValue])
 
   const phoneIsValid = isValidInternationalPhone(emergencyContactPhone)
   const { data: parentLookup, isFetching: lookingUpParent } = useParentLookupByPhone(
@@ -301,7 +330,7 @@ export function EnrollmentCreateModal({
       prevSectionRef.current = 0
       prevOptionRef.current = 0
       lastAutofillPhoneRef.current = ''
-      lastFeeClassRef.current = 0
+      lastFeeSyncKeyRef.current = ''
     }
   }, [open, reset])
 
@@ -464,6 +493,12 @@ export function EnrollmentCreateModal({
         )
       } else {
         toast.success('Inscription créée', 'Le dossier élève a été enregistré avec succès.')
+      }
+      if (result.explicitFeePack?.assigned?.length) {
+        toast.success(
+          'Frais optionnels',
+          `${result.explicitFeePack.assigned.length} barème(s) EXPLICIT attribué(s).`,
+        )
       }
       onSuccess?.()
       onClose()
@@ -765,14 +800,15 @@ export function EnrollmentCreateModal({
             <FormSection
               icon={Wallet}
               title="Frais & acompte"
-              hint="Barème école + acompte encaissé en caisse (reçu / WhatsApp)."
+              hint="Barème AUTOMATIC + frais optionnels EXPLICIT + acompte caisse."
             >
               {classId > 0 && (
                 <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2.5 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[11px] font-medium text-zinc-600">
-                      Barème session {feePreview?.academicYear ?? '—'}
+                      Quote {feePreview?.academicYear ?? '—'}
                       {feePreview?.currency ? ` · ${feePreview.currency}` : ''}
+                      {feePreview?.mode ? ` · ${feePreview.mode}` : ''}
                     </p>
                     {feePreviewLoading && <Loader2 size={12} className="animate-spin text-zinc-400" />}
                   </div>
@@ -780,12 +816,17 @@ export function EnrollmentCreateModal({
                     <ul className="space-y-1">
                       {feePreview.feeLines.map((line) => (
                         <li
-                          key={line.feeStructureId}
+                          key={`${line.feeStructureId}-${line.source ?? 'auto'}`}
                           className="flex items-center justify-between gap-2 text-[11px] text-zinc-700"
                         >
                           <span>
                             {line.categoryName}
                             <span className="text-zinc-400"> · {line.billingPeriod}</span>
+                            {line.source && line.source !== 'AUTOMATIC' && (
+                              <span className="ml-1 rounded bg-amber-50 px-1 text-[9px] font-medium uppercase text-amber-700">
+                                {line.source === 'PROPOSED' ? 'optionnel' : line.source}
+                              </span>
+                            )}
                           </span>
                           <span className="tabular-nums font-medium">
                             {line.amount.toLocaleString('fr-FR', {
@@ -805,6 +846,67 @@ export function EnrollmentCreateModal({
                   )}
                 </div>
               )}
+
+              {classId > 0 && explicitCatalog.length > 0 && (
+                <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
+                  <p className="text-[11px] font-medium text-amber-900">Frais optionnels (EXPLICIT)</p>
+                  <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 rounded border-zinc-300"
+                      checked={!!autoAssignExplicitFees}
+                      onChange={(e) => {
+                        const checked = e.target.checked
+                        setValue('autoAssignExplicitFees', checked)
+                        if (checked) {
+                          setValue(
+                            'explicitFeeStructureIds',
+                            explicitCatalog.map((f) => f.id),
+                            { shouldValidate: true },
+                          )
+                        } else {
+                          setValue('explicitFeeStructureIds', [], { shouldValidate: true })
+                        }
+                      }}
+                    />
+                    <span>Attribuer tous les frais optionnels de la session / classe</span>
+                  </label>
+                  {!autoAssignExplicitFees && (
+                    <ul className="space-y-1.5">
+                      {explicitCatalog.map((fs) => {
+                        const checked = explicitFeeStructureIds.includes(fs.id)
+                        return (
+                          <li key={fs.id}>
+                            <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 cursor-pointer">
+                              <span className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-zinc-300"
+                                  checked={checked}
+                                  onChange={() => {
+                                    const next = checked
+                                      ? explicitFeeStructureIds.filter((id) => id !== fs.id)
+                                      : [...explicitFeeStructureIds, fs.id]
+                                    setValue('explicitFeeStructureIds', next, { shouldValidate: true })
+                                  }}
+                                />
+                                {fs.label}
+                              </span>
+                              <span className="tabular-nums font-medium">
+                                {fs.amount.toLocaleString('fr-FR', {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+                            </label>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Frais totaux" error={errors.totalFees?.message}>
                   <input type="number" min={0} step="0.01" {...register('totalFees')} className={inputCls} />
