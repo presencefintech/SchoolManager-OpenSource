@@ -36,7 +36,7 @@ import type {
   AdvancedSearchResult, AdvancedSearchPaymentItem,
 } from '@/types/admin'
 import { parseContentDispositionFilename, isExportContentType, readBlobErrorMessage } from '@/lib/download-blob'
-import { asFeeStructureList, type FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
+import { asFeeStructureList, normalizeFeeStructureListItem, type FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
 import { formatRdcFullName, type StudentIdentityFields } from '@/lib/utils/student-name.util'
 
@@ -409,6 +409,11 @@ export const financeApi = {
     apiClient
       .get('/admin/finance/fee-structures', { params })
       .then((r) => asFeeStructureList(r.data.data) as FeeStructureListItem[]),
+
+  getFeeStructureById: (feeId: number) =>
+    apiClient
+      .get(`/admin/finance/fee-structures/${feeId}`)
+      .then((r) => normalizeFeeStructureListItem(r.data.data) as FeeStructureListItem | null),
 
   listFeeCategories: (params?: { isActive?: boolean; billingPeriod?: string }) =>
     apiClient

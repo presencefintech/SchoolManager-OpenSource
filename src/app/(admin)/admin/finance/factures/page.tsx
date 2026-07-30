@@ -22,6 +22,7 @@ import type {
   UpdateFeeStructurePayload,
 } from '@/types/admin'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { financeApi } from '@/lib/admin/api/finance.api'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -387,12 +388,12 @@ export default function FacturesPage() {
     [classes],
   )
 
-  function startEditFee(fs: FeeStructureListItem) {
+  async function startEditFee(fs: FeeStructureListItem) {
     setEditingFeeId(fs.id)
     setFeeSuccess(false)
     setFeeError(null)
     setFeeForm({
-      categoryId: 0,
+      categoryId: fs.categoryId ?? 0,
       amount: fs.amount,
       classId: fs.classId ?? null,
       description: fs.description ?? '',
@@ -402,6 +403,21 @@ export default function FacturesPage() {
     })
     if (typeof window !== 'undefined') {
       document.getElementById('fee-structure-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    try {
+      const fresh = await financeApi.getFeeStructureById(fs.id)
+      if (!fresh) return
+      setFeeForm({
+        categoryId: fresh.categoryId ?? fs.categoryId ?? 0,
+        amount: fresh.amount,
+        classId: fresh.classId ?? null,
+        description: fresh.description ?? '',
+        assignmentMode: fresh.assignmentMode ?? 'AUTOMATIC',
+        effectiveFrom: fresh.effectiveFrom ?? null,
+        effectiveTo: fresh.effectiveTo ?? null,
+      })
+    } catch {
+      // Conserve le snapshot liste si getById échoue
     }
   }
 

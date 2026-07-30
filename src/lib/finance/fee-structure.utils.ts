@@ -5,6 +5,7 @@ export type FeeStructureListItem = {
   description?: string
   sessionId?: number
   classId?: number
+  categoryId?: number
   categoryName?: string
   billingPeriod?: string
   isActive?: boolean
@@ -24,6 +25,11 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
   const description = typeof r.description === 'string' ? r.description.trim() : ''
   const categoryName =
     typeof category?.name === 'string' ? category.name.trim() : undefined
+  const categoryIdRaw = r.categoryId ?? category?.id
+  const categoryId =
+    categoryIdRaw != null && Number.isFinite(Number(categoryIdRaw))
+      ? Number(categoryIdRaw)
+      : undefined
   const label =
     description ||
     categoryName ||
@@ -38,6 +44,7 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
     description: description || undefined,
     sessionId: r.sessionId != null ? Number(r.sessionId) : undefined,
     classId: r.classId != null ? Number(r.classId) : undefined,
+    categoryId,
     categoryName,
     billingPeriod:
       typeof category?.billingPeriod === 'string' ? category.billingPeriod : undefined,

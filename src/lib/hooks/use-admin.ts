@@ -1223,6 +1223,15 @@ export function useFeeStructures(params?: { classId?: number; sessionId?: number
   })
 }
 
+export function useFeeStructure(feeId: number | null | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-structures', 'by-id', feeId],
+    queryFn: () => financeApi.getFeeStructureById(feeId!),
+    enabled: feeId != null && feeId > 0,
+    staleTime: 60_000,
+  })
+}
+
 export function useFeeCategories(params?: { isActive?: boolean; billingPeriod?: string }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fee-categories', params],
