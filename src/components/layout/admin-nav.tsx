@@ -12,7 +12,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
-import { getAuthToken } from '@/lib/api/auth-storage'
+import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import {
   dashboardApi, studentsApi,
   presencesApi, financeApi,
