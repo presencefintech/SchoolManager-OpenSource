@@ -290,6 +290,7 @@ export function normalizeFinanceAiInsights(raw: unknown): FinanceAiInsightBundle
           if (!row || typeof row !== 'object') return null
           const o = row as Record<string, unknown>
           if (typeof o.title !== 'string' || typeof o.message !== 'string') return null
+          const severity = o.severity
           return {
             code: typeof o.code === 'string' ? o.code : 'OPP',
             title: o.title,
@@ -297,8 +298,8 @@ export function normalizeFinanceAiInsights(raw: unknown): FinanceAiInsightBundle
             message: o.message,
             href: typeof o.href === 'string' ? o.href : undefined,
             severity:
-              o.severity === 'info' || o.severity === 'warning' || o.severity === 'critical'
-                ? o.severity
+              severity === 'info' || severity === 'warning' || severity === 'critical'
+                ? (severity as 'info' | 'warning' | 'critical')
                 : undefined,
           }
         })

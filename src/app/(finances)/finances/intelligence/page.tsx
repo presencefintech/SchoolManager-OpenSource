@@ -91,7 +91,7 @@ export default function FinanceIntelligencePage() {
     : Array.isArray((pendingData as { data?: unknown[] })?.data)
       ? ((pendingData as { data: unknown[] }).data)
       : []
-  const fraudCount = Array.isArray(fraud) ? fraud.length : Number((fraud as { count?: number })?.count ?? 0)
+  const fraudCount = fraud?.length ?? 0
   const levels = Array.isArray(efficiency) ? efficiency : []
   const topLevel = levels
     .slice()
