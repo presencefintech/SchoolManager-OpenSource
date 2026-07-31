@@ -500,6 +500,18 @@ export function EnrollmentCreateModal({
           `${result.explicitFeePack.assigned.length} barème(s) EXPLICIT attribué(s).`,
         )
       }
+      if (result.explicitFeePack?.skipped?.length) {
+        toast.error(
+          'Frais optionnels partiels',
+          `${result.explicitFeePack.skipped.length} barème(s) non attribués (déjà actifs / hors session).`,
+        )
+      }
+      if (result.explicitFeePackPending) {
+        toast.success(
+          'Frais optionnels',
+          'Pack EXPLICIT mémorisé — appliqué à l’approbation de la pré-inscription.',
+        )
+      }
       onSuccess?.()
       onClose()
     } catch (err) {
