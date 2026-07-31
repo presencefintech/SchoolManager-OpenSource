@@ -499,7 +499,23 @@ function EnrollmentsPageContent() {
                               {(en.status === 'PRE_ENROLL' || en.status === 'PENDING_ENROLLMENT') && (
                                 <button
                                   onClick={() => approveMutation.mutate(en.id, {
-                                    onSuccess: () => toast.success('Inscription approuvée'),
+                                    onSuccess: (res) => {
+                                      const pack = res.data?.explicitFeePack
+                                      if (pack?.assigned?.length) {
+                                        toast.success(
+                                          'Inscription approuvée',
+                                          `${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
+                                        )
+                                      } else {
+                                        toast.success('Inscription approuvée')
+                                      }
+                                      if (pack?.skipped?.length) {
+                                        toast.error(
+                                          'Frais partiels',
+                                          `${pack.skipped.length} barème(s) non attribués.`,
+                                        )
+                                      }
+                                    },
                                   })}
                                   disabled={approveMutation.isPending}
                                   title="Approuver"

@@ -70,8 +70,19 @@ export default function AdminIntakePage() {
 
   async function handleApprovePending(id: number) {
     try {
-      await approve.mutateAsync(id)
-      toast.success('Approuvé', 'Élève activé (matricule + QR).')
+      const res = await approve.mutateAsync(id)
+      const pack = res.data?.explicitFeePack
+      if (pack?.assigned?.length) {
+        toast.success(
+          'Approuvé',
+          `Élève activé — ${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
+        )
+      } else {
+        toast.success('Approuvé', 'Élève activé (matricule + QR).')
+      }
+      if (pack?.skipped?.length) {
+        toast.error('Frais partiels', `${pack.skipped.length} barème(s) non attribués.`)
+      }
       void refetch()
     } catch (err) {
       toast.error('Approbation impossible', getApiErrorMessage(err))

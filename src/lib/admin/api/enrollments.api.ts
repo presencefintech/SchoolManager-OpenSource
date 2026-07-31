@@ -60,6 +60,7 @@ export const enrollmentsApi = {
           explicitFeePack: data.explicitFeePack as
             | { assigned: number[]; skipped: Array<{ feeStructureId: number; reason: string }> }
             | undefined,
+          explicitFeePackPending: data.explicitFeePackPending as boolean | undefined,
           serverMessage: r.data.message,
           idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
         }
@@ -71,7 +72,19 @@ export const enrollmentsApi = {
       .then((r) => normalizeEnrollmentDetail(r.data.data)),
 
   approve: (studentId: number) =>
-    apiClient.post<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/approve`)
+    apiClient
+      .post<{
+        success: boolean
+        data: {
+          matricule?: string
+          message?: string
+          explicitFeePack?: {
+            assigned: number[]
+            skipped: Array<{ feeStructureId: number; reason: string }>
+          }
+        }
+        message?: string
+      }>(`/admin/enrollments/${studentId}/approve`)
       .then((r) => r.data),
 
   finalize: (studentId: number) =>
