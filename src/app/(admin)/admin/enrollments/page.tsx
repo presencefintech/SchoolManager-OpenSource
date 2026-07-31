@@ -742,6 +742,7 @@ function EnrollmentsPageContent() {
             open={showEnrollSession}
             studentId={selectedId}
             studentName={drawerStudentName}
+            defaultClassId={detail?.classId ?? syncDetail?.classId}
             onClose={() => setShowEnrollSession(false)}
           />
           <RentreePackDrawer

@@ -214,8 +214,25 @@ export const enrollmentsApi = {
       }))
   },
 
-  enrollInSession: (studentId: number, payload: { sessionId: number; classId?: number; type?: string }) =>
-    apiClient.post<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/sessions`, payload)
+  enrollInSession: (
+    studentId: number,
+    payload: {
+      sessionId: number
+      classId?: number
+      type?: string
+      autoAssignExplicitFees?: boolean
+      explicitFeeStructureIds?: number[]
+    },
+  ) =>
+    apiClient.post<{
+      success: boolean
+      data: {
+        explicitFeePack?: {
+          assigned: number[]
+          skipped?: Array<{ feeStructureId: number; reason: string }>
+        }
+      } & Record<string, unknown>
+    }>(`/admin/enrollments/${studentId}/sessions`, payload)
       .then((r) => r.data.data),
 
   updateAdministrativeProfile: (studentId: number, payload: Record<string, unknown>) =>
