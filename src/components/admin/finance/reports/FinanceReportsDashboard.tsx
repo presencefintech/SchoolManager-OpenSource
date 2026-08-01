@@ -453,15 +453,17 @@ export function FinanceReportsDashboard() {
                 Figer ce rapport
               </button>
             ) : null}
-            <button
-              type="button"
-              disabled={exportAi.isPending}
-              onClick={() => exportAi.mutate()}
-              className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-900 hover:bg-violet-100 disabled:opacity-50"
-            >
-              <Download size={15} />
-              Export dataset IA
-            </button>
+            {isAdmin ? (
+              <button
+                type="button"
+                disabled={exportAi.isPending}
+                onClick={() => exportAi.mutate()}
+                className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-900 hover:bg-violet-100 disabled:opacity-50"
+              >
+                <Download size={15} />
+                Export dataset IA
+              </button>
+            ) : null}
           </motion.div>
         </motion.div>
       ) : null}

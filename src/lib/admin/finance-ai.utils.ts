@@ -1,5 +1,40 @@
 export type FinanceAiHorizon = 7 | 30 | 90
 
+/**
+ * Deep links backend pointent souvent vers `/admin/...`.
+ * Le rôle FINANCE est confiné à `/finances/*` (middleware Next).
+ */
+export function rewriteFinanceDeepLink(
+  href: string | undefined,
+  audience: 'admin' | 'finance',
+): string | undefined {
+  if (!href) return href
+  if (audience !== 'finance') return href
+
+  if (href.startsWith('/admin/students/')) {
+    return href.replace('/admin/students/', '/finances/eleves/')
+  }
+
+  const map: Record<string, string> = {
+    '/admin/finance/paiements': '/finances/paiements',
+    '/admin/finance/audit': '/finances/verifications',
+    '/admin/finance/caisse': '/finances/caisse',
+    '/admin/finance/debiteurs': '/finances/debiteurs',
+    '/admin/finance/rapports': '/finances/rapports',
+    '/admin/finance/factures': '/finances/suivi-financier',
+    '/admin/finance/controle': '/finances/verifications',
+    '/admin/finance/remboursements': '/finances/remboursements',
+  }
+  if (map[href]) return map[href]
+
+  if (href.startsWith('/admin/finance/')) {
+    const rest = href.slice('/admin/finance/'.length)
+    return `/finances/${rest}`
+  }
+
+  return href
+}
+
 export type FinanceAiAgingBuckets = {
   b0_30: { count: number; amount: number }
   b31_60: { count: number; amount: number }

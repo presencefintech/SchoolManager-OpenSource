@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ClipboardCheck, CheckCircle, XCircle, RefreshCw, Smartphone, Clock, AlertTriangle } from 'lucide-react'
+import { ClipboardCheck, CheckCircle, XCircle, RefreshCw, Smartphone, AlertTriangle } from 'lucide-react'
 import {
   usePendingPayments, useVerifyPaymentStep, useVerifyExternal,
 } from '@/lib/hooks/use-finance'
@@ -10,9 +10,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { PendingPayment } from '@/types/finance'
+import type { PendingVerificationItem } from '@/types/admin'
 import { formatMoney } from '@/lib/finance/currency'
-import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 
@@ -31,21 +30,21 @@ function VerifyStepModal({
   payment,
   onClose,
 }: {
-  payment: PendingPayment
+  payment: PendingVerificationItem
   onClose: () => void
 }) {
   const { mutateAsync, isPending } = useVerifyPaymentStep()
   const { mutateAsync: verifyExt, isPending: verifyingExt } = useVerifyExternal()
   const qc = useQueryClient()
   const [notes, setNotes] = useState('')
-  const [extRef, setExtRef] = useState(payment.reference ?? '')
+  const [extRef, setExtRef] = useState(payment.providerRef ?? payment.reference ?? '')
   const [error, setError] = useState<string | null>(null)
-  const [done, setDone] = useState<'FINANCE' | 'REJECT' | 'EXT' | null>(null)
+  const [done, setDone] = useState<'approve' | 'reject' | 'EXT' | null>(null)
 
-  async function handleAction(action: 'FINANCE' | 'REJECT') {
+  async function handleAction(action: 'approve' | 'reject') {
     setError(null)
     try {
-      await mutateAsync({ verificationId: payment.id, action, notes: notes || undefined })
+      await mutateAsync({ paymentId: payment.paymentId, action, notes: notes || undefined })
       setDone(action)
       qc.invalidateQueries({ queryKey: ['finance', 'payments', 'pending'] })
       qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
@@ -71,21 +70,27 @@ function VerifyStepModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
-        <h2 className="text-base font-semibold text-zinc-900 mb-1">Traitement paiement #{payment.id}</h2>
+        <h2 className="text-base font-semibold text-zinc-900 mb-1">
+          Traitement paiement #{payment.paymentId}
+        </h2>
         <p className="text-xs text-zinc-400 mb-5">
-          {payment.student ? formatStudentFullName(payment.student) : `Élève #${payment.id}`}
-          {payment.student?.class?.name ? ` · ${payment.student.class.name}` : ''}
+          {payment.studentName}
+          {payment.studentClassName ? ` · ${payment.studentClassName}` : ''}
         </p>
 
         {done ? (
           <div className="text-center py-6">
-            {done === 'REJECT' ? (
+            {done === 'reject' ? (
               <XCircle size={20} className="mx-auto text-red-500 mb-2" />
             ) : (
               <CheckCircle size={20} className="mx-auto text-emerald-500 mb-2" />
             )}
             <p className="text-sm text-zinc-700">
-              {done === 'FINANCE' ? 'Paiement validé' : done === 'REJECT' ? 'Paiement rejeté' : 'Vérification externe effectuée'}
+              {done === 'approve'
+                ? 'Paiement validé (étape finance)'
+                : done === 'reject'
+                  ? 'Paiement rejeté'
+                  : 'Vérification externe effectuée'}
             </p>
           </div>
         ) : (
@@ -93,25 +98,35 @@ function VerifyStepModal({
             <div className="bg-zinc-50 rounded-xl p-4 mb-5 space-y-1.5">
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Montant</span>
-                <span className="font-semibold text-zinc-900">{formatMoney(Number(payment.amount))}</span>
+                <span className="font-semibold text-zinc-900">
+                  {formatMoney(Number(payment.amount), payment.currency)}
+                </span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Méthode</span>
-                <span className="font-medium text-zinc-700">{METHOD_LABEL[payment.method] ?? payment.method}</span>
+                <span className="font-medium text-zinc-700">
+                  {METHOD_LABEL[payment.method] ?? payment.method}
+                </span>
               </div>
-              {payment.reference && (
+              {(payment.reference || payment.providerRef) && (
                 <div className="flex justify-between text-xs">
                   <span className="text-zinc-500">Référence</span>
-                  <span className="font-mono text-zinc-600">{payment.reference}</span>
+                  <span className="font-mono text-zinc-600">
+                    {payment.reference ?? payment.providerRef}
+                  </span>
                 </div>
               )}
               <div className="flex justify-between text-xs">
                 <span className="text-zinc-500">Date</span>
-                <span className="text-zinc-500">{new Date(payment.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                <span className="text-zinc-500">
+                  {new Date(payment.createdAt || payment.queuedAt).toLocaleString('fr-FR', {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })}
+                </span>
               </div>
             </div>
 
-            {/* Vérification externe pour paiements mobile */}
             {MOBILE_METHODS.has(payment.method) && (
               <div className="mb-5 p-3 rounded-xl border border-blue-100 bg-blue-50">
                 <div className="flex items-center gap-1.5 mb-2">
@@ -121,7 +136,7 @@ function VerifyStepModal({
                 <div className="flex gap-2">
                   <input
                     value={extRef}
-                    onChange={e => setExtRef(e.target.value)}
+                    onChange={(e) => setExtRef(e.target.value)}
                     placeholder="Référence opérateur"
                     className="flex-1 px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
@@ -140,7 +155,7 @@ function VerifyStepModal({
               <label className="block text-xs font-medium text-zinc-500 mb-1">Notes (optionnel)</label>
               <textarea
                 value={notes}
-                onChange={e => setNotes(e.target.value)}
+                onChange={(e) => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Motif de validation ou rejet…"
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none mb-4"
@@ -150,19 +165,22 @@ function VerifyStepModal({
             {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2 mb-3">{error}</p>}
 
             <div className="flex gap-2">
-              <button type="button" onClick={onClose}
-                className="px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+              >
                 Annuler
               </button>
               <button
-                onClick={() => handleAction('REJECT')}
+                onClick={() => handleAction('reject')}
                 disabled={isPending}
                 className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl border border-red-200 text-sm text-red-600 hover:bg-red-50 disabled:opacity-40"
               >
                 <XCircle size={14} /> Rejeter
               </button>
               <button
-                onClick={() => handleAction('FINANCE')}
+                onClick={() => handleAction('approve')}
                 disabled={isPending}
                 className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-40"
               >
@@ -178,9 +196,9 @@ function VerifyStepModal({
 
 export default function VerificationsPage() {
   const { data, isLoading, refetch } = usePendingPayments()
-  const [selected, setSelected] = useState<PendingPayment | null>(null)
+  const [selected, setSelected] = useState<PendingVerificationItem | null>(null)
 
-  const payments: PendingPayment[] = (data as any)?.data ?? (Array.isArray(data) ? data : [])
+  const payments = data?.items ?? []
 
   return (
     <FinancePageShell>
@@ -190,7 +208,7 @@ export default function VerificationsPage() {
         badge={
           payments.length > 0 ? (
             <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-100">
-              {payments.length} en attente
+              {data?.total ?? payments.length} en attente
             </span>
           ) : undefined
         }
@@ -208,7 +226,9 @@ export default function VerificationsPage() {
       <FinancePanel title="Paiements en attente" icon={ClipboardCheck}>
         {isLoading ? (
           <div className="p-5 space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14" />)}
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-14" />
+            ))}
           </div>
         ) : payments.length === 0 ? (
           <div className="py-14 text-center">
@@ -232,43 +252,48 @@ export default function VerificationsPage() {
               </thead>
               <tbody>
                 {payments.map((p) => (
-                  <tr key={p.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                    <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">{p.id}</td>
+                  <tr key={p.verificationId} className="border-b border-zinc-50 hover:bg-zinc-50/50">
+                    <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">{p.paymentId}</td>
                     <td className="px-5 py-3.5">
-                      <p className="font-medium text-zinc-900">
-                        {p.student ? formatStudentFullName(p.student) : '—'}
-                      </p>
-                      {p.student?.class?.name && (
-                        <p className="text-xs text-zinc-400">{p.student.class.name}</p>
+                      <p className="font-medium text-zinc-900">{p.studentName}</p>
+                      {p.studentClassName && (
+                        <p className="text-xs text-zinc-400">{p.studentClassName}</p>
                       )}
-                      {p.student?.id && (
+                      {p.studentId != null && (
                         <div className="mt-1">
-                          <StudentFeeScheduleLink studentId={Number(p.student.id)} variant="inline" />
+                          <StudentFeeScheduleLink studentId={p.studentId} variant="inline" />
                         </div>
                       )}
                     </td>
                     <td className="px-5 py-3.5 text-right font-semibold text-zinc-900">
-                      {formatMoney(Number(p.amount))}
+                      {formatMoney(Number(p.amount), p.currency)}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5">
-                        {MOBILE_METHODS.has(p.method) && <Smartphone size={11} className="text-blue-500" />}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                          MOBILE_METHODS.has(p.method)
-                            ? 'bg-blue-50 text-blue-700'
-                            : p.method === 'CASH'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-zinc-100 text-zinc-600'
-                        }`}>
+                        {MOBILE_METHODS.has(p.method) && (
+                          <Smartphone size={11} className="text-blue-500" />
+                        )}
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            MOBILE_METHODS.has(p.method)
+                              ? 'bg-blue-50 text-blue-700'
+                              : p.method === 'CASH'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-zinc-100 text-zinc-600'
+                          }`}
+                        >
                           {METHOD_LABEL[p.method] ?? p.method}
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">
-                      {p.reference ?? '—'}
+                      {p.reference ?? p.providerRef ?? '—'}
                     </td>
                     <td className="px-5 py-3.5 text-xs text-zinc-400">
-                      {new Date(p.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}
+                      {new Date(p.createdAt || p.queuedAt).toLocaleString('fr-FR', {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })}
                     </td>
                     <td className="px-5 py-3.5">
                       <button
@@ -286,13 +311,17 @@ export default function VerificationsPage() {
         )}
       </FinancePanel>
 
-      {/* Info CASH */}
-      {payments.some(p => p.method === 'CASH') && (
-        <motion.div variants={fadeUp} initial="hidden" animate="show"
-          className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
+      {payments.some((p) => p.method === 'CASH') && (
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
+          className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100"
+        >
           <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-700">
-            Les paiements en espèces doivent être vérifiés par un <strong>Admin</strong> — vous pouvez valider les autres méthodes.
+            Les paiements en espèces peuvent nécessiter une double validation Admin après votre
+            étape finance.
           </p>
         </motion.div>
       )}

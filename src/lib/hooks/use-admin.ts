@@ -370,7 +370,13 @@ export function useApproveEnrollment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (studentId: number) => enrollmentsApi.approve(studentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+    onSuccess: (_data, studentId) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
+    },
   })
 }
 
@@ -471,11 +477,23 @@ export function useRentreePack() {
 export function useEnrollInSession() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ studentId, ...payload }: { studentId: number; sessionId: number; classId?: number; type?: string }) =>
-      enrollmentsApi.enrollInSession(studentId, payload),
-    onSuccess: () => {
+    mutationFn: ({
+      studentId,
+      ...payload
+    }: {
+      studentId: number
+      sessionId: number
+      classId?: number
+      type?: string
+      autoAssignExplicitFees?: boolean
+      explicitFeeStructureIds?: number[]
+    }) => enrollmentsApi.enrollInSession(studentId, payload),
+    onSuccess: (_data, { studentId }) => {
       qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
       qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
     },
   })
 }

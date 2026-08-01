@@ -89,11 +89,13 @@ export function EnrollSessionDrawer({
   open,
   studentId,
   studentName,
+  defaultClassId,
   onClose,
 }: {
   open: boolean
   studentId: number
   studentName: string
+  defaultClassId?: number | null
   onClose: () => void
 }) {
   const toast = useToast()
@@ -106,20 +108,87 @@ export function EnrollSessionDrawer({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<EnrollSessionForm>({
     resolver: zodResolver(enrollSessionSchema),
-    defaultValues: { type: 'RE_ENROLLMENT' },
+    defaultValues: {
+      type: 'RE_ENROLLMENT',
+      classId: defaultClassId ?? undefined,
+      autoAssignExplicitFees: false,
+      explicitFeeStructureIds: [],
+    },
+  })
+
+  const classId = watch('classId')
+  const sessionId = watch('sessionId')
+  const autoAssignExplicitFees = watch('autoAssignExplicitFees')
+  const explicitFeeStructureIds = watch('explicitFeeStructureIds') ?? []
+
+  const effectiveClassId =
+    classId && classId > 0 ? classId : defaultClassId && defaultClassId > 0 ? defaultClassId : undefined
+
+  const { data: feeStructures = [] } = useFeeStructures({
+    sessionId: sessionId || undefined,
+    isActive: true,
+  })
+
+  const explicitCatalog = useMemo(
+    () =>
+      feeStructures.filter(
+        (fs) =>
+          fs.assignmentMode === 'EXPLICIT' &&
+          (fs.classId == null || fs.classId === effectiveClassId),
+      ),
+    [feeStructures, effectiveClassId],
+  )
+
+  const previewExplicitIds = useMemo(() => {
+    if (autoAssignExplicitFees) return explicitCatalog.map((f) => f.id)
+    return explicitFeeStructureIds
+  }, [autoAssignExplicitFees, explicitCatalog, explicitFeeStructureIds])
+
+  const { data: feePreview, isFetching: feeLoading } = useEnrollmentFeePreview(effectiveClassId, {
+    sessionId: sessionId || undefined,
+    studentId: open ? studentId : undefined,
+    explicitFeeStructureIds: previewExplicitIds.length ? previewExplicitIds : undefined,
   })
 
   useEffect(() => {
-    if (!open) reset({ type: 'RE_ENROLLMENT' })
-  }, [open, reset])
+    if (!open) {
+      reset({
+        type: 'RE_ENROLLMENT',
+        classId: defaultClassId ?? undefined,
+        autoAssignExplicitFees: false,
+        explicitFeeStructureIds: [],
+      })
+    }
+  }, [open, reset, defaultClassId])
 
   async function onSubmit(data: EnrollSessionForm) {
     try {
-      await enrollMutation.mutateAsync({ studentId, ...data })
+      const res = await enrollMutation.mutateAsync({
+        studentId,
+        sessionId: data.sessionId,
+        classId: data.classId,
+        type: data.type,
+        ...(data.autoAssignExplicitFees ? { autoAssignExplicitFees: true } : {}),
+        ...(data.explicitFeeStructureIds?.length
+          ? { explicitFeeStructureIds: data.explicitFeeStructureIds }
+          : {}),
+      })
       toast.success('Inscription enregistrée', `${studentName} est inscrit(e) à la session sélectionnée.`)
+      const pack = res?.explicitFeePack
+      if (pack?.assigned?.length) {
+        toast.success(
+          'Frais optionnels',
+          `${pack.assigned.length} barème(s) EXPLICIT attribué(s).`,
+        )
+      }
+      if (pack?.skipped?.length) {
+        toast.error('Frais partiels', `${pack.skipped.length} barème(s) non attribués.`)
+      }
       onClose()
     } catch (err) {
       toast.error('Échec de l\'inscription', getApiErrorMessage(err))
@@ -179,6 +248,101 @@ export function EnrollSessionDrawer({
             <option value="TRANSFER">Transfert</option>
           </select>
         </div>
+
+        <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5 space-y-1">
+          <div className="flex items-center justify-between text-[11px] text-zinc-600">
+            <span>
+              Quote {feePreview?.academicYear ?? '—'}
+              {feePreview?.mode ? ` · ${feePreview.mode}` : ''}
+            </span>
+            {feeLoading && <Loader2 size={12} className="animate-spin" />}
+          </div>
+          {feePreview?.feeLines?.length ? (
+            <ul className="space-y-1">
+              {feePreview.feeLines.map((line) => (
+                <li
+                  key={`${line.feeStructureId}-${line.source ?? 'auto'}`}
+                  className="flex justify-between text-[11px] text-zinc-700"
+                >
+                  <span>
+                    {line.categoryName}
+                    {line.source && line.source !== 'AUTOMATIC' && (
+                      <span className="ml-1 rounded bg-amber-50 px-1 text-[9px] font-medium uppercase text-amber-700">
+                        {line.source === 'PROPOSED' ? 'optionnel' : line.source}
+                      </span>
+                    )}
+                  </span>
+                  <span className="tabular-nums font-medium">
+                    {fmtMoney(line.amount, feePreview.currency)}
+                  </span>
+                </li>
+              ))}
+              <li className="flex justify-between text-xs font-semibold text-zinc-900 border-t border-zinc-200 pt-1 mt-1">
+                <span>Total</span>
+                <span>{fmtMoney(feePreview.totalFees, feePreview.currency)}</span>
+              </li>
+            </ul>
+          ) : (
+            !feeLoading && (
+              <p className="text-[11px] text-amber-700">
+                {effectiveClassId ? 'Aucun barème pour cette classe.' : 'Choisissez une classe pour voir la quote.'}
+              </p>
+            )
+          )}
+        </div>
+
+        {explicitCatalog.length > 0 && (
+          <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
+            <p className="text-[11px] font-medium text-amber-900">Frais optionnels (EXPLICIT)</p>
+            <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5 rounded border-zinc-300"
+                checked={!!autoAssignExplicitFees}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setValue('autoAssignExplicitFees', checked)
+                  setValue(
+                    'explicitFeeStructureIds',
+                    checked ? explicitCatalog.map((f) => f.id) : [],
+                    { shouldValidate: true },
+                  )
+                }}
+              />
+              <span>Attribuer tous les frais optionnels</span>
+            </label>
+            {!autoAssignExplicitFees && (
+              <ul className="space-y-1.5">
+                {explicitCatalog.map((fs) => {
+                  const checked = explicitFeeStructureIds.includes(fs.id)
+                  return (
+                    <li key={fs.id}>
+                      <label className="flex items-center justify-between gap-2 text-[11px] text-zinc-700 cursor-pointer">
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="rounded border-zinc-300"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? explicitFeeStructureIds.filter((id) => id !== fs.id)
+                                : [...explicitFeeStructureIds, fs.id]
+                              setValue('explicitFeeStructureIds', next, { shouldValidate: true })
+                            }}
+                          />
+                          {fs.label}
+                        </span>
+                        <span className="tabular-nums font-medium">
+                          {fmtMoney(fs.amount, feePreview?.currency ?? 'USD')}
+                        </span>
+                      </label>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 pt-2">
           <button

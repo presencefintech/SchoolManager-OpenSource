@@ -1,7 +1,8 @@
 'use client'
 
-import { ExternalLink, MessageCircle } from 'lucide-react'
+import { ExternalLink, MessageCircle, Printer } from 'lucide-react'
 import { formatMoney } from '@/lib/finance/currency'
+import { resolveBackendUploadHref } from '@/lib/finance/download-blob'
 
 export type ThermalReceiptPayload = {
   url?: string
@@ -44,20 +45,24 @@ export type ThermalReceiptPayload = {
 }
 
 function resolveLogoSrc(logoUrl: string | null | undefined): string | null {
-  if (!logoUrl?.trim()) return null
-  if (logoUrl.startsWith('data:') || /^https?:\/\//i.test(logoUrl)) return logoUrl
-  if (logoUrl.startsWith('/uploads/')) return `/api${logoUrl}`
-  return logoUrl
+  return resolveBackendUploadHref(logoUrl)
 }
 
 /** Aperçu ticket post-encaissement (données serveur). */
-export function ReceiptTicketPreview({ thermal }: { thermal: ThermalReceiptPayload }) {
+export function ReceiptTicketPreview({
+  thermal,
+  onPrint,
+}: {
+  thermal: ThermalReceiptPayload
+  onPrint?: () => void
+}) {
   const rd = thermal.receiptData
   const tx = rd?.transaction
   const entities = rd?.entities
   const billing = rd?.billingSummary
   const currency = (tx?.currency || billing?.currency || 'USD') as 'USD' | 'CDF' | 'EUR'
   const logoSrc = resolveLogoSrc(entities?.schoolLogoUrl)
+  const pdfHref = resolveBackendUploadHref(thermal.url)
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-zinc-50 overflow-hidden">
@@ -172,9 +177,19 @@ export function ReceiptTicketPreview({ thermal }: { thermal: ThermalReceiptPaylo
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-zinc-200 bg-white px-3 py-2.5">
-        {thermal.url ? (
+        {onPrint ? (
+          <button
+            type="button"
+            onClick={onPrint}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
+          >
+            <Printer size={12} />
+            Imprimer
+          </button>
+        ) : null}
+        {pdfHref ? (
           <a
-            href={thermal.url}
+            href={pdfHref}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50"
