@@ -9,7 +9,7 @@ import {
 } from '@/lib/admin/finance-dashboard.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
 import { asFeeStructureList } from '@/lib/finance/fee-structure.utils'
-import { normalizePaymentProfile } from '@/lib/admin/normalizers'
+import { normalizePaymentProfile, normalizePendingVerification } from '@/lib/admin/normalizers'
 import {
   normalizeCollectionAnalytics,
 } from '@/lib/finance/collection-analytics.utils'
@@ -29,7 +29,7 @@ import type {
   GuichetDashboard,
   CollectionAnalyticsSummary,
 } from '@/types/finance'
-import type { FeeCategoryItem, PaymentProfile } from '@/types/admin'
+import type { FeeCategoryItem, PaymentProfile, PendingVerificationItem } from '@/types/admin'
 
 export const financeRoleApi = {
   // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -184,39 +184,66 @@ export const financeRoleApi = {
       })
   },
 
-  verifyPaymentStep: (payload: { verificationId: number; action: 'FINANCE' | 'REJECT'; notes?: string }) =>
-    apiClient.post(`/finance/payments/${payload.verificationId}/verify-step`, {
-      action: payload.action,
-      notes: payload.notes,
-    }).then(r => r.data.data),
+  verifyPaymentStep: (payload: {
+    paymentId: number
+    action: 'approve' | 'reject' | 'FINANCE' | 'REJECT'
+    notes?: string
+  }) => {
+    const action =
+      payload.action === 'approve' || payload.action === 'FINANCE' ? 'approve' : 'reject'
+    return apiClient
+      .post(`/finance/payments/${payload.paymentId}/verify-step`, {
+        action,
+        notes: payload.notes,
+      })
+      .then((r) => r.data.data)
+  },
 
   verifyExternal: (providerRef: string) =>
     apiClient.post(`/finance/payments/verify/${providerRef}`).then(r => r.data.data),
 
-  getPendingPayments: () =>
-    apiClient.get('/finance/payments/pending').then(r => r.data.data),
+  getPendingPayments: (): Promise<{
+    items: PendingVerificationItem[]
+    total: number
+    page: number
+    limit: number
+  }> =>
+    apiClient.get('/finance/payments/pending').then((r) => {
+      const raw = r.data?.data
+      const rows: Record<string, unknown>[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.items)
+          ? raw.items
+          : []
+      const items = rows.map((row) => normalizePendingVerification(row))
+      return {
+        items,
+        total: Number(raw?.total ?? items.length),
+        page: Number(raw?.page ?? 1),
+        limit: Number(raw?.limit ?? items.length),
+      }
+    }),
 
   // ── Reçus ──────────────────────────────────────────────────────────────────
   downloadReceipt: async (
     paymentId: number,
     format: 'A4' | 'Thermal' = 'Thermal',
   ): Promise<Blob> => {
-    const res = await apiClient.get(`/finance/payments/receipts/${paymentId}/download`, {
-      params: { format },
-      responseType: 'blob',
-    })
-    return res.data as Blob
+    const { downloadFinanceReceiptPdf } = await import('@/lib/finance/download-receipt-pdf')
+    return downloadFinanceReceiptPdf(paymentId, format)
   },
 
   getThermalReceipt: (paymentId: number) =>
-    apiClient.get(`/finance/payments/receipts/${paymentId}/thermal`).then((r) => {
-      const raw = r.data?.data ?? r.data
-      return raw as {
-        url?: string
-        whatsapp?: string | null
-        receiptData?: Record<string, unknown>
-      }
-    }),
+    apiClient
+      .get(`/finance/payments/receipts/${paymentId}/thermal`, { timeout: 90_000 })
+      .then((r) => {
+        const raw = r.data?.data ?? r.data
+        return raw as {
+          url?: string
+          whatsapp?: string | null
+          receiptData?: Record<string, unknown>
+        }
+      }),
 
   // ── Débiteurs & Risques ────────────────────────────────────────────────────
   getDebtors: (minDebt?: number) =>

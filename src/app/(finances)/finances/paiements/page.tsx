@@ -292,12 +292,7 @@ function MethodMixToday({
 
 function PendingVerificationsCard() {
   const { data, isLoading } = usePendingPayments()
-  const items = Array.isArray(data)
-    ? data
-    : Array.isArray((data as { data?: unknown[] } | undefined)?.data)
-      ? ((data as { data: unknown[] }).data)
-      : []
-  const count = items.length
+  const count = data?.total ?? data?.items?.length ?? 0
 
   return (
     <Link

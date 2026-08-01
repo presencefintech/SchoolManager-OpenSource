@@ -1,7 +1,14 @@
 import { describe, expect, it } from '@jest/globals'
-import { normalizeFinanceAiInsights } from '../finance-ai.utils'
+import { normalizeFinanceAiInsights, rewriteFinanceDeepLink } from '../finance-ai.utils'
 
 describe('finance-ai.utils', () => {
+  it('réécrit les deep links admin vers /finances pour le rôle FINANCE', () => {
+    expect(rewriteFinanceDeepLink('/admin/finance/paiements', 'finance')).toBe('/finances/paiements')
+    expect(rewriteFinanceDeepLink('/admin/finance/audit', 'finance')).toBe('/finances/verifications')
+    expect(rewriteFinanceDeepLink('/admin/students/42', 'finance')).toBe('/finances/eleves/42')
+    expect(rewriteFinanceDeepLink('/admin/finance/paiements', 'admin')).toBe('/admin/finance/paiements')
+  })
+
   it('normalise un bundle fintech v4 complet', () => {
     const bundle = normalizeFinanceAiInsights({
       enabled: true,

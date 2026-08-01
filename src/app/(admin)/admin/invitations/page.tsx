@@ -180,9 +180,18 @@ function StaffInvitationsTab() {
     inviteStaff.mutate(
       { ...form, phone: formatPhoneToE164(form.phone) },
       {
-        onSuccess: () => {
+        onSuccess: (res) => {
           setForm({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '', })
           refetch()
+          if (res?.emailSent === false) {
+            setInviteError(
+              res.message ||
+                res.emailError ||
+                "Compte créé mais l'email n'a pas pu être envoyé. Vérifiez SMTP sur le serveur, puis utilisez Renvoyer.",
+            )
+          } else {
+            setInviteError('')
+          }
         },
         onError: (err) => setInviteError(getApiErrorMessage(err)),
       },

@@ -86,11 +86,7 @@ export default function FinanceIntelligencePage() {
     : Array.isArray((highRisk as { data?: unknown[] })?.data)
       ? ((highRisk as { data: unknown[] }).data)
       : []
-  const pendingList = Array.isArray(pendingData)
-    ? pendingData
-    : Array.isArray((pendingData as { data?: unknown[] })?.data)
-      ? ((pendingData as { data: unknown[] }).data)
-      : []
+  const pendingList = pendingData?.items ?? []
   const fraudCount = fraud?.length ?? 0
   const levels = Array.isArray(efficiency) ? efficiency : []
   const topLevel = levels

@@ -23,6 +23,7 @@ import type {
   FinanceAiHorizon,
   FinanceAiInsightBundle,
 } from '@/lib/admin/finance-ai.utils'
+import { rewriteFinanceDeepLink } from '@/lib/admin/finance-ai.utils'
 
 const CHANNEL_ICON = {
   WHATSAPP: MessageCircle,
@@ -494,7 +495,7 @@ export function FinanceAiInsightsPanel({
                     <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">{opp.message}</p>
                     {opp.href && (
                       <Link
-                        href={opp.href}
+                        href={rewriteFinanceDeepLink(opp.href, source) ?? opp.href}
                         className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200"
                       >
                         Ouvrir <ArrowRight size={11} />
@@ -558,7 +559,7 @@ export function FinanceAiInsightsPanel({
                         </p>
                       </div>
                       <Link
-                        href={action.href}
+                        href={rewriteFinanceDeepLink(action.href, source) ?? action.href}
                         className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-400"
                       >
                         Voir fiche
