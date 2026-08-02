@@ -338,7 +338,10 @@ export const financeRoleApi = {
     classId?: number
     sectionId?: number
     optionId?: number
-    status?: 'DEBTOR' | 'PAID'
+    status?: import('@/types/finance').StudentFinancialStatus
+    sort?: import('@/types/finance').StudentFinancialSort
+    minDebt?: number
+    minRisk?: number
     page?: number
     limit?: number
   }) =>
@@ -350,7 +353,10 @@ export const financeRoleApi = {
     classId?: number
     sectionId?: number
     optionId?: number
-    status?: 'DEBTOR' | 'PAID'
+    status?: import('@/types/finance').StudentFinancialStatus
+    sort?: import('@/types/finance').StudentFinancialSort
+    minDebt?: number
+    minRisk?: number
     format?: 'json' | 'csv'
   }) => {
     const format = params?.format ?? 'json'
