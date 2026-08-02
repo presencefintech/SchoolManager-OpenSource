@@ -89,8 +89,49 @@ describe('finance-dashboard.utils', () => {
     expect(kpi.monthlyRevenue).toBe(500_000)
   })
 
+  it('F-01 utilise totalFees/feesPaid ledger et plafonne le taux à 100 %', () => {
+    const kpi = mapEnterpriseDashboardToKpi({
+      performance: {
+        monthlyRevenue: 0,
+        projectedRevenue: 0,
+        arpu: 0,
+        digitalAdoption: 0,
+        collectionEfficiency: 1650,
+      },
+      audit: {
+        pendingVerifications: 0,
+        isBenfordValid: true,
+        suspiciousActivity: false,
+        devianceLevel: 0,
+        daysSalesOutstanding: 3,
+        highRiskProfiles: [],
+      },
+      treasury: {
+        totalUnpaid: 50,
+        totalFees: 100,
+        feesPaid: 1650,
+        breakEvenRequirement: 1,
+        badDebtEstimate: 100,
+      },
+    })
+
+    expect(kpi.collectionRate).toBe(100)
+    expect(kpi.totalPaid).toBe(1650)
+    expect(kpi.totalDue).toBe(1700)
+    expect(kpi.enterprise?.treasury.totalUnpaid).toBe(50)
+  })
+
   it('F-01 rejette un payload strategic invalide', () => {
     expect(() => mapEnterpriseDashboardToKpi({ totalPaid: 1 })).toThrow(/EnterpriseDashboardDTO/)
+  })
+
+  it('plafonne summarizeCollectionEfficiency même si un niveau dépasse 100 %', () => {
+    const levels = normalizeCollectionEfficiencyLevels([
+      { levelName: '6A', studentCount: 4, totalDue: 50, efficiency: 1650 },
+    ])
+    expect(levels[0].efficiency).toBe(100)
+    const summary = summarizeCollectionEfficiency(levels)
+    expect(summary.averageEfficiency).toBe(100)
   })
 
   it('F-02 normalise un objet fraud-alerts backend', () => {

@@ -776,6 +776,8 @@ export interface EnterpriseDashboardDTO {
   }
   treasury: {
     totalUnpaid: number
+    totalFees?: number
+    feesPaid?: number
     breakEvenRequirement: number
     badDebtEstimate: number
   }
