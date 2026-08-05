@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Plus, RefreshCw, Search, UserPlus, CheckCircle2, XCircle, Clock } from 'lucide-react'
 import {
@@ -276,6 +278,7 @@ function StatusBadge({ status }: { status: PreEnrollmentStatus }) {
 
 export default function PreEnrollmentsPage() {
   const toast = useToast()
+  const searchParams = useSearchParams()
   const [statusFilter, setStatusFilter] = useState<'' | PreEnrollmentStatus>('PENDING')
   const [search, setSearch] = useState('')
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -289,6 +292,11 @@ export default function PreEnrollmentsPage() {
   const updateStatus = useUpdatePreEnrollmentStatus()
 
   const items = data?.data ?? []
+
+  useEffect(() => {
+    const focus = searchParams.get('focus')
+    if (focus) setSelectedId(Number(focus))
+  }, [searchParams])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -359,6 +367,18 @@ export default function PreEnrollmentsPage() {
             Nouvelle demande
           </button>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm text-amber-900">
+        Les dossiers soumis depuis l&apos;app parent apparaissent dans la{' '}
+        <Link href="/admin/inbox?kind=PENDING_ENROLLMENT" className="font-semibold underline underline-offset-2">
+          boîte d&apos;entrée
+        </Link>
+        {' '}ou sous{' '}
+        <Link href="/admin/enrollments?status=PENDING_ENROLLMENT" className="font-semibold underline underline-offset-2">
+          Inscriptions → Pré-inscription parent
+        </Link>
+        .
       </div>
 
       <div className="grid grid-cols-3 gap-3">
