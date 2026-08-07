@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { LegalPageLayout } from '@/components/legal/legal-page-layout'
 
 export const metadata: Metadata = {
-  title: 'Conditions Générales d\'Utilisation — presenceFintech',
-  description: "Conditions générales d'utilisation de la plateforme presenceFintech.",
+  title: 'Conditions Générales d\'Utilisation — SchoolManager',
+  description: "Conditions générales d'utilisation de la plateforme SchoolManager.",
 }
 
 export default function CguPage() {
@@ -18,7 +18,7 @@ export default function CguPage() {
         <h3>1. Objet</h3>
         <p>
           Les présentes Conditions Générales d&apos;Utilisation (« CGU ») régissent l&apos;accès et
-          l&apos;utilisation de la plateforme presenceFintech (« la Plateforme »), éditée par
+          l&apos;utilisation de la plateforme SchoolManager (« la Plateforme »), éditée par
           [Nom de la société / statut juridique], immatriculée sous le numéro [numéro RCCM / SIREN],
           dont le siège social est situé [adresse complète], ci-après « l&apos;Éditeur ».
         </p>

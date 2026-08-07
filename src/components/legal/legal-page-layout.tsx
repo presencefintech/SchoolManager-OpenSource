@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ShieldCheck } from 'lucide-react'
+import Image from 'next/image'
 
 type LegalPageLayoutProps = {
   title: string
@@ -28,11 +28,11 @@ export function LegalPageLayout({
         <div className="flex flex-col items-center text-center mb-8">
           <Link
             href="/login"
-            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 ring-4 ring-white mb-4"
+            className="w-14 h-14 mb-4"
           >
-            <ShieldCheck size={24} className="text-white" />
+            <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={56} height={56} className="h-full w-full object-contain" />
           </Link>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">presenceFintech</h1>
+          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">SchoolManager</h1>
           <p className="text-sm text-zinc-500 mt-1">Gestion des présences &amp; finances scolaires</p>
         </div>
 
@@ -64,7 +64,7 @@ export function LegalPageLayout({
           </Link>
         </div>
         <p className="mt-2 text-center text-[11px] text-zinc-300">
-          © 2026 presenceFintech · Tous droits réservés
+          © 2026 SchoolManager · Tous droits réservés
         </p>
       </div>
     </div>

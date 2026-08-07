@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { usePathname } from 'next/navigation'
 import {
@@ -53,12 +54,12 @@ function DirectorNav() {
         href="/director/dashboard"
         className="flex items-center gap-3.5 px-6 py-4 flex-shrink-0 group"
       >
-        <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm flex-shrink-0 group-hover:bg-emerald-500 transition-colors">
-          <span className="text-xs font-bold text-white tracking-tight">PC</span>
+        <div className="w-8 h-8 flex-shrink-0">
+          <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-semibold text-zinc-900 leading-tight truncate">
-            presenceFintech
+            SchoolManager
           </p>
           <p className="text-[11px] text-zinc-400 leading-tight mt-0.5">Espace Directeur</p>
         </div>

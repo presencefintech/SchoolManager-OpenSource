@@ -32,11 +32,6 @@ const nextConfig = {
       },
     ]
   },
-  async redirects() {
-    return [
-      { source: '/favicon.ico', destination: '/favicon.svg', permanent: false },
-    ]
-  },
   async rewrites() {
     // API + uploads : Route Handlers Next (/api/[...path], /api/auth/*, /api/uploads/*)
     return []

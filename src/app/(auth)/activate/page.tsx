@@ -2,6 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -17,7 +18,6 @@ import {
   Lock,
   Mail,
   ShieldCheck,
-  Sparkles,
   UserCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -189,11 +189,11 @@ function ActivateContent() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 ring-4 ring-white mb-4"
+            className="w-14 h-14 mb-4"
           >
-            <Sparkles size={24} className="text-white" />
+            <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={56} height={56} className="h-full w-full object-contain" />
           </motion.div>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">presenceFintech</h1>
+          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">SchoolManager</h1>
           <p className="text-sm text-zinc-500 mt-1">Activation compte professionnel</p>
         </div>
 
@@ -408,7 +408,7 @@ function ActivateContent() {
           Lien expiré ou déjà utilisé ? Contactez l&apos;administrateur de votre établissement.
         </p>
         <p className="mt-2 text-center text-[11px] text-zinc-300">
-          © 2026 presenceFintech · Accès réservé au personnel autorisé
+          © 2026 SchoolManager · Accès réservé au personnel autorisé
         </p>
       </motion.div>
     </div>

@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -9,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   Eye, EyeOff, Loader2, Mail, Lock,
-  GraduationCap, ScanLine, BarChart3, ShieldCheck,
+  GraduationCap, ScanLine, BarChart3,
 } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -87,11 +88,11 @@ function LoginPageContent() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 ring-4 ring-white mb-4"
+            className="w-14 h-14 mb-4"
           >
-            <ShieldCheck size={24} className="text-white" />
+            <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={56} height={56} className="h-full w-full object-contain" />
           </motion.div>
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">presenceFintech</h1>
+          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">SchoolManager</h1>
           <p className="text-sm text-zinc-500 mt-1">Gestion des présences &amp; finances scolaires</p>
         </div>
 
@@ -227,7 +228,7 @@ function LoginPageContent() {
           Problème de connexion ? Contactez votre administrateur système.
         </p>
         <p className="mt-2 text-center text-[11px] text-zinc-300">
-          © 2026 presenceFintech · Tous droits réservés
+          © 2026 SchoolManager · Tous droits réservés
         </p>
       </motion.div>
     </div>

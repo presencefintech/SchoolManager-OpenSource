@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useCallback } from 'react'
 import {
@@ -123,11 +124,11 @@ export function AdminNav() {
   return (
     <aside className="fixed top-0 left-0 h-screen w-60 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]">
       <Link href="/admin/dashboard" className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-200 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
-          <span className="text-xs font-bold text-white tracking-tight">PC</span>
+        <div className="w-8 h-8 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+          <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-zinc-900 leading-tight truncate tracking-tight">presenceFintech</p>
+          <p className="text-sm font-bold text-zinc-900 leading-tight truncate tracking-tight">SchoolManager</p>
           <span className="inline-block text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none mt-0.5">
             Admin
           </span>

@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { LegalPageLayout } from '@/components/legal/legal-page-layout'
 
 export const metadata: Metadata = {
-  title: 'Politique de Confidentialité — presenceFintech',
-  description: 'Politique de confidentialité et de protection des données de presenceFintech.',
+  title: 'Politique de Confidentialité — SchoolManager',
+  description: 'Politique de confidentialité et de protection des données de SchoolManager.',
 }
 
 export default function ConfidentialitePage() {

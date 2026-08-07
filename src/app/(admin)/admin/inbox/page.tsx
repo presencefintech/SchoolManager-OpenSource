@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Inbox, Loader2, RefreshCw, UserCircle, UserPlus, Users } from 'lucide-react'
@@ -47,6 +47,14 @@ function formatWhen(iso: string) {
 }
 
 export default function AdminIntakePage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminIntakePageContent />
+    </Suspense>
+  )
+}
+
+function AdminIntakePageContent() {
   const toast = useToast()
   const searchParams = useSearchParams()
   const [kind, setKind] = useState<Kind>('')
