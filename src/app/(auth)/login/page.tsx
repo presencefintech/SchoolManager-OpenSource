@@ -60,7 +60,7 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-12 bg-[#f4f6fa] overflow-hidden">
+    <div className="relative h-screen flex items-center justify-center px-4 py-6 bg-[#f4f6fa] overflow-hidden">
 
       {/* Ambient mesh background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -83,22 +83,22 @@ function LoginPageContent() {
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
         {/* Brand lockup */}
-        <div className="flex flex-col items-center text-center mb-8">
+        <div className="flex flex-col items-center text-center mb-4">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="w-14 h-14 mb-4"
+            className="w-36 h-36 mb-2"
           >
-            <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={56} height={56} className="h-full w-full object-contain" />
+            <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={144} height={144} className="h-full w-full object-contain" />
           </motion.div>
           <h1 className="text-xl font-bold text-zinc-900 tracking-tight">SchoolManager</h1>
           <p className="text-sm text-zinc-500 mt-1">Gestion des présences &amp; finances scolaires</p>
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white/90 backdrop-blur-sm shadow-xl shadow-slate-200/60 ring-1 ring-slate-100 p-10">
-          <div className="mb-6">
+        <div className="rounded-3xl border border-slate-200/90 bg-white/90 backdrop-blur-sm shadow-xl shadow-slate-200/60 ring-1 ring-slate-100 p-6">
+          <div className="mb-4">
             <h2 className="text-lg font-semibold text-zinc-900">Connexion</h2>
             <p className="text-sm text-zinc-400 mt-1">Accédez à votre espace administrateur</p>
           </div>
@@ -213,21 +213,21 @@ function LoginPageContent() {
         </div>
 
         {/* Feature strip */}
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-3 gap-3">
           {features.map(({ icon: Icon, label }) => (
-            <div key={label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white/60 border border-slate-100 px-3 py-4 text-center">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                <Icon size={14} className="text-emerald-600" />
+            <div key={label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white/60 border border-slate-100 px-3 py-2.5 text-center">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                <Icon size={13} className="text-emerald-600" />
               </div>
               <p className="text-xs font-medium text-zinc-500 leading-tight">{label}</p>
             </div>
           ))}
         </div>
 
-        <p className="mt-6 text-center text-xs text-zinc-400">
+        <p className="mt-3 text-center text-xs text-zinc-400">
           Problème de connexion ? Contactez votre administrateur système.
         </p>
-        <p className="mt-2 text-center text-[11px] text-zinc-300">
+        <p className="mt-1 text-center text-[11px] text-zinc-300">
           © 2026 SchoolManager · Tous droits réservés
         </p>
       </motion.div>
