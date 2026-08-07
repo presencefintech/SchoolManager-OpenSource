@@ -62,7 +62,8 @@ function ControleContent() {
   const [classId, setClassId] = useState(0)
   const [sectionId, setSectionId] = useState(0)
   const [optionId, setOptionId] = useState(0)
-  const [status, setStatus] = useState<'' | 'DEBTOR' | 'PAID'>('')
+  const [status, setStatus] = useState<'' | import('@/types/finance').StudentFinancialStatus>('')
+  const [sort, setSort] = useState<import('@/types/finance').StudentFinancialSort>('balance_desc')
   const [page, setPage] = useState(1)
 
   const filters = useMemo(
@@ -71,10 +72,11 @@ function ControleContent() {
       sectionId: sectionId > 0 ? sectionId : undefined,
       optionId: optionId > 0 ? optionId : undefined,
       status: status || undefined,
+      sort,
       page,
       limit: 50,
     }),
-    [classId, sectionId, optionId, status, page],
+    [classId, sectionId, optionId, status, sort, page],
   )
 
   const { data, isLoading, isFetching, refetch } = useStudentsFinancial(filters)
@@ -232,13 +234,31 @@ function ControleContent() {
             className={selectCls}
             value={status}
             onChange={(e) => {
-              setStatus(e.target.value as '' | 'DEBTOR' | 'PAID')
+              setStatus(e.target.value as '' | import('@/types/finance').StudentFinancialStatus)
               setPage(1)
             }}
           >
-            <option value="">Tous statuts</option>
+            <option value="">Toutes situations</option>
             <option value="DEBTOR">Débiteurs</option>
             <option value="PAID">En ordre</option>
+            <option value="OVERPAID">Sur-payés</option>
+            <option value="DRIFT">Écart ledger</option>
+            <option value="HIGH_RISK">Risque élevé</option>
+            <option value="NPL_90">NPL 90+</option>
+          </select>
+          <select
+            className={selectCls}
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as import('@/types/finance').StudentFinancialSort)
+              setPage(1)
+            }}
+          >
+            <option value="balance_desc">Tri · solde ↓</option>
+            <option value="risk_desc">Tri · risque ↓</option>
+            <option value="dpd_desc">Tri · DPD ↓</option>
+            <option value="ecl_desc">Tri · ECL ↓</option>
+            <option value="name_asc">Tri · nom</option>
           </select>
         </div>
       </div>

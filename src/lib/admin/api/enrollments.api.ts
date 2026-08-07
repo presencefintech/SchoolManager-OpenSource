@@ -87,6 +87,14 @@ export const enrollmentsApi = {
       }>(`/admin/enrollments/${studentId}/approve`)
       .then((r) => r.data),
 
+  reject: (studentId: number, reason: string) =>
+    apiClient
+      .post<{ success: boolean; data: { message?: string }; message?: string }>(
+        `/admin/enrollments/${studentId}/reject`,
+        { reason },
+      )
+      .then((r) => r.data),
+
   finalize: (studentId: number) =>
     apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/finalize`)
       .then((r) => r.data),

@@ -223,8 +223,18 @@ export default function FinanceDashboardPage() {
     totalDue: level.totalDue,
   }))
 
-  const remaining = Math.max(0, display.totalDue - display.totalPaid)
-  const collectedPct = display.totalDue > 0 ? (display.totalPaid / display.totalDue) * 100 : 0
+  const ledgerUnpaid = kpis?.enterprise?.treasury?.totalUnpaid
+  const remaining = Math.max(
+    0,
+    ledgerUnpaid != null ? Number(ledgerUnpaid) : display.totalDue - display.totalPaid,
+  )
+  const collectedPct = Math.min(
+    100,
+    display.totalDue > 0 ? (display.totalPaid / display.totalDue) * 100 : 0,
+  )
+  const remainingPct = display.totalDue > 0
+    ? Math.min(100, (remaining / display.totalDue) * 100)
+    : 0
   const monthlyEncaisse = kpis?.monthlyRevenue ?? kpis?.enterprise?.performance.monthlyRevenue
   const methodBreakdownPeriodLabel =
     dashboardPeriod === 'day' ? "(aujourd'hui)" : '(ce mois)'
@@ -346,7 +356,7 @@ export default function FinanceDashboardPage() {
                   {
                     label: 'Restant dû',
                     value: formatMoney(remaining),
-                    sub: display.totalDue > 0 ? `${(100 - collectedPct).toFixed(0)}% à recouvrer` : undefined,
+                    sub: display.totalDue > 0 ? `${remainingPct.toFixed(0)}% à recouvrer` : undefined,
                     icon: Wallet,
                   },
                   {
@@ -802,8 +812,8 @@ export default function FinanceDashboardPage() {
                 <Panel glow={healthCheck.isHealthy ? 'emerald' : 'amber'}>
                   <PanelHeader
                     icon={healthCheck.isHealthy ? CheckCircle2 : AlertTriangle}
-                    title="Bilan de santé"
-                    subtitle="Score, tendances et recommandations actionnables"
+                    title="Bilan opérationnel"
+                    subtitle="Score opérationnel, tendances et recommandations"
                     accent={healthCheck.isHealthy ? 'text-emerald-600' : 'text-amber-600'}
                     accentBg={healthCheck.isHealthy ? 'bg-emerald-500/10' : 'bg-amber-500/10'}
                   />

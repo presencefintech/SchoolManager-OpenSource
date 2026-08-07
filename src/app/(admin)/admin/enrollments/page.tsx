@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   useEnrollments, useEnrollmentDetail, useClasses,
-  useApproveEnrollment, useFinalizeEnrollment, useToggleLock, useSyncBalance,
+  useApproveEnrollment, useRejectEnrollment, useFinalizeEnrollment, useToggleLock, useSyncBalance,
   usePromoteStudent, useUpdateEnrollment, useTransferEnrollment, useSetReminderPause, usePurgeEnrollment,
 } from '@/lib/hooks/use-admin'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
@@ -35,8 +35,8 @@ function Sk({ className }: { className?: string }) {
 const STATUS_CFG: Record<string, { label: string; cls: string }> = {
   ACTIVE:       { label: 'Actif',        cls: 'bg-emerald-50 text-emerald-700' },
   INACTIVE:     { label: 'Inactif',      cls: 'bg-zinc-100 text-zinc-500' },
-  PRE_ENROLL:   { label: 'Pré-inscrit',  cls: 'bg-indigo-50 text-indigo-700' },
-  PENDING_ENROLLMENT: { label: 'Pré-inscrit', cls: 'bg-indigo-50 text-indigo-700' },
+  PENDING_ENROLLMENT: { label: 'Pré-inscription parent', cls: 'bg-amber-50 text-amber-800' },
+  DROPPED:      { label: 'Refusé',       cls: 'bg-red-50 text-red-700' },
   APPROVED:     { label: 'Approuvé',     cls: 'bg-teal-50 text-teal-700' },
   FINALIZED:    { label: 'Finalisé',     cls: 'bg-emerald-50 text-emerald-700' },
   SUSPENDED:    { label: 'Suspendu',     cls: 'bg-red-50 text-red-700' },
@@ -259,11 +259,14 @@ function EnrollmentsPageContent() {
   const { data: detail, isLoading: detailLoading } = useEnrollmentDetail(selectedId ?? 0)
   const { data: syncDetail } = useEnrollmentDetail(syncConfirm?.studentId ?? 0)
   const approveMutation = useApproveEnrollment()
+  const rejectMutation = useRejectEnrollment()
   const finalizeMutation = useFinalizeEnrollment()
   const toggleLockMutation = useToggleLock()
   const syncMutation = useSyncBalance()
   const reminderPauseMutation = useSetReminderPause()
   const purgeMutation = usePurgeEnrollment()
+  const [rejectTarget, setRejectTarget] = useState<EnrollmentListItem | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
 
   const enrollmentsRaw = enrollmentsData?.data ?? []
   const enrollments = useMemo(() => {
@@ -282,9 +285,17 @@ function EnrollmentsPageContent() {
 
   useEffect(() => {
     const q = searchParams.get('search')
+    const status = searchParams.get('status')
     const studentId = searchParams.get('studentId')
-    if (q) applyValues({ ...ENROLLMENT_FILTER_DEFAULTS, search: q })
-    if (studentId) setSelectedId(Number(studentId))
+    const focus = searchParams.get('focus')
+    const next = {
+      ...ENROLLMENT_FILTER_DEFAULTS,
+      ...(q ? { search: q } : {}),
+      ...(status ? { status } : {}),
+    }
+    if (q || status) applyValues(next)
+    const selectId = focus ?? studentId
+    if (selectId) setSelectedId(Number(selectId))
   }, [searchParams, applyValues])
 
   function handleApplyFilters() {
@@ -418,7 +429,8 @@ function EnrollmentsPageContent() {
               label: 'Statut dossier',
               options: [
                 { value: 'ACTIVE', label: 'Actif' },
-                { value: 'PRE_ENROLL', label: 'Pré-inscrit' },
+                { value: 'PENDING_ENROLLMENT', label: 'Pré-inscription parent' },
+                { value: 'DROPPED', label: 'Refusé' },
                 { value: 'APPROVED', label: 'Approuvé' },
                 { value: 'FINALIZED', label: 'Finalisé' },
                 { value: 'SUSPENDED', label: 'Suspendu' },
@@ -496,33 +508,46 @@ function EnrollmentsPageContent() {
                           </td>
                           <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1.5">
-                              {(en.status === 'PRE_ENROLL' || en.status === 'PENDING_ENROLLMENT') && (
-                                <button
-                                  onClick={() => approveMutation.mutate(en.id, {
-                                    onSuccess: (res) => {
-                                      const pack = res.data?.explicitFeePack
-                                      if (pack?.assigned?.length) {
-                                        toast.success(
-                                          'Inscription approuvée',
-                                          `${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
-                                        )
-                                      } else {
-                                        toast.success('Inscription approuvée')
-                                      }
-                                      if (pack?.skipped?.length) {
-                                        toast.error(
-                                          'Frais partiels',
-                                          `${pack.skipped.length} barème(s) non attribués.`,
-                                        )
-                                      }
-                                    },
-                                  })}
-                                  disabled={approveMutation.isPending}
-                                  title="Approuver"
-                                  className="p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
-                                >
-                                  <CheckCircle size={13} />
-                                </button>
+                              {en.status === 'PENDING_ENROLLMENT' && (
+                                <>
+                                  <button
+                                    onClick={() => approveMutation.mutate(en.id, {
+                                      onSuccess: (res) => {
+                                        const pack = res.data?.explicitFeePack
+                                        if (pack?.assigned?.length) {
+                                          toast.success(
+                                            'Inscription approuvée',
+                                            `${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
+                                          )
+                                        } else {
+                                          toast.success('Inscription approuvée')
+                                        }
+                                        if (pack?.skipped?.length) {
+                                          toast.error(
+                                            'Frais partiels',
+                                            `${pack.skipped.length} barème(s) non attribués.`,
+                                          )
+                                        }
+                                      },
+                                    })}
+                                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                                    title="Approuver"
+                                    className="p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                                  >
+                                    <CheckCircle size={13} />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setRejectTarget(en)
+                                      setRejectReason('')
+                                    }}
+                                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                                    title="Refuser"
+                                    className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                  >
+                                    <XCircle size={13} />
+                                  </button>
+                                </>
                               )}
                               {en.status === 'APPROVED' && (
                                 <button
@@ -760,6 +785,59 @@ function EnrollmentsPageContent() {
             onClose={() => setShowMoratorium(false)}
           />
         </>
+      )}
+
+      {rejectTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+            <h2 className="text-base font-semibold text-zinc-900">Refuser la pré-inscription</h2>
+            <p className="mt-1 text-sm text-zinc-500">{formatStudentFullName(rejectTarget)}</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Motif du refus…"
+              className="mt-3 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setRejectTarget(null)
+                  setRejectReason('')
+                }}
+                className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={rejectMutation.isPending}
+                onClick={() => {
+                  const reason = rejectReason.trim()
+                  if (reason.length < 3) {
+                    toast.error('Motif requis', 'Indiquez au moins 3 caractères.')
+                    return
+                  }
+                  rejectMutation.mutate(
+                    { studentId: rejectTarget.id, reason },
+                    {
+                      onSuccess: () => {
+                        toast.success('Pré-inscription refusée')
+                        setRejectTarget(null)
+                        setRejectReason('')
+                      },
+                      onError: (err) => toast.error('Refus impossible', getApiErrorMessage(err)),
+                    },
+                  )
+                }}
+                className="flex-1 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {rejectMutation.isPending ? 'Envoi…' : 'Confirmer le refus'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <ConfirmDialog

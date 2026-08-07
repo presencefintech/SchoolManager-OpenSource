@@ -485,7 +485,10 @@ export function useStudentsFinancial(params?: {
   classId?: number
   sectionId?: number
   optionId?: number
-  status?: 'DEBTOR' | 'PAID'
+  status?: import('@/types/finance').StudentFinancialStatus
+  sort?: import('@/types/finance').StudentFinancialSort
+  minDebt?: number
+  minRisk?: number
   page?: number
   limit?: number
 }) {

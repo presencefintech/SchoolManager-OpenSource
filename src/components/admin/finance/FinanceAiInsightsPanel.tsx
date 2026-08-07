@@ -66,7 +66,7 @@ function ExecutiveHeader({ data }: { data: FinanceAiInsightBundle }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-white">
-          Santé financière {e.healthScore}/100
+          Score risque portefeuille {e.healthScore}/100
         </p>
         <p className="text-[11px] text-slate-400 mt-0.5">
           MoM {e.monthOverMonthPct >= 0 ? '+' : ''}
@@ -261,7 +261,7 @@ export function FinanceAiInsightsPanel({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                EWMA · ECL · score santé · scénarios · contractuel
+                EWMA · ECL · score risque · scénarios · contractuel
               </p>
             </div>
           </div>

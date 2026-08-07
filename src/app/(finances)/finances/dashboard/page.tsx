@@ -289,7 +289,7 @@ export default function FinanceDashboardPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-zinc-900">
-              Santé financière · {health.isHealthy ? 'Sain' : 'Attention'}
+              Bilan opérationnel · {health.isHealthy ? 'Sain' : 'Attention'}
             </p>
             <p className="text-xs text-zinc-500 mt-0.5">
               Recouvrement {health.efficiency.toFixed(0)}% · {health.debtorsCount} débiteurs · MoM{' '}

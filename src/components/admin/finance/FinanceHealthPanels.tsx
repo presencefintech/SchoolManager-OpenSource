@@ -101,8 +101,8 @@ export function FinanceHealthPanel({ health }: { health: FinanceHealthView }) {
             )}
           </div>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Score composite (recouvrement, dette, débiteurs, file d&apos;attente). Objectif
-            recouvrement&nbsp;: {health.targetEfficiency}%.
+            Score opérationnel (recouvrement, dette, débiteurs, file d&apos;attente) — distinct
+            du score risque portefeuille (IA). Objectif recouvrement&nbsp;: {health.targetEfficiency}%.
           </p>
           <div
             className={cn(

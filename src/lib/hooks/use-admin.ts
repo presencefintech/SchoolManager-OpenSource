@@ -380,6 +380,19 @@ export function useApproveEnrollment() {
   })
 }
 
+export function useRejectEnrollment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, reason }: { studentId: number; reason: string }) =>
+      enrollmentsApi.reject(studentId, reason),
+    onSuccess: (_data, { studentId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+    },
+  })
+}
+
 export function useFinalizeEnrollment() {
   const qc = useQueryClient()
   return useMutation({
