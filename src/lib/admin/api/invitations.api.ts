@@ -44,11 +44,36 @@ export const invitationsApi = {
     apiClient.delete(`/admin/invitations/parent-code/${codeId}`).then(r => r.data),
 
   inviteStaff: (payload: InviteStaffPayload) =>
-    apiClient.post('/admin/invitations/staff', payload).then(r => r.data.data as StaffInvitation),
+    apiClient.post<{
+      success: boolean
+      message?: string
+      data: StaffInvitation & {
+        emailSent?: boolean
+        smsSent?: boolean
+        emailError?: string
+      }
+      emailSent?: boolean
+      smsSent?: boolean
+      emailError?: string
+    }>('/admin/invitations/staff', payload).then((r) => ({
+      ...(r.data.data ?? {}),
+      message: r.data.message,
+      emailSent: r.data.emailSent ?? r.data.data?.emailSent,
+      smsSent: r.data.smsSent ?? r.data.data?.smsSent,
+      emailError: r.data.emailError ?? r.data.data?.emailError,
+    })),
 
   revokeStaffInvitation: (payload: RevokeStaffInvitationPayload) =>
     apiClient.delete('/admin/invitations/staff/revoke', { data: payload }).then(r => r.data),
 
   resendStaffInvitation: (targetUserId: number) =>
-    apiClient.post('/admin/invitations/staff/resend', { targetUserId }).then(r => r.data),
+    apiClient
+      .post<{
+        success: boolean
+        message?: string
+        emailSent?: boolean
+        smsSent?: boolean
+        emailError?: string
+      }>('/admin/invitations/staff/resend', { targetUserId })
+      .then((r) => r.data),
 }

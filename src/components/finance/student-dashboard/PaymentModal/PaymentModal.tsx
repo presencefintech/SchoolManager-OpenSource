@@ -44,7 +44,7 @@ import {
   loadGuichetPaymentDraft,
   clearGuichetPaymentDraft,
 } from '@/lib/finance/guichet-ops.utils'
-import { downloadBlob } from '@/lib/finance/download-blob'
+import { printPdfBlob } from '@/lib/finance/download-blob'
 import { useToast } from '@/providers/toast-provider'
 import { labelMoratorium, labelMoratoriumType } from '@/lib/business-labels'
 import type { ProcessPaymentResponse } from '@/types/finance'
@@ -560,12 +560,23 @@ export function PaymentModal({
         `#${paymentId}${ref ? ` · ${ref}` : ''} · ${formatMoney(serverAmt, currency)}`,
       )
 
+      const paymentStatus = String(result.payment?.status ?? (method === 'CASH' ? 'CONFIRMED' : 'PENDING'))
+      const receiptReady = paymentStatus === 'CONFIRMED' || paymentStatus === 'RECONCILED'
+
+      if (!receiptReady) {
+        toast.info(
+          'Reçu après confirmation',
+          'Paiement mobile en attente — le reçu PDF sera disponible une fois le paiement confirmé.',
+        )
+        return
+      }
+
       setThermalLoading(true)
       try {
         const thermalRes = await financeRoleApi.getThermalReceipt(paymentId)
         setThermal(thermalRes as ThermalReceiptPayload)
-      } catch {
-        /* PDF download reste disponible via PrintReceiptButton */
+      } catch (err) {
+        toast.warning('Aperçu reçu indisponible', getApiErrorMessage(err))
       } finally {
         setThermalLoading(false)
       }
@@ -577,10 +588,10 @@ export function PaymentModal({
             paymentId,
             format: 'Thermal',
           })
-          downloadBlob(blob, `recu-${paymentId}-ticket.pdf`)
-          toast.info('Ticket thermique téléchargé', 'Envoyez-le à l’imprimante caisse')
-        } catch {
-          toast.warning('Auto-impression échouée', 'Utilisez le bouton Ticket caisse')
+          await printPdfBlob(blob)
+          toast.info('Impression ticket', 'Dialogue d’impression ouvert')
+        } catch (err) {
+          toast.warning('Auto-impression échouée', getApiErrorMessage(err))
         }
       }
     } catch (err) {
@@ -683,13 +694,29 @@ export function PaymentModal({
                 Génération du ticket…
               </div>
             ) : thermal ? (
-              <ReceiptTicketPreview thermal={thermal} />
+              <ReceiptTicketPreview
+                thermal={thermal}
+                onPrint={() => {
+                  void (async () => {
+                    try {
+                      const blob = await downloadReceipt.mutateAsync({
+                        paymentId: successPaymentId,
+                        format: 'Thermal',
+                      })
+                      await printPdfBlob(blob)
+                      toast.info('Impression ticket', 'Dialogue d’impression ouvert')
+                    } catch (err) {
+                      toast.error('Impression impossible', getApiErrorMessage(err))
+                    }
+                  })()
+                }}
+              />
             ) : null}
 
             <div>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                  Téléchargements
+                  Impression & fichiers
                 </p>
                 <label className="inline-flex items-center gap-1.5 text-[10px] text-zinc-500 cursor-pointer select-none">
                   <input

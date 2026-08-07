@@ -57,6 +57,10 @@ export const enrollmentsApi = {
             | { paymentId: number; amount: number; currency: string; reference: string | null }
             | undefined,
           depositWarning: data.depositWarning as string | undefined,
+          explicitFeePack: data.explicitFeePack as
+            | { assigned: number[]; skipped: Array<{ feeStructureId: number; reason: string }> }
+            | undefined,
+          explicitFeePackPending: data.explicitFeePackPending as boolean | undefined,
           serverMessage: r.data.message,
           idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
         }
@@ -68,7 +72,27 @@ export const enrollmentsApi = {
       .then((r) => normalizeEnrollmentDetail(r.data.data)),
 
   approve: (studentId: number) =>
-    apiClient.post<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/approve`)
+    apiClient
+      .post<{
+        success: boolean
+        data: {
+          matricule?: string
+          message?: string
+          explicitFeePack?: {
+            assigned: number[]
+            skipped: Array<{ feeStructureId: number; reason: string }>
+          }
+        }
+        message?: string
+      }>(`/admin/enrollments/${studentId}/approve`)
+      .then((r) => r.data),
+
+  reject: (studentId: number, reason: string) =>
+    apiClient
+      .post<{ success: boolean; data: { message?: string }; message?: string }>(
+        `/admin/enrollments/${studentId}/reject`,
+        { reason },
+      )
       .then((r) => r.data),
 
   finalize: (studentId: number) =>
@@ -119,27 +143,29 @@ export const enrollmentsApi = {
     apiClient.get<{ success: boolean; data: Array<{ id: number; label: string; isCurrent: boolean; status: string }> }>('/admin/enrollments/sessions')
       .then((r) => r.data.data ?? []),
 
-  getFeePreview: (classId: number) =>
-    apiClient
-      .get<{
-        success: boolean
-        data: {
-          sessionId?: number
-          academicYear: string
-          currency: string
-          totalFees: number
-          feeLines: Array<{
-            feeStructureId: number
-            categoryId: number
-            categoryCode: string
-            categoryName: string
-            billingPeriod: string
-            amount: number
-            currency: string
-          }>
-        }
-      }>('/admin/enrollments/fee-preview', { params: { classId } })
-      .then((r) => r.data.data),
+  getFeePreview: (params: {
+    classId: number
+    sessionId?: number
+    studentId?: number
+    explicitFeeStructureIds?: number[]
+  }) => {
+    const { classId, sessionId, studentId, explicitFeeStructureIds } = params
+    return apiClient
+      .get<{ success: boolean; data: import('@/types/admin').EnrollmentFeePreview }>(
+        '/admin/enrollments/fee-preview',
+        {
+          params: {
+            classId,
+            ...(sessionId != null ? { sessionId } : {}),
+            ...(studentId != null ? { studentId } : {}),
+            ...(explicitFeeStructureIds?.length
+              ? { explicitFeeStructureIds: explicitFeeStructureIds.join(',') }
+              : {}),
+          },
+        },
+      )
+      .then((r) => r.data.data)
+  },
 
   getIntakeInbox: (params?: { kind?: string; page?: number; limit?: number }) =>
     apiClient
@@ -176,6 +202,8 @@ export const enrollmentsApi = {
       collectDeposit?: boolean
       paymentNotes?: string
       type?: string
+      explicitFeeStructureIds?: number[]
+      autoAssignExplicitFees?: boolean
       idempotencyKey?: string
     },
   ) => {
@@ -194,8 +222,25 @@ export const enrollmentsApi = {
       }))
   },
 
-  enrollInSession: (studentId: number, payload: { sessionId: number; classId?: number; type?: string }) =>
-    apiClient.post<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/sessions`, payload)
+  enrollInSession: (
+    studentId: number,
+    payload: {
+      sessionId: number
+      classId?: number
+      type?: string
+      autoAssignExplicitFees?: boolean
+      explicitFeeStructureIds?: number[]
+    },
+  ) =>
+    apiClient.post<{
+      success: boolean
+      data: {
+        explicitFeePack?: {
+          assigned: number[]
+          skipped?: Array<{ feeStructureId: number; reason: string }>
+        }
+      } & Record<string, unknown>
+    }>(`/admin/enrollments/${studentId}/sessions`, payload)
       .then((r) => r.data.data),
 
   updateAdministrativeProfile: (studentId: number, payload: Record<string, unknown>) =>

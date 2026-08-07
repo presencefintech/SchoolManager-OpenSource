@@ -15,7 +15,7 @@ import {
   toggleContiguousFeeSelection,
   type FeeLineSelection,
 } from '@/lib/finance/fee-schedule.utils'
-import { FeeScheduleStatusBadge } from '@/components/finance/student-dashboard/FeesTable/fees-table.columns'
+import { FeeAttributionSourceBadge, FeeScheduleStatusBadge } from '@/components/finance/student-dashboard/FeesTable/fees-table.columns'
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 import type { FeeScheduleLineDto } from '@/types/finance'
@@ -209,11 +209,22 @@ export function FeeAttributionPanel({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-zinc-900">{line.categoryName}</p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-sm font-medium text-zinc-900">{line.categoryName}</p>
+                        <FeeAttributionSourceBadge
+                          source={line.attributionSource}
+                          reason={line.attributionReason}
+                        />
+                      </div>
                       <p className="text-xs text-zinc-500 mt-0.5">
                         {formatFeePeriodLabel(line)}
                         {line.categoryCode ? ` · ${line.categoryCode}` : ''}
                       </p>
+                      {line.attributionReason &&
+                        line.attributionSource &&
+                        line.attributionSource !== 'AUTOMATIC' && (
+                          <p className="text-[10px] text-zinc-400 mt-0.5">{line.attributionReason}</p>
+                        )}
                       {(line.amountPaid ?? 0) > 0 && (
                         <p className="text-[10px] text-amber-700 mt-1">
                           Déjà payé {formatMoney(line.amountPaid ?? 0, line.currency)} · reste{' '}

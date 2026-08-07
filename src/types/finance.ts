@@ -643,7 +643,25 @@ export interface ProcessPaymentResponse {
   reference?: string
 }
 
-export type StudentFinancialStatus = 'DEBTOR' | 'PAID'
+export type StudentFinancialStatus =
+  | 'DEBTOR'
+  | 'PAID'
+  | 'OVERPAID'
+  | 'DRIFT'
+  | 'HIGH_RISK'
+  | 'NPL_90'
+  | 'AGING_0_30'
+  | 'AGING_31_60'
+  | 'AGING_61_90'
+
+export type StudentFinancialSort =
+  | 'balance_desc'
+  | 'balance_asc'
+  | 'risk_desc'
+  | 'dpd_desc'
+  | 'ecl_desc'
+  | 'collection_asc'
+  | 'name_asc'
 
 export interface StudentFinancialRow {
   id: number
@@ -651,6 +669,7 @@ export interface StudentFinancialRow {
   firstName: string
   lastName: string
   fullName: string
+  rdcFullName?: string
   classId: number | null
   className: string | null
   sectionId: number | null
@@ -660,7 +679,20 @@ export interface StudentFinancialRow {
   totalFees: number
   feesPaid: number
   balance: number
+  storedBalance?: number
   financialStatus: StudentFinancialStatus
+  situation?: StudentFinancialStatus
+  ledgerDrift?: number
+  ledgerCoherent?: boolean
+  collectionRatePct?: number
+  overCollected?: boolean
+  daysPastDue?: number
+  agingBucket?: string | null
+  riskScore?: number
+  recoverabilityPct?: number
+  expectedLoss?: number
+  lastPaymentAt?: string | null
+  reasonCodes?: string[]
 }
 
 export interface StudentsFinancialListResponse {
@@ -672,13 +704,21 @@ export interface StudentsFinancialListResponse {
     totalPages: number
     debtors: number
     paid: number
+    overpaid?: number
+    drift?: number
+    highRisk?: number
+    npl90?: number
     totalBalance: number
+    totalExpectedLoss?: number
   }
   filters: {
     classId?: number
     sectionId?: number
     optionId?: number
     status?: StudentFinancialStatus
+    sort?: StudentFinancialSort
+    minDebt?: number
+    minRisk?: number
     page?: number
     limit?: number
   }
@@ -696,9 +736,12 @@ export interface StudentsFinancialPrintReport {
     total: number
     debtors: number
     paid: number
+    overpaid?: number
+    drift?: number
     totalBalance: number
     totalFees: number
     totalPaid: number
+    totalExpectedLoss?: number
   }
   columns: string[]
   rows: Array<{
@@ -711,6 +754,9 @@ export interface StudentsFinancialPrintReport {
     dejaPaye: number
     solde: number
     statut: string
+    risque?: number
+    dpd?: number
+    ecl?: number
   }>
 }
 

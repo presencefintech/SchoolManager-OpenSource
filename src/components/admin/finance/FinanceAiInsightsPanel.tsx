@@ -23,6 +23,7 @@ import type {
   FinanceAiHorizon,
   FinanceAiInsightBundle,
 } from '@/lib/admin/finance-ai.utils'
+import { rewriteFinanceDeepLink } from '@/lib/admin/finance-ai.utils'
 
 const CHANNEL_ICON = {
   WHATSAPP: MessageCircle,
@@ -65,7 +66,7 @@ function ExecutiveHeader({ data }: { data: FinanceAiInsightBundle }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold text-white">
-          Santé financière {e.healthScore}/100
+          Score risque portefeuille {e.healthScore}/100
         </p>
         <p className="text-[11px] text-slate-400 mt-0.5">
           MoM {e.monthOverMonthPct >= 0 ? '+' : ''}
@@ -260,7 +261,7 @@ export function FinanceAiInsightsPanel({
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                EWMA · ECL · score santé · scénarios · contractuel
+                EWMA · ECL · score risque · scénarios · contractuel
               </p>
             </div>
           </div>
@@ -494,7 +495,7 @@ export function FinanceAiInsightsPanel({
                     <p className="mt-1 text-[11px] text-slate-300 leading-relaxed">{opp.message}</p>
                     {opp.href && (
                       <Link
-                        href={opp.href}
+                        href={rewriteFinanceDeepLink(opp.href, source) ?? opp.href}
                         className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-200"
                       >
                         Ouvrir <ArrowRight size={11} />
@@ -558,7 +559,7 @@ export function FinanceAiInsightsPanel({
                         </p>
                       </div>
                       <Link
-                        href={action.href}
+                        href={rewriteFinanceDeepLink(action.href, source) ?? action.href}
                         className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-400"
                       >
                         Voir fiche

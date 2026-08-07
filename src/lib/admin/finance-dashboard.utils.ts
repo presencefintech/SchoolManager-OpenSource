@@ -23,9 +23,10 @@ export function isEnterpriseDashboardDTO(raw: unknown): raw is EnterpriseDashboa
 /** Volume total des frais scolaires à partir de la dette et du taux de recouvrement. */
 export function deriveTotalFeesFromCollection(debt: number, collectionEfficiency: number): number {
   if (debt <= 0) return 0
-  if (collectionEfficiency >= 100) return debt
-  if (collectionEfficiency <= 0) return debt
-  return debt / (1 - collectionEfficiency / 100)
+  const rate = Math.min(100, Math.max(0, collectionEfficiency))
+  if (rate >= 100) return debt
+  if (rate <= 0) return debt
+  return debt / (1 - rate / 100)
 }
 
 /** F-01 — mappe le DTO nested backend vers FinanceKpi (cartes dashboard admin). */
@@ -35,15 +36,27 @@ export function mapEnterpriseDashboardToKpi(raw: unknown): FinanceKpi {
   }
 
   const { performance, audit, treasury } = raw
-  const debt = treasury.totalUnpaid
-  const totalDue = deriveTotalFeesFromCollection(debt, performance.collectionEfficiency)
-  const totalPaid = Math.max(0, totalDue - debt)
+  const debt = Math.max(0, Number(treasury.totalUnpaid ?? 0))
+  const ledgerFees = Number(treasury.totalFees ?? 0)
+  const ledgerPaid = Number(treasury.feesPaid ?? 0)
+  const cappedRate = Math.min(100, Math.max(0, Number(performance.collectionEfficiency ?? 0)))
+
+  // Préférer les totaux ledger (frais / payé / solde) — évite totalPaid=0 quand rate ≥ 100 % + dette > 0.
+  let totalDue: number
+  let totalPaid: number
+  if (ledgerFees > 0 || ledgerPaid > 0) {
+    totalDue = Math.max(ledgerFees, ledgerPaid + debt)
+    totalPaid = ledgerPaid > 0 ? ledgerPaid : Math.max(0, totalDue - debt)
+  } else {
+    totalDue = deriveTotalFeesFromCollection(debt, cappedRate)
+    totalPaid = Math.max(0, totalDue - debt)
+  }
 
   return {
     totalRevenue: performance.projectedRevenue,
     totalPaid,
     totalDue,
-    collectionRate: performance.collectionEfficiency,
+    collectionRate: cappedRate,
     pendingPayments: audit.pendingVerifications,
     fraudAlerts: audit.highRiskProfiles.length + (audit.suspiciousActivity ? 1 : 0),
     monthlyRevenue: performance.monthlyRevenue,
@@ -155,7 +168,7 @@ export function normalizeCollectionEfficiencyLevels(raw: unknown): FinanceCollec
       levelName: String(row.levelName ?? row.name ?? 'Niveau'),
       studentCount: Number(row.studentCount ?? row.count ?? 0),
       totalDue: Number(row.totalDue ?? row.due ?? 0),
-      efficiency: Number(row.efficiency ?? row.rate ?? 0),
+      efficiency: Math.min(100, Math.max(0, Number(row.efficiency ?? row.rate ?? 0))),
     }
   })
 }
@@ -172,7 +185,7 @@ export function summarizeCollectionEfficiency(levels: FinanceCollectionEfficienc
     : levels.reduce((sum, level) => sum + level.efficiency, 0) / levels.length
 
   return {
-    averageEfficiency: weightedEfficiency,
+    averageEfficiency: Math.min(100, Math.max(0, weightedEfficiency)),
     totalStudents,
     totalDue,
     levelCount: levels.length,
@@ -392,8 +405,11 @@ export function resolveFinanceDashboardDisplay(
 
   if (hasInsightTotals && (strategicMonetaryEmpty || strategicPaidMissing)) {
     const totalPaid = insightCollected
-    const totalDue = insightCollected + insightRemaining
-    const collectionRate = totalDue > 0 ? (totalPaid / totalDue) * 100 : insightRate
+    const totalDue = Math.max(insightCollected + insightRemaining, insightCollected)
+    const collectionRate = Math.min(
+      100,
+      totalDue > 0 ? (totalPaid / totalDue) * 100 : insightRate,
+    )
     return {
       totalPaid,
       totalDue,
@@ -405,7 +421,7 @@ export function resolveFinanceDashboardDisplay(
 
   const totalPaid = strategicPaid
   const totalDue = strategicDue > 0 ? strategicDue : insightCollected + insightRemaining
-  const collectionRate = totalDue > 0 && totalPaid >= 0
+  const rawRate = totalDue > 0 && totalPaid >= 0
     ? (totalPaid / totalDue) * 100
     : strategicRate > 0
       ? strategicRate
@@ -414,7 +430,7 @@ export function resolveFinanceDashboardDisplay(
   return {
     totalPaid,
     totalDue,
-    collectionRate,
+    collectionRate: Math.min(100, Math.max(0, rawRate)),
     totalFees: totalDue,
     projectedRevenue: strategicRevenue,
   }
@@ -446,8 +462,8 @@ const INSIGHT_LABELS: Record<string, string> = {
   BANK: 'Banque',
   MOBILE_MONEY: 'Mobile money',
   // enrichissements
-  scoreSante: 'Score de santé',
-  healthScore: 'Score de santé',
+  scoreSante: 'Score opérationnel',
+  healthScore: 'Score opérationnel',
   encaissementsMois: 'Encaissements du mois',
   collectedThisMonth: 'Encaissements du mois',
   variationMensuelle: 'Variation mensuelle',

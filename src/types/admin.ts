@@ -415,6 +415,36 @@ export interface CreateEnrollmentPayload {
   allergies?: string
   medicalNotes?: string
   nfcTagId?: string
+  /** Opt-in pack EXPLICIT à ASSIGN */
+  explicitFeeStructureIds?: number[]
+  autoAssignExplicitFees?: boolean
+}
+
+export type EnrollmentFeePreviewLine = {
+  feeStructureId: number
+  categoryId: number
+  categoryCode: string
+  categoryName: string
+  billingPeriod: string
+  amount: number
+  currency: string
+  source?: 'AUTOMATIC' | 'ASSIGN' | 'OVERRIDE' | 'EXEMPT' | 'PROPOSED'
+  assignmentMode?: string
+}
+
+export type EnrollmentFeePreview = {
+  sessionId?: number
+  academicYear: string
+  currency: string
+  totalFees: number
+  mode?: 'catalog' | 'student_effective'
+  asOf?: string
+  feeLines: EnrollmentFeePreviewLine[]
+}
+
+export type ExplicitFeePackResult = {
+  assigned: number[]
+  skipped: Array<{ feeStructureId: number; reason: string }>
 }
 
 export interface PaginatedResponse<T> {
@@ -746,6 +776,8 @@ export interface EnterpriseDashboardDTO {
   }
   treasury: {
     totalUnpaid: number
+    totalFees?: number
+    feesPaid?: number
     breakEvenRequirement: number
     badDebtEstimate: number
   }
@@ -1135,12 +1167,35 @@ export interface CreateFeeCategoryPayload {
   dueDayOfMonth?: number
 }
 
+export interface UpdateFeeCategoryPayload {
+  name?: string
+  description?: string | null
+  billingPeriod?: FeeBillingPeriod
+  dueDayOfMonth?: number | null
+  displayOrder?: number
+  isActive?: boolean
+  parentId?: number | null
+}
+
 export interface CreateFeeStructurePayload {
   sessionId: number
   categoryId: number
   amount: number
   classId?: number | null
   description?: string
+  assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
+}
+
+export interface UpdateFeeStructurePayload {
+  amount?: number
+  currency?: string
+  description?: string | null
+  isActive?: boolean
+  assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
 }
 
 export interface LinkOrphanPayload {

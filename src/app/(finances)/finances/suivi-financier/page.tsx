@@ -11,7 +11,7 @@ import {
   useFinanceClasses,
 } from '@/lib/hooks/use-finance'
 import { formatMoney } from '@/lib/finance/currency'
-import type { StudentsFinancialPrintReport } from '@/types/finance'
+import type { StudentFinancialSort, StudentFinancialStatus, StudentsFinancialPrintReport } from '@/types/finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -65,6 +65,7 @@ function openPrintReport(report: StudentsFinancialPrintReport) {
     <div>Débiteurs<strong>${report.summary.debtors}</strong></div>
     <div>En ordre<strong>${report.summary.paid}</strong></div>
     <div>Solde total<strong>${formatMoney(report.summary.totalBalance)}</strong></div>
+    ${report.summary.totalExpectedLoss != null ? `<div>ECL<strong>${formatMoney(report.summary.totalExpectedLoss)}</strong></div>` : ''}
   </div>
   <table>
     <thead><tr>${report.columns.map((c) => `<th>${c}</th>`).join('')}</tr></thead>
@@ -85,14 +86,28 @@ export default function SuiviFinancierPage() {
 
 function SuiviFinancierContent() {
   const searchParams = useSearchParams()
-  const initialStatus = searchParams.get('status') === 'DEBTOR' || searchParams.get('status') === 'PAID'
-    ? (searchParams.get('status') as 'DEBTOR' | 'PAID')
+  const statusParam = searchParams.get('status')
+  const initialStatus = (
+    [
+      'DEBTOR',
+      'PAID',
+      'OVERPAID',
+      'DRIFT',
+      'HIGH_RISK',
+      'NPL_90',
+      'AGING_0_30',
+      'AGING_31_60',
+      'AGING_61_90',
+    ] as StudentFinancialStatus[]
+  ).includes(statusParam as StudentFinancialStatus)
+    ? (statusParam as StudentFinancialStatus)
     : ''
 
   const [classId, setClassId] = useState(0)
   const [sectionId, setSectionId] = useState(0)
   const [optionId, setOptionId] = useState(0)
-  const [status, setStatus] = useState<'' | 'DEBTOR' | 'PAID'>(initialStatus)
+  const [status, setStatus] = useState<'' | StudentFinancialStatus>(initialStatus)
+  const [sort, setSort] = useState<StudentFinancialSort>('balance_desc')
   const [page, setPage] = useState(1)
 
   const filters = useMemo(
@@ -101,10 +116,11 @@ function SuiviFinancierContent() {
       sectionId: sectionId > 0 ? sectionId : undefined,
       optionId: optionId > 0 ? optionId : undefined,
       status: status || undefined,
+      sort,
       page,
       limit: 50,
     }),
-    [classId, sectionId, optionId, status, page],
+    [classId, sectionId, optionId, status, sort, page],
   )
 
   const { data, isLoading, isFetching, refetch } = useStudentsFinancial(filters)
@@ -206,7 +222,7 @@ function SuiviFinancierContent() {
       />
 
       {meta && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
           <div className="rounded-xl border border-zinc-200 bg-white p-4">
             <p className="text-xs text-zinc-500">Résultats</p>
             <p className="text-2xl font-bold text-zinc-900">{meta.total}</p>
@@ -227,9 +243,29 @@ function SuiviFinancierContent() {
             <p className="text-xs text-emerald-700 flex items-center gap-1"><CheckCircle2 size={12} /> En ordre</p>
             <p className="text-2xl font-bold text-emerald-800">{meta.paid}</p>
           </button>
+          <button
+            type="button"
+            onClick={() => { setStatus('HIGH_RISK'); setSort('risk_desc'); setPage(1) }}
+            className="rounded-xl border border-orange-100 bg-orange-50/40 p-4 text-left hover:bg-orange-50 transition-colors"
+          >
+            <p className="text-xs text-orange-700">Risque élevé</p>
+            <p className="text-2xl font-bold text-orange-900">{meta.highRisk ?? 0}</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setStatus('NPL_90'); setSort('dpd_desc'); setPage(1) }}
+            className="rounded-xl border border-red-200 bg-red-50/40 p-4 text-left hover:bg-red-50 transition-colors"
+          >
+            <p className="text-xs text-red-700">NPL 90+</p>
+            <p className="text-2xl font-bold text-red-900">{meta.npl90 ?? 0}</p>
+          </button>
           <div className="rounded-xl border border-zinc-200 bg-white p-4">
-            <p className="text-xs text-zinc-500">Solde total</p>
-            <p className="text-2xl font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance)}</p>
+            <p className="text-xs text-zinc-500">Solde · ECL</p>
+            <p className="text-lg font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance)}</p>
+            <p className="text-xs text-zinc-500 tabular-nums mt-0.5">
+              ECL {formatMoney(meta.totalExpectedLoss ?? 0)}
+              {(meta.drift ?? 0) > 0 ? ` · ${meta.drift} écart(s)` : ''}
+            </p>
           </div>
         </div>
       )}
@@ -287,13 +323,36 @@ function SuiviFinancierContent() {
             className={selectCls}
             value={status}
             onChange={(e) => {
-              setStatus(e.target.value as '' | 'DEBTOR' | 'PAID')
+              setStatus(e.target.value as '' | StudentFinancialStatus)
               setPage(1)
             }}
           >
-            <option value="">Tous statuts</option>
+            <option value="">Toutes situations</option>
             <option value="DEBTOR">Débiteurs</option>
             <option value="PAID">En ordre</option>
+            <option value="OVERPAID">Sur-payés</option>
+            <option value="DRIFT">Écart ledger</option>
+            <option value="HIGH_RISK">Risque élevé (≥70)</option>
+            <option value="NPL_90">NPL 90+ j</option>
+            <option value="AGING_0_30">Retard 0–30 j</option>
+            <option value="AGING_31_60">Retard 31–60 j</option>
+            <option value="AGING_61_90">Retard 61–90 j</option>
+          </select>
+          <select
+            className={selectCls}
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as StudentFinancialSort)
+              setPage(1)
+            }}
+          >
+            <option value="balance_desc">Tri · solde ↓</option>
+            <option value="balance_asc">Tri · solde ↑</option>
+            <option value="risk_desc">Tri · risque ↓</option>
+            <option value="dpd_desc">Tri · DPD ↓</option>
+            <option value="ecl_desc">Tri · ECL ↓</option>
+            <option value="collection_asc">Tri · recouvrement ↑</option>
+            <option value="name_asc">Tri · nom A→Z</option>
           </select>
         </div>
       </div>

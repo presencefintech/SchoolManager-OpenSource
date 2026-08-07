@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Inbox, Loader2, RefreshCw, UserCircle, UserPlus, Users } from 'lucide-react'
-import { useApproveEnrollment, useIntakeInbox } from '@/lib/hooks/use-admin'
+import { useApproveEnrollment, useIntakeInbox, useRejectEnrollment } from '@/lib/hooks/use-admin'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
@@ -25,7 +26,7 @@ const KIND_META: Record<
     tone: 'bg-violet-50 text-violet-700 border-violet-100',
   },
   PENDING_ENROLLMENT: {
-    label: 'Pending parent',
+    label: 'Pré-inscription parent',
     icon: UserPlus,
     tone: 'bg-amber-50 text-amber-800 border-amber-100',
   },
@@ -47,6 +48,7 @@ function formatWhen(iso: string) {
 
 export default function AdminIntakePage() {
   const toast = useToast()
+  const searchParams = useSearchParams()
   const [kind, setKind] = useState<Kind>('')
   const [page, setPage] = useState(1)
   const { data, isLoading, isFetching, refetch } = useIntakeInbox({
@@ -55,6 +57,20 @@ export default function AdminIntakePage() {
     limit: 40,
   })
   const approve = useApproveEnrollment()
+  const reject = useRejectEnrollment()
+  const [rejectTarget, setRejectTarget] = useState<{ id: number; name: string } | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+
+  useEffect(() => {
+    const raw = searchParams.get('kind')
+    if (
+      raw === 'PRE_ENROLLMENT' ||
+      raw === 'STUDENT_APPLICATION' ||
+      raw === 'PENDING_ENROLLMENT'
+    ) {
+      setKind(raw)
+    }
+  }, [searchParams])
 
   const items = data?.items ?? []
   const meta = data?.meta
@@ -70,11 +86,40 @@ export default function AdminIntakePage() {
 
   async function handleApprovePending(id: number) {
     try {
-      await approve.mutateAsync(id)
-      toast.success('Approuvé', 'Élève activé (matricule + QR).')
+      const res = await approve.mutateAsync(id)
+      const pack = res.data?.explicitFeePack
+      if (pack?.assigned?.length) {
+        toast.success(
+          'Approuvé',
+          `Élève activé — ${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
+        )
+      } else {
+        toast.success('Approuvé', 'Élève activé (matricule + QR).')
+      }
+      if (pack?.skipped?.length) {
+        toast.error('Frais partiels', `${pack.skipped.length} barème(s) non attribués.`)
+      }
       void refetch()
     } catch (err) {
       toast.error('Approbation impossible', getApiErrorMessage(err))
+    }
+  }
+
+  async function handleRejectPending() {
+    if (!rejectTarget) return
+    const reason = rejectReason.trim()
+    if (reason.length < 3) {
+      toast.error('Motif requis', 'Indiquez au moins 3 caractères.')
+      return
+    }
+    try {
+      await reject.mutateAsync({ studentId: rejectTarget.id, reason })
+      toast.success('Refusé', `Dossier de ${rejectTarget.name} refusé.`)
+      setRejectTarget(null)
+      setRejectReason('')
+      void refetch()
+    } catch (err) {
+      toast.error('Refus impossible', getApiErrorMessage(err))
     }
   }
 
@@ -172,14 +217,27 @@ export default function AdminIntakePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {item.kind === 'PENDING_ENROLLMENT' && (
-                      <button
-                        type="button"
-                        disabled={approve.isPending}
-                        onClick={() => void handleApprovePending(item.id)}
-                        className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        Approuver
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          disabled={approve.isPending || reject.isPending}
+                          onClick={() => void handleApprovePending(item.id)}
+                          className="rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          Approuver
+                        </button>
+                        <button
+                          type="button"
+                          disabled={approve.isPending || reject.isPending}
+                          onClick={() => {
+                            setRejectTarget({ id: item.id, name: item.studentName })
+                            setRejectReason('')
+                          }}
+                          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          Refuser
+                        </button>
+                      </>
                     )}
                     <Link
                       href={item.href}
@@ -192,6 +250,42 @@ export default function AdminIntakePage() {
               )
             })}
           </ul>
+        )}
+
+        {rejectTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+              <h2 className="text-base font-semibold text-zinc-900">Refuser le dossier</h2>
+              <p className="mt-1 text-sm text-zinc-500">{rejectTarget.name}</p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={3}
+                placeholder="Motif du refus (visible côté parent)…"
+                className="mt-3 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+              />
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectTarget(null)
+                    setRejectReason('')
+                  }}
+                  className="flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  disabled={reject.isPending}
+                  onClick={() => void handleRejectPending()}
+                  className="flex-1 rounded-xl bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {reject.isPending ? 'Envoi…' : 'Confirmer le refus'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {meta && meta.totalPages > 1 && (

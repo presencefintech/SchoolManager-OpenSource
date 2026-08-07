@@ -12,7 +12,7 @@ import type {
   CreateEnrollmentPayload, RecordPresencePayload, BulkPresencePayload,
   CreateClassPayload, RolloverPayload, ManualPaymentPayload, CreateMoratoriumPayload,
   GenerateParentCodePayload, InviteStaffPayload, RevokeStaffInvitationPayload, AttendanceSettings, PatchAttendanceSettingsPayload, SchoolBranding, BulkMoratoriumPayload,
-  FeeStructurePayload, CreateFeeStructurePayload, CreateFeeCategoryPayload,
+  FeeStructurePayload, CreateFeeStructurePayload, UpdateFeeStructurePayload, CreateFeeCategoryPayload, UpdateFeeCategoryPayload,
   LinkOrphanPayload, AdvancedSearchParams, MoratoriumType,
   StudentSecurityAction, ConfirmPaymentProofPayload, UpdateMoratoriumPolicyPayload,
   StudentApplication, StudentDetail, StudentListItem, PaginatedResponse, PresenceLiveFeedEntry,
@@ -370,7 +370,26 @@ export function useApproveEnrollment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (studentId: number) => enrollmentsApi.approve(studentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] }),
+    onSuccess: (_data, studentId) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
+    },
+  })
+}
+
+export function useRejectEnrollment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ studentId, reason }: { studentId: number; reason: string }) =>
+      enrollmentsApi.reject(studentId, reason),
+    onSuccess: (_data, { studentId }) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+    },
   })
 }
 
@@ -404,10 +423,32 @@ export function useAcademicSessions() {
   })
 }
 
-export function useEnrollmentFeePreview(classId?: number) {
+export function useEnrollmentFeePreview(
+  classId?: number,
+  options?: {
+    sessionId?: number
+    studentId?: number
+    explicitFeeStructureIds?: number[]
+  },
+) {
+  const explicitKey = (options?.explicitFeeStructureIds ?? []).slice().sort((a, b) => a - b).join(',')
   return useQuery({
-    queryKey: ['admin', 'enrollments', 'fee-preview', classId],
-    queryFn: () => enrollmentsApi.getFeePreview(classId!),
+    queryKey: [
+      'admin',
+      'enrollments',
+      'fee-preview',
+      classId,
+      options?.sessionId ?? null,
+      options?.studentId ?? null,
+      explicitKey,
+    ],
+    queryFn: () =>
+      enrollmentsApi.getFeePreview({
+        classId: classId!,
+        sessionId: options?.sessionId,
+        studentId: options?.studentId,
+        explicitFeeStructureIds: options?.explicitFeeStructureIds,
+      }),
     enabled: !!classId && classId > 0,
     staleTime: 60_000,
   })
@@ -415,7 +456,7 @@ export function useEnrollmentFeePreview(classId?: number) {
 
 export function useIntakeInbox(params?: { kind?: string; page?: number; limit?: number }) {
   return useQuery({
-    queryKey: ['admin', 'enrollments', 'intake', params],
+    queryKey: ['admin', 'enrollments', 'inbox', params],
     queryFn: () => enrollmentsApi.getIntakeInbox(params),
     staleTime: 20_000,
   })
@@ -435,6 +476,8 @@ export function useRentreePack() {
       collectDeposit?: boolean
       paymentNotes?: string
       type?: string
+      explicitFeeStructureIds?: number[]
+      autoAssignExplicitFees?: boolean
       idempotencyKey?: string
     }) => enrollmentsApi.applyRentreePack(studentId, payload),
     onSuccess: () => {
@@ -447,11 +490,23 @@ export function useRentreePack() {
 export function useEnrollInSession() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ studentId, ...payload }: { studentId: number; sessionId: number; classId?: number; type?: string }) =>
-      enrollmentsApi.enrollInSession(studentId, payload),
-    onSuccess: () => {
+    mutationFn: ({
+      studentId,
+      ...payload
+    }: {
+      studentId: number
+      sessionId: number
+      classId?: number
+      type?: string
+      autoAssignExplicitFees?: boolean
+      explicitFeeStructureIds?: number[]
+    }) => enrollmentsApi.enrollInSession(studentId, payload),
+    onSuccess: (_data, { studentId }) => {
       qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
       qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
     },
   })
 }
@@ -1118,6 +1173,23 @@ export function useCreateStudentFeeAssignment(studentId: number) {
   })
 }
 
+export function useUpdateStudentFeeAssignment(studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      assignmentId,
+      payload,
+    }: {
+      assignmentId: number
+      payload: import('@/types/finance').UpdateStudentFeeAssignmentPayload
+    }) => financeApi.updateStudentFeeAssignment(studentId, assignmentId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+    },
+  })
+}
+
 export function useRevokeStudentFeeAssignment(studentId: number) {
   const qc = useQueryClient()
   return useMutation({
@@ -1182,6 +1254,15 @@ export function useFeeStructures(params?: { classId?: number; sessionId?: number
   })
 }
 
+export function useFeeStructure(feeId: number | null | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-structures', 'by-id', feeId],
+    queryFn: () => financeApi.getFeeStructureById(feeId!),
+    enabled: feeId != null && feeId > 0,
+    staleTime: 60_000,
+  })
+}
+
 export function useFeeCategories(params?: { isActive?: boolean; billingPeriod?: string }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'fee-categories', params],
@@ -1200,11 +1281,54 @@ export function useCreateFeeCategory() {
   })
 }
 
+export function useUpdateFeeCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      categoryId,
+      payload,
+    }: {
+      categoryId: number
+      payload: UpdateFeeCategoryPayload
+    }) => financeApi.updateFeeCategory(categoryId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-categories'] })
+    },
+  })
+}
+
+export function useDeleteFeeCategory() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (categoryId: number) => financeApi.softDeleteFeeCategory(categoryId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-categories'] })
+    },
+  })
+}
+
 export function useCreateFeeStructure() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (payload: CreateFeeStructurePayload) => financeApi.createFeeStructure(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance'] }),
+  })
+}
+
+export function useUpdateFeeStructure() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      feeId,
+      payload,
+    }: {
+      feeId: number
+      payload: UpdateFeeStructurePayload
+    }) => financeApi.updateFeeStructure(feeId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-structures'] })
+    },
   })
 }
 

@@ -65,6 +65,8 @@ export const enrollmentCreateSchema = z
     allergies: z.string().max(500).optional().or(z.literal('')),
     medicalNotes: z.string().max(1000).optional().or(z.literal('')),
     nfcTagId: z.string().min(8).max(64).optional().or(z.literal('')),
+    autoAssignExplicitFees: z.boolean().default(false),
+    explicitFeeStructureIds: z.array(z.number().int().positive()).max(50).default([]),
   })
 
 export type EnrollmentCreateForm = z.infer<typeof enrollmentCreateSchema>
@@ -159,6 +161,10 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     allergies: trimOptional(data.allergies),
     medicalNotes: trimOptional(data.medicalNotes),
     nfcTagId: trimOptional(data.nfcTagId),
+    ...(data.autoAssignExplicitFees ? { autoAssignExplicitFees: true } : {}),
+    ...(data.explicitFeeStructureIds?.length
+      ? { explicitFeeStructureIds: data.explicitFeeStructureIds }
+      : {}),
   }
 }
 
@@ -188,4 +194,6 @@ export const ENROLLMENT_CREATE_DEFAULTS: EnrollmentCreateForm = {
   allergies: '',
   medicalNotes: '',
   nfcTagId: '',
+  autoAssignExplicitFees: false,
+  explicitFeeStructureIds: [],
 }

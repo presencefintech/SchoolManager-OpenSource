@@ -9,7 +9,42 @@ import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-sched
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import type { FeeScheduleLineDto, StudentFinancialRow } from '@/types/finance'
 
-const STATUS_LABEL: Record<string, string> = {
+const SITUATION_LABEL: Record<string, string> = {
+  PAID: 'En ordre',
+  DEBTOR: 'Débiteur',
+  OVERPAID: 'Sur-payé',
+  DRIFT: 'Écart ledger',
+  HIGH_RISK: 'Risque élevé',
+  NPL_90: 'NPL 90+ j',
+  AGING_0_30: 'Retard 0–30 j',
+  AGING_31_60: 'Retard 31–60 j',
+  AGING_61_90: 'Retard 61–90 j',
+}
+
+function situationTone(status: string): string {
+  switch (status) {
+    case 'PAID':
+      return 'bg-emerald-50 text-emerald-700'
+    case 'OVERPAID':
+      return 'bg-sky-50 text-sky-700'
+    case 'DRIFT':
+      return 'bg-amber-50 text-amber-800'
+    case 'NPL_90':
+    case 'HIGH_RISK':
+      return 'bg-red-100 text-red-800'
+    case 'AGING_61_90':
+      return 'bg-orange-50 text-orange-800'
+    case 'AGING_31_60':
+      return 'bg-amber-50 text-amber-700'
+    case 'DEBTOR':
+    case 'AGING_0_30':
+      return 'bg-red-50 text-red-700'
+    default:
+      return 'bg-zinc-100 text-zinc-600'
+  }
+}
+
+const FEE_LINE_STATUS_LABEL: Record<string, string> = {
   PAID: 'Payé',
   PARTIALLY_PAID: 'Partiel',
   DUE: 'Dû',
@@ -48,7 +83,28 @@ function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
           <tbody className="divide-y divide-zinc-50">
             {lines.map((line) => (
               <tr key={`${line.feeStructureId}-${line.monthYear ?? 'once'}-${line.categoryId}`}>
-                <td className="px-3 py-2 font-medium text-zinc-800">{line.categoryName}</td>
+                <td className="px-3 py-2 font-medium text-zinc-800">
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    {line.categoryName}
+                    {line.attributionSource && line.attributionSource !== 'AUTOMATIC' && (
+                      <span
+                        className={cn(
+                          'rounded px-1 py-0.5 text-[9px] font-medium',
+                          line.attributionSource === 'ASSIGN' && 'bg-sky-50 text-sky-700',
+                          line.attributionSource === 'OVERRIDE' && 'bg-amber-50 text-amber-800',
+                          line.attributionSource === 'EXEMPT' && 'bg-zinc-100 text-zinc-600',
+                        )}
+                        title={line.attributionReason ?? undefined}
+                      >
+                        {line.attributionSource === 'ASSIGN'
+                          ? 'Attribué'
+                          : line.attributionSource === 'OVERRIDE'
+                            ? 'Custom'
+                            : 'Exonéré'}
+                      </span>
+                    )}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-zinc-500">{line.monthYear ?? '—'}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{formatMoney(line.amount)}</td>
                 <td className="px-3 py-2 text-right tabular-nums text-emerald-700">
@@ -73,7 +129,7 @@ function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
                           : 'bg-amber-50 text-amber-800',
                     )}
                   >
-                    {STATUS_LABEL[line.status] ?? line.status}
+                    {FEE_LINE_STATUS_LABEL[line.status] ?? line.status}
                   </span>
                 </td>
               </tr>
@@ -146,8 +202,14 @@ export function StudentFinancialControlRows({
           <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Solde
           </th>
+          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Risque
+          </th>
+          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            DPD
+          </th>
           <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Statut
+            Situation
           </th>
           <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Actions
@@ -157,6 +219,7 @@ export function StudentFinancialControlRows({
       <tbody className="divide-y divide-zinc-50">
         {rows.map((row) => {
           const open = expandedId === row.id
+          const situation = row.situation ?? row.financialStatus
           return (
             <Fragment key={row.id}>
               <tr className="hover:bg-zinc-50/80 transition-colors">
@@ -195,21 +258,31 @@ export function StudentFinancialControlRows({
                 <td
                   className={cn(
                     'px-5 py-3 text-sm text-right font-semibold tabular-nums',
-                    row.balance > 0 ? 'text-red-600' : 'text-zinc-700',
+                    row.balance > 0.01 ? 'text-red-600' : row.balance < -0.01 ? 'text-sky-700' : 'text-zinc-700',
                   )}
                 >
                   {formatMoney(row.balance)}
+                  {row.ledgerCoherent === false && (
+                    <p className="text-[10px] font-normal text-amber-600">écart {formatMoney(row.ledgerDrift ?? 0)}</p>
+                  )}
+                </td>
+                <td className="px-5 py-3 text-sm text-right tabular-nums font-semibold text-zinc-800">
+                  {row.riskScore != null ? row.riskScore : '—'}
+                  {row.expectedLoss != null && row.expectedLoss > 0 && (
+                    <p className="text-[10px] font-normal text-zinc-400">ECL {formatMoney(row.expectedLoss)}</p>
+                  )}
+                </td>
+                <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-600">
+                  {row.daysPastDue != null && row.balance > 0.01 ? `${row.daysPastDue} j` : '—'}
                 </td>
                 <td className="px-5 py-3">
                   <span
                     className={cn(
                       'text-xs font-medium px-2 py-0.5 rounded-full',
-                      row.financialStatus === 'DEBTOR'
-                        ? 'bg-red-50 text-red-700'
-                        : 'bg-emerald-50 text-emerald-700',
+                      situationTone(situation),
                     )}
                   >
-                    {row.financialStatus === 'DEBTOR' ? 'Débiteur' : 'En ordre'}
+                    {SITUATION_LABEL[situation] ?? situation}
                   </span>
                 </td>
                 <td className="px-5 py-3 text-right">
@@ -221,7 +294,7 @@ export function StudentFinancialControlRows({
               </tr>
               {open && (
                 <tr>
-                  <td colSpan={8} className="p-0">
+                  <td colSpan={10} className="p-0">
                     <ExpandedFeeSchedule
                       studentId={row.id}
                       scheduleHref={scheduleHref?.(row.id)}

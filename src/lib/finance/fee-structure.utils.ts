@@ -5,11 +5,14 @@ export type FeeStructureListItem = {
   description?: string
   sessionId?: number
   classId?: number
+  categoryId?: number
   categoryName?: string
   billingPeriod?: string
   isActive?: boolean
   currency?: string
   assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
 }
 
 export function normalizeFeeStructureListItem(row: unknown): FeeStructureListItem | null {
@@ -22,6 +25,11 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
   const description = typeof r.description === 'string' ? r.description.trim() : ''
   const categoryName =
     typeof category?.name === 'string' ? category.name.trim() : undefined
+  const categoryIdRaw = r.categoryId ?? category?.id
+  const categoryId =
+    categoryIdRaw != null && Number.isFinite(Number(categoryIdRaw))
+      ? Number(categoryIdRaw)
+      : undefined
   const label =
     description ||
     categoryName ||
@@ -36,6 +44,7 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
     description: description || undefined,
     sessionId: r.sessionId != null ? Number(r.sessionId) : undefined,
     classId: r.classId != null ? Number(r.classId) : undefined,
+    categoryId,
     categoryName,
     billingPeriod:
       typeof category?.billingPeriod === 'string' ? category.billingPeriod : undefined,
@@ -45,6 +54,8 @@ export function normalizeFeeStructureListItem(row: unknown): FeeStructureListIte
       r.assignmentMode === 'EXPLICIT' || r.assignmentMode === 'AUTOMATIC'
         ? r.assignmentMode
         : undefined,
+    effectiveFrom: typeof r.effectiveFrom === 'string' ? r.effectiveFrom : null,
+    effectiveTo: typeof r.effectiveTo === 'string' ? r.effectiveTo : null,
   }
 }
 

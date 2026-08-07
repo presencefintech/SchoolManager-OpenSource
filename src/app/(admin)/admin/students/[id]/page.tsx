@@ -267,6 +267,12 @@ export default function StudentDetailPage() {
   const syncMutation = useSyncBalance()
   const { mutate: logPiiAccess } = useLogPiiAccess()
 
+  const feeAttributionSessionId = useMemo(() => {
+    const enrollments = enrollmentDetail?.enrollments ?? []
+    const current = enrollments.find((e) => e.session?.isCurrent)
+    return current?.sessionId ?? enrollments[0]?.sessionId
+  }, [enrollmentDetail?.enrollments])
+
   useEffect(() => {
     if (!studentId) return
     logPiiAccess({ id: studentId, reason: 'Consultation fiche élève' }, { onError: () => {} })
@@ -655,7 +661,10 @@ export default function StudentDetailPage() {
               </div>
 
               <div className="border-t border-zinc-100 pt-5 space-y-5">
-                <StudentFeeAssignmentPanel studentId={studentId} />
+                <StudentFeeAssignmentPanel
+                  studentId={studentId}
+                  sessionId={feeAttributionSessionId}
+                />
                 <StudentFinanceDashboard
                   studentId={studentId}
                   api="admin"

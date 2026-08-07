@@ -155,6 +155,8 @@ export default function DebiteursPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Matricule</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-500">Classe</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Solde dû</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">Risque</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-zinc-500">DPD</th>
                   <th className="px-5 py-3 text-xs font-semibold text-zinc-500">Actions</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -171,9 +173,28 @@ export default function DebiteursPage() {
                   >
                     <td className="px-5 py-3.5 font-medium text-zinc-900">{formatStudentFullName(dbtr)}</td>
                     <td className="px-5 py-3.5 text-xs text-zinc-400 font-mono">{dbtr.matricule ?? '—'}</td>
-                    <td className="px-5 py-3.5 text-zinc-500">{dbtr.class?.name ?? '—'}</td>
+                    <td className="px-5 py-3.5 text-zinc-500">{dbtr.class?.name ?? dbtr.className ?? '—'}</td>
                     <td className="px-5 py-3.5 text-right font-semibold text-red-600">
-                      {dbtr.feesBalance != null ? formatMoney(Number(dbtr.feesBalance)) : '—'}
+                      {dbtr.feesBalance != null || dbtr.balance != null
+                        ? formatMoney(Number(dbtr.balance ?? dbtr.feesBalance))
+                        : '—'}
+                      {dbtr.ledgerCoherent === false && (
+                        <p className="text-[10px] font-normal text-amber-600">écart ledger</p>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-right tabular-nums font-semibold text-zinc-800">
+                      {dbtr.riskScore != null ? dbtr.riskScore : '—'}
+                      {dbtr.expectedLoss != null && Number(dbtr.expectedLoss) > 0 && (
+                        <p className="text-[10px] font-normal text-zinc-400">
+                          ECL {formatMoney(Number(dbtr.expectedLoss))}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-right tabular-nums text-zinc-600">
+                      {dbtr.daysPastDue != null ? `${dbtr.daysPastDue} j` : '—'}
+                      {dbtr.situation && (
+                        <p className="text-[10px] text-zinc-400">{String(dbtr.situation)}</p>
+                      )}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
