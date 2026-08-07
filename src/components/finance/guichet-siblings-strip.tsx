@@ -44,6 +44,11 @@ export function GuichetSiblingsStrip({
             <>
               <span className="font-medium text-zinc-900 truncate max-w-[10rem]">{s.name}</span>
               <span className="text-zinc-400">{s.matricule}</span>
+              {s.isCrossSite && s.schoolName ? (
+                <span className="rounded bg-amber-100 px-1 py-0.5 text-[10px] font-medium text-amber-900">
+                  {s.schoolName}
+                </span>
+              ) : null}
               {s.className ? <span className="text-zinc-500">{s.className}</span> : null}
               <span
                 className={cn(

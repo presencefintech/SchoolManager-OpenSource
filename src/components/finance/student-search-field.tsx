@@ -68,6 +68,11 @@ export function FinanceStudentSearchField({
             {selected.className && (
               <p className="text-xs text-emerald-700/70">{selected.className}</p>
             )}
+            {selected.isCrossSite && selected.schoolName ? (
+              <p className="text-[10px] font-medium text-amber-800 mt-0.5">
+                Inscrit · {selected.schoolName}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -116,6 +121,11 @@ export function FinanceStudentSearchField({
                     {s.className && (
                       <span className="mt-0.5 block text-xs text-zinc-400">{s.className}</span>
                     )}
+                    {s.isCrossSite && s.schoolName ? (
+                      <span className="mt-0.5 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
+                        {s.schoolName}
+                      </span>
+                    ) : null}
                     {i === 0 ? (
                       <span className="mt-0.5 block text-[10px] font-medium text-emerald-700">
                         Entrée pour ouvrir

@@ -21,6 +21,8 @@ export { filesApi }        from './files.api'
 export { fraudApi }        from './fraud.api'
 export { anomaliesApi }    from './anomalies.api'
 export { emailsApi }       from './emails.api'
+export { schoolNetworkApi, adminNetworkApi } from './school-network.api'
+export type { SchoolNetworkGroup, SchoolNetworkMember, SchoolNetworkOption } from './school-network.api'
 
 export const superAdminApi = {
   ...financeApi,

@@ -28,6 +28,9 @@ export type ThermalReceiptPayload = {
       schoolSlogan?: string | null
       schoolDevise?: string | null
       schoolLogoUrl?: string | null
+      isCrossSite?: boolean
+      enrollmentSchoolName?: string | null
+      collectionSchoolName?: string | null
     }
     motive?: {
       summaryLabel?: string
@@ -113,6 +116,18 @@ export function ReceiptTicketPreview({
             ) : null}
           </span>
         </div>
+        {entities?.isCrossSite ? (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] text-amber-950 space-y-0.5">
+            <p>
+              <span className="font-semibold">Inscrit :</span>{' '}
+              {entities.enrollmentSchoolName ?? '—'}
+            </p>
+            <p>
+              <span className="font-semibold">Encaissé :</span>{' '}
+              {entities.collectionSchoolName ?? '—'}
+            </p>
+          </div>
+        ) : null}
         <div className="flex justify-between gap-2">
           <span className="text-zinc-500">Montant</span>
           <span className="font-semibold tabular-nums text-emerald-700">

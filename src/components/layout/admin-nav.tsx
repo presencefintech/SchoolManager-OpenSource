@@ -7,7 +7,7 @@ import { useCallback } from 'react'
 import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
-  Settings, CreditCard, FileText, Clock, Shield, Building2,
+  Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
   Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -58,6 +58,7 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Moratoires', href: '/admin/finance/moratoriums', icon: Clock },
           { label: 'Lots scellés', href: '/admin/finance/scelles', icon: Fingerprint },
           { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
+          { label: 'Réseau & hub', href: '/admin/finance/reseau', icon: Network },
           { label: 'Caisse & fonds', href: '/admin/finance/caisse', icon: Wallet },
           { label: 'Audit & Fraude', href: '/admin/finance/audit', icon: Shield },
           { label: 'Vérifier reçu', href: '/verify', icon: QrCode },

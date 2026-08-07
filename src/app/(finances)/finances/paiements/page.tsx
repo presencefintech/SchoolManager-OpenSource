@@ -19,6 +19,7 @@ import {
 import {
   useDailyCashReport,
   useGuichetDashboard,
+  useNetworkContext,
   usePendingPayments,
   useResolvedCashSession,
   useStudentWallet,
@@ -26,12 +27,14 @@ import {
 import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { GuichetSiblingsStrip } from '@/components/finance/guichet-siblings-strip'
+import { GuichetCrossSiteBanner } from '@/components/finance/guichet-cross-site-banner'
+import { GuichetNetworkOpsCard } from '@/components/finance/guichet-network-ops-card'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { fadeUp } from '@/lib/animations'
 import { formatMoney } from '@/lib/finance/currency'
 import { labelMoratorium, labelMoratoriumType } from '@/lib/business-labels'
 import { cn } from '@/lib/utils'
-import type { CashSession } from '@/types/finance'
+import type { CashSession, GuichetDashboard } from '@/types/finance'
 
 function sessionOpening(session: CashSession | null | undefined): number | null {
   if (!session) return null
@@ -334,6 +337,7 @@ export default function PaiementsPage() {
   const [studentId, setStudentId] = useState(0)
   const { data: dailyCash = [], refetch: refetchCash, isFetching } = useDailyCashReport()
   const { data: guichet } = useGuichetDashboard()
+  const { data: network } = useNetworkContext()
   const academicSessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)
     ?.currentAcademicSessionId ?? undefined
   const collectionsToday = (
@@ -390,6 +394,18 @@ export default function PaiementsPage() {
         <CashSessionBanner />
       </div>
 
+      {network?.groupName && (network.sites?.length ?? 0) > 1 ? (
+        <div className="mb-5 rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-xs text-sky-950">
+          <p className="font-semibold">{network.groupName}</p>
+          <p className="mt-0.5 text-sky-800/80">
+            {network.canCollectCrossSite
+              ? `Recherche multi-sites · ${network.sites.length} établissements`
+              : 'Encaissement local — la caisse hub du réseau traite les autres sites'}
+            {network.isPaymentHub ? ' · vous êtes le hub' : ''}
+          </p>
+        </div>
+      ) : null}
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
           <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
@@ -417,6 +433,7 @@ export default function PaiementsPage() {
 
           {studentId > 0 ? (
             <motion.div variants={fadeUp} initial="hidden" animate="show" className="space-y-4">
+              <GuichetCrossSiteBanner studentId={studentId} />
               <StudentWalletStrip studentId={studentId} />
               <GuichetSiblingsStrip
                 studentId={studentId}
@@ -443,6 +460,9 @@ export default function PaiementsPage() {
         </div>
 
         <aside className="space-y-4">
+          {(guichet as GuichetDashboard | undefined)?.network ? (
+            <GuichetNetworkOpsCard network={(guichet as GuichetDashboard).network!} />
+          ) : null}
           <MethodMixToday byMethod={collectionsToday?.byMethod} />
           <PendingVerificationsCard />
 

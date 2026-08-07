@@ -25,6 +25,15 @@ export function useGuichetDashboard() {
   })
 }
 
+/** Réseau scolaire — sites accessibles depuis la caisse (hub multi-sites). */
+export function useNetworkContext() {
+  return useQuery({
+    queryKey: ['finance', 'network', 'context'],
+    queryFn: financeRoleApi.getNetworkContext,
+    staleTime: 120_000,
+  })
+}
+
 /** F-04 — session académique active (depuis guichet dashboard, cache partagé). */
 export function useFinanceAcademicSessionId() {
   const { data: guichet, isLoading, isSuccess } = useGuichetDashboard()

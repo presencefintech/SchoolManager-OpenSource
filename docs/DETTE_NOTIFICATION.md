@@ -241,7 +241,7 @@ Traçabilité **partielle** (audit présence, `EmailLog` pour emails admin), **p
 |-------|-------------------|-----------------|
 | **OTP SMS** | 5 req / 15 min, cooldown 60 s, 5 verify / 15 min | ✅ Oui |
 | **Email admin manuel** | Quota journalier par école (`checkEmailQuota`) | ⚠️ Partiel |
-| **Email notification système** | Retry 3× dans `sendEmail`, pool SMTP 5 conn. | ❌ Insuffisant |
+| **Email notification système** | Global + école / min (`EmailRateLimitPolicy`, Redis) | ✅ Oui |
 | **SMS notification** | **Absent** (non implémenté) | ❌ Non conforme |
 | **Push FCM** | Aucun throttle | ⚠️ Dépend batching FCM |
 
@@ -399,7 +399,7 @@ Cocher au fur et à mesure de la résolution.
 ### P2 — Scalabilité & UX
 
 - [x] **NOTIF-P2-1** : File `notification-fanout` BullMQ + batch outbox 25 (seuil ≥ 3 destinataires)
-- [ ] **NOTIF-P2-2** : Throttle SMTP global (éviter blacklist)
+- [x] **NOTIF-P2-2** : Throttle SMTP global (éviter blacklist)
 - [ ] **NOTIF-P2-3** : Circuit breaker provider SMS
 - [ ] **INV-P2-1** : SMS invitation parent (push code à l'activation admin)
 - [ ] **INV-P2-2** : Deep link mobile activation
@@ -514,14 +514,14 @@ model NotificationDelivery {
 
 | Question | Réponse |
 |----------|---------|
-| **500 notifs simultanées ?** | Outbox + **fan-out** BullMQ, rate limit SMS — goulot SMTP restant |
+| **500 notifs simultanées ?** | Outbox + **fan-out** BullMQ, rate limit SMS + SMTP |
 | **Atomicité présence/notif ?** | Présence **forte**, notification **outbox** + retry par canal |
-| **Rate limit SaaS ?** | OTP **oui**, SMS notif **oui** (école/min + cooldown tel) |
+| **Rate limit SaaS ?** | OTP **oui**, SMS notif **oui**, email notif **oui** (global + école/min) |
 | **OTP ?** | Login parent ; infra SMS réutilisée pour notifications présence |
 
 ### Verdict global (post-implémentation juillet 2026)
 
-Pipeline **production-ready** pour MVP à grande communauté : outbox, SMS, DLQ, fan-out. Reste : throttle SMTP global (P2-2), dashboard DLQ frontend (P3-2).
+Pipeline **production-ready** pour MVP à grande communauté : outbox, SMS, DLQ, fan-out, throttle SMTP. Reste : dashboard DLQ frontend (P3-2).
 
 ---
 

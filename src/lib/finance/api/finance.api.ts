@@ -293,8 +293,16 @@ export const financeRoleApi = {
   searchStudents: (query: string) =>
     apiClient.get('/finance/students/search', { params: { q: query, limit: 15 } }).then(r => {
       const d = r.data.data
-      return (Array.isArray(d) ? d : (d?.results ?? [])) as { id: number; name: string; matricule: string; className: string | null }[]
+      return (Array.isArray(d) ? d : (d?.results ?? [])) as import('@/types/finance').FinanceStudentResult[]
     }),
+
+  getNetworkContext: () =>
+    apiClient.get('/finance/network/context').then(r => r.data.data as import('@/types/finance').NetworkContext),
+
+  getNetworkClearing: (params?: { from?: string; to?: string }) =>
+    apiClient
+      .get('/finance/network/clearing', { params })
+      .then((r) => r.data.data as import('@/types/finance').NetworkClearing),
 
   getStudentWallet: (id: number) =>
     apiClient.get(`/finance/students/${id}/wallet`).then(r => r.data.data),
@@ -309,6 +317,9 @@ export const financeRoleApi = {
         name: string
         className: string | null
         balance: number
+        schoolId?: number
+        schoolName?: string
+        isCrossSite?: boolean
       }[]
     }),
 

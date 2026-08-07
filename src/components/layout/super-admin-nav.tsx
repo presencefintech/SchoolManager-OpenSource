@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench, UserCircle } from 'lucide-react'
+import { LogOut, LayoutDashboard, Building2, UserPlus, ScanLine, GraduationCap, BookOpen, ShieldAlert, Download, Banknote, KeyRound, Shield, Receipt, Bell, Wrench, UserCircle, Network } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -13,6 +13,7 @@ import { superAdminApi } from '@/lib/superAdmin/api'
 const NAV_LINKS = [
   { label: 'Dashboard',       href: '/super-admin/dashboard',  icon: LayoutDashboard },
   { label: 'Établissements',  href: '/super-admin/schools',    icon: Building2 },
+  { label: 'Réseaux',         href: '/super-admin/school-networks', icon: Network },
   { label: 'Inscriptions',    href: '/super-admin/enrollment', icon: UserPlus },
   { label: 'Présence',        href: '/super-admin/presence',   icon: ScanLine },
   { label: 'Élèves',          href: '/super-admin/students',   icon: GraduationCap },

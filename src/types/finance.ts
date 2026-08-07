@@ -87,6 +87,20 @@ export interface GuichetDashboard {
     count: number
     byMethod: { method: string; amount: number; count: number }[]
   }
+  network?: {
+    groupId: number | null
+    groupName: string | null
+    isPaymentHub: boolean
+    canCollectCrossSite: boolean
+    sitesCount: number
+    crossSiteToday: { amount: number; count: number }
+    byEnrollmentCampusToday: Array<{
+      enrollmentSchoolId: number
+      enrollmentSchoolName: string
+      amount: number
+      count: number
+    }>
+  } | null
   pendingVerifications: number
   pendingRefunds: number
   approvedRefundsAwaitingProcess: number
@@ -424,6 +438,62 @@ export interface FinanceStudentResult {
   name: string
   matricule: string
   className: string | null
+  schoolId?: number
+  schoolName?: string
+  isCrossSite?: boolean
+}
+
+export interface NetworkSite {
+  id: number
+  name: string
+  city: string | null
+  isPaymentHub: boolean
+  isCurrentSite: boolean
+}
+
+export interface NetworkContext {
+  groupId: number | null
+  groupName: string | null
+  collectionSiteId: number
+  collectionSiteName: string
+  isPaymentHub: boolean
+  canCollectCrossSite?: boolean
+  sites: NetworkSite[]
+  ops?: {
+    collectedToday: { amount: number; count: number }
+    crossSiteToday: { amount: number; count: number }
+    byEnrollmentCampusToday: Array<{
+      enrollmentSchoolId: number
+      enrollmentSchoolName: string
+      amount: number
+      count: number
+    }>
+    crossSiteMonth: { amount: number; count: number }
+    canCollectCrossSite: boolean
+  }
+}
+
+export interface NetworkClearingPosition {
+  enrollmentSchoolId: number
+  enrollmentSchoolName: string
+  amountDueToCampus: number
+  paymentCount: number
+  currency: string
+  direction: 'HUB_OWES_CAMPUS'
+}
+
+export interface NetworkClearing {
+  groupId: number
+  groupName: string
+  collectionSiteId: number
+  collectionSiteName: string
+  isPaymentHub: boolean
+  period: { from: string; to: string }
+  currency: string
+  localCollected: { amount: number; count: number }
+  crossSiteTotal: { amount: number; count: number }
+  positions: NetworkClearingPosition[]
+  summaryLabel: string
 }
 
 export interface FeeStructure {
