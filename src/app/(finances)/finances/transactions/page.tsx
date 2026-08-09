@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Search, RefreshCw, Download, Filter, ChevronLeft, ChevronRight,
 } from 'lucide-react'
-import { useSearchTransactions } from '@/lib/hooks/use-finance'
+import { useSearchTransactions, useFinanceClasses } from '@/lib/hooks/use-finance'
 import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { FinancePageHeader, FinancePageShell, FinancePanel, FinanceEmptyState } from '@/components/finance/finance-page-shell'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
@@ -50,26 +50,45 @@ type TxRow = {
 type SearchParams = {
   status?: string
   studentId?: number
+  classId?: number
+  sectionId?: number
+  optionId?: number
+  method?: string
+  search?: string
   startDate?: string
   endDate?: string
+  minAmount?: number
+  maxAmount?: number
+  currency?: string
   limit: number
   page: number
 }
 
 const QUICK_FILTERS = [
-  { label: "Aujourd'hui", status: 'CONFIRMED' },
-  { label: 'En attente', status: 'PENDING' },
-  { label: 'Tous confirmés', status: 'CONFIRMED' },
+  { label: "Aujourd'hui", patch: {} },
+  { label: '7 derniers jours', patch: { days: 7 as const } },
+  { label: 'En attente', patch: { status: 'PENDING' } },
+  { label: 'Confirmés', patch: { status: 'CONFIRMED' } },
+  { label: 'Espèces', patch: { method: 'CASH' } },
+  { label: 'Mobile Money', patch: { method: 'ORANGE_MONEY' } },
 ] as const
 
 export default function TransactionsPage() {
   const today = new Date().toISOString().slice(0, 10)
+  const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
   const [draft, setDraft] = useState({
     status: '',
     method: '',
+    search: '',
     studentId: 0,
+    sectionId: 0,
+    optionId: 0,
+    classId: 0,
     startDate: today,
     endDate: today,
+    minAmount: '',
+    maxAmount: '',
+    currency: '',
     limit: '25',
   })
   const [params, setParams] = useState<SearchParams>({
@@ -81,30 +100,82 @@ export default function TransactionsPage() {
   const [searched, setSearched] = useState(true)
 
   const { data: results, isLoading, isFetching, refetch } = useSearchTransactions(params)
+  const { data: classesRaw } = useFinanceClasses()
+
+  const classes: Array<{
+    id: number
+    name: string
+    sectionId?: number
+    optionId?: number
+    section?: { id: number; name: string }
+    option?: { id: number; name: string }
+  }> = Array.isArray(classesRaw) ? classesRaw : (classesRaw as { data?: unknown[] })?.data ?? []
+
+  const sections = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const c of classes) {
+      const id = c.sectionId ?? c.section?.id
+      const name = c.section?.name
+      if (id && name) map.set(id, name)
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+  }, [classes])
+
+  const options = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const c of classes) {
+      if (draft.sectionId > 0 && (c.sectionId ?? c.section?.id) !== draft.sectionId) continue
+      const id = c.optionId ?? c.option?.id
+      const name = c.option?.name
+      if (id && name) map.set(id, name)
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
+  }, [classes, draft.sectionId])
+
+  const filteredClasses = useMemo(() => {
+    return classes.filter((c) => {
+      if (draft.sectionId > 0 && (c.sectionId ?? c.section?.id) !== draft.sectionId) return false
+      if (draft.optionId > 0 && (c.optionId ?? c.option?.id) !== draft.optionId) return false
+      return true
+    })
+  }, [classes, draft.sectionId, draft.optionId])
 
   const rawTransactions: TxRow[] = (results as { data?: TxRow[] })?.data ?? (Array.isArray(results) ? results : [])
-  const transactions = useMemo(
-    () => (draft.method ? rawTransactions.filter((t) => t.method === draft.method) : rawTransactions),
-    [rawTransactions, draft.method],
-  )
+  const transactions = rawTransactions
   const total: number = (results as { total?: number })?.total ?? transactions.length
   const totalPages: number = (results as { totalPages?: number; lastPage?: number })?.totalPages
     ?? (results as { lastPage?: number })?.lastPage
     ?? 1
 
+  const apiTotalAmount = (results as { totalAmount?: number })?.totalAmount
   const totalAmount = useMemo(
-    () => transactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0),
-    [transactions],
+    () =>
+      apiTotalAmount != null
+        ? Number(apiTotalAmount)
+        : transactions.reduce((acc, t) => acc + (Number(t.amount) || 0), 0),
+    [transactions, apiTotalAmount],
   )
 
-  function applySearch(overrides?: Partial<typeof draft> & { page?: number }) {
+  function applySearch(overrides?: Partial<typeof draft> & { page?: number; days?: number }) {
     const next = { ...draft, ...overrides }
+    if (overrides?.days === 7) {
+      next.startDate = weekAgo
+      next.endDate = today
+    }
     setDraft(next)
     setParams({
       status: next.status || undefined,
       studentId: next.studentId > 0 ? next.studentId : undefined,
+      classId: next.classId > 0 ? next.classId : undefined,
+      sectionId: next.sectionId > 0 ? next.sectionId : undefined,
+      optionId: next.optionId > 0 ? next.optionId : undefined,
+      method: next.method || undefined,
+      search: next.search.trim() || undefined,
       startDate: next.startDate || undefined,
       endDate: next.endDate || undefined,
+      minAmount: next.minAmount ? Number(next.minAmount) : undefined,
+      maxAmount: next.maxAmount ? Number(next.maxAmount) : undefined,
+      currency: next.currency || undefined,
       limit: Number(next.limit) || 25,
       page: overrides?.page ?? 1,
     })
@@ -171,7 +242,14 @@ export default function TransactionsPage() {
                 <button
                   key={f.label}
                   type="button"
-                  onClick={() => applySearch({ status: f.status, startDate: today, endDate: today, page: 1 })}
+                  onClick={() =>
+                    applySearch({
+                      ...('status' in f.patch ? { status: f.patch.status } : {}),
+                      ...('method' in f.patch ? { method: f.patch.method } : {}),
+                      ...('days' in f.patch ? { days: f.patch.days } : { startDate: today, endDate: today }),
+                      page: 1,
+                    })
+                  }
                   className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs font-medium text-zinc-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
                 >
                   {f.label}
@@ -180,6 +258,67 @@ export default function TransactionsPage() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="sm:col-span-2 lg:col-span-4">
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Recherche texte</label>
+                <input
+                  value={draft.search}
+                  onChange={(e) => setDraft((p) => ({ ...p, search: e.target.value }))}
+                  placeholder="Nom, matricule, référence, téléphone contact…"
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Section</label>
+                <select
+                  value={draft.sectionId || ''}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      sectionId: Number(e.target.value) || 0,
+                      optionId: 0,
+                      classId: 0,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                >
+                  <option value="">Toutes</option>
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Option</label>
+                <select
+                  value={draft.optionId || ''}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      optionId: Number(e.target.value) || 0,
+                      classId: 0,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                >
+                  <option value="">Toutes</option>
+                  {options.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Classe</label>
+                <select
+                  value={draft.classId || ''}
+                  onChange={(e) => setDraft((p) => ({ ...p, classId: Number(e.target.value) || 0 }))}
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                >
+                  <option value="">Toutes</option>
+                  {filteredClasses.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500">Statut</label>
                 <select
@@ -226,6 +365,38 @@ export default function TransactionsPage() {
                   onChange={(e) => setDraft((p) => ({ ...p, endDate: e.target.value }))}
                   className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Montant min</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.minAmount}
+                  onChange={(e) => setDraft((p) => ({ ...p, minAmount: e.target.value }))}
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Montant max</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={draft.maxAmount}
+                  onChange={(e) => setDraft((p) => ({ ...p, maxAmount: e.target.value }))}
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-500">Devise</label>
+                <select
+                  value={draft.currency}
+                  onChange={(e) => setDraft((p) => ({ ...p, currency: e.target.value }))}
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+                >
+                  <option value="">Toutes</option>
+                  <option value="USD">USD</option>
+                  <option value="CDF">CDF</option>
+                </select>
               </div>
             </div>
 

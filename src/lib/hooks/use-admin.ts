@@ -2009,7 +2009,7 @@ export function useFinanceCashierAudit(cashierId: number) {
 export function useAdvancedSearch(params: AdvancedSearchParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'advanced-search', params],
-    queryFn: () => financeApi.advancedSearch(params as Record<string, string | number | undefined>),
+    queryFn: () => financeApi.advancedSearch(params as Record<string, string | number | boolean | undefined>),
     staleTime: 30_000,
     refetchOnWindowFocus: false,
     enabled: options?.enabled ?? true,

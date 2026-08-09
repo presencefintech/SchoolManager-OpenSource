@@ -283,7 +283,29 @@ export const financeRoleApi = {
       .then(r => r.data.data as LateFeeRunResult),
 
   // ── Transactions & Recherche ───────────────────────────────────────────────
-  searchTransactions: (params: { status?: string; studentId?: number; startDate?: string; endDate?: string; limit?: number; page?: number }) =>
+  searchTransactions: (params: {
+    status?: string
+    studentId?: number
+    classId?: number
+    sectionId?: number
+    optionId?: number
+    method?: string
+    search?: string
+    startDate?: string
+    endDate?: string
+    minAmount?: number
+    maxAmount?: number
+    feeCategoryId?: number
+    billingPeriod?: string
+    monthYear?: string
+    currency?: string
+    channel?: string
+    isFlagged?: boolean
+    sortBy?: string
+    sortOrder?: string
+    limit?: number
+    page?: number
+  }) =>
     apiClient.get('/finance/payments/transactions/search', { params }).then(r => r.data.data),
 
   getStudentProfile: (id: number) =>

@@ -1206,12 +1206,24 @@ export interface LinkOrphanPayload {
 export interface AdvancedSearchParams {
   studentId?: number
   classId?: number
+  sectionId?: number
+  optionId?: number
+  /** Texte libre multi-mots : nom, matricule, référence, reçu, téléphone, caissier… */
+  search?: string
   method?: string
   status?: string
   startDate?: string
   endDate?: string
   minAmount?: number
   maxAmount?: number
+  feeCategoryId?: number
+  billingPeriod?: string
+  monthYear?: string
+  currency?: string
+  channel?: string
+  isFlagged?: boolean
+  sortBy?: 'createdAt' | 'amount' | 'status' | 'method'
+  sortOrder?: 'asc' | 'desc'
   page?: number
   limit?: number
 }
@@ -1220,11 +1232,20 @@ export interface AdvancedSearchPaymentItem {
   id: number
   studentId?: number
   studentName: string
+  matricule?: string | null
+  className?: string | null
+  sectionName?: string | null
+  optionName?: string | null
+  cashierName?: string | null
+  feeLabels?: string[]
   amount: number
   currency?: string
   method: string
   status: string
   reference?: string | null
+  receiptNumber?: string | null
+  phone?: string | null
+  isFlagged?: boolean
   createdAt: string
 }
 
@@ -1233,6 +1254,7 @@ export interface AdvancedSearchResult {
   total: number
   page: number
   lastPage: number
+  totalAmount?: number
 }
 
 export interface MobilePendingItem {

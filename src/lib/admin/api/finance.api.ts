@@ -81,15 +81,43 @@ function resolvePaymentStudentName(row: Record<string, unknown>): string {
 }
 
 function normalizeAdvancedSearchPayment(row: Record<string, unknown>): AdvancedSearchPaymentItem {
+  const student = row.student as Record<string, unknown> | undefined
+  const classObj = student?.class as Record<string, unknown> | undefined
+  const sectionObj = classObj?.section as Record<string, unknown> | undefined
+  const optionObj = classObj?.option as Record<string, unknown> | undefined
+  const feeLabels = Array.isArray(row.feeLabels)
+    ? (row.feeLabels as unknown[]).map(String)
+    : undefined
   return {
     id: Number(row.id),
     studentId: row.studentId != null ? Number(row.studentId) : undefined,
     studentName: resolvePaymentStudentName(row),
+    matricule:
+      (row.matricule as string | null | undefined) ??
+      (student?.matricule as string | null | undefined) ??
+      null,
+    className:
+      (row.className as string | null | undefined) ??
+      (classObj?.name as string | null | undefined) ??
+      null,
+    sectionName:
+      (row.sectionName as string | null | undefined) ??
+      (sectionObj?.name as string | null | undefined) ??
+      null,
+    optionName:
+      (row.optionName as string | null | undefined) ??
+      (optionObj?.name as string | null | undefined) ??
+      null,
+    cashierName: (row.cashierName as string | null | undefined) ?? null,
+    feeLabels,
     amount: Number(row.amount ?? 0),
     currency: row.currency != null ? String(row.currency) : undefined,
     method: String(row.method ?? ''),
     status: String(row.status ?? ''),
     reference: (row.reference as string | null | undefined) ?? null,
+    receiptNumber: (row.receiptNumber as string | null | undefined) ?? null,
+    phone: (row.phone as string | null | undefined) ?? null,
+    isFlagged: Boolean(row.isFlagged),
     createdAt: String(row.createdAt ?? ''),
   }
 }
@@ -101,6 +129,7 @@ function normalizeAdvancedSearchResult(raw: unknown): AdvancedSearchResult {
       total: raw.length,
       page: 1,
       lastPage: 1,
+      totalAmount: raw.reduce((acc, row) => acc + Number((row as Record<string, unknown>)?.amount ?? 0), 0),
     }
   }
   const payload = (raw ?? {}) as Record<string, unknown>
@@ -110,6 +139,7 @@ function normalizeAdvancedSearchResult(raw: unknown): AdvancedSearchResult {
     total: Number(payload.total ?? rows.length),
     page: Number(payload.page ?? 1),
     lastPage: Number(payload.lastPage ?? 1),
+    totalAmount: payload.totalAmount != null ? Number(payload.totalAmount) : undefined,
   }
 }
 
@@ -320,7 +350,7 @@ export const financeApi = {
   linkOrphanTransaction: (payload: { transactionRef: string; studentId: number }) =>
     apiClient.post('/admin/finance/payments/link-orphan', payload).then(r => r.data.data),
 
-  advancedSearch: (params: Record<string, string | number | undefined>) =>
+  advancedSearch: (params: Record<string, string | number | boolean | undefined>) =>
     apiClient
       .get('/admin/finance/transactions/advanced-search', { params })
       .then((r) => normalizeAdvancedSearchResult(r.data.data)),
