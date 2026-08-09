@@ -338,8 +338,6 @@ export default function PaiementsPage() {
   const { data: dailyCash = [], refetch: refetchCash, isFetching } = useDailyCashReport()
   const { data: guichet } = useGuichetDashboard()
   const { data: network } = useNetworkContext()
-  const academicSessionId = (guichet as { currentAcademicSessionId?: number | null } | undefined)
-    ?.currentAcademicSessionId ?? undefined
   const collectionsToday = (
     guichet as {
       collectionsToday?: {
@@ -441,7 +439,8 @@ export default function PaiementsPage() {
               />
               <StudentFinanceDashboard
                 studentId={studentId}
-                sessionId={academicSessionId ?? undefined}
+                // Ne pas forcer la session du hub : l'API résout la session
+                // du campus d'inscription (cross-site Excellence 2/3).
               />
             </motion.div>
           ) : (
