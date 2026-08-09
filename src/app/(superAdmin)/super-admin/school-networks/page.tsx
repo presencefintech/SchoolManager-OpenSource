@@ -3,31 +3,45 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  AlertTriangle,
   Building2,
+  CheckCircle2,
   Crown,
   Link2,
   Network,
   Pencil,
   Plus,
   Power,
+  Search,
   Unlink,
+  Users,
+  Wallet,
 } from 'lucide-react'
 import {
   schoolNetworkApi,
   type SchoolNetworkGroup,
   type SchoolNetworkMember,
+  type SchoolNetworkOverview,
 } from '@/lib/superAdmin/api/school-network.api'
 import { cn } from '@/lib/utils'
+
+function money(amount: number, currency = 'USD') {
+  return `${amount.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ${currency}`
+}
 
 export default function SchoolNetworksPage() {
   const qc = useQueryClient()
   const [newName, setNewName] = useState('')
   const [assignGroupId, setAssignGroupId] = useState<number | ''>('')
   const [assignSchoolId, setAssignSchoolId] = useState<number | ''>('')
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
+  const [query, setQuery] = useState('')
+  const [healthFilter, setHealthFilter] = useState<'all' | 'ready' | 'warn'>('all')
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks'] })
     void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks', 'schools'] })
+    void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks', 'overview'] })
   }
 
   const { data: groups = [], isLoading, isError, refetch } = useQuery({
@@ -40,10 +54,18 @@ export default function SchoolNetworksPage() {
     queryFn: schoolNetworkApi.listSchoolOptions,
   })
 
+  const overviewGroupId = selectedGroupId ?? groups[0]?.id ?? null
+  const { data: overview, isLoading: overviewLoading } = useQuery({
+    queryKey: ['superadmin', 'school-networks', 'overview', overviewGroupId],
+    queryFn: () => schoolNetworkApi.getOverview(overviewGroupId!),
+    enabled: overviewGroupId != null,
+  })
+
   const createGroup = useMutation({
     mutationFn: () => schoolNetworkApi.createGroup({ name: newName.trim() }),
-    onSuccess: () => {
+    onSuccess: (g) => {
       setNewName('')
+      setSelectedGroupId(g.id)
       invalidate()
     },
   })
@@ -80,6 +102,24 @@ export default function SchoolNetworksPage() {
   })
 
   const unassignedSchools = schools.filter((s) => !s.groupId)
+  const filteredGroups = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return groups.filter((g) => {
+      if (healthFilter === 'ready' && !g.health.readyForCrossSite) return false
+      if (healthFilter === 'warn' && g.health.warnings.length === 0) return false
+      if (!q) return true
+      const hay = [
+        g.name,
+        g.slug,
+        g.paymentHubName ?? '',
+        ...g.schools.map((s) => `${s.name} ${s.city ?? ''}`),
+      ]
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(q)
+    })
+  }, [groups, query, healthFilter])
+
   const totals = useMemo(() => {
     const sites = groups.reduce((n, g) => n + g.schools.length, 0)
     const students = groups.reduce(
@@ -87,27 +127,39 @@ export default function SchoolNetworksPage() {
       0,
     )
     const hubs = groups.filter((g) => g.paymentHubId).length
-    return { networks: groups.length, sites, students, hubs }
+    const ready = groups.filter((g) => g.health.readyForCrossSite).length
+    const cross30 = groups.reduce((n, g) => n + g.crossSiteLast30d.amount, 0)
+    const crossCount = groups.reduce((n, g) => n + g.crossSiteLast30d.count, 0)
+    return { networks: groups.length, sites, students, hubs, ready, cross30, crossCount }
   }, [groups])
+
+  const busy = updateGroup.isPending || setHub.isPending || unassign.isPending
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-            Super Admin
+            Propriétaire · Super Admin
           </p>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">Réseaux scolaires</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mt-1">Cockpit réseaux</h1>
           <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-            Cartographie multi-sites : une caisse hub peut encaisser pour les élèves inscrits
-            sur les autres campus du même groupe.
+            Santé des groupes multi-sites, caisses hub, comptes FINANCE et clearing cross-site
+            (30 jours).
           </p>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 min-w-[280px]">
-          <StatChip label="Réseaux" value={totals.networks} />
-          <StatChip label="Sites" value={totals.sites} />
-          <StatChip label="Hubs" value={totals.hubs} />
-          <StatChip label="Élèves" value={totals.students} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 min-w-[280px]">
+          <StatChip label="Réseaux" value={String(totals.networks)} />
+          <StatChip label="Prêts" value={String(totals.ready)} tone="ok" />
+          <StatChip label="Sites" value={String(totals.sites)} />
+          <StatChip label="Hubs" value={String(totals.hubs)} />
+          <StatChip label="Élèves" value={String(totals.students)} />
+          <StatChip
+            label="Cross 30j"
+            value={money(totals.cross30)}
+            hint={`${totals.crossCount} paiements`}
+            tone="amber"
+          />
         </div>
       </header>
 
@@ -163,7 +215,7 @@ export default function SchoolNetworksPage() {
               {unassignedSchools.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
-                  {s.city ? ` (${s.city})` : ''}
+                  {s.city ? ` (${s.city})` : ''} · {s.studentCount} él.
                 </option>
               ))}
             </select>
@@ -178,9 +230,77 @@ export default function SchoolNetworksPage() {
           </div>
           {unassignedSchools.length === 0 ? (
             <p className="text-xs text-slate-400">Tous les établissements sont déjà rattachés.</p>
-          ) : null}
+          ) : (
+            <p className="text-xs text-slate-500">
+              {unassignedSchools.length} établissement(s) hors réseau
+            </p>
+          )}
         </div>
       </section>
+
+      {unassignedSchools.length > 0 ? (
+        <section className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/40 px-5 py-4">
+          <h2 className="text-sm font-semibold text-amber-950 flex items-center gap-2 mb-3">
+            <AlertTriangle size={16} /> Établissements orphelins
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {unassignedSchools.map((s) => (
+              <li
+                key={s.id}
+                className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs text-slate-700"
+              >
+                <span className="font-medium">{s.name}</span>
+                {s.city ? ` · ${s.city}` : ''} · {s.studentCount} élève(s)
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {overviewGroupId != null ? (
+        <OwnerOverviewPanel
+          overview={overview}
+          loading={overviewLoading}
+          groups={groups}
+          selectedId={overviewGroupId}
+          onSelect={setSelectedGroupId}
+        />
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Filtrer par nom, slug, site…"
+            className="w-full rounded-lg border border-slate-300 pl-9 pr-3 py-2 text-sm"
+          />
+        </div>
+        <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
+          {(
+            [
+              ['all', 'Tous'],
+              ['ready', 'Prêts'],
+              ['warn', 'Alertes'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setHealthFilter(id)}
+              className={cn(
+                'rounded-md px-3 py-1.5 text-xs font-medium',
+                healthFilter === id
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {isError && (
         <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
@@ -194,22 +314,32 @@ export default function SchoolNetworksPage() {
       <div className="space-y-5">
         {isLoading ? (
           <p className="text-sm text-slate-400 animate-pulse">Chargement des réseaux…</p>
-        ) : groups.length === 0 ? (
-          <EmptyState />
+        ) : filteredGroups.length === 0 ? (
+          groups.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <p className="text-sm text-slate-500">Aucun réseau ne correspond au filtre.</p>
+          )
         ) : (
-          groups.map((g) => (
+          filteredGroups.map((g) => (
             <GroupCard
               key={g.id}
               group={g}
-              busy={
-                updateGroup.isPending || setHub.isPending || unassign.isPending
-              }
+              selected={g.id === overviewGroupId}
+              busy={busy}
+              onSelect={() => setSelectedGroupId(g.id)}
               onRename={(name) => updateGroup.mutate({ groupId: g.id, name })}
-              onToggleActive={() =>
-                updateGroup.mutate({ groupId: g.id, active: !g.active })
-              }
+              onToggleActive={() => updateGroup.mutate({ groupId: g.id, active: !g.active })}
               onSetHub={(id) => setHub.mutate(id)}
-              onUnassign={(id) => unassign.mutate(id)}
+              onUnassign={(id) => {
+                if (
+                  window.confirm(
+                    'Retirer cet établissement du réseau ? Le hub éventuel sera réinitialisé.',
+                  )
+                ) {
+                  unassign.mutate(id)
+                }
+              }}
             />
           ))
         )}
@@ -218,11 +348,183 @@ export default function SchoolNetworksPage() {
   )
 }
 
-function StatChip({ label, value }: { label: string; value: number }) {
+function StatChip({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string
+  value: string
+  hint?: string
+  tone?: 'ok' | 'amber'
+}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-center">
+    <div
+      className={cn(
+        'rounded-xl border bg-white px-3 py-2 text-center',
+        tone === 'ok' && 'border-emerald-200',
+        tone === 'amber' && 'border-amber-200',
+        !tone && 'border-slate-200',
+      )}
+    >
       <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{label}</p>
-      <p className="text-lg font-bold tabular-nums text-slate-900">{value}</p>
+      <p className="text-sm font-bold tabular-nums text-slate-900 leading-tight mt-0.5">{value}</p>
+      {hint ? <p className="text-[10px] text-slate-400 mt-0.5">{hint}</p> : null}
+    </div>
+  )
+}
+
+function OwnerOverviewPanel({
+  overview,
+  loading,
+  groups,
+  selectedId,
+  onSelect,
+}: {
+  overview?: SchoolNetworkOverview
+  loading: boolean
+  groups: SchoolNetworkGroup[]
+  selectedId: number
+  onSelect: (id: number) => void
+}) {
+  const clearing = overview?.clearing30d
+  const currency = clearing?.currency ?? overview?.group.crossSiteLast30d.currency ?? 'USD'
+
+  return (
+    <section className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white p-5 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-indigo-950 flex items-center gap-2">
+            <Wallet size={16} /> Vue propriétaire — 30 jours
+          </h2>
+          <p className="text-xs text-indigo-800/70 mt-0.5">
+            Clearing hub et comptes FINANCE du réseau sélectionné
+          </p>
+        </div>
+        <select
+          value={selectedId}
+          onChange={(e) => onSelect(Number(e.target.value))}
+          className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm"
+        >
+          {groups.map((g) => (
+            <option key={g.id} value={g.id}>
+              {g.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {loading || !overview ? (
+        <p className="text-sm text-indigo-400 animate-pulse">Chargement overview…</p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <MiniKpi
+              label="Local (hub)"
+              value={money(clearing?.localCollected.amount ?? 0, currency)}
+              hint={`${clearing?.localCollected.count ?? 0} paiements`}
+            />
+            <MiniKpi
+              label="Cross-site"
+              value={money(clearing?.crossSiteTotal.amount ?? 0, currency)}
+              hint={`${clearing?.crossSiteTotal.count ?? 0} paiements`}
+              tone="amber"
+            />
+            <MiniKpi
+              label="Santé"
+              value={overview.group.health.readyForCrossSite ? 'Prêt' : 'À compléter'}
+              hint={
+                overview.group.health.warnings[0] ??
+                'Hub + multi-sites + actifs OK'
+              }
+              tone={overview.group.health.readyForCrossSite ? 'ok' : 'warn'}
+            />
+          </div>
+
+          {clearing?.positions.length ? (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-400 mb-2">
+                Dû aux campus (encaissé au hub)
+              </p>
+              <ul className="divide-y divide-indigo-100 rounded-xl border border-indigo-100 bg-white overflow-hidden">
+                {clearing.positions.map((p) => (
+                  <li
+                    key={p.enrollmentSchoolId}
+                    className="px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-sm"
+                  >
+                    <span className="font-medium text-slate-800">{p.enrollmentSchoolName}</span>
+                    <span className="tabular-nums text-slate-700">
+                      {money(p.amountDueToCampus, currency)}
+                      <span className="text-xs text-slate-400 ml-2">
+                        {p.paymentCount} paiement(s)
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-indigo-700/80 mt-2">{clearing.summaryLabel}</p>
+            </div>
+          ) : (
+            <p className="text-xs text-indigo-700/70">
+              {clearing?.summaryLabel ?? 'Définissez une caisse hub pour voir le clearing.'}
+            </p>
+          )}
+
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-400 mb-2 flex items-center gap-1">
+              <Users size={12} /> Comptes FINANCE hub
+            </p>
+            {overview.hubFinanceUsers.length === 0 ? (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Aucun compte FINANCE sur le hub — créez-en un pour activer le guichet.
+              </p>
+            ) : (
+              <ul className="flex flex-wrap gap-2">
+                {overview.hubFinanceUsers.map((u) => (
+                  <li
+                    key={u.id}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700"
+                  >
+                    {[u.firstName, u.lastName].filter(Boolean).join(' ') || 'Caissier'}
+                    {u.email ? (
+                      <span className="text-slate-400"> · {u.email}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
+function MiniKpi({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string
+  value: string
+  hint?: string
+  tone?: 'amber' | 'ok' | 'warn'
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-xl border bg-white px-4 py-3',
+        tone === 'amber' && 'border-amber-200',
+        tone === 'ok' && 'border-emerald-200',
+        tone === 'warn' && 'border-amber-300',
+        !tone && 'border-indigo-100',
+      )}
+    >
+      <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{label}</p>
+      <p className="text-base font-bold text-slate-900 mt-0.5">{value}</p>
+      {hint ? <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{hint}</p> : null}
     </div>
   )
 }
@@ -242,14 +544,18 @@ function EmptyState() {
 
 function GroupCard({
   group,
+  selected,
   busy,
+  onSelect,
   onRename,
   onToggleActive,
   onSetHub,
   onUnassign,
 }: {
   group: SchoolNetworkGroup
+  selected: boolean
   busy: boolean
+  onSelect: () => void
   onRename: (name: string) => void
   onToggleActive: () => void
   onSetHub: (schoolId: number) => void
@@ -259,18 +565,28 @@ function GroupCard({
   const [draftName, setDraftName] = useState(group.name)
   const hub = group.schools.find((s) => s.isPaymentHub)
   const satellites = group.schools.filter((s) => !s.isPaymentHub)
+  const health = group.health
 
   return (
     <article
       className={cn(
-        'rounded-2xl border bg-white overflow-hidden shadow-sm',
-        group.active ? 'border-slate-200' : 'border-slate-200 opacity-75',
+        'rounded-2xl border bg-white overflow-hidden shadow-sm transition-shadow',
+        selected ? 'border-indigo-300 ring-2 ring-indigo-100' : 'border-slate-200',
+        !group.active && 'opacity-75',
       )}
     >
-      <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-start justify-between gap-3">
+      <button
+        type="button"
+        onClick={onSelect}
+        className="w-full text-left px-5 py-4 border-b border-slate-100 flex flex-wrap items-start justify-between gap-3 hover:bg-slate-50/60"
+      >
         <div className="min-w-0 space-y-1">
           {editing ? (
-            <div className="flex flex-wrap gap-2">
+            <div
+              className="flex flex-wrap gap-2"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
               <input
                 value={draftName}
                 onChange={(e) => setDraftName(e.target.value)}
@@ -301,29 +617,41 @@ function GroupCard({
           ) : (
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-slate-900 text-lg truncate">{group.name}</h3>
-              <button
-                type="button"
-                onClick={() => setEditing(true)}
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setEditing(true)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.stopPropagation()
+                    setEditing(true)
+                  }
+                }}
                 className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
                 title="Renommer"
               >
                 <Pencil size={14} />
-              </button>
+              </span>
             </div>
           )}
           <p className="text-xs text-slate-400">
             {group.slug} · {group.schools.length} site(s) ·{' '}
             {group.schools.reduce((n, s) => n + s.studentCount, 0)} élève(s)
+            {group.createdAt
+              ? ` · créé ${new Date(group.createdAt).toLocaleDateString('fr-FR')}`
+              : ''}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <HealthBadge health={health} />
           <span
             className={cn(
               'rounded-full px-2.5 py-1 text-[11px] font-semibold',
-              group.active
-                ? 'bg-emerald-100 text-emerald-800'
-                : 'bg-slate-100 text-slate-500',
+              group.active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500',
             )}
           >
             {group.active ? 'Actif' : 'Inactif'}
@@ -337,6 +665,9 @@ function GroupCard({
               Aucune caisse hub
             </span>
           )}
+          <span className="text-[11px] tabular-nums text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full">
+            Cross 30j : {money(group.crossSiteLast30d.amount, group.crossSiteLast30d.currency)}
+          </span>
           <button
             type="button"
             disabled={busy}
@@ -347,7 +678,20 @@ function GroupCard({
             {group.active ? 'Désactiver' : 'Activer'}
           </button>
         </div>
-      </div>
+      </button>
+
+      {health.warnings.length > 0 ? (
+        <div className="px-5 py-2.5 bg-amber-50/80 border-b border-amber-100">
+          <ul className="space-y-1">
+            {health.warnings.map((w) => (
+              <li key={w} className="text-xs text-amber-900 flex items-start gap-1.5">
+                <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+                {w}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <NetworkMap hub={hub} satellites={satellites} />
 
@@ -392,6 +736,32 @@ function GroupCard({
         ))}
       </ul>
     </article>
+  )
+}
+
+function HealthBadge({
+  health,
+}: {
+  health: SchoolNetworkGroup['health']
+}) {
+  if (health.readyForCrossSite && health.hasFinanceOnHub) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
+        <CheckCircle2 size={12} /> Prêt cross-site
+      </span>
+    )
+  }
+  if (health.readyForCrossSite && !health.hasFinanceOnHub) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
+        <AlertTriangle size={12} /> Hub sans FINANCE
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+      <AlertTriangle size={12} /> Config incomplète
+    </span>
   )
 }
 
@@ -464,7 +834,11 @@ function SiteNode({
       )}
     >
       <div className="flex items-center justify-center gap-1.5 mb-0.5">
-        {tone === 'hub' ? <Crown size={12} className="text-amber-700" /> : <Building2 size={12} className="text-sky-700" />}
+        {tone === 'hub' ? (
+          <Crown size={12} className="text-amber-700" />
+        ) : (
+          <Building2 size={12} className="text-sky-700" />
+        )}
         <p className="text-xs font-semibold text-slate-900 truncate">{title}</p>
       </div>
       <p className="text-[10px] text-slate-500 truncate">{subtitle}</p>

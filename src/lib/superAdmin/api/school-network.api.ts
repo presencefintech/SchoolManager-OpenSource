@@ -10,15 +10,27 @@ export type SchoolNetworkMember = {
   studentCount: number
 }
 
+export type SchoolNetworkHealth = {
+  hasHub: boolean
+  hasMultipleSites: boolean
+  isActive: boolean
+  hasFinanceOnHub: boolean
+  readyForCrossSite: boolean
+  warnings: string[]
+}
+
 export type SchoolNetworkGroup = {
   id: number
   uuid: string
   name: string
   slug: string
   active: boolean
+  createdAt: string
   schools: SchoolNetworkMember[]
   paymentHubId: number | null
   paymentHubName: string | null
+  health: SchoolNetworkHealth
+  crossSiteLast30d: { amount: number; count: number; currency: string }
 }
 
 export type SchoolNetworkOption = {
@@ -28,6 +40,30 @@ export type SchoolNetworkOption = {
   groupId: number | null
   groupName: string | null
   isPaymentHub: boolean
+  studentCount: number
+}
+
+export type SchoolNetworkOverview = {
+  group: SchoolNetworkGroup
+  hubFinanceUsers: Array<{
+    id: number
+    email: string | null
+    firstName: string | null
+    lastName: string | null
+  }>
+  clearing30d: {
+    period: { from: string; to: string }
+    currency: string
+    localCollected: { amount: number; count: number }
+    crossSiteTotal: { amount: number; count: number }
+    positions: Array<{
+      enrollmentSchoolId: number
+      enrollmentSchoolName: string
+      amountDueToCampus: number
+      paymentCount: number
+    }>
+    summaryLabel: string
+  } | null
 }
 
 export const schoolNetworkApi = {
@@ -44,6 +80,13 @@ export const schoolNetworkApi = {
         '/superadmin/school-networks/schools',
       )
       .then((r) => r.data.data.schools),
+
+  getOverview: (groupId: number) =>
+    apiClient
+      .get<{ success: boolean; data: SchoolNetworkOverview }>(
+        `/superadmin/school-networks/${groupId}/overview`,
+      )
+      .then((r) => r.data.data),
 
   createGroup: (body: { name: string; slug?: string }) =>
     apiClient
