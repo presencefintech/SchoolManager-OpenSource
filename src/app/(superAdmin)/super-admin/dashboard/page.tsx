@@ -4,8 +4,8 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
-  Building2, GraduationCap, Users,
-  ArrowRight, Activity, ChevronRight, ChevronLeft, UserCheck, ScrollText,
+  Building2, GraduationCap,
+  ArrowRight, Activity, ScrollText,
   ShieldAlert, Calendar,
 } from 'lucide-react'
 import {
@@ -28,10 +28,6 @@ import { MasterAnalyticsSection } from '@/components/super-admin/master-analytic
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
 
-function Sk({ className }: { className?: string }) {
-  return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
-}
-
 function Dot({ level }: { level: 'EXCELLENT' | 'STABLE' | 'CRITICAL' }) {
   return (
     <span className={cn('inline-block w-2.5 h-2.5 rounded-full flex-shrink-0', {
@@ -42,40 +38,7 @@ function Dot({ level }: { level: 'EXCELLENT' | 'STABLE' | 'CRITICAL' }) {
   )
 }
 
-function HealthBadge({ level }: { level: 'EXCELLENT' | 'STABLE' | 'CRITICAL' }) {
-  const cfg = {
-    EXCELLENT: { label: 'Excellente', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-100' },
-    STABLE:    { label: 'Stable',     cls: 'bg-sky-50 text-sky-700 ring-sky-100' },
-    CRITICAL:  { label: 'Critique',   cls: 'bg-red-50 text-red-700 ring-red-100' },
-  }[level]
-  return (
-    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1', cfg.cls)}>
-      <Dot level={level} />
-      {cfg.label}
-    </span>
-  )
-}
-
 const HEALTH_LABEL = { EXCELLENT: 'Excellente', STABLE: 'Stable', CRITICAL: 'Critique' } as const
-
-function roleBadge(role: string) {
-  const map: Record<string, string> = {
-    SUPER_ADMIN: 'bg-indigo-50 text-indigo-700',
-    ADMIN: 'bg-emerald-50 text-emerald-700',
-    TEACHER: 'bg-amber-50 text-amber-700',
-    PARENT: 'bg-zinc-100 text-zinc-500',
-  }
-  return map[role] ?? 'bg-zinc-100 text-zinc-500'
-}
-
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    ACTIVE: 'bg-emerald-50 text-emerald-700',
-    INACTIVE: 'bg-zinc-100 text-zinc-400',
-    SUSPENDED: 'bg-red-50 text-red-600',
-  }
-  return map[status] ?? 'bg-zinc-100 text-zinc-500'
-}
 
 const METHOD_COLORS: Record<string, string> = {
   CASH: '#71717a',
@@ -127,26 +90,6 @@ function DonutTooltip({ active, payload }: {
       <p className="text-zinc-400 tabular-nums mt-0.5">
         {d.value.toLocaleString('fr-FR')} txns · {d.payload.pct}%
       </p>
-    </div>
-  )
-}
-
-const PER_PAGE = 15
-
-function Pager({ page, total, onPrev, onNext }: { page: number; total: number; onPrev: () => void; onNext: () => void }) {
-  const totalPages = Math.ceil(total / PER_PAGE)
-  if (totalPages <= 1) return null
-  return (
-    <div className="px-5 py-2.5 border-t border-zinc-100 flex items-center justify-between">
-      <span className="text-xs text-zinc-400 tabular-nums">{page} / {totalPages}</span>
-      <div className="flex gap-1">
-        <button onClick={onPrev} disabled={page === 1} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-30 transition-all">
-          <ChevronLeft size={12} />
-        </button>
-        <button onClick={onNext} disabled={page >= totalPages} className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-30 transition-all">
-          <ChevronRight size={12} />
-        </button>
-      </div>
     </div>
   )
 }
@@ -263,12 +206,16 @@ export default function SuperAdminDashboardPage() {
 
         <PlatformKpiStrip stats={stats} loading={loadingStats} />
 
+        {isError && !loadingStats && (
+          <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            <span>Impossible de charger les statistiques.</span>
+            <button onClick={() => refetch()} className="font-medium underline underline-offset-2">Réessayer</button>
+          </div>
+        )}
+
         <OwnerActionQueue schools={schools} />
 
-        <MasterAnalyticsSection />
-
-        {/* Santé des établissements — aperçu rapide */}
-        {!loadingSchools && schools && schools.length > 0 && healthCount && (
+        {!loadingSchools && schools && schools.length > 0 && healthCount ? (
           <div className="grid grid-cols-3 gap-3">
             {(['EXCELLENT', 'STABLE', 'CRITICAL'] as const).map((level) => (
               <Link
@@ -286,16 +233,11 @@ export default function SuperAdminDashboardPage() {
               </Link>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {isError && !loadingStats && (
-          <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            <span>Impossible de charger les statistiques.</span>
-            <button onClick={() => refetch()} className="font-medium underline underline-offset-2">Réessayer</button>
-          </div>
-        )}
+        <MasterAnalyticsSection />
 
-        {/* ══ 1. GRAPHIQUES HERO ═════════════════════════════════════════════ */}
+        {/* ══ GRAPHIQUES HERO ═════════════════════════════════════════════ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Area Chart — Encaissements par école (col-span-2) */}
@@ -492,34 +434,16 @@ export default function SuperAdminDashboardPage() {
           )}
         </div>
 
-        {/* ══ 3. SANTÉ ÉTABLISSEMENTS ════════════════════════════════════════ */}
-        <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
-          <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-5">Santé des établissements</p>
-          {loadingSchools
-            ? <div className="space-y-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-            : (
-              <div className="flex items-center gap-8">
-                {(['EXCELLENT', 'STABLE', 'CRITICAL'] as const).map((level) => (
-                  <div key={level} className="flex items-center gap-3">
-                    <Dot level={level} />
-                    <span className="text-sm text-zinc-600">{HEALTH_LABEL[level]}</span>
-                    <span className="text-2xl font-semibold text-zinc-900 tabular-nums">{healthCount?.[level] ?? 0}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-        </div>
-
-        {/* ══ 4. SESSIONS ACTIVES ════════════════════════════════════════════ */}
+        {/* ══ SESSIONS ACTIVES ════════════════════════════════════════════ */}
         <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
             <div className="flex items-center gap-2.5">
               <ScrollText size={15} className="text-zinc-400" />
               <span className="text-sm font-medium text-zinc-500">Sessions actives</span>
             </div>
-            <Link href="/super-admin/audit" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors flex items-center gap-1">
+            <Link href="/super-admin/operations?tab=audit" className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors flex items-center gap-1">
               <Activity size={11} />
-              Monitoring complet →
+              Centre opérations →
             </Link>
           </div>
           {loadingSessions ? (
@@ -544,53 +468,6 @@ export default function SuperAdminDashboardPage() {
             </div>
           ) : (
             <div className="px-6 py-5 text-sm text-zinc-400">Aucune session active</div>
-          )}
-        </div>
-
-        {/* ══ 7. ÉTABLISSEMENTS ══════════════════════════════════════════════ */}
-        <div>
-          {(loadingSchools || (schools && schools.length > 0)) && (
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-50">
-                <span className="text-sm font-medium text-zinc-500">Établissements</span>
-                <Link href="/super-admin/schools" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
-                  Voir tous →
-                </Link>
-              </div>
-              {loadingSchools ? <Skeleton className="h-56 rounded-none" /> : schools && (
-                <div className="divide-y divide-zinc-50">
-                  {schools.slice(0, 6).map((school) => (
-                    <div key={school.id}>
-                      <Link
-                        href={`/super-admin/schools/${school.id}`}
-                        className="flex items-center justify-between px-6 py-4 hover:bg-zinc-50 transition-colors group"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <Dot level={school.health.level} />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-zinc-900 truncate">{school.name}</p>
-                            <p className="text-xs text-zinc-400">
-                              {school.city} · {school._count.students.toLocaleString('fr-FR')} élève{school._count.students !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-                          <HealthBadge level={school.health.level} />
-                          <ChevronRight size={14} className="text-zinc-200 group-hover:text-zinc-500 transition-colors" />
-                        </div>
-                      </Link>
-                    </div>
-                  ))}
-                  {schools.length > 6 && (
-                    <div className="px-6 py-4">
-                      <Link href="/super-admin/schools" className="text-sm text-zinc-400 hover:text-zinc-600 transition-colors">
-                        + {schools.length - 6} autres établissements
-                      </Link>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           )}
         </div>
 
