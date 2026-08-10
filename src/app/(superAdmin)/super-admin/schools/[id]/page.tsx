@@ -27,6 +27,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
+import { SchoolSuspensionPanel } from '@/components/super-admin/school-suspension-panel'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -241,7 +242,11 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                       <h1 className="text-base font-semibold text-zinc-900">{school.name}</h1>
                       {school.deletedAt ? (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-100">
-                          Désactivée
+                          Supprimée
+                        </span>
+                      ) : school.active === false ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-100">
+                          Suspendue
                         </span>
                       ) : (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -305,7 +310,12 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                   {
                     label: 'Admins',
                     value: school.admins.length,
-                    sub: school.deletedAt === null ? 'Établissement actif' : 'Désactivé',
+                    sub:
+                      school.active === false
+                        ? 'Établissement suspendu'
+                        : school.deletedAt === null
+                          ? 'Établissement actif'
+                          : 'Supprimé',
                     icon: Users,
                   },
                 ].map((kpi) => (
@@ -325,6 +335,8 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
+
+        {school ? <SchoolSuspensionPanel school={school} /> : null}
 
         {/* ── KPI opérationnels ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

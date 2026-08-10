@@ -7,7 +7,7 @@ export const coreApi = {
       .get<{ success: boolean; stats: PlatformStats }>('/superadmin/core/stats')
       .then((r) => r.data.stats),
 
-  getSchools: (params?: { q?: string; page?: number; take?: number }) =>
+  getSchools: (params?: { q?: string; page?: number; take?: number; status?: 'all' | 'active' | 'suspended' }) =>
     apiClient
       .get<{ success: boolean; rows: School[]; total: number }>('/superadmin/core/schools', { params })
       .then((r) => r.data.rows),
@@ -15,6 +15,25 @@ export const coreApi = {
   getSchool: (id: number) =>
     apiClient
       .get<{ success: boolean; school: SchoolDetail }>(`/superadmin/core/schools/${id}`)
+      .then((r) => r.data.school),
+
+  suspendSchool: (
+    id: number,
+    body: { reason: string; code?: 'INSOLVENCY' | 'CONTRACT_BREACH' | 'OTHER' },
+  ) =>
+    apiClient
+      .post<{ success: boolean; school: SchoolDetail; message: string }>(
+        `/superadmin/core/schools/${id}/suspend`,
+        body,
+      )
+      .then((r) => r.data.school),
+
+  reactivateSchool: (id: number, body?: { note?: string }) =>
+    apiClient
+      .post<{ success: boolean; school: SchoolDetail; message: string }>(
+        `/superadmin/core/schools/${id}/reactivate`,
+        body ?? {},
+      )
       .then((r) => r.data.school),
 
   listCoreUsers: (params?: { page?: number; take?: number; role?: string; q?: string }) =>

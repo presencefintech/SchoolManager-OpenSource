@@ -12,12 +12,21 @@ export interface SchoolHealth {
   label: string
 }
 
+export interface SchoolOperationalSuspension {
+  reason: string
+  code: 'INSOLVENCY' | 'CONTRACT_BREACH' | 'OTHER'
+  suspendedAt: string
+  suspendedById: number
+}
+
 export interface School {
   id: number
   name: string
   city: string
   email?: string
+  active: boolean
   deletedAt: null | string
+  operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
     students: number
     admins: number
@@ -44,7 +53,9 @@ export interface SchoolDetail {
   name: string
   city: string
   email?: string
+  active: boolean
   deletedAt: null | string
+  operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
     students: number
     classes: number
