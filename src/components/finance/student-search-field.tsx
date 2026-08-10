@@ -12,6 +12,8 @@ type ClassRow = {
   name: string
   sectionId?: number
   optionId?: number
+  sectionName?: string | null
+  optionName?: string | null
   section?: { id: number; name: string }
   option?: { id: number; name: string }
 }
@@ -30,6 +32,22 @@ const selectCls =
 function pedagogyLine(s: FinanceStudentResult): string | null {
   const parts = [s.sectionName, s.optionName, s.className].filter(Boolean)
   return parts.length ? parts.join(' · ') : s.className
+}
+
+function classSectionId(c: ClassRow): number | undefined {
+  return c.sectionId ?? c.section?.id
+}
+
+function classSectionName(c: ClassRow): string | undefined {
+  return c.section?.name ?? c.sectionName ?? undefined
+}
+
+function classOptionId(c: ClassRow): number | undefined {
+  return c.optionId ?? c.option?.id
+}
+
+function classOptionName(c: ClassRow): string | undefined {
+  return c.option?.name ?? c.optionName ?? undefined
 }
 
 export function FinanceStudentSearchField({
@@ -60,8 +78,8 @@ export function FinanceStudentSearchField({
   const sections = useMemo(() => {
     const map = new Map<number, string>()
     for (const c of classes) {
-      const id = c.sectionId ?? c.section?.id
-      const name = c.section?.name
+      const id = classSectionId(c)
+      const name = classSectionName(c)
       if (id && name) map.set(id, name)
     }
     return Array.from(map.entries())
@@ -72,9 +90,9 @@ export function FinanceStudentSearchField({
   const options = useMemo(() => {
     const map = new Map<number, string>()
     for (const c of classes) {
-      if (sectionId !== '' && (c.sectionId ?? c.section?.id) !== sectionId) continue
-      const id = c.optionId ?? c.option?.id
-      const name = c.option?.name
+      if (sectionId !== '' && classSectionId(c) !== sectionId) continue
+      const id = classOptionId(c)
+      const name = classOptionName(c)
       if (id && name) map.set(id, name)
     }
     return Array.from(map.entries())
@@ -85,8 +103,8 @@ export function FinanceStudentSearchField({
   const filteredClasses = useMemo(() => {
     return classes
       .filter((c) => {
-        if (sectionId !== '' && (c.sectionId ?? c.section?.id) !== sectionId) return false
-        if (optionId !== '' && (c.optionId ?? c.option?.id) !== optionId) return false
+        if (sectionId !== '' && classSectionId(c) !== sectionId) return false
+        if (optionId !== '' && classOptionId(c) !== optionId) return false
         return true
       })
       .slice()
@@ -249,59 +267,78 @@ export function FinanceStudentSearchField({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                Section
-              </label>
-              <select
-                value={sectionId === '' ? '' : String(sectionId)}
-                onChange={(e) => onSectionChange(e.target.value)}
-                className={selectCls}
-              >
-                <option value="">Toutes</option>
-                {sections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-emerald-900">
+                Structure scolaire — Section · Option · Classe
+              </p>
+              <span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                Recherche v2
+              </span>
             </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                Option
-              </label>
-              <select
-                value={optionId === '' ? '' : String(optionId)}
-                onChange={(e) => onOptionChange(e.target.value)}
-                className={selectCls}
-                disabled={sections.length > 0 && sectionId === '' && options.length === 0}
-              >
-                <option value="">Toutes</option>
-                {options.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-emerald-800/70">
+                  Section {sections.length ? `(${sections.length})` : ''}
+                </label>
+                <select
+                  value={sectionId === '' ? '' : String(sectionId)}
+                  onChange={(e) => onSectionChange(e.target.value)}
+                  className={selectCls}
+                >
+                  <option value="">Toutes</option>
+                  {sections.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-emerald-800/70">
+                  Option {options.length ? `(${options.length})` : ''}
+                </label>
+                <select
+                  value={optionId === '' ? '' : String(optionId)}
+                  onChange={(e) => onOptionChange(e.target.value)}
+                  className={selectCls}
+                  disabled={sections.length > 0 && sectionId === '' && options.length === 0}
+                >
+                  <option value="">Toutes</option>
+                  {options.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-emerald-800/70">
+                  Classe {filteredClasses.length ? `(${filteredClasses.length})` : ''}
+                </label>
+                <select
+                  value={classId === '' ? '' : String(classId)}
+                  onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : '')}
+                  className={selectCls}
+                >
+                  <option value="">Toutes</option>
+                  {filteredClasses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                Classe
-              </label>
-              <select
-                value={classId === '' ? '' : String(classId)}
-                onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : '')}
-                className={selectCls}
-              >
-                <option value="">Toutes</option>
-                {filteredClasses.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {classes.length === 0 ? (
+              <p className="text-[11px] text-amber-800">
+                Aucune classe chargée — vérifiez l’API /finance/classes ou le contexte école.
+              </p>
+            ) : sections.length === 0 ? (
+              <p className="text-[11px] text-amber-800">
+                {classes.length} classe(s) chargée(s) mais sans section liée — les filtres de classe restent utilisables.
+              </p>
+            ) : null}
           </div>
 
           <div className="relative">
