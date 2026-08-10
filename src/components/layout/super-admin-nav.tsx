@@ -75,10 +75,8 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Opérations',
     items: [
-      { label: 'Audit', href: '/super-admin/audit', icon: ShieldAlert },
-      { label: 'Monitoring', href: '/super-admin/monitoring', icon: Activity },
+      { label: 'Centre opérations', href: '/super-admin/operations', icon: Activity },
       { label: 'Mobile Money', href: '/super-admin/mobile-money', icon: Smartphone },
-      { label: 'Fraude', href: '/super-admin/fraud', icon: ShieldAlert },
       { label: 'Notifications', href: '/super-admin/notifications', icon: Bell },
       { label: 'Outils SA', href: '/super-admin/outils', icon: Wrench },
       { label: 'Import', href: '/super-admin/import', icon: Upload },

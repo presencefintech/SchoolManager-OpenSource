@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   ShieldAlert, Activity, Wifi, WifiOff, Zap, Clock, UserCheck,
@@ -8,6 +8,7 @@ import {
   RefreshCw, FileSearch, ScrollText, Loader2, Flag, SearchCheck, UploadCloud,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 import {
   useReconciliationHealth, useProviderStats, useSecurityAlerts,
   useAnomalyDashboard, useMobileMoneyMetrics, useFraudRadar, useQueueStatus,
@@ -44,7 +45,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
-export default function AuditPage() {
+export function AuditView({ embedded = false }: { embedded?: boolean }) {
   /* ── monitoring hooks ── */
   const { data: reconciliation, isLoading: loadingRecon } = useReconciliationHealth()
   const { data: providers, isLoading: loadingProviders } = useProviderStats()
@@ -163,9 +164,9 @@ export default function AuditPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className={embedded ? 'bg-transparent' : 'min-h-screen bg-zinc-50'}>
 
-      {/* Header */}
+      {!embedded ? (
       <motion.div className="bg-white border-b border-zinc-200" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-8 py-6">
           <div>
@@ -182,8 +183,9 @@ export default function AuditPage() {
           </button>
         </div>
       </motion.div>
+      ) : null}
 
-      <div className="max-w-7xl mx-auto px-8 py-8 space-y-8">
+      <div className={cn('max-w-7xl mx-auto px-8 py-8 space-y-8', embedded && 'py-6')}>
 
         {/* ══ 1. INFRASTRUCTURE ══════════════════════════════════════════════ */}
         <div>
@@ -695,6 +697,18 @@ export default function AuditPage() {
         </div>
 
       </div>
+    </div>
+  )
+}
+
+export default function AuditPage() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/super-admin/operations?tab=audit')
+  }, [router])
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center text-sm text-zinc-400">
+      Redirection vers le centre opérations…
     </div>
   )
 }

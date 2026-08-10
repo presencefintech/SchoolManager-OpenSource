@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +8,7 @@ import {
   BarChart3, ShieldAlert, Eye, MessageSquare, Loader2, Send,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
@@ -64,7 +65,7 @@ function SmsStatusBadge({ status }: { status: SmsIntegrationStatus }) {
   )
 }
 
-export default function MonitoringPage() {
+export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
   const [testPhone, setTestPhone] = useState('')
   const [smsFeedback, setSmsFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
@@ -120,9 +121,9 @@ export default function MonitoringPage() {
   })
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className={embedded ? 'bg-transparent' : 'min-h-screen bg-zinc-50'}>
 
-      {/* Header */}
+      {!embedded ? (
       <motion.div
         className="bg-white border-b border-zinc-200"
         initial={{ opacity: 0, y: -12 }}
@@ -141,8 +142,9 @@ export default function MonitoringPage() {
           </div>
         </div>
       </motion.div>
+      ) : null}
 
-      <div className="max-w-6xl mx-auto px-8 py-8 space-y-5">
+      <div className={cn('max-w-6xl mx-auto px-8 py-8 space-y-5', embedded && 'py-6')}>
 
         {/* ── Réconciliation ───────────────────────────────────────────── */}
         <div className={CARD}>
@@ -457,6 +459,18 @@ export default function MonitoringPage() {
         </div>
 
       </div>
+    </div>
+  )
+}
+
+export default function MonitoringPage() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/super-admin/operations?tab=monitoring')
+  }, [router])
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center text-sm text-zinc-400">
+      Redirection vers le centre opérations…
     </div>
   )
 }

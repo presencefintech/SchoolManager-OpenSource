@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
 import { PlatformKpiStrip } from '@/components/super-admin/platform-kpi-strip'
 import { OwnerActionQueue } from '@/components/super-admin/owner-action-queue'
+import { ChurnAnalyticsPanel } from '@/components/super-admin/churn-analytics-panel'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -239,11 +240,11 @@ export default function SuperAdminDashboardPage() {
               Abonnements SaaS
             </Link>
             <Link
-              href="/super-admin/audit"
+              href="/super-admin/operations"
               className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 transition-colors"
             >
               <ShieldAlert size={14} />
-              Audit & Monitoring
+              Centre opérations
             </Link>
             <Link
               href="/super-admin/schools"
@@ -263,6 +264,8 @@ export default function SuperAdminDashboardPage() {
         <PlatformKpiStrip stats={stats} loading={loadingStats} />
 
         <OwnerActionQueue schools={schools} />
+
+        <ChurnAnalyticsPanel />
 
         {/* Santé des établissements — aperçu rapide */}
         {!loadingSchools && schools && schools.length > 0 && healthCount && (

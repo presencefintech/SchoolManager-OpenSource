@@ -8,6 +8,7 @@ import { enrollmentApi } from './enrollment.api'
 import { presenceApi }   from './presence.api'
 import { studentsApi }   from './students.api'
 import { billingApi }    from './billing.api'
+import { analyticsApi }  from './analytics.api'
 
 export { exportApi }       from './export.api'
 export { securityApi }     from './security.api'
@@ -24,12 +25,14 @@ export { anomaliesApi }    from './anomalies.api'
 export { emailsApi }       from './emails.api'
 export { schoolNetworkApi, adminNetworkApi } from './school-network.api'
 export { billingApi } from './billing.api'
+export { analyticsApi } from './analytics.api'
 export type { SchoolNetworkGroup, SchoolNetworkMember, SchoolNetworkOption } from './school-network.api'
 export type { ProductPlan, SchoolBilling, ProductPlanTier } from './billing.api'
 
 export const superAdminApi = {
   ...financeApi,
   ...billingApi,
+  ...analyticsApi,
   ...monitoringApi,
   ...authApi,
   ...auditApi,

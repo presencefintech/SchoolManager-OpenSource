@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +8,7 @@ import {
   Search, Flag, TrendingUp, Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 import { fraudApi } from '@/lib/superAdmin/api/fraud.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { FraudAnalysisResult } from '@/types/super-admin'
@@ -54,7 +55,7 @@ function RiskBadge({ level }: { level?: string }) {
   )
 }
 
-export default function FraudPage() {
+export function FraudView({ embedded = false }: { embedded?: boolean }) {
   const [studentId, setStudentId] = useState('')
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<FraudAnalysisResult | null>(null)
@@ -82,9 +83,9 @@ export default function FraudPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className={embedded ? 'bg-transparent' : 'min-h-screen bg-zinc-50'}>
 
-      {/* Header */}
+      {!embedded ? (
       <motion.div
         className="bg-white border-b border-zinc-200"
         initial={{ opacity: 0, y: -12 }}
@@ -103,8 +104,9 @@ export default function FraudPage() {
           </div>
         </div>
       </motion.div>
+      ) : null}
 
-      <div className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className={cn('max-w-6xl mx-auto px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-5', embedded && 'py-6')}>
 
         {/* ── Analyse par élève ───────────────────────────────────────── */}
         <div className={CARD}>
@@ -239,6 +241,18 @@ export default function FraudPage() {
         </div>
 
       </div>
+    </div>
+  )
+}
+
+export default function FraudPage() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/super-admin/operations?tab=fraud')
+  }, [router])
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center text-sm text-zinc-400">
+      Redirection vers le centre opérations…
     </div>
   )
 }
