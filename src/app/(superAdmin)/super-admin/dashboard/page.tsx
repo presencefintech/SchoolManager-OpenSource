@@ -21,6 +21,8 @@ import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
+import { PlatformKpiStrip } from '@/components/super-admin/platform-kpi-strip'
+import { OwnerActionQueue } from '@/components/super-admin/owner-action-queue'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -231,6 +233,12 @@ export default function SuperAdminDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href="/super-admin/billing"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 transition-colors"
+            >
+              Abonnements SaaS
+            </Link>
+            <Link
               href="/super-admin/audit"
               className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 transition-colors"
             >
@@ -252,46 +260,30 @@ export default function SuperAdminDashboardPage() {
         className="max-w-7xl mx-auto px-8 py-8 space-y-6"
       >
 
-        {/* ══ 0. ÉCOLE DE BASE ═══════════════════════════════════════════════ */}
-        {!loadingSchools && schools && schools.length > 0 && (() => {
-          const school = schools[0]
-          return (
-            <Link
-              href={`/super-admin/schools/${school.id}`}
-              className="block bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.08)] p-6 hover:border-zinc-300 transition-colors group"
-            >
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                    <Building2 size={20} className="text-indigo-600" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-base font-semibold text-zinc-900 truncate">{school.name}</p>
-                      <HealthBadge level={school.health.level} />
-                    </div>
-                    <p className="text-xs text-zinc-400 mt-0.5">{school.city}{school.email ? ` · ${school.email}` : ''}</p>
-                  </div>
+        <PlatformKpiStrip stats={stats} loading={loadingStats} />
+
+        <OwnerActionQueue schools={schools} />
+
+        {/* Santé des établissements — aperçu rapide */}
+        {!loadingSchools && schools && schools.length > 0 && healthCount && (
+          <div className="grid grid-cols-3 gap-3">
+            {(['EXCELLENT', 'STABLE', 'CRITICAL'] as const).map((level) => (
+              <Link
+                key={level}
+                href="/super-admin/schools"
+                className="rounded-xl border border-zinc-200 bg-white px-4 py-3 hover:border-zinc-300 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Dot level={level} />
+                  <span className="text-xs text-zinc-500">{HEALTH_LABEL[level]}</span>
                 </div>
-                <div className="flex items-center gap-6 flex-shrink-0">
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-zinc-900 tabular-nums">{school._count.students.toLocaleString('fr-FR')}</p>
-                    <p className="text-[11px] text-zinc-400 uppercase tracking-wide">Élèves</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-zinc-900 tabular-nums">{school._count.admins.toLocaleString('fr-FR')}</p>
-                    <p className="text-[11px] text-zinc-400 uppercase tracking-wide">Admins</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-zinc-900 tabular-nums">{school._count.payments.toLocaleString('fr-FR')}</p>
-                    <p className="text-[11px] text-zinc-400 uppercase tracking-wide">Paiements</p>
-                  </div>
-                  <ChevronRight size={16} className="text-zinc-300 group-hover:text-zinc-500 transition-colors" />
-                </div>
-              </div>
-            </Link>
-          )
-        })()}
+                <p className="text-2xl font-bold text-zinc-900 tabular-nums mt-1">
+                  {healthCount[level] ?? 0}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {isError && !loadingStats && (
           <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
