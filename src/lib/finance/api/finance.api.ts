@@ -314,7 +314,14 @@ export const financeRoleApi = {
   // ── Élèves (finance) ───────────────────────────────────────────────────────
   searchStudents: (
     query: string,
-    filters?: { classId?: number; sectionId?: number; optionId?: number; limit?: number },
+    filters?: {
+      classId?: number
+      sectionId?: number
+      optionId?: number
+      debtorsOnly?: boolean
+      sort?: 'name' | 'balance'
+      limit?: number
+    },
   ) =>
     apiClient
       .get('/finance/students/search', {
@@ -324,6 +331,8 @@ export const financeRoleApi = {
           classId: filters?.classId,
           sectionId: filters?.sectionId,
           optionId: filters?.optionId,
+          debtorsOnly: filters?.debtorsOnly ? 'true' : undefined,
+          sort: filters?.sort,
         },
       })
       .then((r) => {

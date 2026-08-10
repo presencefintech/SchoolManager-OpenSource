@@ -63,6 +63,7 @@ export function FinanceStudentSearchField({
   const [sectionId, setSectionId] = useState<number | ''>('')
   const [optionId, setOptionId] = useState<number | ''>('')
   const [classId, setClassId] = useState<number | ''>('')
+  const [debtorsOnly, setDebtorsOnly] = useState(false)
   const [highlight, setHighlight] = useState(0)
 
   useEffect(() => {
@@ -111,18 +112,23 @@ export function FinanceStudentSearchField({
       .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   }, [classes, sectionId, optionId])
 
+  const hasStructuralFilter = sectionId !== '' || optionId !== '' || classId !== ''
   const filters = {
     sectionId: sectionId === '' ? undefined : sectionId,
     optionId: optionId === '' ? undefined : optionId,
     classId: classId === '' ? undefined : classId,
+    debtorsOnly: debtorsOnly || undefined,
+    sort: (hasStructuralFilter || debtorsOnly) && debounced.length < 2
+      ? ('balance' as const)
+      : ('name' as const),
   }
-  const hasFilter = filters.sectionId != null || filters.optionId != null || filters.classId != null
+  const hasFilter = hasStructuralFilter || debtorsOnly
 
   const { data: results = [], isFetching } = useFinanceStudentSearch(debounced, filters)
 
   useEffect(() => {
     setHighlight(0)
-  }, [debounced, sectionId, optionId, classId, results.length])
+  }, [debounced, sectionId, optionId, classId, debtorsOnly, results.length])
 
   const filterChips = useMemo(() => {
     const chips: { key: string; label: string; clear: () => void }[] = []
@@ -157,6 +163,13 @@ export function FinanceStudentSearchField({
         clear: () => setClassId(''),
       })
     }
+    if (debtorsOnly) {
+      chips.push({
+        key: 'debtors',
+        label: 'Débiteurs seulement',
+        clear: () => setDebtorsOnly(false),
+      })
+    }
     if (debounced.length >= 2) {
       chips.push({
         key: 'q',
@@ -168,7 +181,7 @@ export function FinanceStudentSearchField({
       })
     }
     return chips
-  }, [sectionId, optionId, classId, debounced, sections, options, filteredClasses, classes])
+  }, [sectionId, optionId, classId, debtorsOnly, debounced, sections, options, filteredClasses, classes])
 
   function pick(s: FinanceStudentResult) {
     setSelected(s)
@@ -186,6 +199,7 @@ export function FinanceStudentSearchField({
     setSectionId('')
     setOptionId('')
     setClassId('')
+    setDebtorsOnly(false)
     setQuery('')
     setDebounced('')
   }
@@ -339,6 +353,23 @@ export function FinanceStudentSearchField({
                 {classes.length} classe(s) chargée(s) mais sans section liée — les filtres de classe restent utilisables.
               </p>
             ) : null}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setDebtorsOnly((v) => !v)}
+                className={cn(
+                  'rounded-lg px-2.5 py-1.5 text-[11px] font-semibold border transition-colors',
+                  debtorsOnly
+                    ? 'border-amber-400 bg-amber-100 text-amber-900'
+                    : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50',
+                )}
+              >
+                Débiteurs seulement
+              </button>
+              {(hasStructuralFilter || debtorsOnly) && debounced.length < 2 ? (
+                <span className="text-[10px] text-emerald-800/80">Tri : solde décroissant</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="relative">
@@ -389,7 +420,11 @@ export function FinanceStudentSearchField({
             <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-100 bg-zinc-50/80">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                  {isFetching ? 'Recherche…' : `${results.length} résultat${results.length > 1 ? 's' : ''}`}
+                  {isFetching
+                    ? 'Recherche…'
+                    : `${results.length} résultat${results.length > 1 ? 's' : ''}${
+                        debtorsOnly ? ' · débiteurs' : ''
+                      }`}
                 </p>
                 {results.length > 0 ? (
                   <p className="text-[10px] text-zinc-400">↑↓ puis Entrée</p>

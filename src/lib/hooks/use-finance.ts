@@ -557,22 +557,42 @@ export function useStudentSiblings(id: number) {
 
 export function useFinanceStudentSearch(
   query: string,
-  filters?: { classId?: number; sectionId?: number; optionId?: number },
+  filters?: {
+    classId?: number
+    sectionId?: number
+    optionId?: number
+    debtorsOnly?: boolean
+    sort?: 'name' | 'balance'
+  },
 ) {
   const classId = filters?.classId
   const sectionId = filters?.sectionId
   const optionId = filters?.optionId
-  const hasFilter = classId != null || sectionId != null || optionId != null
+  const debtorsOnly = filters?.debtorsOnly === true
+  const sort = filters?.sort
+  const hasFilter = classId != null || sectionId != null || optionId != null || debtorsOnly
   const q = query.trim()
   const enabled = q.length >= 2 || hasFilter
 
   return useQuery({
-    queryKey: ['finance', 'students', 'search', q, classId ?? null, sectionId ?? null, optionId ?? null],
+    queryKey: [
+      'finance',
+      'students',
+      'search',
+      q,
+      classId ?? null,
+      sectionId ?? null,
+      optionId ?? null,
+      debtorsOnly,
+      sort ?? null,
+    ],
     queryFn: () =>
       financeRoleApi.searchStudents(q, {
         classId,
         sectionId,
         optionId,
+        debtorsOnly: debtorsOnly || undefined,
+        sort,
         limit: hasFilter && q.length < 2 ? 40 : 15,
       }),
     staleTime: 30_000,
