@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useFinanceClasses, useFinanceStudentSearch } from '@/lib/hooks/use-finance'
 import type { FinanceStudentResult } from '@/types/finance'
+import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 
 type ClassRow = {
@@ -26,6 +27,11 @@ interface FinanceStudentSearchFieldProps {
 const selectCls =
   'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40'
 
+function pedagogyLine(s: FinanceStudentResult): string | null {
+  const parts = [s.sectionName, s.optionName, s.className].filter(Boolean)
+  return parts.length ? parts.join(' · ') : s.className
+}
+
 export function FinanceStudentSearchField({
   studentId,
   onSelect,
@@ -39,6 +45,7 @@ export function FinanceStudentSearchField({
   const [sectionId, setSectionId] = useState<number | ''>('')
   const [optionId, setOptionId] = useState<number | ''>('')
   const [classId, setClassId] = useState<number | ''>('')
+  const [highlight, setHighlight] = useState(0)
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 350)
@@ -95,6 +102,56 @@ export function FinanceStudentSearchField({
 
   const { data: results = [], isFetching } = useFinanceStudentSearch(debounced, filters)
 
+  useEffect(() => {
+    setHighlight(0)
+  }, [debounced, sectionId, optionId, classId, results.length])
+
+  const filterChips = useMemo(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = []
+    if (sectionId !== '') {
+      const s = sections.find((x) => x.id === sectionId)
+      chips.push({
+        key: 'section',
+        label: `Section: ${s?.name ?? sectionId}`,
+        clear: () => {
+          setSectionId('')
+          setOptionId('')
+          setClassId('')
+        },
+      })
+    }
+    if (optionId !== '') {
+      const o = options.find((x) => x.id === optionId)
+      chips.push({
+        key: 'option',
+        label: `Option: ${o?.name ?? optionId}`,
+        clear: () => {
+          setOptionId('')
+          setClassId('')
+        },
+      })
+    }
+    if (classId !== '') {
+      const c = filteredClasses.find((x) => x.id === classId) ?? classes.find((x) => x.id === classId)
+      chips.push({
+        key: 'class',
+        label: `Classe: ${c?.name ?? classId}`,
+        clear: () => setClassId(''),
+      })
+    }
+    if (debounced.length >= 2) {
+      chips.push({
+        key: 'q',
+        label: `« ${debounced} »`,
+        clear: () => {
+          setQuery('')
+          setDebounced('')
+        },
+      })
+    }
+    return chips
+  }, [sectionId, optionId, classId, debounced, sections, options, filteredClasses, classes])
+
   function pick(s: FinanceStudentResult) {
     setSelected(s)
     onSelect(s.id, s)
@@ -102,29 +159,49 @@ export function FinanceStudentSearchField({
     setDebounced('')
   }
 
-  function clear() {
+  function clearSelection() {
     setSelected(null)
     onSelect(0)
   }
 
+  function clearAllFilters() {
+    setSectionId('')
+    setOptionId('')
+    setClassId('')
+    setQuery('')
+    setDebounced('')
+  }
+
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key !== 'Enter') return
-    e.preventDefault()
-    if (results.length > 0) {
-      pick(results[0])
+    if (!showResults || !results.length) {
+      if (e.key === 'Enter') e.preventDefault()
+      return
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlight((h) => Math.min(h + 1, results.length - 1))
+      return
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlight((h) => Math.max(h - 1, 0))
+      return
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const target = results[highlight] ?? results[0]
+      if (target) pick(target)
     }
   }
 
   function onSectionChange(value: string) {
-    const next = value ? Number(value) : ''
-    setSectionId(next)
+    setSectionId(value ? Number(value) : '')
     setOptionId('')
     setClassId('')
   }
 
   function onOptionChange(value: string) {
-    const next = value ? Number(value) : ''
-    setOptionId(next)
+    setOptionId(value ? Number(value) : '')
     setClassId('')
   }
 
@@ -143,9 +220,19 @@ export function FinanceStudentSearchField({
               {selected.name}
               {selected.matricule ? ` · ${selected.matricule}` : ''}
             </p>
-            {selected.className && (
-              <p className="text-xs text-emerald-700/70">{selected.className}</p>
-            )}
+            {pedagogyLine(selected) ? (
+              <p className="text-xs text-emerald-700/70">{pedagogyLine(selected)}</p>
+            ) : null}
+            {selected.feesBalance != null ? (
+              <p
+                className={cn(
+                  'text-[11px] font-medium tabular-nums mt-0.5',
+                  selected.feesBalance > 0 ? 'text-amber-800' : 'text-emerald-800',
+                )}
+              >
+                Solde {formatMoney(selected.feesBalance)}
+              </p>
+            ) : null}
             {selected.isCrossSite && selected.schoolName ? (
               <p className="text-[10px] font-medium text-amber-800 mt-0.5">
                 Inscrit · {selected.schoolName}
@@ -154,7 +241,7 @@ export function FinanceStudentSearchField({
           </div>
           <button
             type="button"
-            onClick={clear}
+            onClick={clearSelection}
             className="shrink-0 text-xs font-medium text-emerald-700 hover:underline"
           >
             Changer
@@ -188,6 +275,7 @@ export function FinanceStudentSearchField({
                 value={optionId === '' ? '' : String(optionId)}
                 onChange={(e) => onOptionChange(e.target.value)}
                 className={selectCls}
+                disabled={sections.length > 0 && sectionId === '' && options.length === 0}
               >
                 <option value="">Toutes</option>
                 {options.map((o) => (
@@ -224,50 +312,108 @@ export function FinanceStudentSearchField({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
               autoFocus
-              placeholder="Matricule, nom, postnom ou réf. paiement (Entrée = 1er résultat)"
+              placeholder="Matricule, nom, classe, section ou réf. paiement"
               className="w-full rounded-xl border border-zinc-200 py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
+              aria-autocomplete="list"
+              aria-expanded={showResults}
             />
           </div>
-          <p className="text-[10px] text-zinc-400">
-            Filtrez par section / option / classe, ou collez une référence Orange Money / M-Pesa.
-          </p>
+
+          {filterChips.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {filterChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={chip.clear}
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
+                >
+                  {chip.label}
+                  <X size={10} />
+                </button>
+              ))}
+              {filterChips.length > 1 ? (
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="text-[11px] font-medium text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+                >
+                  Tout effacer
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-[10px] text-zinc-400">
+              Filtrez par structure, ou cherchez par nom / matricule / classe / réf. Mobile Money. ↑↓ Entrée.
+            </p>
+          )}
+
           {showResults && (
-            <div className="max-h-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-sm divide-y divide-zinc-100">
-              {isFetching ? (
-                <p className="px-3 py-2.5 text-xs text-zinc-400">Recherche…</p>
-              ) : results.length ? (
-                results.map((s, i) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => pick(s)}
-                    className={cn(
-                      'w-full px-3 py-2.5 text-left text-sm transition-colors hover:bg-emerald-50/60',
-                      i === 0 && 'bg-emerald-50/40',
-                    )}
-                  >
-                    <span className="font-medium text-zinc-900">{s.name}</span>
-                    {s.matricule && (
-                      <span className="ml-1.5 text-zinc-400">({s.matricule})</span>
-                    )}
-                    {s.className && (
-                      <span className="mt-0.5 block text-xs text-zinc-400">{s.className}</span>
-                    )}
-                    {s.isCrossSite && s.schoolName ? (
-                      <span className="mt-0.5 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
-                        {s.schoolName}
-                      </span>
-                    ) : null}
-                    {i === 0 ? (
-                      <span className="mt-0.5 block text-[10px] font-medium text-emerald-700">
-                        Entrée pour ouvrir
-                      </span>
-                    ) : null}
-                  </button>
-                ))
-              ) : (
-                <p className="px-3 py-2.5 text-xs text-zinc-400">Aucun élève trouvé</p>
-              )}
+            <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-100 bg-zinc-50/80">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                  {isFetching ? 'Recherche…' : `${results.length} résultat${results.length > 1 ? 's' : ''}`}
+                </p>
+                {results.length > 0 ? (
+                  <p className="text-[10px] text-zinc-400">↑↓ puis Entrée</p>
+                ) : null}
+              </div>
+              <div className="max-h-56 overflow-y-auto divide-y divide-zinc-100">
+                {isFetching && results.length === 0 ? (
+                  <p className="px-3 py-2.5 text-xs text-zinc-400">Chargement…</p>
+                ) : results.length ? (
+                  results.map((s, i) => {
+                    const balance = Number(s.feesBalance ?? 0)
+                    const line = pedagogyLine(s)
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => pick(s)}
+                        onMouseEnter={() => setHighlight(i)}
+                        className={cn(
+                          'w-full px-3 py-2.5 text-left text-sm transition-colors',
+                          i === highlight ? 'bg-emerald-50' : 'hover:bg-emerald-50/60',
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate">
+                              <span className="font-medium text-zinc-900">{s.name}</span>
+                              {s.matricule ? (
+                                <span className="ml-1.5 text-zinc-400">({s.matricule})</span>
+                              ) : null}
+                            </p>
+                            {line ? (
+                              <p className="mt-0.5 text-xs text-zinc-500 truncate">{line}</p>
+                            ) : null}
+                            {s.isCrossSite && s.schoolName ? (
+                              <span className="mt-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
+                                {s.schoolName}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p
+                              className={cn(
+                                'text-xs font-semibold tabular-nums',
+                                balance > 0 ? 'text-amber-700' : 'text-emerald-700',
+                              )}
+                            >
+                              {formatMoney(balance)}
+                            </p>
+                            <p className="text-[10px] text-zinc-400">
+                              {balance > 0 ? 'à recouvrer' : 'à jour'}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })
+                ) : (
+                  <p className="px-3 py-2.5 text-xs text-zinc-400">Aucun élève trouvé pour ces critères</p>
+                )}
+              </div>
             </div>
           )}
         </>

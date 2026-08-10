@@ -438,6 +438,9 @@ export interface FinanceStudentResult {
   name: string
   matricule: string
   className: string | null
+  sectionName?: string | null
+  optionName?: string | null
+  feesBalance?: number
   schoolId?: number
   schoolName?: string
   isCrossSite?: boolean
