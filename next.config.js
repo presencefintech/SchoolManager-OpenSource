@@ -1,3 +1,19 @@
+const { spawnSync } = require('node:child_process')
+const { randomUUID } = require('node:crypto')
+const withSerwistInit = require('@serwist/next').default
+
+// A revision versions the precached /offline fallback so a stale copy is
+// never served after a deploy changes it.
+const revision =
+  spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf-8' }).stdout?.trim() || randomUUID()
+
+const withSerwist = withSerwistInit({
+  swSrc: 'src/app/sw.ts',
+  swDest: 'public/sw.js',
+  additionalPrecacheEntries: [{ url: '/offline', revision }],
+  disable: process.env.NODE_ENV === 'development',
+})
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -38,4 +54,4 @@ const nextConfig = {
   },
 }
 
-module.exports = nextConfig
+module.exports = withSerwist(nextConfig)

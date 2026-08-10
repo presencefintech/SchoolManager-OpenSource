@@ -1,4 +1,5 @@
 import type { AuthUser, LoginResponse } from '@/types/auth'
+import { clearPersistedQueryCache } from '@/lib/query/persist'
 
 const AUTH_USER_KEY = 'auth_user'
 export const AUTH_SCHOOL_ID_KEY = 'auth_school_id'
@@ -58,6 +59,8 @@ export function clearAuthStorage(): void {
   localStorage.removeItem('auth_token')
   localStorage.removeItem('auth_refresh_token')
   localStorage.removeItem('auth_role')
+  // Next session on this device must never see the previous user's cached data.
+  void clearPersistedQueryCache()
 }
 
 export function persistAuthSession(data: LoginResponse): void {
