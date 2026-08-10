@@ -4,7 +4,7 @@ import type { UserRole } from '@/types/auth'
 import { ROLE_HOME } from '@/types/auth'
 import { decodeAccessToken } from '@/lib/auth/verify-access-token'
 
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify']
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite']
 
 const ROLE_PREFIXES: Record<UserRole, string> = {
   ADMIN: '/admin',
