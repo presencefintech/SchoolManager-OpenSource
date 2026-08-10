@@ -470,6 +470,12 @@ export default function CaissePage() {
                   <FileText size={12} />
                   {exportReport.isPending ? 'PDF…' : 'Rapport Z (PDF)'}
                 </button>
+                <a
+                  href="/finances/rapports/situation-mensuelle"
+                  className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+                >
+                  Situation mensuelle
+                </a>
                 <button
                   type="button"
                   onClick={() => void handleExport()}

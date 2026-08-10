@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote,
   CalendarCheck, RotateCcw, ClipboardCheck, BarChart3, Radio,
-  QrCode, LineChart, Bell, FileSpreadsheet, Sparkles,
+  QrCode, LineChart, Bell, FileSpreadsheet, Sparkles, FileText,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -25,6 +25,7 @@ const NAV_LINKS = [
   { label: 'Relances', href: '/finances/relances', icon: Bell },
   { label: 'Suivi financier', href: '/finances/suivi-financier', icon: BarChart3 },
   { label: 'Rapports', href: '/finances/rapports', icon: LineChart },
+  { label: 'Situation mensuelle', href: '/finances/rapports/situation-mensuelle', icon: FileText },
   { label: 'Exports', href: '/finances/exports', icon: FileSpreadsheet },
   { label: 'Remboursements', href: '/finances/remboursements', icon: RotateCcw },
   { label: 'Transactions', href: '/finances/transactions', icon: Search },

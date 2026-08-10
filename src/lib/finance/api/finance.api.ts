@@ -502,6 +502,11 @@ export const financeRoleApi = {
     return res.data as Blob
   },
 
+  getMonthlySituation: (params: { from: string; to: string; reportMonth?: string }) =>
+    apiClient
+      .get('/finance/reports/monthly-situation', { params })
+      .then((r) => r.data.data as import('@/types/finance').MonthlySituationReport),
+
   submitCashSessionToPromoter: (sessionId: number, payload?: { note?: string }) =>
     apiClient
       .post(`/finance/cash-sessions/${sessionId}/submit-to-promoter`, payload ?? {})

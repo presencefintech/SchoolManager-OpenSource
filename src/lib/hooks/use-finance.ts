@@ -464,6 +464,17 @@ export function useExportCashSessionReport() {
   })
 }
 
+export function useMonthlySituationReport(
+  params: { from: string; to: string; reportMonth?: string } | null,
+) {
+  return useQuery({
+    queryKey: ['finance', 'monthly-situation', params],
+    queryFn: () => financeRoleApi.getMonthlySituation(params!),
+    enabled: !!params?.from && !!params?.to,
+    staleTime: 60_000,
+  })
+}
+
 export function useSubmitCashSessionToPromoter() {
   const qc = useQueryClient()
   return useMutation({

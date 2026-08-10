@@ -917,3 +917,55 @@ export interface LateFeeRunResult {
   accruedTotal: number
   skipped: number
 }
+
+export type SituationLine = {
+  key: string
+  label: string
+  amount: number
+  source: 'computed' | 'estimated' | 'untracked'
+  note?: string
+}
+
+export interface MonthlySituationReport {
+  school: {
+    id: number
+    name: string
+    city: string | null
+    currency: string
+  }
+  period: {
+    from: string
+    to: string
+    reportMonth: string
+    reportMonthLabel: string
+    title: string
+  }
+  generatedAt: string
+  generatedBy: { id: number; name: string }
+  headcount: {
+    studentsActive: number
+    studentsPrivate: number
+    teachers: number
+    note: string
+  }
+  expectedRevenue: { lines: SituationLine[]; total: number; note: string }
+  actualRevenue: {
+    lines: SituationLine[]
+    total: number
+    byMethod: Array<{ method: string; amount: number; count: number }>
+    paymentCount: number
+  }
+  operationalExpenses: { lines: SituationLine[]; total: number; note: string }
+  investmentExpenses: { total: number; note: string }
+  bankDeposits: {
+    lines: Array<{ label: string; amount: number; ref: string | null; at: string }>
+    total: number
+  }
+  cashBalance: {
+    openingCarry: number
+    closingBalance: number | null
+    closingSource: string | null
+  }
+  credits: { lines: SituationLine[]; totalOutstanding: number; note: string }
+  integrity: { computedOnly: boolean; warnings: string[] }
+}
