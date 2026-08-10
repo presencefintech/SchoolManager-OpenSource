@@ -312,11 +312,24 @@ export const financeRoleApi = {
     apiClient.get(`/finance/payments/student/${id}/profile`).then(r => r.data.data),
 
   // ── Élèves (finance) ───────────────────────────────────────────────────────
-  searchStudents: (query: string) =>
-    apiClient.get('/finance/students/search', { params: { q: query, limit: 15 } }).then(r => {
-      const d = r.data.data
-      return (Array.isArray(d) ? d : (d?.results ?? [])) as import('@/types/finance').FinanceStudentResult[]
-    }),
+  searchStudents: (
+    query: string,
+    filters?: { classId?: number; sectionId?: number; optionId?: number; limit?: number },
+  ) =>
+    apiClient
+      .get('/finance/students/search', {
+        params: {
+          q: query || undefined,
+          limit: filters?.limit ?? 15,
+          classId: filters?.classId,
+          sectionId: filters?.sectionId,
+          optionId: filters?.optionId,
+        },
+      })
+      .then((r) => {
+        const d = r.data.data
+        return (Array.isArray(d) ? d : (d?.results ?? [])) as import('@/types/finance').FinanceStudentResult[]
+      }),
 
   getNetworkContext: () =>
     apiClient.get('/finance/network/context').then(r => r.data.data as import('@/types/finance').NetworkContext),

@@ -555,12 +555,28 @@ export function useStudentSiblings(id: number) {
 
 // ── Élèves (recherche finance) ─────────────────────────────────────────────
 
-export function useFinanceStudentSearch(query: string) {
+export function useFinanceStudentSearch(
+  query: string,
+  filters?: { classId?: number; sectionId?: number; optionId?: number },
+) {
+  const classId = filters?.classId
+  const sectionId = filters?.sectionId
+  const optionId = filters?.optionId
+  const hasFilter = classId != null || sectionId != null || optionId != null
+  const q = query.trim()
+  const enabled = q.length >= 2 || hasFilter
+
   return useQuery({
-    queryKey: ['finance', 'students', 'search', query],
-    queryFn: () => financeRoleApi.searchStudents(query),
+    queryKey: ['finance', 'students', 'search', q, classId ?? null, sectionId ?? null, optionId ?? null],
+    queryFn: () =>
+      financeRoleApi.searchStudents(q, {
+        classId,
+        sectionId,
+        optionId,
+        limit: hasFilter && q.length < 2 ? 40 : 15,
+      }),
     staleTime: 30_000,
-    enabled: query.trim().length >= 2,
+    enabled,
   })
 }
 

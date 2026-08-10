@@ -1,10 +1,19 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { useFinanceStudentSearch } from '@/lib/hooks/use-finance'
+import { useFinanceClasses, useFinanceStudentSearch } from '@/lib/hooks/use-finance'
 import type { FinanceStudentResult } from '@/types/finance'
 import { cn } from '@/lib/utils'
+
+type ClassRow = {
+  id: number
+  name: string
+  sectionId?: number
+  optionId?: number
+  section?: { id: number; name: string }
+  option?: { id: number; name: string }
+}
 
 interface FinanceStudentSearchFieldProps {
   studentId: number
@@ -13,6 +22,9 @@ interface FinanceStudentSearchFieldProps {
   required?: boolean
   className?: string
 }
+
+const selectCls =
+  'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40'
 
 export function FinanceStudentSearchField({
   studentId,
@@ -24,13 +36,64 @@ export function FinanceStudentSearchField({
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const [selected, setSelected] = useState<FinanceStudentResult | null>(null)
+  const [sectionId, setSectionId] = useState<number | ''>('')
+  const [optionId, setOptionId] = useState<number | ''>('')
+  const [classId, setClassId] = useState<number | ''>('')
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 350)
     return () => clearTimeout(t)
   }, [query])
 
-  const { data: results = [], isFetching } = useFinanceStudentSearch(debounced)
+  const { data: classesRaw } = useFinanceClasses()
+  const classes: ClassRow[] = Array.isArray(classesRaw)
+    ? (classesRaw as ClassRow[])
+    : ((classesRaw as { data?: ClassRow[] })?.data ?? [])
+
+  const sections = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const c of classes) {
+      const id = c.sectionId ?? c.section?.id
+      const name = c.section?.name
+      if (id && name) map.set(id, name)
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+  }, [classes])
+
+  const options = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const c of classes) {
+      if (sectionId !== '' && (c.sectionId ?? c.section?.id) !== sectionId) continue
+      const id = c.optionId ?? c.option?.id
+      const name = c.option?.name
+      if (id && name) map.set(id, name)
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+  }, [classes, sectionId])
+
+  const filteredClasses = useMemo(() => {
+    return classes
+      .filter((c) => {
+        if (sectionId !== '' && (c.sectionId ?? c.section?.id) !== sectionId) return false
+        if (optionId !== '' && (c.optionId ?? c.option?.id) !== optionId) return false
+        return true
+      })
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+  }, [classes, sectionId, optionId])
+
+  const filters = {
+    sectionId: sectionId === '' ? undefined : sectionId,
+    optionId: optionId === '' ? undefined : optionId,
+    classId: classId === '' ? undefined : classId,
+  }
+  const hasFilter = filters.sectionId != null || filters.optionId != null || filters.classId != null
+
+  const { data: results = [], isFetching } = useFinanceStudentSearch(debounced, filters)
 
   function pick(s: FinanceStudentResult) {
     setSelected(s)
@@ -51,6 +114,21 @@ export function FinanceStudentSearchField({
       pick(results[0])
     }
   }
+
+  function onSectionChange(value: string) {
+    const next = value ? Number(value) : ''
+    setSectionId(next)
+    setOptionId('')
+    setClassId('')
+  }
+
+  function onOptionChange(value: string) {
+    const next = value ? Number(value) : ''
+    setOptionId(next)
+    setClassId('')
+  }
+
+  const showResults = debounced.length >= 2 || hasFilter
 
   return (
     <div className={cn('space-y-1.5', className)}>
@@ -84,6 +162,60 @@ export function FinanceStudentSearchField({
         </div>
       ) : (
         <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                Section
+              </label>
+              <select
+                value={sectionId === '' ? '' : String(sectionId)}
+                onChange={(e) => onSectionChange(e.target.value)}
+                className={selectCls}
+              >
+                <option value="">Toutes</option>
+                {sections.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                Option
+              </label>
+              <select
+                value={optionId === '' ? '' : String(optionId)}
+                onChange={(e) => onOptionChange(e.target.value)}
+                className={selectCls}
+              >
+                <option value="">Toutes</option>
+                {options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                Classe
+              </label>
+              <select
+                value={classId === '' ? '' : String(classId)}
+                onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : '')}
+                className={selectCls}
+              >
+                <option value="">Toutes</option>
+                {filteredClasses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="relative">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -97,10 +229,10 @@ export function FinanceStudentSearchField({
             />
           </div>
           <p className="text-[10px] text-zinc-400">
-            Astuce RDC : collez une référence Orange Money / M-Pesa pour retrouver l&apos;élève.
+            Filtrez par section / option / classe, ou collez une référence Orange Money / M-Pesa.
           </p>
-          {debounced.length >= 2 && (
-            <div className="max-h-44 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-sm divide-y divide-zinc-100">
+          {showResults && (
+            <div className="max-h-52 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-sm divide-y divide-zinc-100">
               {isFetching ? (
                 <p className="px-3 py-2.5 text-xs text-zinc-400">Recherche…</p>
               ) : results.length ? (
