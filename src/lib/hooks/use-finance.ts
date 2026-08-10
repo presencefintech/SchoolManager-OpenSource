@@ -475,6 +475,53 @@ export function useMonthlySituationReport(
   })
 }
 
+export function useFinanceExpenses(params?: {
+  from?: string
+  to?: string
+  kind?: string
+  status?: string
+}) {
+  return useQuery({
+    queryKey: ['finance', 'expenses', params],
+    queryFn: () => financeRoleApi.listExpenses(params),
+    staleTime: 30_000,
+  })
+}
+
+export function useCreateExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeRoleApi.createExpense,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'expenses'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'monthly-situation'] })
+    },
+  })
+}
+
+export function usePostExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => financeRoleApi.postExpense(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'expenses'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'monthly-situation'] })
+    },
+  })
+}
+
+export function useVoidExpense() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
+      financeRoleApi.voidExpense(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'expenses'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'monthly-situation'] })
+    },
+  })
+}
+
 export function useSubmitCashSessionToPromoter() {
   const qc = useQueryClient()
   return useMutation({
