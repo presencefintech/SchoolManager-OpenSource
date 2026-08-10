@@ -918,12 +918,120 @@ export interface LateFeeRunResult {
   skipped: number
 }
 
+export type ExpenseKind = 'OPERATING' | 'INVESTMENT'
+export type ExpenseStatus = 'DRAFT' | 'POSTED' | 'VOID'
+
+export interface FinanceExpense {
+  id: number
+  uuid: string
+  schoolId: number
+  kind: ExpenseKind
+  status: ExpenseStatus
+  category: string
+  label: string
+  amount: number
+  currency: string
+  occurredAt: string
+  affectsCash: boolean
+  cashSessionId: number | null
+  vendor: string | null
+  reference: string | null
+  notes: string | null
+  createdById: number
+  voidedById: number | null
+  voidedAt: string | null
+  postedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateExpensePayload = {
+  kind: ExpenseKind
+  category: string
+  label: string
+  amount: number
+  currency?: string
+  occurredAt: string
+  affectsCash?: boolean
+  cashSessionId?: number | null
+  vendor?: string | null
+  reference?: string | null
+  notes?: string | null
+  postImmediately?: boolean
+}
+
+export type DataBadge = 'prisma_certified' | 'catalog_estimate' | 'untracked' | 'manual_entry'
+
 export type SituationLine = {
   key: string
   label: string
-  amount: number
+  amount: number | null
   source: 'computed' | 'estimated' | 'untracked'
+  badge: DataBadge
   note?: string
+}
+
+export type VarianceLine = {
+  key: string
+  label: string
+  category: 'revenue' | 'expense'
+  expected: number | null
+  actual: number | null
+  varianceAmount: number | null
+  variancePercent: number | null
+  sourceExpected: 'estimated' | 'untracked' | 'n/a'
+  sourceActual: 'computed' | 'untracked'
+  badgeExpected: DataBadge
+  badgeActual: DataBadge
+  note?: string
+}
+
+export type KpiMetric = {
+  key: string
+  label: string
+  value: number | null
+  unit: 'ratio' | 'percent' | 'currency' | 'unavailable'
+  formula: string
+  note: string
+  status: 'ok' | 'watch' | 'alert' | 'unavailable'
+  badge: DataBadge
+}
+
+export type ManagementAlert = {
+  severity: 'attention' | 'critique' | 'info'
+  code: string
+  title: string
+  message: string
+  blocking?: boolean
+}
+
+export type CashReconciliation = {
+  status: 'balanced' | 'mismatch' | 'incomplete'
+  equation: string
+  openingCarry: number
+  collectedRevenue: number
+  renflouements: number
+  expensesCashImpact: number | null
+  bankDeposits: number
+  treasuryWithdrawals: number
+  expectedClosing: number | null
+  actualClosing: number | null
+  gap: number | null
+  tolerance: number
+  blocking: boolean
+  note: string
+  badge: DataBadge
+}
+
+export type ArrearsRisk = {
+  monthFees: number
+  arrearsFees: number
+  advanceFees: number
+  weightVsMonth: number | null
+  arrearsShareOfTuition: number | null
+  advanceShareOfTuition: number | null
+  badge: DataBadge
+  note: string
 }
 
 export interface MonthlySituationReport {
@@ -939,6 +1047,7 @@ export interface MonthlySituationReport {
     reportMonth: string
     reportMonthLabel: string
     title: string
+    documentKind?: 'executive_synthesis'
   }
   generatedAt: string
   generatedBy: { id: number; name: string }
@@ -947,25 +1056,56 @@ export interface MonthlySituationReport {
     studentsPrivate: number
     teachers: number
     note: string
+    badge: DataBadge
   }
   expectedRevenue: { lines: SituationLine[]; total: number; note: string }
   actualRevenue: {
     lines: SituationLine[]
     total: number
+    collectedTotal: number
     byMethod: Array<{ method: string; amount: number; count: number }>
     paymentCount: number
   }
-  operationalExpenses: { lines: SituationLine[]; total: number; note: string }
-  investmentExpenses: { total: number; note: string }
+  operationalExpenses: {
+    lines: SituationLine[]
+    total: number | null
+    tracked: boolean
+    note: string
+  }
+  investmentExpenses: { total: number | null; tracked: boolean; note: string }
   bankDeposits: {
-    lines: Array<{ label: string; amount: number; ref: string | null; at: string }>
+    lines: Array<{
+      label: string
+      amount: number
+      ref: string | null
+      at: string
+      badge: DataBadge
+    }>
     total: number
+    source: 'cash_movements' | 'ledger_json_fallback'
+    badge: DataBadge
   }
   cashBalance: {
     openingCarry: number
     closingBalance: number | null
     closingSource: string | null
+    badge: DataBadge
   }
   credits: { lines: SituationLine[]; totalOutstanding: number; note: string }
+  variance: { lines: VarianceLine[]; note: string }
+  kpis: {
+    burnRate: KpiMetric
+    liquidityRatio: KpiMetric
+    collectionEfficiency: KpiMetric
+    revenuePerStudent: KpiMetric
+  }
+  arrearsRisk: ArrearsRisk
+  cashReconciliation: CashReconciliation
+  alerts: ManagementAlert[]
+  document: {
+    productName: string
+    audience: string
+    signatureSlots: Array<{ role: string; label: string }>
+  }
   integrity: { computedOnly: boolean; warnings: string[] }
 }
