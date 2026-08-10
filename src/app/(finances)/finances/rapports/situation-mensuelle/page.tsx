@@ -2,17 +2,23 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Printer, RefreshCw, ArrowLeft, AlertTriangle, FileText } from 'lucide-react'
+import { Printer, RefreshCw, ArrowLeft, AlertTriangle, FileText, Info } from 'lucide-react'
 import { useMonthlySituationReport } from '@/lib/hooks/use-finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
-import type { SituationLine } from '@/types/finance'
+import type {
+  DataBadge,
+  KpiMetric,
+  ManagementAlert,
+  SituationLine,
+  VarianceLine,
+} from '@/types/finance'
 
 /** Période RDC type promoteur : 26 du mois précédent → 25 du mois courant. */
 function defaultRdcPeriod(now = new Date()) {
   const y = now.getFullYear()
-  const m = now.getMonth() // 0-based
+  const m = now.getMonth()
   const fromDate = new Date(y, m - 1, 26)
   const toDate = new Date(y, m, 25)
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -22,42 +28,109 @@ function defaultRdcPeriod(now = new Date()) {
   return { from: iso(fromDate), to: iso(toDate), reportMonth }
 }
 
-function LineRows({
-  lines,
-  currency,
-}: {
-  lines: SituationLine[]
-  currency: string
-}) {
+function formatAmount(amount: number | null | undefined, currency: string): string {
+  if (amount == null) return 'Non tracé'
+  return formatMoney(amount, currency)
+}
+
+function formatRatio(value: number | null, unit: KpiMetric['unit'], currency?: string): string {
+  if (value == null || unit === 'unavailable') return '—'
+  if (unit === 'ratio') return `${(value * 100).toFixed(1)} %`
+  if (unit === 'percent') return `${value.toFixed(1)} %`
+  if (unit === 'currency') return formatMoney(value, currency ?? 'USD')
+  return String(value)
+}
+
+function formatSignedMoney(amount: number | null, currency: string): string {
+  if (amount == null) return '—'
+  const abs = formatMoney(Math.abs(amount), currency)
+  if (amount > 0) return `+${abs}`
+  if (amount < 0) return `−${formatMoney(Math.abs(amount), currency)}`
+  return abs
+}
+
+function ProvenanceBadge({ badge }: { badge?: DataBadge }) {
+  if (!badge) return null
+  const map: Record<DataBadge, { label: string; className: string }> = {
+    prisma_certified: {
+      label: 'Donnée certifiée Prisma',
+      className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    },
+    catalog_estimate: {
+      label: 'Estimation catalogue',
+      className: 'bg-amber-50 text-amber-900 border-amber-200',
+    },
+    untracked: {
+      label: 'Non tracé',
+      className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+    },
+    manual_entry: {
+      label: 'Saisie manuelle / legacy',
+      className: 'bg-sky-50 text-sky-900 border-sky-200',
+    },
+  }
+  const cfg = map[badge]
   return (
-    <ul className="space-y-1.5">
-      {lines.map((l) => (
-        <li key={l.key} className="flex items-start justify-between gap-3 text-sm">
-          <div className="min-w-0">
-            <p className="text-zinc-800">
-              <span className="text-zinc-400 mr-1.5">•</span>
-              {l.label}
-            </p>
-            {l.note ? <p className="text-[11px] text-zinc-400 ml-3.5 mt-0.5">{l.note}</p> : null}
-            {l.source !== 'computed' ? (
-              <span
-                className={cn(
-                  'ml-3.5 mt-0.5 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase',
-                  l.source === 'estimated'
-                    ? 'bg-amber-50 text-amber-800'
-                    : 'bg-zinc-100 text-zinc-500',
-                )}
-              >
-                {l.source === 'estimated' ? 'estimé' : 'non suivi'}
-              </span>
-            ) : null}
-          </div>
-          <p className="shrink-0 font-semibold tabular-nums text-zinc-900">
-            {formatMoney(l.amount, currency)}
-          </p>
-        </li>
-      ))}
-    </ul>
+    <span
+      className={cn(
+        'inline-block rounded border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide',
+        cfg.className,
+      )}
+    >
+      {cfg.label}
+    </span>
+  )
+}
+
+function kpiStatusClass(status: KpiMetric['status']): string {
+  switch (status) {
+    case 'alert':
+      return 'border-red-300 bg-red-50 text-red-900'
+    case 'watch':
+      return 'border-amber-300 bg-amber-50 text-amber-950'
+    case 'unavailable':
+      return 'border-zinc-200 bg-zinc-50 text-zinc-600'
+    default:
+      return 'border-emerald-200 bg-emerald-50/60 text-emerald-950'
+  }
+}
+
+function alertClass(severity: ManagementAlert['severity']): string {
+  switch (severity) {
+    case 'critique':
+      return 'border-red-400 bg-red-50 text-red-950'
+    case 'attention':
+      return 'border-amber-400 bg-amber-50 text-amber-950'
+    default:
+      return 'border-slate-300 bg-slate-50 text-slate-800'
+  }
+}
+
+function LineRows({ lines, currency }: { lines: SituationLine[]; currency: string }) {
+  return (
+    <table className="msr-table w-full text-sm">
+      <tbody>
+        {lines.map((l) => (
+          <tr key={l.key}>
+            <td className="align-top">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-zinc-800">{l.label}</span>
+                <ProvenanceBadge badge={l.badge} />
+              </div>
+              {l.note ? <p className="msr-note mt-0.5">{l.note}</p> : null}
+            </td>
+            <td
+              className={cn(
+                'text-right font-semibold tabular-nums whitespace-nowrap',
+                l.amount == null && 'text-zinc-400 italic font-medium',
+              )}
+            >
+              {formatAmount(l.amount, currency)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -67,26 +140,105 @@ function Section({
   children,
   total,
   currency,
+  badge,
 }: {
   n: number | string
   title: string
   children: React.ReactNode
-  total?: number
+  total?: number | null
   currency?: string
+  badge?: DataBadge
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white p-5 print:border-zinc-300 print:shadow-none print:break-inside-avoid">
-      <h2 className="text-sm font-bold text-zinc-900 mb-3">
-        {n}. {title}
-      </h2>
+    <section className="msr-section break-inside-avoid">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
+        <h2 className="msr-section-title !mb-0">
+          {n}. {title}
+        </h2>
+        <ProvenanceBadge badge={badge} />
+      </div>
       {children}
-      {total != null && currency ? (
-        <p className="mt-3 pt-3 border-t border-zinc-100 text-sm font-bold text-zinc-900 flex justify-between">
+      {total !== undefined && currency ? (
+        <p className="msr-total">
           <span>TOTAL</span>
-          <span className="tabular-nums">{formatMoney(total, currency)}</span>
+          <span
+            className={cn(
+              'tabular-nums',
+              total == null && 'text-zinc-400 italic font-medium',
+            )}
+          >
+            {formatAmount(total, currency)}
+          </span>
         </p>
       ) : null}
     </section>
+  )
+}
+
+function VarianceTable({ lines, currency }: { lines: VarianceLine[]; currency: string }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="msr-table msr-table-zebra w-full text-sm">
+        <thead>
+          <tr>
+            <th className="text-left">Poste</th>
+            <th className="text-right">Attendu</th>
+            <th className="text-right">Réel</th>
+            <th className="text-right">Variance</th>
+            <th className="text-right">Var. %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((l) => (
+            <tr key={l.key}>
+              <td>
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="font-medium text-zinc-900">{l.label}</span>
+                  <ProvenanceBadge badge={l.badgeActual} />
+                </div>
+                {l.note ? <p className="msr-note mt-0.5">{l.note}</p> : null}
+              </td>
+              <td
+                className={cn(
+                  'text-right tabular-nums whitespace-nowrap',
+                  l.expected == null && 'text-zinc-400 italic',
+                )}
+              >
+                {formatAmount(l.expected, currency)}
+              </td>
+              <td
+                className={cn(
+                  'text-right tabular-nums whitespace-nowrap font-semibold',
+                  l.actual == null && 'text-zinc-400 italic font-medium',
+                )}
+              >
+                {formatAmount(l.actual, currency)}
+              </td>
+              <td
+                className={cn(
+                  'text-right tabular-nums whitespace-nowrap font-semibold',
+                  l.varianceAmount != null && l.varianceAmount < 0 && 'text-red-700',
+                  l.varianceAmount != null && l.varianceAmount > 0 && 'text-emerald-700',
+                )}
+              >
+                {formatSignedMoney(l.varianceAmount, currency)}
+              </td>
+              <td
+                className={cn(
+                  'text-right tabular-nums whitespace-nowrap',
+                  l.variancePercent != null && l.variancePercent < 0 && 'text-red-700',
+                  l.variancePercent != null && l.variancePercent > 0 && 'text-emerald-700',
+                )}
+              >
+                {l.variancePercent != null
+                  ? `${l.variancePercent > 0 ? '+' : ''}${l.variancePercent.toFixed(1)} %`
+                  : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -100,13 +252,19 @@ export default function SituationMensuellePage() {
   const { data, isLoading, isFetching, isError, refetch, error } = useMonthlySituationReport(applied)
 
   const currency = data?.school.currency ?? 'USD'
+  const editedAt = data
+    ? new Date(data.generatedAt).toLocaleString('fr-FR', {
+        dateStyle: 'long',
+        timeStyle: 'short',
+      })
+    : ''
 
   return (
     <FinancePageShell>
       <div className="print:hidden">
         <FinancePageHeader
-          title="Situation financière mensuelle"
-          subtitle="Rapport promoteur / admin — données Presence uniquement (aucune dépense inventée)"
+          title="Synthèse executive — situation mensuelle"
+          subtitle="Document de conseil d’administration — données Presence uniquement"
           actions={
             <>
               <Link
@@ -171,7 +329,7 @@ export default function SituationMensuellePage() {
             Générer
           </button>
           <p className="w-full text-[11px] text-zinc-400">
-            Défaut RDC : 26 du mois précédent → 25 du mois en cours (ex. Érudits).
+            Défaut RDC : 26 du mois précédent → 25 du mois en cours (ex. Les Érudits).
           </p>
         </div>
       </div>
@@ -184,156 +342,380 @@ export default function SituationMensuellePage() {
           {(error as { message?: string })?.message ?? 'Vérifiez la période.'}
         </div>
       ) : data ? (
-        <div className="space-y-4 max-w-3xl mx-auto print:max-w-none">
-          <header className="text-center space-y-1 pb-4 border-b border-zinc-200">
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
-              Guichet · Presence
+        <article className="msr-sheet mx-auto">
+          <header className="msr-header">
+            <p className="msr-eyebrow">Document de synthèse executive</p>
+            <h1 className="msr-school">{data.school.name}</h1>
+            {data.school.city ? <p className="msr-meta">{data.school.city}</p> : null}
+            <p className="msr-title">{data.period.title}</p>
+            <p className="msr-meta">
+              Période du {data.period.from.split('-').reverse().join('/')} au{' '}
+              {data.period.to.split('-').reverse().join('/')} · Mois de référence{' '}
+              {data.period.reportMonthLabel}
             </p>
-            <h1 className="text-xl font-bold text-zinc-900 uppercase tracking-tight">
-              {data.school.name}
-            </h1>
-            {data.school.city ? (
-              <p className="text-sm text-zinc-500">{data.school.city}</p>
-            ) : null}
-            <p className="text-base font-semibold text-zinc-800 mt-2">{data.period.title}</p>
-            <p className="text-sm text-zinc-600">
-              du {data.period.from.split('-').reverse().join('/')} au{' '}
-              {data.period.to.split('-').reverse().join('/')}
-            </p>
-            <p className="text-[11px] text-zinc-400">
-              Généré le {new Date(data.generatedAt).toLocaleString('fr-FR')} · {data.generatedBy.name}
+            <p className="msr-meta">
+              Destinataires : {data.document.audience}
             </p>
           </header>
 
-          {data.integrity.warnings.length > 0 ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-xs text-amber-900 space-y-1 print:border-amber-300">
-              <p className="font-semibold flex items-center gap-1.5">
-                <AlertTriangle size={13} /> Transparence des données
-              </p>
-              {data.integrity.warnings.map((w) => (
-                <p key={w}>• {w}</p>
+          {data.alerts.length > 0 ? (
+            <section className="msr-section break-inside-avoid space-y-2">
+              <h2 className="msr-section-title">Alertes de gestion</h2>
+              {data.alerts.map((a) => (
+                <div
+                  key={a.code}
+                  className={cn('rounded-md border px-3 py-2.5 text-sm', alertClass(a.severity))}
+                >
+                  <p className="font-bold flex items-start gap-1.5 flex-wrap">
+                    {a.severity === 'info' ? (
+                      <Info size={14} className="mt-0.5 shrink-0" />
+                    ) : (
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    )}
+                    <span className="flex-1">{a.title}</span>
+                    {a.blocking ? (
+                      <span className="rounded bg-red-700 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                        Bloquant signature
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="mt-1 leading-relaxed">{a.message}</p>
+                </div>
               ))}
-            </div>
+            </section>
           ) : null}
 
-          <Section n={1} title="Nombre des élèves">
-            <ul className="space-y-1.5 text-sm">
-              <li className="flex justify-between">
-                <span>• Privées (élèves actifs)</span>
-                <span className="font-semibold tabular-nums">{data.headcount.studentsPrivate}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>• Enseignants</span>
-                <span className="font-semibold tabular-nums">{data.headcount.teachers}</span>
-              </li>
-            </ul>
-            <p className="text-[11px] text-zinc-400 mt-2">{data.headcount.note}</p>
+          <section className="msr-section break-inside-avoid">
+            <h2 className="msr-section-title">Indicateurs de santé financière</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {([
+                data.kpis.burnRate,
+                data.kpis.liquidityRatio,
+                data.kpis.collectionEfficiency,
+                data.kpis.revenuePerStudent,
+              ] as KpiMetric[]).map((kpi) => (
+                <div
+                  key={kpi.key}
+                  className={cn('rounded-md border px-3 py-3', kpiStatusClass(kpi.status))}
+                >
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">
+                      {kpi.label}
+                    </p>
+                    <ProvenanceBadge badge={kpi.badge} />
+                  </div>
+                  <p className="mt-1 text-2xl font-bold tabular-nums">
+                    {formatRatio(kpi.value, kpi.unit, currency)}
+                  </p>
+                  <p className="msr-note mt-2">{kpi.formula}</p>
+                  <p className="msr-note mt-1">{kpi.note}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="msr-section break-inside-avoid">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h2 className="msr-section-title !mb-0">Risque arriérés / anticipatifs</h2>
+              <ProvenanceBadge badge={data.arrearsRisk.badge} />
+            </div>
+            <table className="msr-table msr-table-zebra w-full text-sm">
+              <tbody>
+                <tr>
+                  <td>Frais du mois</td>
+                  <td className="text-right tabular-nums font-semibold">
+                    {formatMoney(data.arrearsRisk.monthFees, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Frais antérieurs</td>
+                  <td className="text-right tabular-nums font-semibold">
+                    {formatMoney(data.arrearsRisk.arrearsFees, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Frais anticipatifs</td>
+                  <td className="text-right tabular-nums font-semibold">
+                    {formatMoney(data.arrearsRisk.advanceFees, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Poids (ant. + antic.) / mois</td>
+                  <td className="text-right tabular-nums font-semibold">
+                    {data.arrearsRisk.weightVsMonth != null
+                      ? `${data.arrearsRisk.weightVsMonth.toFixed(2)}×`
+                      : '—'}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Part arriérés / scolarité encaissée</td>
+                  <td className="text-right tabular-nums">
+                    {data.arrearsRisk.arrearsShareOfTuition != null
+                      ? `${(data.arrearsRisk.arrearsShareOfTuition * 100).toFixed(1)} %`
+                      : '—'}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Part anticipatifs / scolarité encaissée</td>
+                  <td className="text-right tabular-nums">
+                    {data.arrearsRisk.advanceShareOfTuition != null
+                      ? `${(data.arrearsRisk.advanceShareOfTuition * 100).toFixed(1)} %`
+                      : '—'}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="msr-note mt-2">{data.arrearsRisk.note}</p>
+          </section>
+
+          <section className="msr-section break-inside-avoid">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <h2 className="msr-section-title !mb-0">Rapprochement de trésorerie</h2>
+              <ProvenanceBadge badge={data.cashReconciliation.badge} />
+              <span
+                className={cn(
+                  'rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide',
+                  data.cashReconciliation.status === 'balanced' &&
+                    'border-emerald-300 bg-emerald-50 text-emerald-800',
+                  data.cashReconciliation.status === 'mismatch' &&
+                    'border-red-400 bg-red-50 text-red-800',
+                  data.cashReconciliation.status === 'incomplete' &&
+                    'border-zinc-300 bg-zinc-50 text-zinc-600',
+                )}
+              >
+                {data.cashReconciliation.status === 'balanced'
+                  ? 'Équilibré'
+                  : data.cashReconciliation.status === 'mismatch'
+                    ? 'Écart'
+                    : 'Incomplet'}
+              </span>
+            </div>
+            <p className="msr-note mb-2 font-mono text-[11px]">{data.cashReconciliation.equation}</p>
+            <table className="msr-table msr-table-zebra w-full text-sm">
+              <tbody>
+                <tr>
+                  <td>Report caisse</td>
+                  <td className="text-right tabular-nums">
+                    {formatMoney(data.cashReconciliation.openingCarry, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>+ Recettes réelles</td>
+                  <td className="text-right tabular-nums">
+                    {formatMoney(data.cashReconciliation.collectedRevenue, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>+ Renflouements</td>
+                  <td className="text-right tabular-nums">
+                    {formatMoney(data.cashReconciliation.renflouements, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>− Dépenses affectsCash</td>
+                  <td
+                    className={cn(
+                      'text-right tabular-nums',
+                      data.cashReconciliation.expensesCashImpact == null && 'text-zinc-400 italic',
+                    )}
+                  >
+                    {formatAmount(data.cashReconciliation.expensesCashImpact, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>− Versements banque</td>
+                  <td className="text-right tabular-nums">
+                    {formatMoney(data.cashReconciliation.bankDeposits, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>− Retraits trésorerie</td>
+                  <td className="text-right tabular-nums">
+                    {formatMoney(data.cashReconciliation.treasuryWithdrawals, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>= Solde théorique</td>
+                  <td className="text-right tabular-nums font-semibold">
+                    {formatAmount(data.cashReconciliation.expectedClosing, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Solde caisse réel</td>
+                  <td className="text-right tabular-nums font-semibold">
+                    {formatAmount(data.cashReconciliation.actualClosing, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Écart (réel − théorique)</td>
+                  <td
+                    className={cn(
+                      'text-right tabular-nums font-bold',
+                      data.cashReconciliation.blocking && 'text-red-700',
+                    )}
+                  >
+                    {formatSignedMoney(data.cashReconciliation.gap, currency)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="msr-note mt-2">{data.cashReconciliation.note}</p>
+          </section>
+
+          <Section n={1} title="Effectifs" badge={data.headcount.badge}>
+            <table className="msr-table msr-table-zebra w-full text-sm">
+              <tbody>
+                <tr>
+                  <td>Élèves actifs (privées)</td>
+                  <td className="text-right font-semibold tabular-nums">
+                    {data.headcount.studentsPrivate}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Enseignants actifs</td>
+                  <td className="text-right font-semibold tabular-nums">
+                    {data.headcount.teachers}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="msr-note mt-2">{data.headcount.note}</p>
           </Section>
 
           <Section
             n={2}
-            title="Recettes attendues"
-            total={data.expectedRevenue.total}
-            currency={currency}
+            title="Analyse de variance (attendu vs réel)"
           >
-            <LineRows lines={data.expectedRevenue.lines} currency={currency} />
-            <p className="text-[11px] text-zinc-400 mt-2">{data.expectedRevenue.note}</p>
+            <VarianceTable lines={data.variance.lines} currency={currency} />
+            <p className="msr-note mt-2">{data.variance.note}</p>
           </Section>
 
           <Section
             n={3}
-            title="Recettes réelles"
+            title="Recettes attendues (catalogue)"
+            total={data.expectedRevenue.total}
+            currency={currency}
+          >
+            <LineRows lines={data.expectedRevenue.lines} currency={currency} />
+            <p className="msr-note mt-2">{data.expectedRevenue.note}</p>
+          </Section>
+
+          <Section
+            n={4}
+            title="Recettes réelles (encaissements)"
             total={data.actualRevenue.total}
             currency={currency}
           >
             <LineRows lines={data.actualRevenue.lines} currency={currency} />
-            <p className="text-[11px] text-zinc-400 mt-2">
-              {data.actualRevenue.paymentCount} paiement(s) confirmé(s) / réconcilié(s) sur la période.
+            <p className="msr-note mt-2">
+              {data.actualRevenue.paymentCount} paiement(s) confirmé(s) / réconcilié(s) · Encaissé hors
+              report caisse : {formatMoney(data.actualRevenue.collectedTotal, currency)}.
             </p>
             {data.actualRevenue.byMethod.length > 0 ? (
-              <div className="mt-3 pt-3 border-t border-zinc-50">
-                <p className="text-[10px] font-semibold uppercase text-zinc-400 mb-1.5">
+              <div className="mt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 mb-1">
                   Ventilation par méthode
                 </p>
-                <ul className="space-y-1 text-xs text-zinc-600">
-                  {data.actualRevenue.byMethod.map((m) => (
-                    <li key={m.method} className="flex justify-between">
-                      <span>
-                        {m.method} · {m.count} txn
-                      </span>
-                      <span className="tabular-nums font-medium">
-                        {formatMoney(m.amount, currency)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <table className="msr-table msr-table-zebra w-full text-xs">
+                  <tbody>
+                    {data.actualRevenue.byMethod.map((m) => (
+                      <tr key={m.method}>
+                        <td>
+                          {m.method} · {m.count} txn
+                        </td>
+                        <td className="text-right tabular-nums font-medium">
+                          {formatMoney(m.amount, currency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : null}
           </Section>
 
           <Section
-            n={4}
+            n={5}
             title="Dépenses opérationnelles"
             total={data.operationalExpenses.total}
             currency={currency}
+            badge={data.operationalExpenses.tracked ? 'prisma_certified' : 'untracked'}
           >
             <LineRows lines={data.operationalExpenses.lines} currency={currency} />
-            <p className="text-[11px] text-zinc-400 mt-2">{data.operationalExpenses.note}</p>
-          </Section>
-
-          <Section n={5} title="Dépenses d’investissement">
-            <p className="text-sm flex justify-between">
-              <span>• Total</span>
-              <span className="font-semibold tabular-nums">
-                {formatMoney(data.investmentExpenses.total, currency)}
-              </span>
-            </p>
-            <p className="text-[11px] text-zinc-400 mt-2">{data.investmentExpenses.note}</p>
+            <p className="msr-note mt-2">{data.operationalExpenses.note}</p>
           </Section>
 
           <Section
             n={6}
-            title="Versement compte bancaire"
+            title="Dépenses d’investissement"
+            total={data.investmentExpenses.total}
+            currency={currency}
+            badge={data.investmentExpenses.tracked ? 'prisma_certified' : 'untracked'}
+          >
+            <p className="msr-note">{data.investmentExpenses.note}</p>
+          </Section>
+
+          <Section
+            n={7}
+            title="Versements compte bancaire"
             total={data.bankDeposits.total}
             currency={currency}
+            badge={data.bankDeposits.badge}
           >
             {data.bankDeposits.lines.length === 0 ? (
-              <p className="text-sm text-zinc-500">Aucun versement enregistré sur les sessions de caisse.</p>
+              <p className="text-sm text-zinc-600">
+                Aucun versement enregistré sur les sessions de caisse.
+              </p>
             ) : (
-              <ul className="space-y-1.5 text-sm">
-                {data.bankDeposits.lines.map((l, i) => (
-                  <li key={`${l.at}-${i}`} className="flex justify-between gap-3">
-                    <span className="min-w-0">
-                      • {l.label}
-                      {l.ref ? <span className="text-zinc-400"> · {l.ref}</span> : null}
-                    </span>
-                    <span className="font-semibold tabular-nums shrink-0">
-                      {formatMoney(l.amount, currency)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <table className="msr-table msr-table-zebra w-full text-sm">
+                <tbody>
+                  {data.bankDeposits.lines.map((l, i) => (
+                    <tr key={`${l.at}-${i}`}>
+                      <td>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span>
+                            {l.label}
+                            {l.ref ? <span className="text-zinc-400"> · {l.ref}</span> : null}
+                          </span>
+                          <ProvenanceBadge badge={l.badge} />
+                        </div>
+                      </td>
+                      <td className="text-right font-semibold tabular-nums whitespace-nowrap">
+                        {formatMoney(l.amount, currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </Section>
 
-          <Section n={7} title="Solde caisse">
-            <p className="text-sm flex justify-between">
-              <span>• Solde</span>
-              <span className="font-semibold tabular-nums">
-                {data.cashBalance.closingBalance != null
-                  ? formatMoney(data.cashBalance.closingBalance, currency)
-                  : '—'}
-              </span>
-            </p>
+          <Section n={8} title="Solde de caisse" badge={data.cashBalance.badge}>
+            <table className="msr-table msr-table-zebra w-full text-sm">
+              <tbody>
+                <tr>
+                  <td>Report d’ouverture</td>
+                  <td className="text-right tabular-nums">
+                    {formatMoney(data.cashBalance.openingCarry, currency)}
+                  </td>
+                </tr>
+                <tr>
+                  <td>Solde de clôture</td>
+                  <td className="text-right font-semibold tabular-nums">
+                    {formatAmount(data.cashBalance.closingBalance, currency)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             {data.cashBalance.closingSource ? (
-              <p className="text-[11px] text-zinc-400 mt-2">{data.cashBalance.closingSource}</p>
+              <p className="msr-note mt-2">{data.cashBalance.closingSource}</p>
             ) : null}
           </Section>
 
-          <Section n="8–10" title="Crédits / créances">
+          <Section n={9} title="Crédits / créances">
             <LineRows lines={data.credits.lines} currency={currency} />
-            <p className="text-[11px] text-zinc-400 mt-2">{data.credits.note}</p>
-            <p className="mt-2 text-sm font-bold flex justify-between border-t border-zinc-100 pt-2">
+            <p className="msr-note mt-2">{data.credits.note}</p>
+            <p className="msr-total">
               <span>Créances totales (soldes élèves)</span>
               <span className="tabular-nums">
                 {formatMoney(data.credits.totalOutstanding, currency)}
@@ -341,11 +723,40 @@ export default function SituationMensuellePage() {
             </p>
           </Section>
 
-          <p className="text-center text-[10px] text-zinc-400 pt-4 print:pt-8">
-            Document généré par Presence — sources : paiements confirmés, barèmes, sessions de caisse,
-            effectifs. Les postes non suivis (salaires, IPR…) restent à 0 volontairement.
-          </p>
-        </div>
+          {data.integrity.warnings.length > 0 ? (
+            <section className="msr-section break-inside-avoid">
+              <h2 className="msr-section-title">Annexe — transparence des sources</h2>
+              <ul className="space-y-1 text-xs text-zinc-600">
+                {data.integrity.warnings.map((w) => (
+                  <li key={w}>• {w}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <footer className="msr-footer break-inside-avoid">
+            <div className="msr-footer-meta">
+              <p>
+                <strong>Date d’édition :</strong> {editedAt}
+              </p>
+              <p>
+                <strong>Généré par :</strong> {data.document.productName}
+              </p>
+              <p>
+                <strong>Émis par :</strong> {data.generatedBy.name}
+              </p>
+            </div>
+            <div className="msr-signatures">
+              {data.document.signatureSlots.map((slot) => (
+                <div key={slot.role} className="msr-sign-block">
+                  <p className="font-semibold">{slot.label}</p>
+                  <div className="msr-sign-line" />
+                  <p className="text-[10px] text-zinc-500">Nom & signature</p>
+                </div>
+              ))}
+            </div>
+          </footer>
+        </article>
       ) : (
         <div className="rounded-2xl border border-dashed border-zinc-200 px-6 py-12 text-center text-sm text-zinc-400">
           <FileText className="mx-auto mb-2 text-zinc-300" size={28} />
@@ -354,6 +765,119 @@ export default function SituationMensuellePage() {
       )}
 
       <style jsx global>{`
+        .msr-sheet {
+          max-width: 210mm;
+          background: #fff;
+          color: #18181b;
+          border: 1px solid #e4e4e7;
+          border-radius: 4px;
+          padding: 18mm 16mm 14mm;
+          font-family: Georgia, 'Times New Roman', 'Liberation Serif', serif;
+          box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+        }
+        .msr-header {
+          text-align: center;
+          border-bottom: 1.5px solid #27272a;
+          padding-bottom: 14px;
+          margin-bottom: 18px;
+        }
+        .msr-eyebrow {
+          font-size: 10px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: #3f3f46;
+          font-weight: 700;
+        }
+        .msr-school {
+          margin-top: 6px;
+          font-size: 22px;
+          font-weight: 700;
+          line-height: 1.2;
+          text-transform: uppercase;
+        }
+        .msr-title {
+          margin-top: 10px;
+          font-size: 14px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+        }
+        .msr-meta {
+          margin-top: 4px;
+          font-size: 12px;
+          color: #52525b;
+          font-family: 'Segoe UI', Calibri, Candara, sans-serif;
+        }
+        .msr-section {
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #e4e4e7;
+        }
+        .msr-section-title {
+          font-size: 13px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: 0.01em;
+        }
+        .msr-note {
+          font-size: 10px;
+          line-height: 1.4;
+          color: #71717a;
+          font-family: 'Segoe UI', Calibri, Candara, sans-serif;
+        }
+        .msr-table th,
+        .msr-table td {
+          padding: 6px 8px;
+          border-bottom: 1px solid #f4f4f5;
+          font-family: 'Segoe UI', Calibri, Candara, sans-serif;
+          vertical-align: top;
+        }
+        .msr-table th {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #52525b;
+          border-bottom: 1px solid #d4d4d8;
+        }
+        .msr-table-zebra tbody tr:nth-child(even) {
+          background: #fafafa;
+        }
+        .msr-total {
+          margin-top: 10px;
+          padding-top: 8px;
+          border-top: 1px solid #d4d4d8;
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          font-weight: 700;
+        }
+        .msr-footer {
+          margin-top: 22px;
+          padding-top: 14px;
+          border-top: 1.5px solid #27272a;
+        }
+        .msr-footer-meta {
+          font-size: 11px;
+          color: #3f3f46;
+          font-family: 'Segoe UI', Calibri, Candara, sans-serif;
+          display: grid;
+          gap: 4px;
+        }
+        .msr-signatures {
+          margin-top: 28px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+        }
+        .msr-sign-block {
+          text-align: center;
+          font-size: 12px;
+        }
+        .msr-sign-line {
+          margin: 36px auto 6px;
+          width: 85%;
+          border-bottom: 1px solid #52525b;
+        }
+
         @media print {
           aside,
           nav,
@@ -362,6 +886,18 @@ export default function SituationMensuellePage() {
           }
           body {
             background: white !important;
+          }
+          .msr-sheet {
+            max-width: none;
+            width: 100%;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 12mm 10mm;
+          }
+          @page {
+            size: A4;
+            margin: 12mm;
           }
         }
       `}</style>

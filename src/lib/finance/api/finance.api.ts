@@ -507,6 +507,38 @@ export const financeRoleApi = {
       .get('/finance/reports/monthly-situation', { params })
       .then((r) => r.data.data as import('@/types/finance').MonthlySituationReport),
 
+  listExpenses: (params?: {
+    from?: string
+    to?: string
+    kind?: string
+    status?: string
+    limit?: number
+  }) =>
+    apiClient
+      .get('/finance/expenses', { params })
+      .then(
+        (r) =>
+          r.data.data as {
+            items: import('@/types/finance').FinanceExpense[]
+            count: number
+          },
+      ),
+
+  createExpense: (payload: import('@/types/finance').CreateExpensePayload) =>
+    apiClient
+      .post('/finance/expenses', payload)
+      .then((r) => r.data.data as import('@/types/finance').FinanceExpense),
+
+  postExpense: (id: number) =>
+    apiClient
+      .post(`/finance/expenses/${id}/post`)
+      .then((r) => r.data.data as import('@/types/finance').FinanceExpense),
+
+  voidExpense: (id: number, reason?: string) =>
+    apiClient
+      .post(`/finance/expenses/${id}/void`, reason ? { reason } : {})
+      .then((r) => r.data.data as import('@/types/finance').FinanceExpense),
+
   submitCashSessionToPromoter: (sessionId: number, payload?: { note?: string }) =>
     apiClient
       .post(`/finance/cash-sessions/${sessionId}/submit-to-promoter`, payload ?? {})
