@@ -32,9 +32,12 @@ export const monitoringApi = {
       .get<{ success: boolean; data: SmsIntegrationStatus }>('/superadmin/monitoring/sms')
       .then((r) => r.data.data),
 
-  sendSmsTest: (phone: string) =>
+  sendSmsTest: (phone: string, channel: 'sms' | 'whatsapp' = 'sms') =>
     apiClient
-      .post<{ success: boolean; data: SmsTestResult }>('/superadmin/monitoring/sms/test', { phone })
+      .post<{ success: boolean; data: SmsTestResult }>('/superadmin/monitoring/sms/test', {
+        phone,
+        channel,
+      })
       .then((r) => r.data.data),
 
   getAnomalyDashboard: () =>

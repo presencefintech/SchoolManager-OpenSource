@@ -13,7 +13,6 @@ import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
-import type { SmsIntegrationStatus } from '@/types/super-admin'
 import { formatMoney } from '@/lib/finance/currency'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
@@ -43,7 +42,15 @@ function CardTitle({ icon: Icon, title, desc }: { icon: React.ElementType; title
   )
 }
 
-function SmsStatusBadge({ status }: { status: SmsIntegrationStatus }) {
+function ChannelStatusBadge({
+  status,
+}: {
+  status: {
+    ready: boolean
+    enabled: boolean
+    forceMock: boolean
+  }
+}) {
   if (status.ready) {
     return (
       <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">
@@ -67,6 +74,7 @@ function SmsStatusBadge({ status }: { status: SmsIntegrationStatus }) {
 
 export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
   const [testPhone, setTestPhone] = useState('')
+  const [testChannel, setTestChannel] = useState<'sms' | 'whatsapp'>('sms')
   const [smsFeedback, setSmsFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data: health, isLoading: loadingHealth } = useQuery({
@@ -100,18 +108,23 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
   })
 
   const smsTestMutation = useMutation({
-    mutationFn: (phone: string) => monitoringApi.sendSmsTest(phone),
-    onSuccess: (result) => {
+    mutationFn: ({ phone, channel }: { phone: string; channel: 'sms' | 'whatsapp' }) =>
+      monitoringApi.sendSmsTest(phone, channel),
+    onSuccess: (result, vars) => {
       refetchSms()
+      const label = vars.channel === 'whatsapp' ? 'WhatsApp' : 'SMS'
       if (result.delivery.success) {
         setSmsFeedback({
           type: 'success',
-          message: `SMS envoyé via ${result.delivery.provider} (id: ${result.delivery.messageId ?? '—'})`,
+          message: `${label} envoyé via ${result.delivery.provider} (id: ${result.delivery.messageId ?? '—'})`,
         })
       } else {
         setSmsFeedback({
           type: 'error',
-          message: result.delivery.errorMessage ?? 'Échec envoi SMS',
+          message:
+            result.delivery.errorMessage ??
+            result.delivery.error ??
+            `Échec envoi ${label}`,
         })
       }
     },
@@ -202,7 +215,7 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
           )}
         </div>
 
-        {/* ── SMS ─────────────────────────────────────────────────────── */}
+        {/* ── Messaging SMS / WhatsApp ───────────────────────────────── */}
         <div className={CARD}>
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-start gap-3">
@@ -210,67 +223,111 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
                 <MessageSquare size={16} className="text-zinc-500" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-zinc-900">Intégration SMS</h2>
+                <h2 className="text-sm font-semibold text-zinc-900">Messaging (SMS + WhatsApp)</h2>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Africa&apos;s Talking — OTP staff, invitations, notifications parents
+                  OTP activation parent, invitations staff, relances dette
                 </p>
               </div>
             </div>
-            {smsStatus && <SmsStatusBadge status={smsStatus} />}
           </div>
 
           {loadingSms ? (
             <div className={cn(SKELETON, 'h-24')} />
           ) : smsStatus ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div>
-                  <p className="text-zinc-400 mb-0.5">Provider configuré</p>
-                  <p className="font-mono text-zinc-800">{smsStatus.provider}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-zinc-700">SMS</p>
+                    <ChannelStatusBadge status={smsStatus} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <p className="text-zinc-400">Actif</p>
+                      <p className="font-mono text-zinc-800">{smsStatus.activeProvider}</p>
+                    </div>
+                    <div>
+                      <p className="text-zinc-400">Credentials</p>
+                      <p className={cn('font-semibold', smsStatus.credentialsPresent ? 'text-emerald-600' : 'text-red-600')}>
+                        {smsStatus.credentialsPresent ? 'OK' : 'Placeholders / manquants'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-zinc-400 mb-0.5">Provider actif</p>
-                  <p className="font-mono text-zinc-800">{smsStatus.activeProvider}</p>
-                </div>
-                <div>
-                  <p className="text-zinc-400 mb-0.5">Sender ID</p>
-                  <p className="font-mono text-zinc-800">{smsStatus.senderId}</p>
-                </div>
-                <div>
-                  <p className="text-zinc-400 mb-0.5">Credentials</p>
-                  <p className={cn('font-semibold', smsStatus.credentialsPresent ? 'text-emerald-600' : 'text-red-600')}>
-                    {smsStatus.credentialsPresent ? 'Présents' : 'Manquants'}
-                  </p>
+                <div className="rounded-xl border border-zinc-100 bg-zinc-50/60 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-zinc-700">WhatsApp</p>
+                    {smsStatus.whatsapp ? (
+                      <ChannelStatusBadge status={smsStatus.whatsapp} />
+                    ) : (
+                      <span className="text-[11px] text-zinc-400">n/a</span>
+                    )}
+                  </div>
+                  {smsStatus.whatsapp ? (
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <p className="text-zinc-400">Actif</p>
+                        <p className="font-mono text-zinc-800">{smsStatus.whatsapp.activeProvider}</p>
+                      </div>
+                      <div>
+                        <p className="text-zinc-400">Template OTP</p>
+                        <p className={cn('font-semibold', smsStatus.whatsapp.otpTemplatePresent ? 'text-emerald-600' : 'text-red-600')}>
+                          {smsStatus.whatsapp.otpTemplatePresent ? 'OK' : 'Manquant'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-zinc-400">Redéployez le backend pour le statut WhatsApp.</p>
+                  )}
                 </div>
               </div>
 
-              {!smsStatus.ready && (
+              {(!smsStatus.ready || (smsStatus.whatsapp && !smsStatus.whatsapp.ready)) && (
                 <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
-                  Sur Render, définissez{' '}
-                  <code className="bg-white/80 px-1 rounded">SMS_PROVIDER_ENABLED=true</code>,{' '}
-                  <code className="bg-white/80 px-1 rounded">SMS_PROVIDER=africas_talking</code>,{' '}
-                  <code className="bg-white/80 px-1 rounded">SMS_USERNAME</code> et{' '}
-                  <code className="bg-white/80 px-1 rounded">SMS_API_KEY</code>, puis redéployez.
+                  Remplacez les placeholders (`EAAxxxx`, `votre_username_at`, …) dans Railway/Render,
+                  puis `SMS_FORCE_MOCK=false` / `WHATSAPP_FORCE_MOCK=false`. Guide :{' '}
+                  <code className="bg-white/80 px-1 rounded">docs/MESSAGING_SETUP.md</code>
                 </p>
               )}
 
-              <div className="border-t border-zinc-100 pt-4 flex flex-col sm:flex-row gap-3">
-                <input
-                  type="tel"
-                  value={testPhone}
-                  onChange={(e) => setTestPhone(e.target.value)}
-                  placeholder="+243810000000"
-                  className="flex-1 border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-                <button
-                  type="button"
-                  disabled={!testPhone.trim() || smsTestMutation.isPending}
-                  onClick={() => smsTestMutation.mutate(testPhone.trim())}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium disabled:opacity-50"
-                >
-                  {smsTestMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                  Envoyer test SMS
-                </button>
+              <div className="border-t border-zinc-100 pt-4 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {(['sms', 'whatsapp'] as const).map((ch) => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => setTestChannel(ch)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-xs font-medium border',
+                        testChannel === ch
+                          ? 'bg-zinc-900 text-white border-zinc-900'
+                          : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
+                      )}
+                    >
+                      Test {ch === 'sms' ? 'SMS' : 'WhatsApp'}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="tel"
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="+243810000000"
+                    className="flex-1 border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                  />
+                  <button
+                    type="button"
+                    disabled={!testPhone.trim() || smsTestMutation.isPending}
+                    onClick={() =>
+                      smsTestMutation.mutate({ phone: testPhone.trim(), channel: testChannel })
+                    }
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 text-white text-sm font-medium disabled:opacity-50"
+                  >
+                    {smsTestMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                    Envoyer test {testChannel === 'sms' ? 'SMS' : 'WhatsApp'}
+                  </button>
+                </div>
               </div>
 
               {smsFeedback && (
@@ -283,7 +340,7 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
               )}
             </div>
           ) : (
-            <p className="text-sm text-zinc-400">Statut SMS indisponible</p>
+            <p className="text-sm text-zinc-400">Statut messaging indisponible</p>
           )}
         </div>
 

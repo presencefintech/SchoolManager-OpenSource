@@ -139,17 +139,33 @@ export interface SmsIntegrationStatus {
   credentialsPresent: boolean
   ready: boolean
   senderId: string
+  /** Présent quand l’API renvoie le paquet messaging enrichi */
+  sms?: Omit<SmsIntegrationStatus, 'sms' | 'whatsapp' | 'senderId'> & { senderId?: string }
+  whatsapp?: {
+    enabled: boolean
+    forceMock: boolean
+    provider: string
+    activeProvider: string
+    credentialsPresent: boolean
+    otpTemplatePresent: boolean
+    ready: boolean
+  }
 }
 
 export interface SmsTestResult {
-  health: SmsIntegrationStatus
+  health: SmsIntegrationStatus | {
+    sms: SmsIntegrationStatus
+    whatsapp: NonNullable<SmsIntegrationStatus['whatsapp']>
+  }
   delivery: {
     success: boolean
-    status: string
+    channel?: 'sms' | 'whatsapp'
+    status?: string
     provider: string
     messageId?: string
     errorCode?: string
     errorMessage?: string
+    error?: string
   }
 }
 
