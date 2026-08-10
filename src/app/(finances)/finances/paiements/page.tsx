@@ -409,7 +409,12 @@ export default function PaiementsPage() {
           <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
             <div className="mb-4 flex items-center gap-2">
               <Search size={15} className="text-zinc-400" />
-              <h2 className="text-sm font-semibold text-zinc-900">Rechercher un élève</h2>
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-900">Rechercher un élève</h2>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Filtres Section · Option · Classe + solde affiché dans les résultats
+                </p>
+              </div>
             </div>
             <FinanceStudentSearchField
               studentId={studentId}

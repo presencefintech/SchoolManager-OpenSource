@@ -452,7 +452,7 @@ export default function PaiementsPage() {
   const [search, setSearch] = useState('')
   const [searchParams, setSearchParams] = useState<AdvancedSearchParams>({})
   const [searchDraft, setSearchDraft] = useState<AdvancedSearchParams>({})
-  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(true)
   const [processConfirm, setProcessConfirm] = useState<PendingVerificationItem | null>(null)
   const [detailItem, setDetailItem] = useState<PendingVerificationItem | null>(null)
   const [providerConfirm, setProviderConfirm] = useState<{
@@ -693,7 +693,9 @@ export default function PaiementsPage() {
       >
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Paiements</h1>
-          <p className="text-sm text-zinc-500 mt-0.5">Vérification et validation des paiements</p>
+          <p className="text-sm text-zinc-500 mt-0.5">
+            Vérification · recherche avancée (section / option / classe / frais) · validation
+          </p>
         </div>
         {pending.length > 0 && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-100">
@@ -754,17 +756,22 @@ export default function PaiementsPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5">
-          {QUICK_CHIPS.map((chip) => (
-            <button
-              key={chip.label}
-              type="button"
-              onClick={() => applyAdvancedSearch({ ...chip.patch })}
-              className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-            >
-              {chip.label}
-            </button>
-          ))}
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+            Filtres rapides
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_CHIPS.map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={() => applyAdvancedSearch({ ...chip.patch })}
+                className="rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {activeFilterChips.length > 0 && (

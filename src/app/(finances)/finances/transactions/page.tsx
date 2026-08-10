@@ -209,7 +209,7 @@ export default function TransactionsPage() {
     <FinancePageShell>
       <FinancePageHeader
         title="Transactions"
-        subtitle="Recherche multicritères, export et accès fiche élève — registre ERP RDC"
+        subtitle="Section · option · classe · montants · export CSV — recherche multicritères"
         actions={
           <>
             <button

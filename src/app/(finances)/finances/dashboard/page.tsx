@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
   DollarSign, ClipboardList, CheckCircle, Users,
   RotateCcw, Banknote, RefreshCw, CalendarCheck, ShieldCheck, TrendingUp,
-  Radio, ClipboardCheck, BarChart3, Brain,
+  Radio, ClipboardCheck, BarChart3, Brain, Search,
 } from 'lucide-react'
 import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
@@ -35,6 +35,7 @@ import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedul
 
 const QUICK_LINKS = [
   { href: '/finances/intelligence', label: 'Intelligence', icon: Brain, tone: 'text-violet-600 bg-violet-50' },
+  { href: '/finances/transactions', label: 'Transactions', icon: Search, tone: 'text-sky-600 bg-sky-50' },
   { href: '/finances/paiements', label: 'Paiements', icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50' },
   { href: '/finances/caisse', label: 'Caisse', icon: Banknote, tone: 'text-blue-600 bg-blue-50' },
   { href: '/finances/verifications', label: 'Vérifications', icon: ClipboardCheck, tone: 'text-amber-600 bg-amber-50' },
