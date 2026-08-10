@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
 import { PlatformKpiStrip } from '@/components/super-admin/platform-kpi-strip'
 import { OwnerActionQueue } from '@/components/super-admin/owner-action-queue'
-import { ChurnAnalyticsPanel } from '@/components/super-admin/churn-analytics-panel'
+import { MasterAnalyticsSection } from '@/components/super-admin/master-analytics-section'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -265,7 +265,7 @@ export default function SuperAdminDashboardPage() {
 
         <OwnerActionQueue schools={schools} />
 
-        <ChurnAnalyticsPanel />
+        <MasterAnalyticsSection />
 
         {/* Santé des établissements — aperçu rapide */}
         {!loadingSchools && schools && schools.length > 0 && healthCount && (
