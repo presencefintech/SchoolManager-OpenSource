@@ -1,19 +1,20 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Activity, Download, Loader2, ScrollText, ShieldAlert } from 'lucide-react'
+import { Activity, Download, Loader2, ScrollText, ShieldAlert, Smartphone } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MonitoringView } from '../monitoring/page'
 import { AuditView } from '../audit/page'
 import { FraudView } from '../fraud/page'
+import { MobileMoneyView } from '../mobile-money/page'
 import { superAdminApi } from '@/lib/superAdmin/api'
-import { useState } from 'react'
 
 const TABS = [
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
   { id: 'audit', label: 'Audit & logs', icon: ScrollText },
   { id: 'fraud', label: 'Fraude', icon: ShieldAlert },
+  { id: 'mobile-money', label: 'Mobile Money', icon: Smartphone },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
@@ -23,7 +24,9 @@ function OperationsContent() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab')
   const tab: TabId =
-    tabParam === 'audit' || tabParam === 'fraud' || tabParam === 'monitoring' ? tabParam : 'monitoring'
+    tabParam === 'audit' || tabParam === 'fraud' || tabParam === 'monitoring' || tabParam === 'mobile-money'
+      ? tabParam
+      : 'monitoring'
 
   const [exporting, setExporting] = useState(false)
 
@@ -55,7 +58,7 @@ function OperationsContent() {
               <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Propriétaire</p>
               <h1 className="text-2xl font-bold text-zinc-900 mt-0.5">Centre opérations</h1>
               <p className="text-sm text-zinc-400 mt-1">
-                Monitoring, audit infrastructure et détection fraude — vue unifiée
+                Monitoring, audit, fraude et Mobile Money — vue unifiée
               </p>
             </div>
             {tab === 'audit' ? (
@@ -71,7 +74,7 @@ function OperationsContent() {
             ) : null}
           </div>
 
-          <div className="flex gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1 w-fit">
+          <div className="flex flex-wrap gap-1 rounded-xl border border-zinc-200 bg-zinc-50 p-1 w-fit">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -96,6 +99,7 @@ function OperationsContent() {
         {tab === 'monitoring' ? <MonitoringView embedded /> : null}
         {tab === 'audit' ? <AuditView embedded /> : null}
         {tab === 'fraud' ? <FraudView embedded /> : null}
+        {tab === 'mobile-money' ? <MobileMoneyView embedded /> : null}
       </div>
     </div>
   )

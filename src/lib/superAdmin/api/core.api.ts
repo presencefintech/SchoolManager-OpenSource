@@ -10,7 +10,7 @@ export const coreApi = {
   getSchools: (params?: { q?: string; page?: number; take?: number; status?: 'all' | 'active' | 'suspended' }) =>
     apiClient
       .get<{ success: boolean; rows: School[]; total: number }>('/superadmin/core/schools', { params })
-      .then((r) => r.data.rows),
+      .then((r) => ({ rows: r.data.rows, total: r.data.total })),
 
   getSchool: (id: number) =>
     apiClient

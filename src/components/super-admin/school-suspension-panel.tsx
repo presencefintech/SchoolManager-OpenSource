@@ -6,6 +6,7 @@ import { AlertTriangle, Ban, ShieldCheck } from 'lucide-react'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { queryKeys } from '@/lib/query/keys'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { SchoolDetail, SchoolOperationalSuspension } from '@/types/super-admin'
 
 const CODE_LABELS: Record<SchoolOperationalSuspension['code'], string> = {
@@ -20,10 +21,11 @@ export function SchoolSuspensionPanel({ school }: { school: SchoolDetail }) {
   const [code, setCode] = useState<SchoolOperationalSuspension['code']>('INSOLVENCY')
   const [note, setNote] = useState('')
   const [open, setOpen] = useState(false)
+  const [confirmSuspendOpen, setConfirmSuspendOpen] = useState(false)
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: queryKeys.superadmin.school(school.id) })
-    void qc.invalidateQueries({ queryKey: queryKeys.superadmin.schools() })
+    void qc.invalidateQueries({ queryKey: ['superadmin', 'schools'] })
   }
 
   const suspend = useMutation({
@@ -166,15 +168,7 @@ export function SchoolSuspensionPanel({ school }: { school: SchoolDetail }) {
                 <button
                   type="button"
                   disabled={busy || reason.trim().length < 10}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Suspendre « ${school.name} » ? Les utilisateurs ne pourront plus se connecter ni utiliser l'application.`,
-                      )
-                    ) {
-                      suspend.mutate()
-                    }
-                  }}
+                  onClick={() => setConfirmSuspendOpen(true)}
                   className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                 >
                   Confirmer la suspension
@@ -195,6 +189,25 @@ export function SchoolSuspensionPanel({ school }: { school: SchoolDetail }) {
           )}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmSuspendOpen}
+        title={`Suspendre « ${school.name} » ?`}
+        description="Les utilisateurs ne pourront plus se connecter ni utiliser l'application pour cet établissement."
+        impact={[
+          'Blocage immédiat des connexions (admin, finance, mobile)',
+          'Accès métier interrompu jusqu\'à réactivation',
+          CODE_LABELS[code],
+        ]}
+        confirmLabel="Suspendre"
+        variant="danger"
+        loading={suspend.isPending}
+        onConfirm={() => {
+          suspend.mutate(undefined, {
+            onSuccess: () => setConfirmSuspendOpen(false),
+          })
+        }}
+        onCancel={() => setConfirmSuspendOpen(false)}
+      />
     </div>
   )
 }

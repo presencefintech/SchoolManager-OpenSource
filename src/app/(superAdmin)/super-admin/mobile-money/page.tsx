@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +8,7 @@ import {
   AlertTriangle, Clock, XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { formatMoney } from '@/lib/finance/currency'
 
@@ -66,7 +67,7 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-export default function MobileMoneyPage() {
+export function MobileMoneyView({ embedded = false }: { embedded?: boolean }) {
   const [reconcileId, setReconcileId] = useState('')
   const [providerRef, setProviderRef] = useState('')
   const [reconciling, setReconciling] = useState(false)
@@ -105,31 +106,29 @@ export default function MobileMoneyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-
-      {/* Header */}
-      <motion.div
-        className="bg-white border-b border-zinc-200"
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
-      >
-        <div className="max-w-6xl mx-auto px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-              <Smartphone size={17} className="text-indigo-500" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Mobile Money</h1>
-              <p className="text-sm text-zinc-400 mt-0.5">Paiements en attente, radar fraude, réconciliation manuelle</p>
+    <div className={embedded ? 'bg-transparent' : 'min-h-screen bg-zinc-50'}>
+      {!embedded ? (
+        <motion.div
+          className="bg-white border-b border-zinc-200"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="max-w-6xl mx-auto px-8 py-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
+                <Smartphone size={17} className="text-indigo-500" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Mobile Money</h1>
+                <p className="text-sm text-zinc-400 mt-0.5">Paiements en attente, radar fraude, réconciliation manuelle</p>
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      ) : null}
 
-      <div className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-        {/* ── Réconciliation manuelle ──────────────────────────────────── */}
+      <div className={cn('max-w-6xl mx-auto px-8 py-8 grid grid-cols-1 lg:grid-cols-2 gap-5', embedded && 'py-6')}>
         <div className={CARD}>
           <CardTitle icon={RefreshCw} title="Réconciliation manuelle" desc="Forcer la réconciliation d'un paiement Mobile Money" />
           <div className="space-y-3">
@@ -165,7 +164,6 @@ export default function MobileMoneyPage() {
           </div>
         </div>
 
-        {/* ── Radar fraude MM ─────────────────────────────────────────── */}
         <div className={CARD}>
           <CardTitle icon={AlertTriangle} title="Radar fraude Mobile Money" desc="Transactions MM à risque — tous établissements" />
           {loadingRadar ? (
@@ -208,7 +206,6 @@ export default function MobileMoneyPage() {
           )}
         </div>
 
-        {/* ── Paiements MM en attente ─────────────────────────────────── */}
         <div className={cn(CARD, 'lg:col-span-2')}>
           <CardTitle icon={Smartphone} title="Paiements Mobile Money en attente" desc="Toutes les transactions MM non finalisées" />
           {loadingPending ? (
@@ -256,8 +253,19 @@ export default function MobileMoneyPage() {
             </div>
           )}
         </div>
-
       </div>
+    </div>
+  )
+}
+
+export default function MobileMoneyPage() {
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/super-admin/operations?tab=mobile-money')
+  }, [router])
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center text-sm text-zinc-400">
+      Redirection vers le centre opérations…
     </div>
   )
 }

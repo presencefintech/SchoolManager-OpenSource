@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useImportUpload, useImportStatus } from '@/lib/hooks/use-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { queryKeys } from '@/lib/query/keys'
 import type { ImportType } from '@/lib/admin/api'
 import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
@@ -68,9 +69,12 @@ export function ImportPage() {
   const [fileError, setFileError] = useState<string | null>(null)
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null)
 
-  const { data: schools } = useQuery({
-    queryKey: ['superadmin', 'schools'],
-    queryFn: () => superAdminApi.getSchools({ take: 200 }),
+  const { data: schools = [] } = useQuery({
+    queryKey: queryKeys.superadmin.schools({ list: 'all' }),
+    queryFn: async () => {
+      const { rows } = await superAdminApi.getSchools({ take: 200 })
+      return rows
+    },
     enabled: isSuperAdmin,
     staleTime: 60_000,
   })

@@ -24,6 +24,7 @@ import {
   type SchoolNetworkOverview,
 } from '@/lib/superAdmin/api/school-network.api'
 import { cn } from '@/lib/utils'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 function money(amount: number, currency = 'USD') {
   return `${amount.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ${currency}`
@@ -37,6 +38,7 @@ export default function SchoolNetworksPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null)
   const [query, setQuery] = useState('')
   const [healthFilter, setHealthFilter] = useState<'all' | 'ready' | 'warn'>('all')
+  const [unassignSchoolId, setUnassignSchoolId] = useState<number | null>(null)
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks'] })
@@ -331,19 +333,26 @@ export default function SchoolNetworksPage() {
               onRename={(name) => updateGroup.mutate({ groupId: g.id, name })}
               onToggleActive={() => updateGroup.mutate({ groupId: g.id, active: !g.active })}
               onSetHub={(id) => setHub.mutate(id)}
-              onUnassign={(id) => {
-                if (
-                  window.confirm(
-                    'Retirer cet établissement du réseau ? Le hub éventuel sera réinitialisé.',
-                  )
-                ) {
-                  unassign.mutate(id)
-                }
-              }}
+              onUnassign={(id) => setUnassignSchoolId(id)}
             />
           ))
         )}
       </div>
+
+      <ConfirmDialog
+        open={unassignSchoolId != null}
+        title="Retirer du réseau ?"
+        description="Cet établissement sera détaché du groupe. Le hub éventuel sera réinitialisé."
+        impact={["L'établissement redevient autonome", "Les règles réseau ne s'appliquent plus"]}
+        confirmLabel="Retirer"
+        variant="danger"
+        loading={unassign.isPending}
+        onConfirm={() => {
+          if (unassignSchoolId == null) return
+          unassign.mutate(unassignSchoolId, { onSuccess: () => setUnassignSchoolId(null) })
+        }}
+        onCancel={() => setUnassignSchoolId(null)}
+      />
     </div>
   )
 }

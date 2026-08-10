@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CreditCard, Crown, Sparkles, Zap } from 'lucide-react'
 import { billingApi, type ProductPlan, type ProductPlanTier } from '@/lib/superAdmin/api/billing.api'
 import { useSchools } from '@/lib/hooks/use-super-admin'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { cn } from '@/lib/utils'
 
 const PLAN_ICONS: Record<ProductPlanTier, React.ElementType> = {
@@ -80,6 +81,8 @@ export default function SuperAdminBillingPage() {
   const { data: schools = [] } = useSchools()
   const [schoolId, setSchoolId] = useState<number | ''>('')
   const [cancelReason, setCancelReason] = useState('')
+  const [pendingPlan, setPendingPlan] = useState<ProductPlan | null>(null)
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false)
 
   const { data: plans = [], isLoading: plansLoading } = useQuery({
     queryKey: ['superadmin', 'billing', 'plans'],
@@ -174,11 +177,7 @@ export default function SuperAdminBillingPage() {
                 plan={plan}
                 current={currentCode === plan.code}
                 busy={busy}
-                onSelect={() => {
-                  if (window.confirm(`Assigner ${plan.name} à ${billing?.school.name} ?`)) {
-                    assign.mutate(plan.code)
-                  }
-                }}
+                onSelect={() => setPendingPlan(plan)}
               />
             ))}
           </div>
@@ -196,9 +195,7 @@ export default function SuperAdminBillingPage() {
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => {
-                  if (window.confirm("Annuler l'abonnement SaaS ?")) cancel.mutate()
-                }}
+                onClick={() => setCancelConfirmOpen(true)}
                 className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
               >
                 Annuler l&apos;abonnement
@@ -207,6 +204,42 @@ export default function SuperAdminBillingPage() {
           ) : null}
         </>
       )}
+
+      <ConfirmDialog
+        open={pendingPlan != null}
+        title="Assigner un plan"
+        description={
+          pendingPlan && billing
+            ? `Assigner le plan ${pendingPlan.name} à ${billing.school.name} ?`
+            : ''
+        }
+        impact={['Le plan sera actif immédiatement', 'Les quotas produit seront mis à jour']}
+        confirmLabel="Assigner"
+        loading={assign.isPending}
+        onConfirm={() => {
+          if (!pendingPlan) return
+          assign.mutate(pendingPlan.code, { onSuccess: () => setPendingPlan(null) })
+        }}
+        onCancel={() => setPendingPlan(null)}
+      />
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        title="Annuler l'abonnement SaaS ?"
+        description={
+          billing
+            ? `L'abonnement de ${billing.school.name} sera marqué comme annulé.`
+            : ''
+        }
+        impact={['Les quotas produit reviendront au plan Starter', 'Action réversible via réassignation']}
+        confirmLabel="Annuler l'abonnement"
+        variant="danger"
+        loading={cancel.isPending}
+        onConfirm={() => {
+          cancel.mutate(undefined, { onSuccess: () => setCancelConfirmOpen(false) })
+        }}
+        onCancel={() => setCancelConfirmOpen(false)}
+      />
     </div>
   )
 }

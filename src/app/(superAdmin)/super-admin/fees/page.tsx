@@ -17,6 +17,7 @@ import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import type { FeeType } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { formatMoney } from '@/lib/finance/currency'
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
@@ -108,14 +109,16 @@ export default function FeesPage() {
   /* ── Suppression structure ────────────────────────────────────────────── */
   const [deletingFeeId, setDeletingFeeId] = useState<number | null>(null)
   const [deleteFb, setDeleteFb] = useState<Feedback>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null)
 
-  async function handleDeleteFee(feeId: number, name: string) {
-    if (!window.confirm(`Supprimer définitivement la structure "${name}" ?`)) return
-    setDeletingFeeId(feeId)
+  async function handleDeleteFee() {
+    if (!deleteTarget) return
+    setDeletingFeeId(deleteTarget.id)
     setDeleteFb(null)
     try {
-      await feesApi.deleteFee(feeId)
-      setDeleteFb({ type: 'success', message: `Structure #${feeId} supprimée.` })
+      await feesApi.deleteFee(deleteTarget.id)
+      setDeleteFb({ type: 'success', message: `Structure #${deleteTarget.id} supprimée.` })
+      setDeleteTarget(null)
       refetchStructures()
     } catch {
       setDeleteFb({ type: 'error', message: 'Erreur lors de la suppression.' })
@@ -648,7 +651,7 @@ export default function FeesPage() {
                       Modifier
                     </button>
                     <button
-                      onClick={() => handleDeleteFee(s.id, s.name)}
+                      onClick={() => setDeleteTarget({ id: s.id, name: s.name })}
                       disabled={deletingFeeId === s.id}
                       className="text-xs text-red-500 hover:text-red-700 font-medium flex-shrink-0 flex items-center gap-1 disabled:opacity-50"
                     >
@@ -956,6 +959,22 @@ export default function FeesPage() {
 
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Supprimer la structure ?"
+        description={
+          deleteTarget
+            ? `Supprimer définitivement la structure « ${deleteTarget.name} » ?`
+            : ''
+        }
+        impact={['Action irréversible', 'Les factures déjà émises ne sont pas affectées']}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={deletingFeeId != null}
+        onConfirm={() => void handleDeleteFee()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

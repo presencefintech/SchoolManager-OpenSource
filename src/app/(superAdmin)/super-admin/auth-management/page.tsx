@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { StaffInvitationRowActions } from '@/components/invitations/staff-invitation-row-actions'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 function CopyInline({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -113,6 +114,7 @@ export default function AuthManagementPage() {
   const resendStaffMutation = useResendStaffInvitationSuperAdmin()
   const suspendUserMutation = useSuspendUserSuperAdmin()
   const reactivateUserMutation = useReactivateUserSuperAdmin()
+  const [revokeTarget, setRevokeTarget] = useState<StaffInvitation | null>(null)
 
   /* Force logout */
   const [logoutUserId, setLogoutUserId] = useState('')
@@ -271,12 +273,17 @@ export default function AuthManagementPage() {
 
   const handleRevokeStaffRow = (inv: StaffInvitation) => {
     if (!invSchoolId) return
-    if (!confirm(`Supprimer l'invitation de ${inv.firstName} ${inv.lastName} (${inv.email}) ?`)) return
+    setRevokeTarget(inv)
+  }
+
+  const confirmRevokeStaff = () => {
+    if (!invSchoolId || !revokeTarget) return
     setInvListError('')
     revokeStaffMutation.mutate(
-      { invitationId: inv.id, targetUserId: inv.userId ?? undefined, schoolId: invSchoolId },
+      { invitationId: revokeTarget.id, targetUserId: revokeTarget.userId ?? undefined, schoolId: invSchoolId },
       {
         onSuccess: (res) => {
+          setRevokeTarget(null)
           refetchInvitations()
           setStaffFeedback({ type: 'success', message: res.message ?? 'Invitation supprimée.' })
         },
@@ -847,6 +854,22 @@ export default function AuthManagementPage() {
         </section>
 
       </div>
+
+      <ConfirmDialog
+        open={revokeTarget != null}
+        title="Supprimer l'invitation ?"
+        description={
+          revokeTarget
+            ? `Supprimer l'invitation de ${revokeTarget.firstName} ${revokeTarget.lastName} (${revokeTarget.email}) ?`
+            : ''
+        }
+        impact={['Le lien d\'invitation ne sera plus utilisable']}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={revokeStaffMutation.isPending}
+        onConfirm={confirmRevokeStaff}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </div>
   )
 }

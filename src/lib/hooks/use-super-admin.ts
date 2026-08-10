@@ -84,12 +84,39 @@ export function usePlatformStats() {
   })
 }
 
+export type SchoolsListParams = {
+  q?: string
+  page?: number
+  take?: number
+  status?: 'all' | 'active' | 'suspended'
+}
+
 export function useSchools() {
   return useQuery({
-    queryKey: queryKeys.superadmin.schools(),
-    queryFn: () => superAdminApi.getSchools(),
+    queryKey: queryKeys.superadmin.schools({ list: 'all' }),
+    queryFn: async () => {
+      const { rows } = await superAdminApi.getSchools({ take: 250, page: 1 })
+      return rows
+    },
     enabled: !!getAuthToken(),
     staleTime: 60_000,
+  })
+}
+
+export function useSchoolsPaginated(params: SchoolsListParams) {
+  const { page = 1, take = 12, q, status = 'all' } = params
+  return useQuery({
+    queryKey: queryKeys.superadmin.schools({ page, take, q: q?.trim() || undefined, status }),
+    queryFn: () =>
+      superAdminApi.getSchools({
+        page,
+        take,
+        q: q?.trim() || undefined,
+        status: status === 'all' ? undefined : status,
+      }),
+    enabled: !!getAuthToken(),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   })
 }
 

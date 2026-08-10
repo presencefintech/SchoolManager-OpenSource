@@ -24,13 +24,13 @@ import {
   Network,
   CreditCard,
   Activity,
-  Smartphone,
   Upload,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { queryKeys } from '@/lib/query/keys'
 
 type NavItem = { label: string; href: string; icon: React.ElementType }
 
@@ -76,7 +76,6 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Opérations',
     items: [
       { label: 'Centre opérations', href: '/super-admin/operations', icon: Activity },
-      { label: 'Mobile Money', href: '/super-admin/mobile-money', icon: Smartphone },
       { label: 'Notifications', href: '/super-admin/notifications', icon: Bell },
       { label: 'Outils SA', href: '/super-admin/outils', icon: Wrench },
       { label: 'Import', href: '/super-admin/import', icon: Upload },
@@ -102,14 +101,17 @@ export function SuperAdminNav() {
           staleTime: 60_000,
         })
         queryClient.prefetchQuery({
-          queryKey: ['superadmin', 'schools'],
-          queryFn: () => superAdminApi.getSchools(),
+          queryKey: queryKeys.superadmin.schools({ list: 'all' }),
+          queryFn: async () => {
+            const { rows } = await superAdminApi.getSchools({ take: 250, page: 1 })
+            return rows
+          },
           staleTime: 60_000,
         })
       } else if (href === '/super-admin/schools') {
         queryClient.prefetchQuery({
-          queryKey: ['superadmin', 'schools'],
-          queryFn: () => superAdminApi.getSchools(),
+          queryKey: queryKeys.superadmin.schools({ page: 1, take: 12, status: 'all' }),
+          queryFn: () => superAdminApi.getSchools({ page: 1, take: 12 }),
           staleTime: 60_000,
         })
       } else if (href === '/super-admin/students') {
