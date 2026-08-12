@@ -68,7 +68,7 @@ export default function DepensesPage() {
     label: '',
     amount: '',
     occurredAt: todayIsoDate(),
-    affectsCash: false,
+    affectsCash: true,
     vendor: '',
     reference: '',
     notes: '',
@@ -273,8 +273,8 @@ export default function DepensesPage() {
             </label>
           </div>
           <p className="text-[11px] text-zinc-400">
-            Seules les dépenses <strong>POSTED</strong> entrent dans le rapport. Cocher affectsCash
-            uniquement si la charge sort réellement du tiroir-caisse.
+            Seules les dépenses validées (comptabilisées) figurent dans le rapport. La case « sort de
+            la caisse » est cochée par défaut — décocher si la charge ne sort pas du tiroir.
           </p>
           <div className="flex gap-2">
             <button

@@ -272,14 +272,22 @@ export default function CaissePage() {
     e.preventDefault()
     setOpenError(null)
     setOpenSuccess(false)
-    const float = mustBilletage && openSheet.total > 0
-      ? openSheet.total
-      : Number(openForm.openingFloat) || 0
+    const suggested = openingSuggestion?.suggested
+    const fromBilletage = mustBilletage && openSheet.total > 0 ? openSheet.total : null
+    const fromField =
+      openForm.openingFloat.trim() !== '' ? Number(openForm.openingFloat) : null
+    const float = fromBilletage ?? fromField ?? suggested
+    if (float == null || Number.isNaN(float) || float < 0) {
+      setOpenError('Le fond d’ouverture est obligatoire (prérempli depuis la dernière clôture).')
+      return
+    }
     const floatCdf =
       dualEnabled
         ? mustBilletage && openCdfSheet.total > 0
           ? openCdfSheet.total
-          : Number(openForm.openingFloatCdf) || 0
+          : openForm.openingFloatCdf.trim() !== ''
+            ? Number(openForm.openingFloatCdf)
+            : openingSuggestion?.suggestedCdf ?? undefined
         : undefined
     const sheets = []
     if (mustBilletage && openSheet.lines.length > 0) sheets.push(openSheet)
@@ -710,9 +718,11 @@ export default function CaissePage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold text-emerald-900">
-                        Fond suggéré · {formatMoney(openingSuggestion.suggested, openingSuggestion.currency as 'USD' | 'CDF')}
+                        Fond d’ouverture obligatoire · {formatMoney(openingSuggestion.suggested, openingSuggestion.currency as 'USD' | 'CDF')}
                       </p>
-                      <p className="text-[11px] text-emerald-800/80">{openingSuggestion.label}</p>
+                      <p className="text-[11px] text-emerald-800/80">
+                        Auto-rempli : {openingSuggestion.label}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -804,10 +814,11 @@ export default function CaissePage() {
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-zinc-500">
-                      Fond USD ($)
+                      Fond d’ouverture USD ($) — obligatoire
                     </label>
                     <input
                       type="number"
+                      required
                       min={floatPolicy?.minOpeningFloat ?? 0}
                       max={floatPolicy?.maxOpeningFloat}
                       step="0.01"
@@ -815,7 +826,7 @@ export default function CaissePage() {
                       onChange={(e) =>
                         setOpenForm((p) => ({ ...p, openingFloat: e.target.value }))
                       }
-                      placeholder={String(openingSuggestion?.suggested ?? 0)}
+                      placeholder={String(openingSuggestion?.suggested ?? '')}
                       className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                     />
                   </div>

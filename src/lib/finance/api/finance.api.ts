@@ -94,7 +94,7 @@ export const financeRoleApi = {
 
   // ── Sessions de caisse ─────────────────────────────────────────────────────
   openSession: (payload: {
-    openingFloat: number
+    openingFloat?: number
     openingFloatCdf?: number
     openNotes?: string
     currency?: string

@@ -12,6 +12,7 @@ import type {
   DataBadge,
   KpiMetric,
   ManagementAlert,
+  MonthlySituationReport,
   SituationLine,
   VarianceLine,
 } from '@/types/finance'
@@ -30,8 +31,91 @@ function defaultRdcPeriod(now = new Date()) {
 }
 
 function formatAmount(amount: number | null | undefined, currency: string): string {
-  if (amount == null) return 'Non tracé'
+  if (amount == null) return 'Non enregistré'
   return formatMoney(amount, currency)
+}
+
+function formatIsoFr(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  if (!y || !m || !d) return iso
+  return `${d}/${m}/${y}`
+}
+
+function formatMonthFr(ym: string): string {
+  const [y, m] = ym.split('-').map(Number)
+  if (!y || !m) return ym
+  return new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+}
+
+function isDevNote(note?: string): boolean {
+  if (!note) return false
+  return /prisma|paymentfee|posted|feestructure|monthyear|affectscash|expense |catalog_estimate|érudits|ledgerjson|cashmovement|feesbalance|proxy dettes/i.test(
+    note,
+  )
+}
+
+function alertCopy(a: ManagementAlert): { title: string; message: string } {
+  const fallback: Record<string, { title: string; message: string }> = {
+    OPEX_UNTRACKED: {
+      title: 'Charges du mois non encore saisies',
+      message:
+        'Aucune dépense n’a été enregistrée sur cette période. Les salaires, le fonctionnement et les taxes n’apparaissent donc pas. Saisissez-les dans Dépenses pour compléter le rapport.',
+    },
+    COLLECTION_LOW: {
+      title: 'Peu de frais du mois ont été encaissés',
+      message: a.message
+        .replace(/\(données[^)]*\)/gi, '')
+        .replace(/catalogue mensuel/gi, 'frais scolaires du mois')
+        .trim(),
+    },
+    ARREARS_DOMINANT: {
+      title: 'On encaisse surtout des arriérés',
+      message: a.message.replace(/PaymentFee|monthYear/gi, '').trim(),
+    },
+    LIQUIDITY_LOW: {
+      title: 'Peu d’argent en caisse face aux impayés',
+      message: a.message.replace(/Caisse \/ créances/gi, 'La caisse couvre').trim(),
+    },
+    CASH_RECON_MISMATCH: {
+      title: 'La caisse ne correspond pas aux flux enregistrés',
+      message:
+        'Le solde en tiroir ne correspond pas aux encaissements et sorties enregistrés. Vérifier le fond d’ouverture, les encaissements, les dépenses payées en caisse et les versements banque avant de viser.',
+    },
+  }
+  if (fallback[a.code] && (isDevNote(a.title) || isDevNote(a.message))) {
+    return fallback[a.code]
+  }
+  return { title: a.title, message: a.message }
+}
+
+function displayTitle(apiTitle: string, monthLabel: string): string {
+  const month = monthLabel.toUpperCase()
+  if (/SITUATION FINANCIÈRE/i.test(apiTitle) && !/SYNTHÈSE/i.test(apiTitle)) return apiTitle
+  return `SITUATION FINANCIÈRE ${month}`
+}
+
+const HIDE_ZERO_KEYS = new Set([
+  'real_staff',
+  'real_operating',
+  'real_advance',
+  'expected_operating',
+  'credit_operating',
+])
+
+function visibleLines(lines: SituationLine[]): SituationLine[] {
+  return lines.filter((l) => {
+    if (l.amount === 0 && HIDE_ZERO_KEYS.has(l.key)) return false
+    return true
+  })
+}
+
+function visibleVariance(lines: VarianceLine[]): VarianceLine[] {
+  return lines.filter((l) => {
+    if (l.key === 'var_operating' && (l.expected ?? 0) === 0 && (l.actual ?? 0) === 0) return false
+    if (l.key === 'var_tuition_advance' && (l.actual ?? 0) === 0 && l.expected == null) return false
+    if (l.key === 'var_opex' && l.actual == null && l.expected == null) return false
+    return true
+  })
 }
 
 function formatRatio(value: number | null, unit: KpiMetric['unit'], currency?: string): string {
@@ -52,25 +136,23 @@ function formatSignedMoney(amount: number | null, currency: string): string {
 
 function ProvenanceBadge({ badge }: { badge?: DataBadge }) {
   if (!badge) return null
-  const map: Record<DataBadge, { label: string; className: string }> = {
-    prisma_certified: {
-      label: 'Donnée certifiée Prisma',
-      className: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    },
+  const map: Record<DataBadge, { label: string; className: string } | null> = {
+    prisma_certified: null,
     catalog_estimate: {
-      label: 'Estimation catalogue',
+      label: 'Estimé',
       className: 'bg-amber-50 text-amber-900 border-amber-200',
     },
     untracked: {
-      label: 'Non tracé',
+      label: 'Non enregistré',
       className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
     },
     manual_entry: {
-      label: 'Saisie manuelle / legacy',
+      label: 'Journal caisse',
       className: 'bg-sky-50 text-sky-900 border-sky-200',
     },
   }
   const cfg = map[badge]
+  if (!cfg) return null
   return (
     <span
       className={cn(
@@ -108,17 +190,18 @@ function alertClass(severity: ManagementAlert['severity']): string {
 }
 
 function LineRows({ lines, currency }: { lines: SituationLine[]; currency: string }) {
+  const shown = visibleLines(lines)
   return (
     <table className="msr-table w-full text-sm">
       <tbody>
-        {lines.map((l) => (
+        {shown.map((l) => (
           <tr key={l.key}>
             <td className="align-top">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-zinc-800">{l.label}</span>
                 <ProvenanceBadge badge={l.badge} />
               </div>
-              {l.note ? <p className="msr-note mt-0.5">{l.note}</p> : null}
+              {l.note && !isDevNote(l.note) ? <p className="msr-note mt-0.5">{l.note}</p> : null}
             </td>
             <td
               className={cn(
@@ -177,6 +260,7 @@ function Section({
 }
 
 function VarianceTable({ lines, currency }: { lines: VarianceLine[]; currency: string }) {
+  const shown = visibleVariance(lines)
   return (
     <div className="overflow-x-auto">
       <table className="msr-table msr-table-zebra w-full text-sm">
@@ -190,14 +274,14 @@ function VarianceTable({ lines, currency }: { lines: VarianceLine[]; currency: s
           </tr>
         </thead>
         <tbody>
-          {lines.map((l) => (
+          {shown.map((l) => (
             <tr key={l.key}>
               <td>
                 <div className="flex flex-wrap items-center gap-1">
                   <span className="font-medium text-zinc-900">{l.label}</span>
                   <ProvenanceBadge badge={l.badgeActual} />
                 </div>
-                {l.note ? <p className="msr-note mt-0.5">{l.note}</p> : null}
+                {l.note && !isDevNote(l.note) ? <p className="msr-note mt-0.5">{l.note}</p> : null}
               </td>
               <td
                 className={cn(
@@ -243,6 +327,60 @@ function VarianceTable({ lines, currency }: { lines: VarianceLine[]; currency: s
   )
 }
 
+function BriefBox({ data, currency }: { data: MonthlySituationReport; currency: string }) {
+  const other = data.actualRevenue.lines.find((l) => l.key === 'real_other')?.amount ?? 0
+  const month = data.arrearsRisk.monthFees
+  const arrears = data.arrearsRisk.arrearsFees
+  const collected = data.actualRevenue.collectedTotal
+  const opex = data.operationalExpenses.total
+  const cash = data.cashBalance.closingBalance
+  const gap = data.cashReconciliation.gap
+  const receivables = data.credits.totalOutstanding
+
+  const bullets: string[] = [
+    `Recettes encaissées : ${formatMoney(collected, currency)} (hors fond d’ouverture).`,
+  ]
+  if (other > 0 && collected > 0 && other / collected >= 0.3) {
+    bullets.push(
+      `Dont ${formatMoney(other, currency)} non classés comme frais du mois (minerval, techniques ou paiements sans mois). Frais du mois : ${formatMoney(month, currency)} · arriérés : ${formatMoney(arrears, currency)}.`,
+    )
+  } else {
+    bullets.push(
+      `Frais du mois : ${formatMoney(month, currency)} · arriérés : ${formatMoney(arrears, currency)}.`,
+    )
+  }
+  if (opex == null) {
+    bullets.push('Les dépenses (salaires, fonctionnement, taxes) n’ont pas encore été saisies.')
+  } else {
+    bullets.push(`Dépenses enregistrées : ${formatMoney(opex, currency)}.`)
+  }
+  bullets.push(
+    cash == null
+      ? 'Solde de caisse inconnu (aucune session clôturée).'
+      : `Solde en caisse : ${formatAmount(cash, currency)}.`,
+  )
+  if (data.cashReconciliation.status === 'mismatch' && gap != null) {
+    bullets.push(
+      `La caisse ne correspond pas aux flux enregistrés (écart ${formatSignedMoney(gap, currency)}). Le visa n’est pas recommandé tant que l’écart n’est pas expliqué.`,
+    )
+  }
+  bullets.push(`Créances élèves encore dues : ${formatMoney(receivables, currency)}.`)
+  bullets.push(
+    `${data.headcount.studentsPrivate} élève(s) inscrits · ${data.headcount.teachers} enseignant(s).`,
+  )
+
+  return (
+    <section className="msr-section break-inside-avoid">
+      <h2 className="msr-section-title">En bref</h2>
+      <ul className="msr-brief">
+        {bullets.map((b) => (
+          <li key={b}>{b}</li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export default function SituationMensuellePage() {
   const defaults = useMemo(() => defaultRdcPeriod(), [])
   const [from, setFrom] = useState(defaults.from)
@@ -264,8 +402,8 @@ export default function SituationMensuellePage() {
     <FinancePageShell>
       <div className="print:hidden">
         <FinancePageHeader
-          title="Synthèse executive — situation mensuelle"
-          subtitle="Document de conseil d’administration — données Presence uniquement"
+          title="Situation financière mensuelle"
+          subtitle="Document pour le conseil d’administration et le promoteur"
           actions={
             <>
               <Link
@@ -300,33 +438,41 @@ export default function SituationMensuellePage() {
           }
         />
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 mb-6 flex flex-wrap items-end gap-3">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-4 mb-6 flex flex-wrap items-end gap-3" lang="fr">
           <label className="text-xs font-medium text-zinc-500">
             Du
             <input
               type="date"
+              lang="fr"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
               className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm"
             />
+            <span className="mt-1 block text-[11px] font-normal text-zinc-400">{formatIsoFr(from)}</span>
           </label>
           <label className="text-xs font-medium text-zinc-500">
             Au
             <input
               type="date"
+              lang="fr"
               value={to}
               onChange={(e) => setTo(e.target.value)}
               className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm"
             />
+            <span className="mt-1 block text-[11px] font-normal text-zinc-400">{formatIsoFr(to)}</span>
           </label>
           <label className="text-xs font-medium text-zinc-500">
-            Mois de référence (frais)
+            Mois des frais scolaires
             <input
               type="month"
+              lang="fr"
               value={reportMonth}
               onChange={(e) => setReportMonth(e.target.value)}
               className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm"
             />
+            <span className="mt-1 block text-[11px] font-normal text-zinc-400">
+              {formatMonthFr(reportMonth)}
+            </span>
           </label>
           <button
             type="button"
@@ -336,7 +482,7 @@ export default function SituationMensuellePage() {
             Générer
           </button>
           <p className="w-full text-[11px] text-zinc-400">
-            Défaut RDC : 26 du mois précédent → 25 du mois en cours (ex. Les Érudits).
+            Période habituelle RDC : du 26 du mois précédent au 25 du mois en cours.
           </p>
         </div>
       </div>
@@ -350,24 +496,25 @@ export default function SituationMensuellePage() {
       ) : data ? (
         <article className="msr-sheet mx-auto">
           <header className="msr-header">
-            <p className="msr-eyebrow">Document de synthèse executive</p>
+            <p className="msr-eyebrow">Document pour le conseil d’administration</p>
             <h1 className="msr-school">{data.school.name}</h1>
             {data.school.city ? <p className="msr-meta">{data.school.city}</p> : null}
-            <p className="msr-title">{data.period.title}</p>
+            <p className="msr-title">{displayTitle(data.period.title, data.period.reportMonthLabel)}</p>
             <p className="msr-meta">
-              Période du {data.period.from.split('-').reverse().join('/')} au{' '}
-              {data.period.to.split('-').reverse().join('/')} · Mois de référence{' '}
-              {data.period.reportMonthLabel}
+              Période du {formatIsoFr(data.period.from)} au {formatIsoFr(data.period.to)} · Mois des
+              frais {data.period.reportMonthLabel}
             </p>
-            <p className="msr-meta">
-              Destinataires : {data.document.audience}
-            </p>
+            <p className="msr-meta">Destinataires : {data.document.audience}</p>
           </header>
+
+          <BriefBox data={data} currency={currency} />
 
           {data.alerts.length > 0 ? (
             <section className="msr-section break-inside-avoid space-y-2">
               <h2 className="msr-section-title">Alertes de gestion</h2>
-              {data.alerts.map((a) => (
+              {data.alerts.map((a) => {
+                const copy = alertCopy(a)
+                return (
                 <div
                   key={a.code}
                   className={cn('rounded-md border px-3 py-2.5 text-sm', alertClass(a.severity))}
@@ -378,16 +525,17 @@ export default function SituationMensuellePage() {
                     ) : (
                       <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                     )}
-                    <span className="flex-1">{a.title}</span>
+                    <span className="flex-1">{copy.title}</span>
                     {a.blocking ? (
                       <span className="rounded bg-red-700 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                        Bloquant signature
+                        Visa non recommandé
                       </span>
                     ) : null}
                   </p>
-                  <p className="mt-1 leading-relaxed">{a.message}</p>
+                  <p className="mt-1 leading-relaxed">{copy.message}</p>
                 </div>
-              ))}
+                )
+              })}
             </section>
           ) : null}
 
@@ -413,8 +561,9 @@ export default function SituationMensuellePage() {
                   <p className="mt-1 text-2xl font-bold tabular-nums">
                     {formatRatio(kpi.value, kpi.unit, currency)}
                   </p>
-                  <p className="msr-note mt-2">{kpi.formula}</p>
-                  <p className="msr-note mt-1">{kpi.note}</p>
+                  {kpi.note && !isDevNote(kpi.note) ? (
+                    <p className="msr-note mt-2">{kpi.note}</p>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -446,7 +595,7 @@ export default function SituationMensuellePage() {
                   </td>
                 </tr>
                 <tr>
-                  <td>Poids (ant. + antic.) / mois</td>
+                  <td>Poids des arriérés et avances</td>
                   <td className="text-right tabular-nums font-semibold">
                     {data.arrearsRisk.weightVsMonth != null
                       ? `${data.arrearsRisk.weightVsMonth.toFixed(2)}×`
@@ -471,7 +620,9 @@ export default function SituationMensuellePage() {
                 </tr>
               </tbody>
             </table>
-            <p className="msr-note mt-2">{data.arrearsRisk.note}</p>
+            {data.arrearsRisk.note && !isDevNote(data.arrearsRisk.note) ? (
+              <p className="msr-note mt-2">{data.arrearsRisk.note}</p>
+            ) : null}
           </section>
 
           <section className="msr-section break-inside-avoid">
@@ -496,7 +647,11 @@ export default function SituationMensuellePage() {
                     : 'Incomplet'}
               </span>
             </div>
-            <p className="msr-note mb-2 font-mono text-[11px]">{data.cashReconciliation.equation}</p>
+            <p className="msr-note mb-2">
+              {/affectsCash|Report \+|PaymentFee/i.test(data.cashReconciliation.equation)
+                ? 'Ce que la caisse devrait contenir, d’après les encaissements et les sorties enregistrés.'
+                : data.cashReconciliation.equation}
+            </p>
             <table className="msr-table msr-table-zebra w-full text-sm">
               <tbody>
                 <tr>
@@ -518,7 +673,7 @@ export default function SituationMensuellePage() {
                   </td>
                 </tr>
                 <tr>
-                  <td>− Dépenses affectsCash</td>
+                  <td>− Dépenses payées en caisse</td>
                   <td
                     className={cn(
                       'text-right tabular-nums',
@@ -565,14 +720,16 @@ export default function SituationMensuellePage() {
                 </tr>
               </tbody>
             </table>
-            <p className="msr-note mt-2">{data.cashReconciliation.note}</p>
+            {data.cashReconciliation.note && !isDevNote(data.cashReconciliation.note) ? (
+              <p className="msr-note mt-2">{data.cashReconciliation.note}</p>
+            ) : null}
           </section>
 
           <Section n={1} title="Effectifs" badge={data.headcount.badge}>
             <table className="msr-table msr-table-zebra w-full text-sm">
               <tbody>
                 <tr>
-                  <td>Élèves actifs (privées)</td>
+                  <td>Élèves inscrits</td>
                   <td className="text-right font-semibold tabular-nums">
                     {data.headcount.studentsPrivate}
                   </td>
@@ -585,37 +742,43 @@ export default function SituationMensuellePage() {
                 </tr>
               </tbody>
             </table>
-            <p className="msr-note mt-2">{data.headcount.note}</p>
+            {data.headcount.note && !isDevNote(data.headcount.note) ? (
+              <p className="msr-note mt-2">{data.headcount.note}</p>
+            ) : null}
           </Section>
 
           <Section
             n={2}
-            title="Analyse de variance (attendu vs réel)"
+            title="Attendu et réel"
           >
             <VarianceTable lines={data.variance.lines} currency={currency} />
-            <p className="msr-note mt-2">{data.variance.note}</p>
+            {data.variance.note && !isDevNote(data.variance.note) ? (
+              <p className="msr-note mt-2">{data.variance.note}</p>
+            ) : null}
           </Section>
 
           <Section
             n={3}
-            title="Recettes attendues (catalogue)"
+            title="Recettes attendues"
             total={data.expectedRevenue.total}
             currency={currency}
           >
             <LineRows lines={data.expectedRevenue.lines} currency={currency} />
-            <p className="msr-note mt-2">{data.expectedRevenue.note}</p>
+            {data.expectedRevenue.note && !isDevNote(data.expectedRevenue.note) ? (
+              <p className="msr-note mt-2">{data.expectedRevenue.note}</p>
+            ) : null}
           </Section>
 
           <Section
             n={4}
-            title="Recettes réelles (encaissements)"
+            title="Recettes encaissées"
             total={data.actualRevenue.total}
             currency={currency}
           >
             <LineRows lines={data.actualRevenue.lines} currency={currency} />
             <p className="msr-note mt-2">
-              {data.actualRevenue.paymentCount} paiement(s) confirmé(s) / réconcilié(s) · Encaissé hors
-              report caisse : {formatMoney(data.actualRevenue.collectedTotal, currency)}.
+              {data.actualRevenue.paymentCount} paiement(s) · Encaissé hors report de caisse :{' '}
+              {formatMoney(data.actualRevenue.collectedTotal, currency)}.
             </p>
             {data.actualRevenue.byMethod.length > 0 ? (
               <div className="mt-3">
@@ -627,7 +790,7 @@ export default function SituationMensuellePage() {
                     {data.actualRevenue.byMethod.map((m) => (
                       <tr key={m.method}>
                         <td>
-                          {m.method} · {m.count} txn
+                          {m.method} · {m.count} paiement{m.count > 1 ? 's' : ''}
                         </td>
                         <td className="text-right tabular-nums font-medium">
                           {formatMoney(m.amount, currency)}
@@ -648,14 +811,16 @@ export default function SituationMensuellePage() {
             badge={data.operationalExpenses.tracked ? 'prisma_certified' : 'untracked'}
           >
             <LineRows lines={data.operationalExpenses.lines} currency={currency} />
-            <p className="msr-note mt-2">{data.operationalExpenses.note}</p>
+            {data.operationalExpenses.note && !isDevNote(data.operationalExpenses.note) ? (
+              <p className="msr-note mt-2">{data.operationalExpenses.note}</p>
+            ) : null}
             {!data.operationalExpenses.tracked ? (
               <p className="msr-note mt-2 print:hidden">
-                Pour activer le burn rate, saisir une charge POSTED dans{' '}
+                Saisissez les charges dans{' '}
                 <Link href="/finances/depenses" className="font-semibold underline">
                   Dépenses
-                </Link>
-                .
+                </Link>{' '}
+                pour les faire figurer ici.
               </p>
             ) : null}
           </Section>
@@ -667,7 +832,9 @@ export default function SituationMensuellePage() {
             currency={currency}
             badge={data.investmentExpenses.tracked ? 'prisma_certified' : 'untracked'}
           >
-            <p className="msr-note">{data.investmentExpenses.note}</p>
+            {data.investmentExpenses.note && !isDevNote(data.investmentExpenses.note) ? (
+              <p className="msr-note">{data.investmentExpenses.note}</p>
+            ) : null}
           </Section>
 
           <Section
@@ -722,29 +889,33 @@ export default function SituationMensuellePage() {
                 </tr>
               </tbody>
             </table>
-            {data.cashBalance.closingSource ? (
+            {data.cashBalance.closingSource && !isDevNote(data.cashBalance.closingSource) ? (
               <p className="msr-note mt-2">{data.cashBalance.closingSource}</p>
             ) : null}
           </Section>
 
           <Section n={9} title="Crédits / créances">
             <LineRows lines={data.credits.lines} currency={currency} />
-            <p className="msr-note mt-2">{data.credits.note}</p>
+            {data.credits.note && !isDevNote(data.credits.note) ? (
+              <p className="msr-note mt-2">{data.credits.note}</p>
+            ) : null}
             <p className="msr-total">
-              <span>Créances totales (soldes élèves)</span>
+              <span>Créances élèves encore dues</span>
               <span className="tabular-nums">
                 {formatMoney(data.credits.totalOutstanding, currency)}
               </span>
             </p>
           </Section>
 
-          {data.integrity.warnings.length > 0 ? (
+          {data.integrity.warnings.filter((w) => !isDevNote(w)).length > 0 ? (
             <section className="msr-section break-inside-avoid">
-              <h2 className="msr-section-title">Annexe — transparence des sources</h2>
+              <h2 className="msr-section-title">Notes</h2>
               <ul className="space-y-1 text-xs text-zinc-600">
-                {data.integrity.warnings.map((w) => (
-                  <li key={w}>• {w}</li>
-                ))}
+                {data.integrity.warnings
+                  .filter((w) => !isDevNote(w))
+                  .map((w) => (
+                    <li key={w}>• {w}</li>
+                  ))}
               </ul>
             </section>
           ) : null}
@@ -838,6 +1009,16 @@ export default function SituationMensuellePage() {
           line-height: 1.4;
           color: #71717a;
           font-family: 'Segoe UI', Calibri, Candara, sans-serif;
+        }
+        .msr-brief {
+          margin: 0;
+          padding-left: 1.1em;
+          font-size: 13px;
+          line-height: 1.55;
+          color: #18181b;
+        }
+        .msr-brief li {
+          margin-bottom: 6px;
         }
         .msr-table th,
         .msr-table td {
