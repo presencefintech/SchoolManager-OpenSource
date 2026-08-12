@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FileText } from 'lucide-react'
+import { FileText, Wallet } from 'lucide-react'
 import { FinanceReportsDashboard } from '@/components/admin/finance/reports/FinanceReportsDashboard'
 
 /** Guichet FINANCE — rapports en lecture (pas de publication taux / figer snapshot). */
@@ -28,6 +28,23 @@ export default function FinancesReportsPage() {
             </div>
           </div>
           <span className="text-xs font-semibold text-emerald-700 shrink-0">Ouvrir →</span>
+        </Link>
+        <Link
+          href="/finances/depenses"
+          className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-4 hover:border-zinc-300 transition-colors"
+        >
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-xl bg-zinc-100 p-2 text-zinc-700">
+              <Wallet size={18} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-zinc-900">Dépenses (opex / capex)</p>
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Saisie des charges POSTED — active burn rate et variance du rapport mensuel.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-zinc-600 shrink-0">Ouvrir →</span>
         </Link>
       </div>
       <FinanceReportsDashboard />

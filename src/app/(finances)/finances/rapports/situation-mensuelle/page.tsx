@@ -2,10 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Printer, RefreshCw, ArrowLeft, AlertTriangle, FileText, Info } from 'lucide-react'
+import { Printer, RefreshCw, ArrowLeft, AlertTriangle, FileText, Info, Wallet } from 'lucide-react'
 import { useMonthlySituationReport } from '@/lib/hooks/use-finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { formatMoney } from '@/lib/finance/currency'
+import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import type {
   DataBadge,
@@ -273,6 +274,12 @@ export default function SituationMensuellePage() {
               >
                 <ArrowLeft size={14} /> Caisse
               </Link>
+              <Link
+                href="/finances/depenses"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+              >
+                <Wallet size={14} /> Dépenses
+              </Link>
               <button
                 type="button"
                 onClick={() => refetch()}
@@ -338,8 +345,7 @@ export default function SituationMensuellePage() {
         <p className="text-sm text-zinc-400 animate-pulse">Génération du rapport…</p>
       ) : isError ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Impossible de générer le rapport.{' '}
-          {(error as { message?: string })?.message ?? 'Vérifiez la période.'}
+          Impossible de générer le rapport. {getApiErrorMessage(error)}
         </div>
       ) : data ? (
         <article className="msr-sheet mx-auto">
@@ -643,6 +649,15 @@ export default function SituationMensuellePage() {
           >
             <LineRows lines={data.operationalExpenses.lines} currency={currency} />
             <p className="msr-note mt-2">{data.operationalExpenses.note}</p>
+            {!data.operationalExpenses.tracked ? (
+              <p className="msr-note mt-2 print:hidden">
+                Pour activer le burn rate, saisir une charge POSTED dans{' '}
+                <Link href="/finances/depenses" className="font-semibold underline">
+                  Dépenses
+                </Link>
+                .
+              </p>
+            ) : null}
           </Section>
 
           <Section
