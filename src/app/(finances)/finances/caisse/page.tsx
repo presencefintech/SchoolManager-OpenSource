@@ -476,6 +476,12 @@ export default function CaissePage() {
                 >
                   Situation mensuelle
                 </a>
+                <a
+                  href="/finances/depenses"
+                  className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  Dépenses
+                </a>
                 <button
                   type="button"
                   onClick={() => void handleExport()}

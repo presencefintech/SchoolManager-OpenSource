@@ -108,6 +108,12 @@ export function getApiErrorMessage(error: unknown): string {
     if (error.response?.status === 429) {
       return 'Trop de requêtes — patientez une minute avant de réessayer.'
     }
+    if (error.response?.status === 503) {
+      return (
+        (typeof msg === 'string' && msg) ||
+        'Service indisponible (503). Souvent une migration Prisma en attente sur Railway — réessayez après le redeploy.'
+      )
+    }
     if (code === 'FORBIDDEN_ROLE') {
       return 'Accès refusé — seuls les administrateurs peuvent modifier l\'identité de l\'établissement.'
     }
