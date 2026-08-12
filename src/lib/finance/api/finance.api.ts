@@ -507,6 +507,49 @@ export const financeRoleApi = {
       .get('/finance/reports/monthly-situation', { params })
       .then((r) => r.data.data as import('@/types/finance').MonthlySituationReport),
 
+  exportMonthlySituationPdf: async (params: {
+    from: string
+    to: string
+    reportMonth?: string
+  }): Promise<Blob> => {
+    const { normalizeBlobError } = await import('@/lib/finance/download-receipt-pdf')
+    try {
+      const res = await apiClient.get('/finance/reports/monthly-situation/pdf', {
+        params,
+        responseType: 'blob',
+        timeout: 90_000,
+      })
+      const blob = res.data as Blob
+      const type = blob.type || ''
+      if (type.includes('json') || type.includes('text')) {
+        const text = await blob.text()
+        let message = 'Impossible de générer le PDF'
+        try {
+          const json = JSON.parse(text) as { message?: string }
+          if (typeof json.message === 'string' && json.message) message = json.message
+        } catch {
+          if (text.trim()) message = text.slice(0, 200)
+        }
+        throw new Error(message)
+      }
+      const head = await blob.slice(0, 5).text()
+      if (head.startsWith('{') || head.startsWith('[')) {
+        const text = await blob.text()
+        let message = 'Impossible de générer le PDF'
+        try {
+          const json = JSON.parse(text) as { message?: string }
+          if (typeof json.message === 'string' && json.message) message = json.message
+        } catch {
+          /* ignore */
+        }
+        throw new Error(message)
+      }
+      return blob
+    } catch (err) {
+      throw await normalizeBlobError(err)
+    }
+  },
+
   listExpenses: (params?: {
     from?: string
     to?: string

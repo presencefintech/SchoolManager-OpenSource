@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Printer, RefreshCw, ArrowLeft, AlertTriangle, FileText, Info, Wallet } from 'lucide-react'
+import { Printer, RefreshCw, ArrowLeft, AlertTriangle, FileText, Info, Wallet, Download } from 'lucide-react'
 import { useMonthlySituationReport } from '@/lib/hooks/use-finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
+import { financeRoleApi } from '@/lib/finance/api/finance.api'
+import { downloadBlob, printPdfBlob } from '@/lib/finance/download-blob'
 import type {
   DataBadge,
   KpiMetric,
@@ -389,6 +391,8 @@ export default function SituationMensuellePage() {
   const [applied, setApplied] = useState(defaults)
 
   const { data, isLoading, isFetching, isError, refetch, error } = useMonthlySituationReport(applied)
+  const [pdfBusy, setPdfBusy] = useState<'download' | 'print' | null>(null)
+  const [pdfError, setPdfError] = useState<string | null>(null)
 
   const currency = data?.school.currency ?? 'USD'
   const editedAt = data
@@ -397,6 +401,41 @@ export default function SituationMensuellePage() {
         timeStyle: 'short',
       })
     : ''
+
+  async function fetchPdfBlob(): Promise<{ blob: Blob; filename: string }> {
+    const blob = await financeRoleApi.exportMonthlySituationPdf(applied)
+    const month = applied.reportMonth.replace('-', '')
+    const filename = `situation-financiere-${month}.pdf`
+    return { blob, filename }
+  }
+
+  async function handleDownloadPdf() {
+    if (!data) return
+    setPdfError(null)
+    setPdfBusy('download')
+    try {
+      const { blob, filename } = await fetchPdfBlob()
+      downloadBlob(blob, filename)
+    } catch (err) {
+      setPdfError(getApiErrorMessage(err))
+    } finally {
+      setPdfBusy(null)
+    }
+  }
+
+  async function handlePrintPdf() {
+    if (!data) return
+    setPdfError(null)
+    setPdfBusy('print')
+    try {
+      const { blob } = await fetchPdfBlob()
+      await printPdfBlob(blob)
+    } catch (err) {
+      setPdfError(getApiErrorMessage(err))
+    } finally {
+      setPdfBusy(null)
+    }
+  }
 
   return (
     <FinancePageShell>
@@ -428,11 +467,21 @@ export default function SituationMensuellePage() {
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
-                disabled={!data}
+                onClick={() => void handleDownloadPdf()}
+                disabled={!data || pdfBusy != null}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+              >
+                <Download size={14} className={pdfBusy === 'download' ? 'animate-pulse' : ''} />
+                {pdfBusy === 'download' ? 'PDF…' : 'Télécharger PDF'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handlePrintPdf()}
+                disabled={!data || pdfBusy != null}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
               >
-                <Printer size={14} /> Imprimer / PDF
+                <Printer size={14} className={pdfBusy === 'print' ? 'animate-pulse' : ''} />
+                {pdfBusy === 'print' ? 'Préparation…' : 'Imprimer'}
               </button>
             </>
           }
@@ -484,6 +533,11 @@ export default function SituationMensuellePage() {
           <p className="w-full text-[11px] text-zinc-400">
             Période habituelle RDC : du 26 du mois précédent au 25 du mois en cours.
           </p>
+          {pdfError ? (
+            <p className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {pdfError}
+            </p>
+          ) : null}
         </div>
       </div>
 
