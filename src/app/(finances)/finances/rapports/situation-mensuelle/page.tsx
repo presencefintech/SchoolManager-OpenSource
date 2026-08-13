@@ -10,6 +10,7 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { downloadBlob, printPdfBlob } from '@/lib/finance/download-blob'
+import { ExpenseLinesForm } from '@/components/finance/expense-lines-form'
 import type {
   DataBadge,
   KpiMetric,
@@ -831,8 +832,8 @@ export default function SituationMensuellePage() {
           >
             <LineRows lines={data.actualRevenue.lines} currency={currency} />
             <p className="msr-note mt-2">
-              {data.actualRevenue.paymentCount} paiement(s) · Encaissé hors report de caisse :{' '}
-              {formatMoney(data.actualRevenue.collectedTotal, currency)}.
+              {data.actualRevenue.paymentCount} paiement(s). Le fond d’ouverture figure au solde
+              de caisse, pas dans ces recettes.
             </p>
             {data.actualRevenue.byMethod.length > 0 ? (
               <div className="mt-3">
@@ -868,15 +869,12 @@ export default function SituationMensuellePage() {
             {data.operationalExpenses.note && !isDevNote(data.operationalExpenses.note) ? (
               <p className="msr-note mt-2">{data.operationalExpenses.note}</p>
             ) : null}
-            {!data.operationalExpenses.tracked ? (
-              <p className="msr-note mt-2 print:hidden">
-                Saisissez les charges dans{' '}
-                <Link href="/finances/depenses" className="font-semibold underline">
-                  Dépenses
-                </Link>{' '}
-                pour les faire figurer ici.
+            <div className="print:hidden mt-4 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4">
+              <p className="text-xs font-semibold text-zinc-700 mb-3">
+                Ajouter des charges sur cette période
               </p>
-            ) : null}
+              <ExpenseLinesForm defaultDate={data.period.to} compact onSaved={() => void refetch()} />
+            </div>
           </Section>
 
           <Section
@@ -886,6 +884,9 @@ export default function SituationMensuellePage() {
             currency={currency}
             badge={data.investmentExpenses.tracked ? 'prisma_certified' : 'untracked'}
           >
+            {(data.investmentExpenses.lines?.length ?? 0) > 0 ? (
+              <LineRows lines={data.investmentExpenses.lines!} currency={currency} />
+            ) : null}
             {data.investmentExpenses.note && !isDevNote(data.investmentExpenses.note) ? (
               <p className="msr-note">{data.investmentExpenses.note}</p>
             ) : null}
@@ -973,6 +974,19 @@ export default function SituationMensuellePage() {
               </ul>
             </section>
           ) : null}
+
+          <p
+            className={cn(
+              'mt-2 text-[11px]',
+              data.integrity.coherent === false ? 'font-semibold text-red-800' : 'text-zinc-500',
+            )}
+          >
+            {data.integrity.coherent === false
+              ? 'Les totaux de ce document ne se recoupent pas — ne pas viser avant correction.'
+              : data.integrity.coherent
+                ? 'Les totaux de ce document se recoupent.'
+                : null}
+          </p>
 
           <footer className="msr-footer break-inside-avoid">
             <div className="msr-footer-meta">

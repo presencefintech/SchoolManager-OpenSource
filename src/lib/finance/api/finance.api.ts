@@ -572,6 +572,18 @@ export const financeRoleApi = {
       .post('/finance/expenses', payload)
       .then((r) => r.data.data as import('@/types/finance').FinanceExpense),
 
+  createExpensesBatch: (payload: import('@/types/finance').CreateExpenseBatchPayload) =>
+    apiClient
+      .post('/finance/expenses/batch', payload)
+      .then(
+        (r) =>
+          r.data.data as {
+            items: import('@/types/finance').FinanceExpense[]
+            count: number
+            total: number
+          },
+      ),
+
   postExpense: (id: number) =>
     apiClient
       .post(`/finance/expenses/${id}/post`)

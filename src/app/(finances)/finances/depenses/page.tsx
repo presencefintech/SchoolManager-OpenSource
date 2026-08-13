@@ -4,16 +4,16 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Plus, RefreshCw, FileText, Ban, CheckCircle2 } from 'lucide-react'
 import {
-  useCreateExpense,
   useFinanceExpenses,
   usePostExpense,
   useVoidExpense,
 } from '@/lib/hooks/use-finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
+import { ExpenseLinesForm } from '@/components/finance/expense-lines-form'
 import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
-import type { CreateExpensePayload, ExpenseKind, ExpenseStatus, FinanceExpense } from '@/types/finance'
+import type { ExpenseStatus, FinanceExpense } from '@/types/finance'
 
 function statusLabel(s: ExpenseStatus) {
   switch (s) {
@@ -37,16 +37,10 @@ function statusClass(s: ExpenseStatus) {
   }
 }
 
-function todayIsoDate() {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
 export default function DepensesPage() {
   const [status, setStatus] = useState<string>('')
   const [kind, setKind] = useState<string>('')
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const filters = useMemo(
@@ -58,54 +52,8 @@ export default function DepensesPage() {
   )
 
   const { data, isLoading, isFetching, refetch } = useFinanceExpenses(filters)
-  const createMut = useCreateExpense()
   const postMut = usePostExpense()
   const voidMut = useVoidExpense()
-
-  const [form, setForm] = useState({
-    kind: 'OPERATING' as ExpenseKind,
-    category: '',
-    label: '',
-    amount: '',
-    occurredAt: todayIsoDate(),
-    affectsCash: true,
-    vendor: '',
-    reference: '',
-    notes: '',
-    postImmediately: true,
-  })
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    const payload: CreateExpensePayload = {
-      kind: form.kind,
-      category: form.category.trim(),
-      label: form.label.trim(),
-      amount: Number(form.amount),
-      occurredAt: form.occurredAt,
-      affectsCash: form.affectsCash,
-      vendor: form.vendor.trim() || null,
-      reference: form.reference.trim() || null,
-      notes: form.notes.trim() || null,
-      postImmediately: form.postImmediately,
-    }
-    try {
-      await createMut.mutateAsync(payload)
-      setShowForm(false)
-      setForm((f) => ({
-        ...f,
-        category: '',
-        label: '',
-        amount: '',
-        vendor: '',
-        reference: '',
-        notes: '',
-      }))
-    } catch (err) {
-      setError(getApiErrorMessage(err))
-    }
-  }
 
   async function handlePost(item: FinanceExpense) {
     setError(null)
@@ -132,7 +80,7 @@ export default function DepensesPage() {
     <FinancePageShell>
       <FinancePageHeader
         title="Dépenses"
-        subtitle="Alimente le burn rate et la variance opex du rapport de situation mensuelle (Expense POSTED uniquement)"
+        subtitle="Une ligne par charge, montant et n° de preuve optionnel — alimente la situation mensuelle"
         actions={
           <>
             <Link
@@ -154,7 +102,7 @@ export default function DepensesPage() {
               onClick={() => setShowForm((v) => !v)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
             >
-              <Plus size={14} /> Nouvelle dépense
+              <Plus size={14} /> {showForm ? 'Masquer la saisie' : 'Saisir des dépenses'}
             </button>
           </>
         }
@@ -167,132 +115,10 @@ export default function DepensesPage() {
       ) : null}
 
       {showForm ? (
-        <form
-          onSubmit={handleCreate}
-          className="rounded-2xl border border-zinc-200 bg-white p-5 space-y-4"
-        >
-          <h2 className="text-sm font-bold text-zinc-900">Saisie d’une charge</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="text-xs font-medium text-zinc-500">
-              Type
-              <select
-                value={form.kind}
-                onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value as ExpenseKind }))}
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              >
-                <option value="OPERATING">Opérationnelle (opex)</option>
-                <option value="INVESTMENT">Investissement (capex)</option>
-              </select>
-            </label>
-            <label className="text-xs font-medium text-zinc-500">
-              Date
-              <input
-                type="date"
-                required
-                value={form.occurredAt}
-                onChange={(e) => setForm((f) => ({ ...f, occurredAt: e.target.value }))}
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500">
-              Catégorie
-              <input
-                required
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                placeholder="Salaires, IPR, Fournitures…"
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500">
-              Montant (USD)
-              <input
-                required
-                type="number"
-                min={0.01}
-                step="0.01"
-                value={form.amount}
-                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500 sm:col-span-2">
-              Libellé
-              <input
-                required
-                value={form.label}
-                onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-                placeholder="Paie enseignants — août"
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500">
-              Fournisseur
-              <input
-                value={form.vendor}
-                onChange={(e) => setForm((f) => ({ ...f, vendor: e.target.value }))}
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500">
-              Référence pièce
-              <input
-                value={form.reference}
-                onChange={(e) => setForm((f) => ({ ...f, reference: e.target.value }))}
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs font-medium text-zinc-500 sm:col-span-2">
-              Notes
-              <textarea
-                rows={2}
-                value={form.notes}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
-          <div className="flex flex-wrap gap-4 text-sm text-zinc-700">
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.affectsCash}
-                onChange={(e) => setForm((f) => ({ ...f, affectsCash: e.target.checked }))}
-                className="rounded border-zinc-300"
-              />
-              Sort de la caisse guichet (affectsCash)
-            </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.postImmediately}
-                onChange={(e) => setForm((f) => ({ ...f, postImmediately: e.target.checked }))}
-                className="rounded border-zinc-300"
-              />
-              Poster immédiatement (comptabilisée)
-            </label>
-          </div>
-          <p className="text-[11px] text-zinc-400">
-            Seules les dépenses validées (comptabilisées) figurent dans le rapport. La case « sort de
-            la caisse » est cochée par défaut — décocher si la charge ne sort pas du tiroir.
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={createMut.isPending}
-              className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
-            >
-              {createMut.isPending ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="rounded-xl border border-zinc-200 px-4 py-2 text-sm text-zinc-600"
-            >
-              Annuler
-            </button>
-          </div>
-        </form>
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <h2 className="text-sm font-bold text-zinc-900 mb-4">Saisie des charges</h2>
+          <ExpenseLinesForm onSaved={() => void refetch()} />
+        </div>
       ) : null}
 
       <div className="flex flex-wrap gap-2">
@@ -339,7 +165,7 @@ export default function DepensesPage() {
             ) : items.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-zinc-400">
-                  Aucune dépense. Saisissez une charge POSTED pour activer le burn rate.
+                  Aucune dépense. Ajoutez des lignes ci-dessus (montant + n° de preuve optionnel).
                 </td>
               </tr>
             ) : (

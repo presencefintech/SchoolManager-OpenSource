@@ -499,6 +499,17 @@ export function useCreateExpense() {
   })
 }
 
+export function useCreateExpensesBatch() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeRoleApi.createExpensesBatch,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'expenses'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'monthly-situation'] })
+    },
+  })
+}
+
 export function usePostExpense() {
   const qc = useQueryClient()
   return useMutation({

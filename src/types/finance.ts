@@ -960,6 +960,23 @@ export type CreateExpensePayload = {
   postImmediately?: boolean
 }
 
+export type CreateExpenseBatchPayload = {
+  occurredAt: string
+  affectsCash?: boolean
+  postImmediately?: boolean
+  currency?: string
+  vendor?: string | null
+  cashSessionId?: number | null
+  lines: Array<{
+    kind: ExpenseKind
+    category: string
+    label: string
+    amount: number
+    reference?: string | null
+    notes?: string | null
+  }>
+}
+
 export type DataBadge = 'prisma_certified' | 'catalog_estimate' | 'untracked' | 'manual_entry'
 
 export type SituationLine = {
@@ -1072,7 +1089,12 @@ export interface MonthlySituationReport {
     tracked: boolean
     note: string
   }
-  investmentExpenses: { total: number | null; tracked: boolean; note: string }
+  investmentExpenses: {
+    lines?: SituationLine[]
+    total: number | null
+    tracked: boolean
+    note: string
+  }
   bankDeposits: {
     lines: Array<{
       label: string
@@ -1107,5 +1129,20 @@ export interface MonthlySituationReport {
     audience: string
     signatureSlots: Array<{ role: string; label: string }>
   }
-  integrity: { computedOnly: boolean; warnings: string[] }
+  integrity: {
+    computedOnly: boolean
+    warnings: string[]
+    coherent?: boolean
+    identities?: {
+      revenuePartsOk: boolean
+      methodVsCollectedOk: boolean
+      actualLinesOk: boolean
+      expectedLinesOk: boolean
+      creditsPartitionOk: boolean
+      opexLinesOk: boolean
+      capexLinesOk: boolean
+      depositLinesOk: boolean
+      cashEquationOk: boolean | null
+    }
+  }
 }
