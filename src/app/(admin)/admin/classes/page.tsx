@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, ChevronRight,
-  GraduationCap, LayoutGrid, ArrowRight,
+  GraduationCap, LayoutGrid, ArrowRight, Download,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
@@ -12,11 +12,16 @@ import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { useQueryLoading } from '@/lib/hooks/use-auth-query'
 import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
+import { classesApi } from '@/lib/admin/api'
+import { triggerBlobDownload } from '@/lib/download-blob'
+import { getApiErrorMessage } from '@/lib/api/client'
 import {
   useClasses, useCreateClass, useToggleClassStatus, useRollover,
   useSections, useOptions, useAcademicSessions,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
+import { useToast } from '@/providers/toast-provider'
 
 const CLASS_FILTER_DEFAULTS = {
   search: '',
@@ -293,7 +298,8 @@ function RolloverModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function ClassesPage() {
-  const { isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
+  const deskOnly = isItDesk(user?.role)
   const [showCreate, setShowCreate] = useState(false)
   const [showRollover, setShowRollover] = useState(false)
   const {
@@ -323,6 +329,16 @@ export default function ClassesPage() {
 
   const { data: classes = [], isPending, refetch, isFetching } = useClasses(apiParams)
   const { mutate: toggle } = useToggleClassStatus()
+  const toast = useToast()
+
+  async function downloadRoster(classId: number, className?: string) {
+    try {
+      const blob = await classesApi.exportClass(classId)
+      triggerBlobDownload(blob, `liste-${className || classId}.csv`)
+    } catch (error) {
+      toast.error('Liste de classe', getApiErrorMessage(error))
+    }
+  }
 
   const loading = useQueryLoading(authLoading || isPending)
 
@@ -385,6 +401,8 @@ export default function ClassesPage() {
               <RefreshCw size={14} className={cn(isFetching && 'animate-spin')} />
               Actualiser
             </button>
+            {!deskOnly && (
+              <>
             <button
               type="button"
               onClick={() => setShowRollover(true)}
@@ -401,6 +419,8 @@ export default function ClassesPage() {
               <Plus size={14} />
               Nouvelle classe
             </button>
+              </>
+            )}
           </>
         }
         quickLinks={[
@@ -536,7 +556,7 @@ export default function ClassesPage() {
                   ? 'Modifiez les filtres ou réinitialisez la recherche.'
                   : 'Commencez par structurer votre établissement.'}
               </p>
-              {!filterChips.length && (
+              {!filterChips.length && !deskOnly && (
                 <button
                   type="button"
                   onClick={() => setShowCreate(true)}
@@ -589,6 +609,16 @@ export default function ClassesPage() {
                           )}
                         </td>
                         <td className="px-5 py-4">
+                          {deskOnly ? (
+                            <span className={cn(
+                              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium',
+                              cls.isActive
+                                ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
+                                : 'bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200',
+                            )}>
+                              {cls.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                          ) : (
                           <button
                             type="button"
                             onClick={() => toggle(cls.id)}
@@ -602,15 +632,32 @@ export default function ClassesPage() {
                             <ToggleLeft size={11} />
                             {cls.isActive ? 'Active' : 'Inactive'}
                           </button>
+                          )}
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <Link
-                            href={`/admin/classes/${cls.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 opacity-80 group-hover:opacity-100"
-                          >
-                            Ouvrir
-                            <ChevronRight size={14} />
-                          </Link>
+                          <div className="inline-flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => void downloadRoster(cls.id, cls.name)}
+                              className="text-xs font-medium text-zinc-500 hover:text-emerald-700 inline-flex items-center gap-1"
+                            >
+                              <Download size={12} />
+                              Liste
+                            </button>
+                            <Link
+                              href={`/admin/cards?classId=${cls.id}`}
+                              className="text-xs font-medium text-zinc-500 hover:text-emerald-700"
+                            >
+                              Cartes
+                            </Link>
+                            <Link
+                              href={`/admin/classes/${cls.id}`}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-800 opacity-80 group-hover:opacity-100"
+                            >
+                              Ouvrir
+                              <ChevronRight size={14} />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     )

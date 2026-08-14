@@ -23,11 +23,13 @@ export function WeekGrid({
   overlapIds,
   onEdit,
   onDeactivate,
+  readOnly = false,
 }: {
   periods: ClassPeriodItem[]
   overlapIds: Set<number>
   onEdit: (p: ClassPeriodItem) => void
   onDeactivate: (p: ClassPeriodItem) => void
+  readOnly?: boolean
 }) {
   const hours = Array.from(
     { length: Math.ceil((GRID_END - GRID_START) / 60) + 1 },
@@ -89,13 +91,16 @@ export function WeekGrid({
                   <div
                     key={p.id}
                     className={cn(
-                      'absolute left-1 right-1 rounded-lg border px-1.5 py-1 overflow-hidden group cursor-pointer shadow-sm transition-shadow hover:shadow-md',
+                      'absolute left-1 right-1 rounded-lg border px-1.5 py-1 overflow-hidden group shadow-sm transition-shadow',
+                      !readOnly && 'cursor-pointer hover:shadow-md',
                       color.bg,
                       color.border,
                       conflict && 'ring-2 ring-amber-400 border-amber-300',
                     )}
                     style={{ top, height }}
-                    onClick={() => onEdit(p)}
+                    onClick={() => {
+                      if (!readOnly) onEdit(p)
+                    }}
                     title={`${p.start}–${p.end} · ${p.subject ?? p.className}`}
                   >
                     <div className={cn('absolute left-0 top-0 bottom-0 w-1 rounded-l-lg', color.bar)} />
@@ -111,6 +116,7 @@ export function WeekGrid({
                     {height > 52 && p.room && (
                       <p className="text-[10px] text-zinc-400 truncate pl-1.5">{p.room}</p>
                     )}
+                    {!readOnly && (
                     <div className="absolute top-0.5 right-0.5 hidden group-hover:flex gap-0.5">
                       <button
                         type="button"
@@ -133,6 +139,7 @@ export function WeekGrid({
                         <Trash2 size={11} />
                       </button>
                     </div>
+                    )}
                   </div>
                 )
               })}

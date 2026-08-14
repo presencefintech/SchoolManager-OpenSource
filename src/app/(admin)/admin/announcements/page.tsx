@@ -23,6 +23,8 @@ import {
   type AnnouncementListItem,
   type AnnouncementStatus,
 } from '@/lib/admin/api/announcements.api'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -48,12 +50,14 @@ function AnnouncementDetailModal({
   onPublish,
   onArchive,
   busy,
+  canManage = true,
 }: {
   item: AnnouncementListItem
   onClose: () => void
   onPublish: () => void
   onArchive: () => void
   busy: boolean
+  canManage?: boolean
 }) {
   const recipients = item._count?.recipients ?? item.recipientCount ?? 0
   const sectionLabel =
@@ -150,7 +154,7 @@ function AnnouncementDetailModal({
           >
             Fermer
           </button>
-          {item.status === 'DRAFT' && (
+          {canManage && item.status === 'DRAFT' && (
             <button
               type="button"
               disabled={busy}
@@ -160,7 +164,7 @@ function AnnouncementDetailModal({
               <Send size={13} /> Publier
             </button>
           )}
-          {item.status !== 'ARCHIVED' && (
+          {canManage && item.status !== 'ARCHIVED' && (
             <button
               type="button"
               disabled={busy}
@@ -177,6 +181,10 @@ function AnnouncementDetailModal({
 }
 
 export default function AnnouncementsPage() {
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
+  const canManage = !deskOnly
+  const canDraft = true
   const qc = useQueryClient()
   const [statusFilter, setStatusFilter] = useState<AnnouncementStatus | ''>('')
   const [authorFilter, setAuthorFilter] = useState<'' | 'DIRECTOR' | 'ADMIN'>('')
@@ -187,7 +195,7 @@ export default function AnnouncementsPage() {
     audience: 'ALL_PARENTS' as AnnouncementAudience,
     classId: '',
     requiresAgreement: false,
-    publish: true,
+    publish: !deskOnly,
   })
   const [err, setErr] = useState('')
   const [ok, setOk] = useState('')
@@ -251,7 +259,7 @@ export default function AnnouncementsPage() {
         body: form.body.trim(),
         audience: form.audience,
         requiresAgreement: form.requiresAgreement,
-        publish: form.publish,
+        publish: deskOnly ? false : form.publish,
         ...(form.audience === 'BY_CLASS' && form.classId
           ? { classId: Number(form.classId) }
           : {}),
@@ -267,7 +275,7 @@ export default function AnnouncementsPage() {
         audience: 'ALL_PARENTS',
         classId: '',
         requiresAgreement: false,
-        publish: true,
+        publish: !deskOnly,
       })
       setPreviewCount(null)
     } catch (error) {
@@ -319,7 +327,9 @@ export default function AnnouncementsPage() {
             Communiqués scolaires
           </h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Publiez des annonces parents · lecture + accord électronique · insights engagement
+            {canManage
+              ? 'Publiez des annonces parents · lecture + accord électronique · insights engagement'
+              : 'Préparez un brouillon pour l’admin / le directeur · consultation des communiqués'}
           </p>
         </div>
         <button
@@ -359,7 +369,8 @@ export default function AnnouncementsPage() {
         </motion.div>
       )}
 
-      <div className="grid lg:grid-cols-5 gap-6">
+      <div className={cn('grid gap-6', canDraft ? 'lg:grid-cols-5' : 'lg:grid-cols-1')}>
+        {canDraft && (
         <motion.form
           onSubmit={onSubmit}
           variants={fadeUp}
@@ -367,7 +378,9 @@ export default function AnnouncementsPage() {
           animate="show"
           className="lg:col-span-2 rounded-xl border border-zinc-200 bg-white p-5 space-y-4"
         >
-          <h2 className="text-sm font-semibold text-zinc-800">Nouveau communiqué</h2>
+          <h2 className="text-sm font-semibold text-zinc-800">
+            {deskOnly ? 'Brouillon secrétariat' : 'Nouveau communiqué'}
+          </h2>
           <div>
             <label className="text-xs font-medium text-zinc-600">Titre</label>
             <input
@@ -448,6 +461,7 @@ export default function AnnouncementsPage() {
             />
             Accord électronique requis
           </label>
+          {canManage && (
           <label className="flex items-center gap-2 text-sm text-zinc-700">
             <input
               type="checkbox"
@@ -456,6 +470,12 @@ export default function AnnouncementsPage() {
             />
             Publier immédiatement (+ push)
           </label>
+          )}
+          {deskOnly && (
+            <p className="text-xs text-zinc-500 bg-zinc-50 rounded-lg px-3 py-2">
+              Le guichet enregistre un brouillon. Un administrateur ou un directeur publie ensuite.
+            </p>
+          )}
           {err && <p className="text-xs text-red-600">{err}</p>}
           {ok && <p className="text-xs text-emerald-600">{ok}</p>}
           <button
@@ -464,15 +484,19 @@ export default function AnnouncementsPage() {
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
           >
             <Send size={14} />
-            {createMut.isPending ? 'Envoi…' : form.publish ? 'Publier' : 'Enregistrer brouillon'}
+            {createMut.isPending ? 'Envoi…' : deskOnly || !form.publish ? 'Enregistrer brouillon' : 'Publier'}
           </button>
         </motion.form>
+        )}
 
         <motion.div
           variants={fadeUp}
           initial="hidden"
           animate="show"
-          className="lg:col-span-3 rounded-xl border border-zinc-200 bg-white overflow-hidden"
+          className={cn(
+            'rounded-xl border border-zinc-200 bg-white overflow-hidden',
+            canDraft ? 'lg:col-span-3' : 'lg:col-span-1',
+          )}
         >
           <div className="px-4 py-3 border-b border-zinc-100 space-y-2">
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -588,7 +612,7 @@ export default function AnnouncementsPage() {
                         >
                           <Eye size={12} /> Lire
                         </button>
-                        {item.status === 'DRAFT' && (
+                        {canManage && item.status === 'DRAFT' && (
                           <button
                             type="button"
                             onClick={() => onPublish(item)}
@@ -598,7 +622,7 @@ export default function AnnouncementsPage() {
                             <Send size={12} /> Publier
                           </button>
                         )}
-                        {item.status !== 'ARCHIVED' && (
+                        {canManage && item.status !== 'ARCHIVED' && (
                           <button
                             type="button"
                             onClick={() => onArchive(item)}
@@ -620,6 +644,7 @@ export default function AnnouncementsPage() {
             <AnnouncementDetailModal
               item={selected}
               onClose={() => setSelected(null)}
+              canManage={canManage}
               busy={publishMut.isPending || archiveMut.isPending}
               onPublish={async () => {
                 await onPublish(selected)

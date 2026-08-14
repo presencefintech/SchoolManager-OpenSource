@@ -1,22 +1,22 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import type { UserRole } from '@/types/auth'
-import { ROLE_HOME } from '@/types/auth'
+import { ROLE_HOME, pathAllowedForRole } from '@/types/auth'
 import { decodeAccessToken } from '@/lib/auth/verify-access-token'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify']
 
-const ROLE_PREFIXES: Record<UserRole, string> = {
+const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   ADMIN: '/admin',
   SUPER_ADMIN: '/super-admin',
   FINANCE: '/finances',
   DIRECTOR: '/director',
+  IT: '/admin',
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Universal links (App Links / Associated Domains) — fichiers publics sans auth
   if (pathname.startsWith('/.well-known/')) {
     return NextResponse.next()
   }
@@ -46,14 +46,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
   }
 
-  const allowedPrefix = ROLE_PREFIXES[role]
-  const isInWrongSection = Object.entries(ROLE_PREFIXES).some(
-    ([r, prefix]) => r !== role && pathname.startsWith(prefix),
-  )
-  if (isInWrongSection) {
+  const inAppSection = Object.values(EXCLUSIVE_PREFIXES).some((prefix) => pathname.startsWith(prefix))
+  if (inAppSection && !pathAllowedForRole(role, pathname)) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
   }
-  if (pathname === '/' || pathname === allowedPrefix) {
+  if (pathname === '/' || pathname === EXCLUSIVE_PREFIXES[role]) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
   }
 

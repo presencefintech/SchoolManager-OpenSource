@@ -11,12 +11,14 @@ export function ScheduleTable({
   onEdit,
   onDeactivate,
   busyId,
+  readOnly = false,
 }: {
   periods: ClassPeriodItem[]
   overlapIds: Set<number>
   onEdit: (p: ClassPeriodItem) => void
   onDeactivate: (p: ClassPeriodItem) => void
   busyId?: number | null
+  readOnly?: boolean
 }) {
   if (periods.length === 0) return null
 
@@ -32,7 +34,7 @@ export function ScheduleTable({
               <th className="px-4 py-3 text-left">Classe</th>
               <th className="px-4 py-3 text-left">Enseignant</th>
               <th className="px-4 py-3 text-left">Salle</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              {!readOnly && <th className="px-4 py-3 text-right">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
@@ -74,6 +76,7 @@ export function ScheduleTable({
                   </td>
                   <td className="px-4 py-3 text-zinc-700">{p.teacherName ?? `#${p.teacherId}`}</td>
                   <td className="px-4 py-3 text-zinc-500">{p.room ?? '—'}</td>
+                  {!readOnly && (
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button
@@ -97,6 +100,7 @@ export function ScheduleTable({
                       </button>
                     </div>
                   </td>
+                  )}
                 </tr>
               )
             })}

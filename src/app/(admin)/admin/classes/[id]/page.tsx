@@ -12,10 +12,13 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
+import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { ClassDetail } from '@/types/admin'
 import { formatMoney } from '@/lib/finance/currency'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
 
 function AssignModal({ classId, onClose }: { classId: number; onClose: () => void }) {
   const { mutateAsync, isPending } = useAssignStudents()
@@ -210,14 +213,16 @@ export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>()
   const classId = Number(id)
   const router = useRouter()
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
   const [tab, setTab] = useState<Tab>('eleves')
   const [showAssign, setShowAssign] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
 
   const { data: cls, isLoading } = useClassDetail(classId)
-  const { data: stats } = useClassStats(classId)
-  const { data: audit = [] } = useClassAudit(classId)
+  const { data: stats } = useClassStats(classId, !deskOnly)
+  const { data: audit = [] } = useClassAudit(classId, !deskOnly)
   const { data: students = [] } = useEnrollmentsByClass(classId)
   const { mutate: toggle } = useToggleClassStatus()
 
@@ -226,7 +231,29 @@ export default function ClassDetailPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `classe-${classId}.xlsx`
+      a.download = `liste-classe-${cls?.name ?? classId}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+  }
+
+  function handleExportContacts() {
+    classesApi.exportContacts(classId).then(blob => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contacts-classe-${cls?.name ?? classId}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    })
+  }
+
+  function handleClassCertificates() {
+    enrollmentsApi.downloadClassCertificatesPdf(classId).then(({ blob, filename }) => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
       a.click()
       URL.revokeObjectURL(url)
     })
@@ -274,10 +301,12 @@ export default function ClassDetailPage() {
             {cls.description && <p className="text-sm text-zinc-500 mt-1">{cls.description}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            {!deskOnly && (
             <button onClick={() => setShowEdit(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <Pencil size={12} />
               Modifier
             </button>
+            )}
             <button onClick={() => setShowAssign(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <UserPlus size={12} />
               Affecter
@@ -288,17 +317,27 @@ export default function ClassDetailPage() {
             </button>
             <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <Download size={12} />
-              Export
+              Liste CSV
             </button>
+            <button onClick={handleExportContacts} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
+              <Users size={12} />
+              Contacts
+            </button>
+            <button onClick={handleClassCertificates} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
+              <BookOpen size={12} />
+              Attestations
+            </button>
+            {!deskOnly && (
             <button onClick={() => toggle(classId)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <ToggleLeft size={12} />
               {cls.isActive ? 'Désactiver' : 'Activer'}
             </button>
+            )}
           </div>
         </motion.div>
 
         {/* Stats */}
-        {stats && (
+        {!deskOnly && stats && (
           <motion.div className="grid grid-cols-4 gap-4" variants={stagger} initial="hidden" animate="show">
             {[
               { label: 'Élèves', value: stats.studentCount, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -323,7 +362,10 @@ export default function ClassDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
-          {([['eleves', 'Élèves'], ['stats', 'Statistiques'], ['audit', 'Audit']] as [Tab, string][]).map(([t, label]) => (
+          {(deskOnly
+            ? ([['eleves', 'Élèves']] as [Tab, string][])
+            : ([['eleves', 'Élèves'], ['stats', 'Statistiques'], ['audit', 'Audit']] as [Tab, string][])
+          ).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, Plus, Trash2, Loader2, X, Mail, Phone, BookOpen,
-  CheckCircle, TrendingUp, Layers, Settings2,
+  CheckCircle, TrendingUp, Layers, Settings2, Monitor,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStaff, useCreateStaff, useDisableStaff } from '@/lib/hooks/use-admin'
@@ -18,6 +18,7 @@ const ROLE_CFG: Record<string, { label: string; cls: string }> = {
   TEACHER:  { label: 'Enseignant', cls: 'bg-emerald-50 text-emerald-700' },
   FINANCE:  { label: 'Finance',    cls: 'bg-amber-50 text-amber-700' },
   DIRECTOR: { label: 'Directeur',  cls: 'bg-violet-50 text-violet-700' },
+  IT:       { label: 'IT / Guichet', cls: 'bg-sky-50 text-sky-700' },
 }
 
 type StaffRoleOption = CreateStaffPayload['role']
@@ -82,12 +83,13 @@ export default function StaffPage() {
 
       <div className="max-w-5xl mx-auto px-8 py-8 space-y-5">
         {!isLoading && staff && staff.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { label: 'Total membres', value: staff.length,                                     icon: Users,       bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
               { label: 'Enseignants',   value: staff.filter(m => m.role === 'TEACHER').length,   icon: BookOpen,    bg: 'bg-emerald-50', iconCls: 'text-emerald-600' },
               { label: 'Directeurs',    value: staff.filter(m => m.role === 'DIRECTOR').length,  icon: Layers,      bg: 'bg-violet-50',  iconCls: 'text-violet-600' },
               { label: 'Finance',       value: staff.filter(m => m.role === 'FINANCE').length,   icon: TrendingUp,  bg: 'bg-amber-50',   iconCls: 'text-amber-600' },
+              { label: 'IT / Guichet',  value: staff.filter(m => m.role === 'IT').length,        icon: Monitor,     bg: 'bg-sky-50',     iconCls: 'text-sky-600' },
               { label: 'Actifs',        value: staff.filter(m => m.status === 'ACTIVE').length,  icon: CheckCircle, bg: 'bg-blue-50',    iconCls: 'text-blue-600' },
             ].map(({ label, value, icon: Icon, bg, iconCls }) => (
               <div key={label} className="bg-white rounded-2xl border border-zinc-100 px-4 py-4 flex items-center gap-3 shadow-sm">
@@ -245,6 +247,7 @@ export default function StaffPage() {
                   <option value="TEACHER">Enseignant</option>
                   <option value="FINANCE">Finance</option>
                   <option value="DIRECTOR">Directeur (chef de section)</option>
+                  <option value="IT">IT / Guichet (inscriptions)</option>
                 </select>
               </div>
               {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}

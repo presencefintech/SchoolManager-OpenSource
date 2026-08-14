@@ -90,6 +90,8 @@ const ROLE_OPTIONS = [
   { value: 'ADMIN',   label: 'Administrateur' },
   { value: 'FINANCE', label: 'Finance' },
   { value: 'TEACHER', label: 'Enseignant' },
+  { value: 'DIRECTOR', label: 'Directeur' },
+  { value: 'IT',      label: 'IT / Guichet' },
 ]
 
 const STATUS_COLORS: Record<string, string> = {
@@ -149,7 +151,7 @@ export default function AuthManagementPage() {
   const [staffPhone,     setStaffPhone]     = useState('')
   const [staffFirstName, setStaffFirstName] = useState('')
   const [staffLastName,  setStaffLastName]  = useState('')
-  const [staffRole,      setStaffRole]      = useState<'ADMIN' | 'FINANCE' | 'TEACHER'>('ADMIN')
+  const [staffRole,      setStaffRole]      = useState<'ADMIN' | 'FINANCE' | 'TEACHER' | 'DIRECTOR' | 'IT'>('ADMIN')
   const [staffSchoolId,  setStaffSchoolId]  = useState('')
   const [staffFeedback,  setStaffFeedback]  = useState<FeedbackState>(null)
   const [invListError,   setInvListError]   = useState('')
@@ -770,7 +772,7 @@ export default function AuthManagementPage() {
                     showError={false}
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <select value={staffRole} onChange={(e) => setStaffRole(e.target.value as 'ADMIN' | 'FINANCE' | 'TEACHER')}
+                    <select value={staffRole} onChange={(e) => setStaffRole(e.target.value as 'ADMIN' | 'FINANCE' | 'TEACHER' | 'DIRECTOR' | 'IT')}
                       className="border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-600 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
                     >
                       {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
