@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { RefreshCw, BookOpen, QrCode, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { RefreshCw, BookOpen, QrCode, CheckCircle, XCircle, Clock, Phone, Mail } from 'lucide-react'
 import { useTeacherDashboard, useTeacherScans, useForceValidatePresence, useUpdateTeacherClasses, useStaff } from '@/lib/hooks/use-admin'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
 
 function ScanStatusIcon({ status }: { status: string }) {
   if (status === 'PRESENT') return <CheckCircle size={14} className="text-emerald-500" />
@@ -178,12 +180,14 @@ function TeacherCard({ teacher, onSelect }: { teacher: { id: number; userId: num
 }
 
 export default function TeachersPage() {
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [selectValue, setSelectValue] = useState('')
   const { data: staff, isLoading: staffLoading } = useStaff()
   const teachers = (staff ?? []).filter(s => s.role === 'TEACHER')
 
-  if (selectedId) {
+  if (!deskOnly && selectedId) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <TeacherDetail teacherId={selectedId} onBack={() => { setSelectedId(null); setSelectValue('') }} />
@@ -200,16 +204,48 @@ export default function TeachersPage() {
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Enseignants</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Support et gestion des enseignants</p>
+        <p className="text-sm text-zinc-500 mt-0.5">
+          {deskOnly ? 'Annuaire de contact du secrétariat' : 'Support et gestion des enseignants'}
+        </p>
       </motion.div>
 
+      {deskOnly ? (
+        staffLoading ? (
+          <p className="text-sm text-zinc-400">Chargement…</p>
+        ) : teachers.length === 0 ? (
+          <div className="bg-zinc-50 rounded-xl border border-zinc-200 p-6 text-center">
+            <BookOpen size={32} className="mx-auto text-zinc-300 mb-2" />
+            <p className="text-sm text-zinc-500">Aucun enseignant trouvé dans l&apos;établissement.</p>
+          </div>
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-3">
+            {teachers.map((t) => (
+              <div key={t.id} className="bg-white rounded-xl border border-zinc-200 p-4">
+                <p className="font-medium text-zinc-800 text-sm">
+                  {t.firstName ?? ''} {t.lastName ?? ''}
+                </p>
+                {t.email && (
+                  <p className="text-xs text-zinc-500 mt-1.5 inline-flex items-center gap-1.5">
+                    <Mail size={12} /> {t.email}
+                  </p>
+                )}
+                {t.phone && (
+                  <p className="text-xs text-zinc-500 mt-1 inline-flex items-center gap-1.5">
+                    <Phone size={12} /> {t.phone}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )
+      ) : (
       <motion.div
         className="bg-white rounded-xl border border-zinc-200 p-4"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, delay: 0.08 }}
       >
-        <h3 className="text-sm font-semibold text-zinc-700 mb-3">Accéder au dashboard d'un enseignant</h3>
+        <h3 className="text-sm font-semibold text-zinc-700 mb-3">Accéder au dashboard d&apos;un enseignant</h3>
         <div className="flex gap-2">
           <select
             value={selectValue}
@@ -236,8 +272,9 @@ export default function TeachersPage() {
           </button>
         </div>
       </motion.div>
+      )}
 
-      {teachers.length === 0 && !staffLoading && (
+      {!deskOnly && teachers.length === 0 && !staffLoading && (
         <motion.div
           className="bg-zinc-50 rounded-xl border border-zinc-200 p-6 text-center"
           initial={{ opacity: 0 }}
@@ -245,7 +282,7 @@ export default function TeachersPage() {
           transition={{ duration: 0.3, delay: 0.16 }}
         >
           <BookOpen size={32} className="mx-auto text-zinc-300 mb-2" />
-          <p className="text-sm text-zinc-500">Aucun enseignant trouvé dans l'établissement.</p>
+          <p className="text-sm text-zinc-500">Aucun enseignant trouvé dans l&apos;établissement.</p>
         </motion.div>
       )}
     </div>

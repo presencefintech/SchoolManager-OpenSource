@@ -140,6 +140,15 @@ export function useStudents(
   })
 }
 
+export function useIncompleteDossiers(params?: { page?: number; limit?: number; gap?: string }) {
+  return useQuery({
+    queryKey: ['admin', 'students', 'desk-incomplete', params],
+    queryFn: () => studentsApi.listIncompleteDossiers(params),
+    staleTime: 20_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export function useStudentDetail(id: number) {
   return useQuery({
     queryKey: ['admin', 'students', id, 'detail'],
@@ -618,12 +627,13 @@ export function usePresenceHeatmap(classId?: number) {
   })
 }
 
-export function usePresenceAlerts() {
+export function usePresenceAlerts(enabled = true) {
   return useQuery({
     queryKey: ['admin', 'presences', 'alerts'],
     queryFn: presencesApi.getAlerts,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    enabled,
   })
 }
 
@@ -929,22 +939,22 @@ export function useClassDetail(id: number) {
   })
 }
 
-export function useClassStats(id: number) {
+export function useClassStats(id: number, enabled = true) {
   return useQuery({
     queryKey: ['admin', 'classes', id, 'stats'],
     queryFn: () => classesApi.getStats(id),
     staleTime: 60_000,
-    enabled: !!id,
+    enabled: !!id && enabled,
     refetchOnWindowFocus: false,
   })
 }
 
-export function useClassAudit(id: number) {
+export function useClassAudit(id: number, enabled = true) {
   return useQuery({
     queryKey: ['admin', 'classes', id, 'audit'],
     queryFn: () => classesApi.getAudit(id),
     staleTime: 120_000,
-    enabled: !!id,
+    enabled: !!id && enabled,
     refetchOnWindowFocus: false,
   })
 }

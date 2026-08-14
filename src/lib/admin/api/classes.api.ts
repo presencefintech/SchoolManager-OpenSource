@@ -63,7 +63,16 @@ export const classesApi = {
     }),
 
   exportClass: (id: number) =>
-    apiClient.get(`/admin/classes/${id}/export`, { responseType: 'blob' }).then(r => r.data),
+    apiClient.get(`/admin/classes/${id}/export`, {
+      params: { format: 'csv' },
+      responseType: 'blob',
+    }).then(r => r.data),
+
+  exportContacts: (id: number) =>
+    apiClient.get(`/admin/classes/${id}/contacts`, {
+      params: { format: 'csv' },
+      responseType: 'blob',
+    }).then(r => r.data),
 
   getAudit: (id: number) =>
     apiClient.get(`/admin/classes/${id}/audit`).then(r => {

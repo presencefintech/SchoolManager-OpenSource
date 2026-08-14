@@ -1,8 +1,14 @@
+import axios from 'axios'
 import { apiClient } from '@/lib/api/client'
 import {
   normalizeEnrollmentDetail,
   normalizeEnrollmentListItem,
 } from '@/lib/admin/normalizers'
+import {
+  isExportContentType,
+  parseContentDispositionFilename,
+  readBlobErrorMessage,
+} from '@/lib/download-blob'
 import { idempotencyHeaders, newIdempotencyKey } from '@/lib/idempotency'
 import type {
   EnrollmentListItem,
@@ -246,6 +252,96 @@ export const enrollmentsApi = {
   updateAdministrativeProfile: (studentId: number, payload: Record<string, unknown>) =>
     apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/admin-profile`, payload)
       .then((r) => r.data.data),
+
+  downloadStudentCardPdf: (studentId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/card/pdf`, {
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `carte-eleve-${studentId}.pdf`,
+    ),
+
+  downloadClassCardsPdf: (classId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/cards/pdf`, {
+        responseType: 'blob',
+        timeout: 90_000,
+      }),
+      `cartes-classe-${classId}.pdf`,
+    ),
+
+  downloadBatchCardsPdf: (studentIds: number[]) =>
+    fetchStudentCardsPdf(
+      apiClient.post<Blob>(
+        '/admin/enrollments/cards/pdf',
+        { studentIds },
+        { responseType: 'blob', timeout: 90_000 },
+      ),
+      `cartes-eleves.pdf`,
+    ),
+
+  downloadEnrollmentCertificatePdf: (studentId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/certificate/pdf`, {
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `attestation-scolarite-${studentId}.pdf`,
+    ),
+
+  downloadStudentFichePdf: (studentId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/fiche/pdf`, {
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `fiche-administrative-${studentId}.pdf`,
+    ),
+
+  downloadAttendanceCertificatePdf: (studentId: number, params?: { from?: string; to?: string }) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/attendance-certificate/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `justificatif-presence-${studentId}.pdf`,
+    ),
+
+  downloadClassCertificatesPdf: (classId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/certificates/pdf`, {
+        responseType: 'blob',
+        timeout: 120_000,
+      }),
+      `attestations-classe-${classId}.pdf`,
+    ),
+}
+
+async function fetchStudentCardsPdf(
+  request: Promise<{ data: Blob; headers: Record<string, unknown> }>,
+  fallbackFilename: string,
+): Promise<{ blob: Blob; filename: string }> {
+  try {
+    const res = await request
+    const contentType = res.headers['content-type'] as string | undefined
+    if (!isExportContentType(contentType, 'pdf')) {
+      throw new Error(await readBlobErrorMessage(res.data))
+    }
+    return {
+      blob: res.data,
+      filename: parseContentDispositionFilename(
+        res.headers['content-disposition'] as string | undefined,
+        fallbackFilename,
+      ),
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      throw new Error(await readBlobErrorMessage(error.response.data))
+    }
+    throw error
+  }
 }
 
 export type { SessionEnrollment }

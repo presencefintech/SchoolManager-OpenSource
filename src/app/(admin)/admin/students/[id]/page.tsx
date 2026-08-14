@@ -31,6 +31,10 @@ import {
 import { AdminProfileModal } from '@/components/admin/students/admin-profile-modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
+import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
+import { triggerBlobDownload } from '@/lib/download-blob'
 import { labelBiometricStatus } from '@/lib/business-labels'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatStudentDisplayName } from '@/lib/admin/normalizers'
@@ -255,6 +259,8 @@ export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const toast = useToast()
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
   const studentId = Number(id)
 
   const { data: student, isLoading } = useStudentDetail(studentId)
@@ -286,6 +292,9 @@ export default function StudentDetailPage() {
   const [showBiometricsUpdate, setShowBiometricsUpdate] = useState(false)
   const [cardExportReady, setCardExportReady] = useState(false)
   const [downloadingCard, setDownloadingCard] = useState(false)
+  const [downloadingCertificate, setDownloadingCertificate] = useState(false)
+  const [downloadingFiche, setDownloadingFiche] = useState(false)
+  const [downloadingAttendance, setDownloadingAttendance] = useState(false)
   const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
   const [pendingAction, setPendingAction] = useState<{
     key: string
@@ -353,6 +362,45 @@ export default function StudentDetailPage() {
       await printStudentCard(cardData, { sourceElement: cardElement })
     } catch (err) {
       toast.error('Impression impossible', getApiErrorMessage(err))
+    }
+  }
+
+  async function handleDownloadCertificate() {
+    setDownloadingCertificate(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadEnrollmentCertificatePdf(studentId)
+      triggerBlobDownload(blob, filename)
+      toast.success('Attestation téléchargée', filename)
+    } catch (err) {
+      toast.error('Attestation impossible', getApiErrorMessage(err))
+    } finally {
+      setDownloadingCertificate(false)
+    }
+  }
+
+  async function handleDownloadFiche() {
+    setDownloadingFiche(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(studentId)
+      triggerBlobDownload(blob, filename)
+      toast.success('Fiche administrative', filename)
+    } catch (err) {
+      toast.error('Fiche impossible', getApiErrorMessage(err))
+    } finally {
+      setDownloadingFiche(false)
+    }
+  }
+
+  async function handleDownloadAttendance() {
+    setDownloadingAttendance(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadAttendanceCertificatePdf(studentId)
+      triggerBlobDownload(blob, filename)
+      toast.success('Justificatif de présence', filename)
+    } catch (err) {
+      toast.error('Justificatif impossible', getApiErrorMessage(err))
+    } finally {
+      setDownloadingAttendance(false)
     }
   }
 
@@ -543,6 +591,33 @@ export default function StudentDetailPage() {
                 >
                   <Printer size={12} />
                   Imprimer
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadCertificate}
+                  disabled={downloadingCertificate || student.status !== 'ACTIVE'}
+                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
+                >
+                  {downloadingCertificate ? <Loader2 size={12} className="animate-spin" /> : <FileCheck size={12} />}
+                  Attestation
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadFiche}
+                  disabled={downloadingFiche || student.status !== 'ACTIVE'}
+                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
+                >
+                  {downloadingFiche ? <Loader2 size={12} className="animate-spin" /> : <FileEdit size={12} />}
+                  Fiche
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadAttendance}
+                  disabled={downloadingAttendance || student.status !== 'ACTIVE'}
+                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
+                >
+                  {downloadingAttendance ? <Loader2 size={12} className="animate-spin" /> : <Clock size={12} />}
+                  Présence
                 </button>
               </div>
             </div>
@@ -750,6 +825,7 @@ export default function StudentDetailPage() {
             )}
 
             {/* Security actions */}
+            {!deskOnly && (
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
               <h2 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">
                 <ShieldAlert size={14} className="text-red-500" /> Actions
@@ -781,6 +857,7 @@ export default function StudentDetailPage() {
                 ))}
               </div>
             </div>
+            )}
 
           </div>
         </div>

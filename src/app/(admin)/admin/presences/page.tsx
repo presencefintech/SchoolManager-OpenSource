@@ -32,6 +32,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
 import { AttendanceHistoryPanel } from '@/components/admin/presences/AttendanceHistoryPanel'
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
 
 const PRESENCE_FILTER_DEFAULTS = { search: '', classId: '', status: '' }
 
@@ -118,13 +120,21 @@ export default function PresencesPage() {
 
 function PresencesPageContent() {
   const toast = useToast()
+  const { user } = useAuth()
+  const canMutate = !isItDesk(user?.role)
   const router = useRouter()
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')))
 
   useEffect(() => {
-    setTab(parseTab(searchParams.get('tab')))
-  }, [searchParams])
+    const next = parseTab(searchParams.get('tab'))
+    if (!canMutate && (next === 'alerts' || next === 'sheets')) {
+      setTab('live')
+      router.replace('/admin/presences', { scroll: false })
+      return
+    }
+    setTab(next)
+  }, [searchParams, canMutate, router])
 
   const selectTab = (next: Tab) => {
     setTab(next)
@@ -158,7 +168,7 @@ function PresencesPageContent() {
     limit: 50,
     ...(filterClassId ? { classId: filterClassId } : {}),
   })
-  const { data: alerts, isLoading: loadingAlerts } = usePresenceAlerts()
+  const { data: alerts, isLoading: loadingAlerts } = usePresenceAlerts(canMutate)
   const { data: classesData } = useClasses()
   const { data: sectionsData } = useSections()
   const classes = classesData ?? []
@@ -218,8 +228,12 @@ function PresencesPageContent() {
     { key: 'live', label: 'Flux en direct', icon: Activity },
     { key: 'history', label: 'Historique', icon: History },
     { key: 'heatmap', label: 'Heatmap' },
-    { key: 'sheets', label: 'Cahiers d\'appel', icon: ClipboardList },
-    { key: 'alerts', label: `Alertes${alerts?.length ? ` (${alerts.length})` : ''}`, icon: ShieldAlert },
+    ...(canMutate
+      ? [
+          { key: 'sheets' as const, label: 'Cahiers d\'appel', icon: ClipboardList },
+          { key: 'alerts' as const, label: `Alertes${alerts?.length ? ` (${alerts.length})` : ''}`, icon: ShieldAlert },
+        ]
+      : []),
   ]
 
   function openBulkSheet(params?: OpenAttendanceSheetParams) {
@@ -287,10 +301,13 @@ function PresencesPageContent() {
                 year: 'numeric',
               })}
               {' · '}
-              Flux live, cahiers d&apos;appel et alertes fraude
+              {canMutate
+                ? 'Flux live, cahiers d\'appel et alertes fraude'
+                : 'Consultation du flux live et de l\'historique'}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {canMutate && (
             <Link
               href="/admin/settings"
               className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-700"
@@ -298,6 +315,9 @@ function PresencesPageContent() {
               <Settings2 size={14} />
               Paramètres
             </Link>
+            )}
+            {canMutate && (
+            <>
             <button
               type="button"
               onClick={() => setShowQR(true)}
@@ -322,6 +342,8 @@ function PresencesPageContent() {
               <Plus size={15} />
               Saisie manuelle
             </button>
+            </>
+            )}
           </div>
         </div>
       </motion.div>
@@ -484,9 +506,11 @@ function PresencesPageContent() {
                         <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                           Risque
                         </th>
+                        {canMutate && (
                         <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
                           Actions
                         </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -538,6 +562,7 @@ function PresencesPageContent() {
                                 <span className="text-xs text-zinc-200">—</span>
                               )}
                             </td>
+                            {canMutate && (
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-end gap-1">
                                 {isSuspicious && (
@@ -567,6 +592,7 @@ function PresencesPageContent() {
                                 </button>
                               </div>
                             </td>
+                            )}
                           </tr>
                         )
                       })}
@@ -610,11 +636,11 @@ function PresencesPageContent() {
             </div>
           )}
 
-          {tab === 'sheets' && (
+          {tab === 'sheets' && canMutate && (
             <PendingSheetsPanel classId={filterClassId} onOpenSheet={openBulkSheet} />
           )}
 
-          {tab === 'alerts' && (
+          {tab === 'alerts' && canMutate && (
             <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
               <div className="flex items-center gap-2 border-b border-zinc-100 px-6 py-4">
                 <ShieldAlert size={16} className="text-red-500" />
@@ -719,15 +745,15 @@ function PresencesPageContent() {
         </motion.div>
       </motion.div>
 
-      {showManual && <ManualRecordModal onClose={() => setShowManual(false)} />}
-      {bulkModal && (
+      {canMutate && showManual && <ManualRecordModal onClose={() => setShowManual(false)} />}
+      {canMutate && bulkModal && (
         <BulkPresenceGrid
           initialClassId={bulkModal.classId}
           initialSessionDate={bulkModal.sessionDate}
           onClose={() => setBulkModal(null)}
         />
       )}
-      {showQR && <QRKioskModal onClose={() => setShowQR(false)} />}
+      {canMutate && showQR && <QRKioskModal onClose={() => setShowQR(false)} />}
 
       <ConfirmDialog
         open={alertAction != null}

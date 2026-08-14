@@ -12,6 +12,8 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { StaffInvitationRowActions } from '@/components/invitations/staff-invitation-row-actions'
 import { staffApi } from '@/lib/admin/api/staff.api'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -228,6 +230,7 @@ function StaffInvitationsTab() {
             <option value="TEACHER">Enseignant</option>
             <option value="FINANCE">Finance</option>
             <option value="DIRECTOR">Directeur</option>
+            <option value="IT">IT / Guichet</option>
           </select>
         </div>
         <button
@@ -309,15 +312,22 @@ function StaffInvitationsTab() {
 }
 
 export default function InvitationsPage() {
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
   const [tab, setTab] = useState<'parents' | 'staff'>('parents')
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <h1 className="text-xl font-bold text-zinc-900">Invitations</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Gérez les codes d'accès parents et les invitations staff</p>
+        <h1 className="text-xl font-bold text-zinc-900">{deskOnly ? 'Codes parents' : 'Invitations'}</h1>
+        <p className="text-sm text-zinc-500 mt-0.5">
+          {deskOnly
+            ? 'Générez et révoquez les codes d’accès parents au guichet'
+            : 'Gérez les codes d\'accès parents et les invitations staff'}
+        </p>
       </motion.div>
 
+      {!deskOnly && (
       <motion.div
         className="flex gap-1 p-1 bg-zinc-100 rounded-xl w-fit"
         initial={{ opacity: 0 }}
@@ -332,9 +342,10 @@ export default function InvitationsPage() {
           >{label}</button>
         ))}
       </motion.div>
+      )}
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
-        {tab === 'parents' ? <ParentCodesTab /> : <StaffInvitationsTab />}
+        {deskOnly || tab === 'parents' ? <ParentCodesTab /> : <StaffInvitationsTab />}
       </motion.div>
     </div>
   )

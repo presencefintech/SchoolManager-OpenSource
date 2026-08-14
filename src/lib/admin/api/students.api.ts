@@ -119,4 +119,32 @@ export const studentsApi = {
   logPiiAccess: (id: number, reason: string) =>
     apiClient.post<{ success: boolean }>(`/admin/students/${id}/log-pii-access`, { reason })
       .then(r => r.data),
+
+  listIncompleteDossiers: (params?: { page?: number; limit?: number; gap?: string }) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: {
+          page: number
+          limit: number
+          total: number
+          totalPages: number
+          counts: {
+            photo: number
+            parent: number
+            birthCertificate: number
+            emergency: number
+            class: number
+          }
+          items: Array<{
+            id: number
+            matricule: string
+            name: string
+            className: string | null
+            missing: string[]
+            missingLabels: string[]
+          }>
+        }
+      }>('/admin/students/desk/incomplete', { params })
+      .then((r) => r.data.data),
 }

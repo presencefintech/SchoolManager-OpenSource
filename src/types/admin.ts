@@ -162,7 +162,7 @@ export interface CreateStaffPayload {
   lastName: string
   email: string
   password: string
-  role: 'TEACHER' | 'FINANCE' | 'DIRECTOR'
+  role: 'TEACHER' | 'FINANCE' | 'DIRECTOR' | 'IT'
   phone?: string
 }
 

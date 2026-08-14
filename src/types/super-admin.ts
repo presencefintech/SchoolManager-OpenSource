@@ -713,7 +713,7 @@ export interface StaffInvitation {
 export interface InviteStaffPayload {
   email: string
   phone: string
-  role: 'ADMIN' | 'FINANCE' | 'TEACHER'
+  role: 'ADMIN' | 'FINANCE' | 'TEACHER' | 'DIRECTOR' | 'IT'
   schoolId: number
   firstName: string
   lastName: string

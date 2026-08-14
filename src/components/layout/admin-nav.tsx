@@ -14,6 +14,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
+import type { UserRole } from '@/types/auth'
 import {
   dashboardApi, studentsApi,
   presencesApi, financeApi,
@@ -34,6 +35,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Gestion',
     links: [
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
+      { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
       { label: 'Boîte d\'entrée', href: '/admin/inbox', icon: Inbox },
       { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
@@ -84,6 +86,39 @@ const NAV_SECTIONS: NavSection[] = [
   },
 ]
 
+const IT_NAV_SECTIONS: NavSection[] = [
+  {
+    title: 'Guichet',
+    links: [
+      { label: 'Accueil guichet', href: '/admin/desk', icon: LayoutDashboard },
+      { label: 'Boîte d\'entrée', href: '/admin/inbox', icon: Inbox },
+      { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
+      { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
+      { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
+      { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
+      { label: 'Classes', href: '/admin/classes', icon: BookOpen },
+      { label: 'Enseignants', href: '/admin/teachers', icon: School },
+      { label: 'Import Excel', href: '/admin/import', icon: FolderOpen },
+    ],
+  },
+  {
+    title: 'Consultation',
+    links: [
+      { label: 'Présences', href: '/admin/presences', icon: Activity },
+      { label: 'Emploi du temps', href: '/admin/schedule', icon: CalendarClock },
+      { label: 'Codes parents', href: '/admin/invitations', icon: Mail },
+      { label: 'Communiqués', href: '/admin/announcements', icon: Megaphone },
+      { label: 'Fichiers', href: '/admin/files', icon: FolderOpen },
+      { label: 'Vérifier reçu', href: '/verify', icon: QrCode },
+      { label: 'Profil & sécurité', href: '/admin/profil-securite', icon: UserCircle },
+    ],
+  },
+]
+
+function navForRole(role?: UserRole): NavSection[] {
+  return role === 'IT' ? IT_NAV_SECTIONS : NAV_SECTIONS
+}
+
 export function AdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -121,23 +156,26 @@ export function AdminNav() {
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'AD'
+  const sections = navForRole(user?.role)
+  const homeHref = user?.role === 'IT' ? '/admin/inbox' : '/admin/dashboard'
+  const badgeLabel = user?.role === 'IT' ? 'IT · Guichet' : 'Admin'
 
   return (
     <aside className="fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]">
-      <Link href="/admin/dashboard" className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
+      <Link href={homeHref} className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
         <div className="w-8 h-8 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
           <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />
         </div>
         <div className="min-w-0">
           <p className="text-sm font-bold text-zinc-900 leading-tight truncate tracking-tight">SchoolManager</p>
           <span className="inline-block text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none mt-0.5">
-            Admin
+            {badgeLabel}
           </span>
         </div>
       </Link>
 
       <nav className="flex-1 min-h-0 px-3 py-2 overflow-y-auto overscroll-contain space-y-3 [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
-        {NAV_SECTIONS.map(({ title, links }) => (
+        {sections.map(({ title, links }) => (
           <div key={title ?? '__root__'}>
             {title && (
               <p className="px-2 pb-1 text-[9px] font-semibold text-zinc-400 uppercase tracking-widest select-none">

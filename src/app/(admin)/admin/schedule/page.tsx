@@ -24,6 +24,8 @@ import {
   useDeactivateClassPeriod,
 } from '@/lib/hooks/use-admin'
 import type { ClassPeriodItem, CreateClassPeriodPayload } from '@/types/admin'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
 import {
   PeriodFormModal,
   emptyPeriodForm,
@@ -94,6 +96,8 @@ function ConfirmDeactivateDialog({
 }
 
 export default function AdminSchedulePage() {
+  const { user } = useAuth()
+  const canManage = !isItDesk(user?.role)
   const { data: sessions = [] } = useAcademicSessions()
   const defaultYear = useMemo(
     () => sessions.find((s) => s.isCurrent)?.label ?? sessions[0]?.label ?? '2025-2026',
@@ -207,7 +211,11 @@ export default function AdminSchedulePage() {
       <AdminModuleHero
         eyebrow="Pédagogie"
         title="Emploi du temps"
-        subtitle="Planifiez les créneaux hebdomadaires — synchronisés avec l’app mobile enseignant."
+        subtitle={
+          canManage
+            ? 'Planifiez les créneaux hebdomadaires — synchronisés avec l’app mobile enseignant.'
+            : 'Consultez les créneaux hebdomadaires (lecture seule).'
+        }
         actions={
           <>
             <button
@@ -218,6 +226,7 @@ export default function AdminSchedulePage() {
               <RefreshCw size={14} className={cn(isFetching && 'animate-spin')} />
               Actualiser
             </button>
+            {canManage && (
             <button
               type="button"
               onClick={() => {
@@ -229,11 +238,14 @@ export default function AdminSchedulePage() {
               <Plus size={14} />
               Nouveau créneau
             </button>
+            )}
           </>
         }
         quickLinks={[
           { href: '/admin/classes', label: 'Classes', icon: BookOpen },
-          { href: '/admin/teachers', label: 'Enseignants', icon: School },
+          ...(canManage
+            ? [{ href: '/admin/teachers', label: 'Enseignants', icon: School }]
+            : []),
           { href: '/admin/presences', label: 'Présences', icon: Users },
         ]}
         metrics={[
@@ -427,9 +439,11 @@ export default function AdminSchedulePage() {
             <CalendarClock size={40} className="mx-auto text-zinc-300 mb-3" />
             <p className="text-base font-semibold text-zinc-800">Aucun créneau pour {year}</p>
             <p className="text-sm text-zinc-500 mt-1 max-w-md mx-auto leading-relaxed">
-              Créez le premier créneau pour alimenter le tableau de bord et l’écran emploi du temps
-              des enseignants.
+              {canManage
+                ? 'Créez le premier créneau pour alimenter le tableau de bord et l’écran emploi du temps des enseignants.'
+                : 'Aucun créneau n’a encore été planifié pour cette année.'}
             </p>
+            {canManage && (
             <button
               type="button"
               onClick={() => {
@@ -441,6 +455,7 @@ export default function AdminSchedulePage() {
               <Plus size={15} />
               Ajouter un créneau
             </button>
+            )}
           </div>
         ) : filteredPeriods.length === 0 ? (
           <div className="bg-white rounded-2xl border border-zinc-200 p-12 text-center text-sm text-zinc-500">
@@ -450,6 +465,7 @@ export default function AdminSchedulePage() {
           <WeekGrid
             periods={filteredPeriods}
             overlapIds={overlapIds}
+            readOnly={!canManage}
             onEdit={(p) => {
               setFormError(null)
               setEditItem(p)
@@ -460,6 +476,7 @@ export default function AdminSchedulePage() {
           <ScheduleTable
             periods={filteredPeriods}
             overlapIds={overlapIds}
+            readOnly={!canManage}
             onEdit={(p) => {
               setFormError(null)
               setEditItem(p)
@@ -476,7 +493,7 @@ export default function AdminSchedulePage() {
         </div>
       )}
 
-      {showCreate && (
+      {canManage && showCreate && (
         <PeriodFormModal
           title="Nouveau créneau"
           initial={emptyPeriodForm(year)}
@@ -490,7 +507,7 @@ export default function AdminSchedulePage() {
         />
       )}
 
-      {editItem && (
+      {canManage && editItem && (
         <PeriodFormModal
           title="Modifier le créneau"
           initial={periodToForm(editItem)}
@@ -505,7 +522,7 @@ export default function AdminSchedulePage() {
         />
       )}
 
-      {pendingDelete && (
+      {canManage && pendingDelete && (
         <ConfirmDeactivateDialog
           period={pendingDelete}
           busy={deactivatePeriod.isPending}

@@ -20,6 +20,12 @@ import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
 import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
 import { useToast } from '@/providers/toast-provider'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
+import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { triggerBlobDownload } from '@/lib/download-blob'
+import { printPdfBlob } from '@/lib/finance/download-blob'
 import type { StudentListItem } from '@/types/admin'
 
 const STUDENT_FILTER_DEFAULTS = { search: '', status: '', classId: '' }
@@ -46,6 +52,8 @@ type Tab = 'list' | 'applications' | 'debtors'
 export default function StudentsPage() {
   const router = useRouter()
   const toast = useToast()
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
   const [tab, setTab] = useState<Tab>('list')
   const {
     draft: filterDraft,
@@ -259,17 +267,48 @@ export default function StudentsPage() {
                                     label: 'Voir fiche',
                                     onClick: () => router.push(`/admin/students/${s.id}`),
                                   },
-                                  {
-                                    id: 'balance',
-                                    label: 'Modifier solde',
-                                    onClick: () => router.push(`/admin/enrollments?studentId=${s.id}`),
-                                  },
+                                  ...(!deskOnly
+                                    ? [
+                                        {
+                                          id: 'balance',
+                                          label: 'Modifier solde',
+                                          onClick: () => router.push(`/admin/enrollments?studentId=${s.id}`),
+                                        },
+                                      ]
+                                    : []),
                                   {
                                     id: 'card',
                                     label: 'Imprimer carte',
                                     onClick: () => {
-                                      router.push(`/admin/students/${s.id}`)
-                                      toast.info('Carte élève', 'La carte RDC est disponible sur la fiche — bouton Imprimer.')
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadStudentCardPdf(s.id)
+                                          try {
+                                            await printPdfBlob(blob)
+                                            toast.success('Carte élève', filename)
+                                          } catch {
+                                            triggerBlobDownload(blob, filename)
+                                            toast.info('Carte élève', 'PDF téléchargé — ouvrez-le pour imprimer.')
+                                          }
+                                        } catch (error) {
+                                          toast.error('Carte élève', getApiErrorMessage(error))
+                                        }
+                                      })()
+                                    },
+                                  },
+                                  {
+                                    id: 'certificate',
+                                    label: 'Attestation de scolarité',
+                                    onClick: () => {
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadEnrollmentCertificatePdf(s.id)
+                                          triggerBlobDownload(blob, filename)
+                                          toast.success('Attestation', filename)
+                                        } catch (error) {
+                                          toast.error('Attestation', getApiErrorMessage(error))
+                                        }
+                                      })()
                                     },
                                   },
                                 ]}
