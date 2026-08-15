@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   AlertTriangle, Camera, ClipboardList, CreditCard, Contact, FileCheck, Inbox,
   Search, UserPlus, Users,
@@ -24,9 +24,10 @@ const GAPS: { id: string; label: string }[] = [
 
 export default function DeskHomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [q, setQ] = useState('')
   const [applied, setApplied] = useState('')
-  const [gap, setGap] = useState('')
+  const [gap, setGap] = useState(() => searchParams.get('gap') ?? '')
   const [page, setPage] = useState(1)
 
   const inbox = useIntakeInbox({ page: 1, limit: 1 })

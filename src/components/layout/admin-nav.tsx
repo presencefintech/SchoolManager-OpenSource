@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -36,6 +36,7 @@ const NAV_SECTIONS: NavSection[] = [
     links: [
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
       { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
+      { label: 'Cartes parent', href: '/admin/desk?gap=pickup', icon: Contact },
       { label: 'Boîte d\'entrée', href: '/admin/inbox', icon: Inbox },
       { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
@@ -96,6 +97,7 @@ const IT_NAV_SECTIONS: NavSection[] = [
       { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
       { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
+      { label: 'Cartes parent', href: '/admin/desk?gap=pickup', icon: Contact },
       { label: 'Classes', href: '/admin/classes', icon: BookOpen },
       { label: 'Dettes / en ordre', href: '/admin/finance/controle', icon: Wallet },
       { label: 'Enseignants', href: '/admin/teachers', icon: School },

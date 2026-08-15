@@ -1272,10 +1272,10 @@ export default function StudentDetailPage() {
             <button
               type="button"
               onClick={() => document.getElementById('pickup-adults')?.scrollIntoView({ behavior: 'smooth' })}
-              className={deskDocButtonClass()}
+              className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
             >
               <Contact size={12} />
-              Remise
+              Cartes parent
             </button>
             <button
               type="button"
