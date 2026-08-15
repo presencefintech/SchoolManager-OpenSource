@@ -40,6 +40,7 @@ export default function LoginPage() {
 function LoginPageContent() {
   const searchParams = useSearchParams()
   const justActivated = searchParams.get('activated') === '1'
+  const roleNotSupported = searchParams.get('error') === 'role_not_supported'
   const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
@@ -110,6 +111,15 @@ function LoginPageContent() {
             >
               Compte activé. Connectez-vous, puis confirmez votre email pour débloquer les opérations
               financières.
+            </div>
+          )}
+
+          {roleNotSupported && (
+            <div
+              role="alert"
+              className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800"
+            >
+              Ce compte n&apos;est pas éligible au portail web — utilisez l&apos;application mobile SchoolManager.
             </div>
           )}
 

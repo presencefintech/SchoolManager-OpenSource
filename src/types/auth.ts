@@ -30,6 +30,15 @@ export const ROLE_HOME: Record<UserRole, string> = {
   IT: '/admin/desk',
 }
 
+/**
+ * Le backend accepte aussi TEACHER/PARENT (app mobile) sur /auth/login — ce
+ * portail web ne leur propose aucune destination. Vérifie l'appartenance
+ * avant tout `ROLE_HOME[role]` pour éviter une redirection vers "/undefined".
+ */
+export function isWebRole(role: string): role is UserRole {
+  return role in ROLE_HOME
+}
+
 /** Préfixes d’URL autorisés par rôle (IT = sous-ensemble admin guichet). */
 export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   ADMIN: ['/admin'],

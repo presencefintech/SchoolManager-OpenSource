@@ -10,7 +10,7 @@ import {
   markAuthHydrated,
   AUTH_SCHOOL_ID_KEY,
 } from '@/lib/api/auth-storage'
-import { ROLE_HOME, type AuthUser, type LoginPayload } from '@/types/auth'
+import { ROLE_HOME, isWebRole, type AuthUser, type LoginPayload } from '@/types/auth'
 
 interface AuthContextValue {
   user: AuthUser | null
@@ -65,6 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (payload: LoginPayload) => {
       const data = await authApi.login(payload)
+      if (!isWebRole(data.user.role)) {
+        await authApi.logout().catch(() => {})
+        clearAuthStorage()
+        throw new Error(
+          'Ce compte n’est pas éligible au portail web — utilisez l’application mobile SchoolManager.',
+        )
+      }
       persistAuthSession(data)
       setToken('http-only')
       setUser(data.user)

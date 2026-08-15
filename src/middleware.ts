@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import type { UserRole } from '@/types/auth'
-import { ROLE_HOME, pathAllowedForRole } from '@/types/auth'
+import { ROLE_HOME, isWebRole, pathAllowedForRole } from '@/types/auth'
 import { decodeAccessToken } from '@/lib/auth/verify-access-token'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite']
@@ -41,6 +41,13 @@ export function middleware(request: NextRequest) {
   }
 
   const role = session.role
+
+  if (!isWebRole(role)) {
+    const res = NextResponse.redirect(new URL('/login?error=role_not_supported', request.url))
+    res.cookies.delete('auth_token')
+    res.cookies.delete('auth_refresh')
+    return res
+  }
 
   if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && !pathname.startsWith('/verify')) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))

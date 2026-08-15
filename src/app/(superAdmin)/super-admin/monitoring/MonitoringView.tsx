@@ -493,9 +493,9 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
                           <td className="px-4 py-2.5">
                             <span className={cn(
                               'font-bold tabular-nums',
-                              ev.fraudScore >= 0.7 ? 'text-red-600' : ev.fraudScore >= 0.4 ? 'text-amber-600' : 'text-emerald-600'
+                              ev.fraudScore >= 70 ? 'text-red-600' : ev.fraudScore >= 40 ? 'text-amber-600' : 'text-emerald-600'
                             )}>
-                              {(ev.fraudScore * 100).toFixed(0)} %
+                              {ev.fraudScore.toFixed(0)} %
                             </span>
                           </td>
                           <td className="px-4 py-2.5 text-zinc-400">

@@ -56,6 +56,7 @@ export function normalizeEnrollmentListItem(raw: Record<string, unknown>): Enrol
     postnom: (raw.postnom as string | null | undefined) ?? null,
     prenom: (raw.prenom as string | null | undefined) ?? null,
     matricule: (raw.matricule as string | undefined) ?? undefined,
+    qrcodeHmac: (raw.qrcodeHmac as string | null | undefined) ?? null,
     status: String(raw.status ?? ''),
     className: cls?.name ?? (raw.className as string | undefined),
     classId: raw.classId != null ? Number(raw.classId) : undefined,

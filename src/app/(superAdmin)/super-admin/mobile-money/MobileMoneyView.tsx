@@ -189,9 +189,9 @@ export function MobileMoneyView({ embedded = false }: { embedded?: boolean }) {
                     <div className="flex-shrink-0 text-right">
                       <span className={cn(
                         'text-xs font-bold tabular-nums',
-                        item.fraudScore >= 0.7 ? 'text-red-600' : item.fraudScore >= 0.4 ? 'text-amber-600' : 'text-emerald-600'
+                        item.fraudScore >= 70 ? 'text-red-600' : item.fraudScore >= 40 ? 'text-amber-600' : 'text-emerald-600'
                       )}>
-                        {(item.fraudScore * 100).toFixed(0)} %
+                        {item.fraudScore.toFixed(0)} %
                       </span>
                       <p className="text-[10px] text-zinc-300 flex items-center justify-end gap-0.5 mt-0.5">
                         <Clock size={9} />
