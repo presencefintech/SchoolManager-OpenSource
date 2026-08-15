@@ -448,6 +448,11 @@ export interface CoreListResponse<T> {
   total: number
 }
 
+export interface RegeneratePasswordResult {
+  tempPassword: string
+  user: { id: number; firstName: string; lastName: string; email: string }
+}
+
 export interface FinanceReportDetail {
   id: number
   reference: string

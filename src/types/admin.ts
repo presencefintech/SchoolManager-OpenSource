@@ -166,6 +166,11 @@ export interface CreateStaffPayload {
   phone?: string
 }
 
+export interface RegeneratePasswordResult {
+  tempPassword: string
+  user: { id: number; firstName: string; lastName: string; email: string }
+}
+
 // Students
 export interface StudentStats {
   total: number

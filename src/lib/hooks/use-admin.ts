@@ -117,6 +117,12 @@ export function useDisableStaff() {
   })
 }
 
+export function useResetStaffPassword() {
+  return useMutation({
+    mutationFn: (id: number) => staffApi.resetPassword(id),
+  })
+}
+
 // ── Students ───────────────────────────────────────────────────────
 export function useStudentDashboard() {
   return useQuery({

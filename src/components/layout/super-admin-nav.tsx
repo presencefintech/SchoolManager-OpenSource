@@ -25,6 +25,7 @@ import {
   CreditCard,
   Activity,
   Upload,
+  Users,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -67,6 +68,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Accès & sécurité',
     items: [
+      { label: 'Comptes', href: '/super-admin/accounts', icon: Users },
       { label: 'Accès', href: '/super-admin/auth-management', icon: KeyRound },
       { label: 'Sécurité', href: '/super-admin/security', icon: Shield },
       { label: 'Profil & sécurité', href: '/super-admin/profil-securite', icon: UserCircle },

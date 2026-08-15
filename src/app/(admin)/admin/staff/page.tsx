@@ -4,14 +4,16 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Users, Plus, Trash2, Loader2, X, Mail, Phone, BookOpen,
-  CheckCircle, TrendingUp, Layers, Settings2, Monitor,
+  CheckCircle, TrendingUp, Layers, Settings2, Monitor, KeyRound,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useStaff, useCreateStaff, useDisableStaff } from '@/lib/hooks/use-admin'
+import { useStaff, useCreateStaff, useDisableStaff, useResetStaffPassword } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
-import type { CreateStaffPayload } from '@/types/admin'
+import type { CreateStaffPayload, RegeneratePasswordResult } from '@/types/admin'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AssignDirectorSectionsModal } from '@/components/admin/staff/AssignDirectorSectionsModal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { TempPasswordRevealModal } from '@/components/ui/temp-password-reveal-modal'
 
 const ROLE_CFG: Record<string, { label: string; cls: string }> = {
   ADMIN:    { label: 'Admin',      cls: 'bg-indigo-50 text-indigo-700' },
@@ -27,12 +29,16 @@ export default function StaffPage() {
   const { data: staff, isLoading } = useStaff()
   const createMutation = useCreateStaff()
   const disableMutation = useDisableStaff()
+  const resetPasswordMutation = useResetStaffPassword()
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
   const [assignTarget, setAssignTarget] = useState<{
     id: number
     name: string
   } | null>(null)
+  const [resetTarget, setResetTarget] = useState<{ id: number; name: string } | null>(null)
+  const [resetError, setResetError] = useState('')
+  const [resetResult, setResetResult] = useState<RegeneratePasswordResult | null>(null)
   const [form, setForm] = useState<CreateStaffPayload>({
     firstName: '', lastName: '', email: '', password: '', role: 'TEACHER',
   })
@@ -58,6 +64,18 @@ export default function StaffPage() {
   async function handleDisable(id: number) {
     if (!confirm('Désactiver ce membre du personnel ?')) return
     await disableMutation.mutateAsync(id)
+  }
+
+  async function confirmResetPassword() {
+    if (!resetTarget) return
+    setResetError('')
+    try {
+      const data = await resetPasswordMutation.mutateAsync(resetTarget.id)
+      setResetTarget(null)
+      setResetResult(data)
+    } catch (err) {
+      setResetError(getApiErrorMessage(err))
+    }
   }
 
   return (
@@ -164,6 +182,21 @@ export default function StaffPage() {
                               className="p-1.5 rounded-lg text-zinc-400 hover:text-violet-700 hover:bg-violet-50 transition-colors"
                             >
                               <Settings2 size={14} />
+                            </button>
+                          )}
+                          {member.role !== 'ADMIN' && (
+                            <button
+                              type="button"
+                              title="Réinitialiser le mot de passe"
+                              onClick={() =>
+                                setResetTarget({
+                                  id: member.id,
+                                  name: `${member.firstName} ${member.lastName}`.trim(),
+                                })
+                              }
+                              className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                            >
+                              <KeyRound size={14} />
                             </button>
                           )}
                           {member.role !== 'ADMIN' && (
@@ -276,6 +309,30 @@ export default function StaffPage() {
           userId={assignTarget.id}
           userName={assignTarget.name}
           onClose={() => setAssignTarget(null)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={resetTarget != null}
+        title="Réinitialiser le mot de passe ?"
+        description={
+          resetTarget
+            ? `Un nouveau mot de passe temporaire sera généré pour ${resetTarget.name}. Ses sessions actives seront déconnectées.`
+            : ''
+        }
+        impact={resetError ? [resetError] : []}
+        confirmLabel="Régénérer"
+        loading={resetPasswordMutation.isPending}
+        onConfirm={confirmResetPassword}
+        onCancel={() => { setResetTarget(null); setResetError('') }}
+      />
+
+      {resetResult && (
+        <TempPasswordRevealModal
+          open
+          userName={`${resetResult.user.firstName} ${resetResult.user.lastName}`.trim()}
+          tempPassword={resetResult.tempPassword}
+          onClose={() => setResetResult(null)}
         />
       )}
     </div>

@@ -592,6 +592,22 @@ export function useReactivateUserSuperAdmin() {
   })
 }
 
+export function useCoreUsersSuperAdmin(params?: { page?: number; take?: number; role?: string; q?: string }) {
+  return useQuery({
+    queryKey: queryKeys.superadmin.core.users(params),
+    queryFn: () => superAdminApi.listCoreUsers(params),
+    enabled: !!getAuthToken(),
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function useRegeneratePasswordSuperAdmin() {
+  return useMutation({
+    mutationFn: (userId: number) => superAdminApi.regeneratePassword(userId),
+  })
+}
+
 export function useNotificationLogs(params?: { page?: number; limit?: number; schoolId?: number }) {
   return useQuery({
     queryKey: queryKeys.superadmin.notifications.logs(params),

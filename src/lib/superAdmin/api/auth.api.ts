@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import type { ActiveSessionItem } from '@/types/super-admin'
+import type { ActiveSessionItem, RegeneratePasswordResult } from '@/types/super-admin'
 
 export const authApi = {
   getActiveSessions: (params?: { schoolId?: number; limit?: number; offset?: number }) =>
@@ -26,6 +26,13 @@ export const authApi = {
     apiClient
       .post<{ success: boolean; message: string }>('/superadmin/auth/trigger-reset', { email })
       .then((r) => r.data),
+
+  regeneratePassword: (userId: number) =>
+    apiClient
+      .post<{ success: boolean; message: string; data: RegeneratePasswordResult }>(
+        `/superadmin/auth/regenerate-password/${userId}`,
+      )
+      .then((r) => r.data.data),
 
   generateInvite: (studentId: number, schoolId: number) =>
     apiClient
