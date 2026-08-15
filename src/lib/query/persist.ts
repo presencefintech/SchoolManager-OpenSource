@@ -4,7 +4,7 @@ import type { PersistedClient, Persister } from '@tanstack/react-query-persist-c
 const IDB_KEY = 'react-query-offline-cache'
 
 /** Bump when a persisted query's shape changes in a breaking way. */
-export const PERSIST_CACHE_BUSTER = '1'
+export const PERSIST_CACHE_BUSTER = '2'
 
 export function createIDBPersister(): Persister {
   return {

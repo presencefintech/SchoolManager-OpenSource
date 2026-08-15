@@ -20,6 +20,7 @@ import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/exp
 import { formatRdcFullName } from '@/lib/utils/student-name.util'
 import type { StudentCardData } from '@/types/student-card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { StudentPicker } from '@/components/ui/student-picker'
 
 /* â"€â"€ design system (page) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 
@@ -934,14 +935,7 @@ function EnrollmentPageContent() {
               />
 
               <div className="flex gap-2 mb-4">
-                <input
-                  type="number"
-                  placeholder="ID élève…"
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && checkIntegrity()}
-                  className={cn(inputCls, 'font-mono text-base')}
-                />
+                <StudentPicker value={studentId} onChange={setStudentId} schoolId={schoolId} className="flex-1" />
                 <button type="button" onClick={checkIntegrity} disabled={!studentId || loadingIntegrity} className={cn(btnPrimary, 'flex-shrink-0 px-4')}>
                   {loadingIntegrity ? <Loader2 size={16} className="animate-spin" /> : 'Vérifier'}
                 </button>
@@ -1106,14 +1100,8 @@ function EnrollmentPageContent() {
               </p>
               <div className="flex flex-wrap items-end gap-3 mt-5">
                 <div>
-                  <label className={labelCls}>ID élève</label>
-                  <input
-                    type="number"
-                    placeholder="ID…"
-                    value={purgeId}
-                    onChange={(e) => setPurgeId(e.target.value)}
-                    className={cn(inputCls, 'w-36 focus:ring-red-500/25 focus:border-red-400')}
-                  />
+                  <label className={labelCls}>Élève</label>
+                  <StudentPicker value={purgeId} onChange={setPurgeId} schoolId={schoolId} className="w-56" />
                 </div>
                 <div>
                   <label className={labelCls}>

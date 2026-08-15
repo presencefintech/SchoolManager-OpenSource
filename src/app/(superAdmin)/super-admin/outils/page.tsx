@@ -12,6 +12,7 @@ import { qrcodeApi } from '@/lib/superAdmin/api/qrcode.api'
 import { pdfApi } from '@/lib/superAdmin/api/pdf.api'
 import { filesApi } from '@/lib/superAdmin/api/files.api'
 import type { BankSyncResult, BankInspectResult, QRTestResult, QRSupportResult } from '@/types/super-admin'
+import { StudentPicker } from '@/components/ui/student-picker'
 
 type Feedback = { type: 'success' | 'error'; message: string } | null
 
@@ -321,9 +322,8 @@ export default function OutilsPage() {
           <CardTitle icon={QrCode} title="QR de support" desc="Générer un QR de contournement pour un élève" />
           <div className="space-y-3">
             <div>
-              <label className={LABEL}>ID élève</label>
-              <input type="number" placeholder="Ex: 123" value={supportStudentId}
-                onChange={e => setSupportStudentId(e.target.value)} className={INPUT} />
+              <label className={LABEL}>Élève</label>
+              <StudentPicker value={supportStudentId} onChange={setSupportStudentId} />
             </div>
             <button
               onClick={handleQrSupport}

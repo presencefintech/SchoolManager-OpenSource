@@ -414,6 +414,8 @@
 | `GET` | `/api/v1/superadmin/core/stats` | Dashboard global de la plateforme |
 | `GET` | `/api/v1/superadmin/core/schools` | Liste de tous les établissements |
 | `GET` | `/api/v1/superadmin/core/schools/:id` | Détails d'un établissement |
+| `POST` | `/api/v1/superadmin/core/schools/:id/suspend` | Suspendre un établissement (insolvabilité, rupture contrat…) |
+| `POST` | `/api/v1/superadmin/core/schools/:id/reactivate` | Réactiver un établissement suspendu |
 | `GET` | `/api/v1/superadmin/core/users` | Liste de tous les utilisateurs |
 | `GET` | `/api/v1/superadmin/core/students` | Monitoring étudiants (transverse) |
 | `GET` | `/api/v1/superadmin/core/presences` | Monitoring présences (transverse) |
@@ -434,6 +436,7 @@
 | `GET` | `/api/v1/superadmin/auth/sessions/active` | Rapport des sessions actives |
 | `DELETE` | `/api/v1/superadmin/auth/sessions/cleanup` | Nettoyer les sessions expirées |
 | `POST` | `/api/v1/superadmin/auth/trigger-reset` | Déclencher une réinitialisation de mot de passe |
+| `POST` | `/api/v1/superadmin/auth/regenerate-password/:userId` | Régénérer un mot de passe temporaire (cf. `super-admin/accounts`) |
 | `POST` | `/api/v1/superadmin/auth/generate-invite` | Générer un code d'invitation |
 
 ---
@@ -455,6 +458,39 @@
 | `GET` | `/api/v1/superadmin/finance/payment-profiles/:schoolId` | Profil de règlement d'une école |
 | `POST` | `/api/v1/superadmin/finance/payment-profiles/:schoolId/verify` | Vérifier un profil (KYC) |
 | `POST` | `/api/v1/superadmin/finance/payment-profiles/:schoolId/reject` | Rejeter un profil |
+| `GET` | `/api/v1/superadmin/finance/group-dashboard` | Dashboard finance agrégé multi-écoles |
+| `GET` | `/api/v1/superadmin/finance/benchmarks/:schoolId` | Benchmark de collecte vs. écoles comparables |
+| `POST` | `/api/v1/superadmin/finance/fee-catalog/clone` | Cloner un catalogue de frais (session/école source → cible) |
+
+---
+
+## SuperAdmin — Réseaux d'écoles
+
+**Base :** `/api/v1/superadmin/school-networks`
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/api/v1/superadmin/school-networks` | Liste des groupes (réseaux) d'écoles |
+| `GET` | `/api/v1/superadmin/school-networks/schools` | Écoles disponibles pour affectation à un réseau |
+| `GET` | `/api/v1/superadmin/school-networks/:groupId/overview` | Vue d'ensemble d'un réseau (hub, clearing 30j) |
+| `POST` | `/api/v1/superadmin/school-networks` | Créer un groupe |
+| `PATCH` | `/api/v1/superadmin/school-networks/:groupId` | Modifier un groupe (nom, actif) |
+| `POST` | `/api/v1/superadmin/school-networks/assign` | Affecter une école à un groupe |
+| `DELETE` | `/api/v1/superadmin/school-networks/schools/:schoolId` | Retirer une école d'un groupe |
+| `POST` | `/api/v1/superadmin/school-networks/schools/:schoolId/payment-hub` | Désigner l'école comme hub de paiement du réseau |
+
+---
+
+## SuperAdmin — Facturation (billing)
+
+**Base :** `/api/v1/superadmin/billing`
+
+| Méthode | Route | Description |
+|---------|-------|-------------|
+| `GET` | `/api/v1/superadmin/billing/plans` | Liste des plans produit (Starter/Pro/Enterprise) |
+| `GET` | `/api/v1/superadmin/billing/schools/:schoolId` | Abonnement/plan résolu d'une école |
+| `PUT` | `/api/v1/superadmin/billing/schools/:schoolId` | Assigner/modifier le plan d'une école |
+| `POST` | `/api/v1/superadmin/billing/schools/:schoolId/cancel` | Annuler l'abonnement d'une école |
 
 ---
 
@@ -601,6 +637,8 @@
 | `GET` | `/api/v1/superadmin/monitoring/reconciliation` | Santé de la réconciliation |
 | `GET` | `/api/v1/superadmin/monitoring/providers` | Performance des gateways (SMS, paiements) |
 | `GET` | `/api/v1/superadmin/monitoring/alerts` | Journal des alertes de sécurité |
+| `GET` | `/api/v1/superadmin/monitoring/sms` | Statut de l'intégration SMS |
+| `POST` | `/api/v1/superadmin/monitoring/sms/test` | Envoyer un SMS/WhatsApp de test |
 
 ---
 
@@ -637,6 +675,7 @@
 | `POST` | `/api/v1/superadmin/invitations/staff` | Inviter un Admin/Manager dans une école |
 | `POST` | `/api/v1/superadmin/invitations/parent-code` | Générer un code de liaison parent |
 | `GET` | `/api/v1/superadmin/invitations/school/:schoolId` | Invitations d'une école |
+| `POST` | `/api/v1/superadmin/invitations/staff/resend` | Renvoyer une invitation (email + SMS) |
 | `DELETE` | `/api/v1/superadmin/invitations/staff/revoke` | Révoquer une invitation |
 
 ### Utilisateurs
@@ -644,6 +683,8 @@
 | Méthode | Route | Description |
 |---------|-------|-------------|
 | `POST` | `/api/v1/superadmin/users/create-admin` | Créer un administrateur pour une école |
+| `POST` | `/api/v1/superadmin/users/suspend` | Suspendre un compte utilisateur |
+| `POST` | `/api/v1/superadmin/users/reactivate` | Réactiver un compte utilisateur |
 
 ---
 

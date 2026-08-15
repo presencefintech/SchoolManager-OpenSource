@@ -27,6 +27,7 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { StaffInvitationRowActions } from '@/components/invitations/staff-invitation-row-actions'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { StudentPicker } from '@/components/ui/student-picker'
 
 function CopyInline({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -139,13 +140,6 @@ export default function AuthManagementPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [resetFeedback, setResetFeedback] = useState<FeedbackState>(null)
 
-  /* Generate invite (parent-code legacy) */
-  const [inviteStudentId, setInviteStudentId] = useState('')
-  const [inviteSchoolId, setInviteSchoolId] = useState('')
-  const [inviteLoading, setInviteLoading] = useState(false)
-  const [inviteFeedback, setInviteFeedback] = useState<FeedbackState>(null)
-  const [inviteResult, setInviteResult] = useState<{ code: string; expiresAt: string } | null>(null)
-
   /* Invite staff */
   const [staffEmail,     setStaffEmail]     = useState('')
   const [staffPhone,     setStaffPhone]     = useState('')
@@ -226,18 +220,6 @@ export default function AuthManagementPage() {
       setResetEmail('')
     } catch { setResetFeedback({ type: 'error', message: 'Erreur lors de l\'envoi.' }) }
     finally { setResetLoading(false) }
-  }
-
-  const handleGenerateInvite = async () => {
-    const sid = Number(inviteStudentId), schid = Number(inviteSchoolId)
-    if (!sid || !schid) return
-    setInviteLoading(true); setInviteFeedback(null); setInviteResult(null)
-    try {
-      const res = await superAdminApi.generateInvite(sid, schid)
-      setInviteResult(res)
-      setInviteFeedback({ type: 'success', message: 'Code d\'invitation généré.' })
-    } catch { setInviteFeedback({ type: 'error', message: 'Erreur lors de la génération.' }) }
-    finally { setInviteLoading(false) }
   }
 
   const handleInviteStaff = () => {
@@ -808,18 +790,17 @@ export default function AuthManagementPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input type="number" placeholder="ID élève"
-                      value={pcStudentId} onChange={(e) => setPcStudentId(e.target.value)}
-                      className="border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-200"
-                    />
-                    <select value={pcSchoolId} onChange={(e) => setPcSchoolId(e.target.value)}
-                      className="border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-600 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
-                    >
-                      <option value="">École…</option>
-                      {schools?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
+                  <select value={pcSchoolId} onChange={(e) => { setPcSchoolId(e.target.value); setPcStudentId('') }}
+                    className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-600 bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
+                  >
+                    <option value="">École…</option>
+                    {schools?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  <StudentPicker
+                    value={pcStudentId}
+                    onChange={setPcStudentId}
+                    schoolId={pcSchoolId ? Number(pcSchoolId) : null}
+                  />
                   <input type="email" placeholder="Email parent (optionnel — envoi automatique du code)"
                     value={pcEmail} onChange={(e) => setPcEmail(e.target.value)}
                     className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-200"

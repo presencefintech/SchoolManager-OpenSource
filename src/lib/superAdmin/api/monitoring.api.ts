@@ -6,7 +6,6 @@ import type {
   AnomalyDashboard,
   PendingPayment,
   FraudRadarItem,
-  QueueStatus,
   SmsIntegrationStatus,
   SmsTestResult,
 } from '@/types/super-admin'
@@ -53,11 +52,6 @@ export const monitoringApi = {
   getFraudRadar: () =>
     apiClient
       .get<{ success: boolean; data: FraudRadarItem[] }>('/superadmin/mm/fraud-radar')
-      .then((r) => r.data.data),
-
-  getQueueStatus: () =>
-    apiClient
-      .get<{ success: boolean; data: QueueStatus }>('/superadmin/notifications/queue-status')
       .then((r) => r.data.data),
 
   reconcilePayment: (paymentId: number, providerRef?: string) =>

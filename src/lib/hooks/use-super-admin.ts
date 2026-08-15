@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAuthToken } from '@/lib/api/auth-storage'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { financeApi } from '@/lib/superAdmin/api/finance.api'
 import { feesApi } from '@/lib/superAdmin/api/fees.api'
 import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
 import { usersApi } from '@/lib/superAdmin/api/users.api'
@@ -131,8 +132,8 @@ export function useSchool(id: number) {
 
 export function useSchoolPerformance(id: number) {
   return useQuery({
-    queryKey: queryKeys.superadmin.schoolPerformance(id),
-    queryFn: () => superAdminApi.getSchoolPerformance(id),
+    queryKey: queryKeys.superadmin.finance.performance(id),
+    queryFn: () => financeApi.getFinancePerformance(id),
     staleTime: 60_000,
     enabled: !!getAuthToken() && !!id,
   })
@@ -149,8 +150,8 @@ export function useSchoolPaymentDashboard(id: number) {
 
 export function useSchoolAnomalies(id: number) {
   return useQuery({
-    queryKey: queryKeys.superadmin.schoolAnomalies(id),
-    queryFn: () => superAdminApi.getSchoolAnomalies(id),
+    queryKey: queryKeys.superadmin.finance.anomalies(id),
+    queryFn: () => financeApi.getFinanceAnomalies(id),
     staleTime: 60_000,
     enabled: !!getAuthToken() && !!id,
   })
@@ -213,7 +214,7 @@ export function useFraudRadar() {
 export function useQueueStatus() {
   return useQuery({
     queryKey: queryKeys.superadmin.notifications.queueStatus(),
-    queryFn: () => superAdminApi.getQueueStatus(),
+    queryFn: () => notificationsApi.getQueueStatus(),
     enabled: !!getAuthToken(),
     staleTime: 15_000,
   })

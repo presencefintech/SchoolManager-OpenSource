@@ -277,6 +277,7 @@ function ToolsTab({ schoolId, schools }: { schoolId: number; schools: { id: numb
   const [dupName, setDupName] = useState('')
   const [duplicating, setDuplicating] = useState(false)
   const [dupResult, setDupResult] = useState<string | null>(null)
+  const { data: dupClassList } = useClasses(schoolId, { limit: 100 })
 
   const handleRollover = async () => {
     if (!fromYear || !toYear || !rolloverSchoolId) return
@@ -446,14 +447,17 @@ function ToolsTab({ schoolId, schools }: { schoolId: number; schools: { id: numb
 
         <div className="space-y-2.5">
           <div>
-            <label className="text-xs text-zinc-500 mb-1 block">ID classe source</label>
-            <input
-              type="number"
-              placeholder="Ex: 5"
+            <label className="text-xs text-zinc-500 mb-1 block">Classe source</label>
+            <select
               value={dupClassId}
               onChange={(e) => setDupClassId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-            />
+              className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            >
+              <option value="">Choisir…</option>
+              {dupClassList?.data.map((c) => (
+                <option key={c.id} value={c.id}>{c.name} · {c.academicYear}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="text-xs text-zinc-500 mb-1 block">Nom de la nouvelle classe</label>

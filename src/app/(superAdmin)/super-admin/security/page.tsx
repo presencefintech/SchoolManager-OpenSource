@@ -12,6 +12,7 @@ import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { FraudAnalysisResult, AnomalyThresholds } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { StudentPicker } from '@/components/ui/student-picker'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 type FeedbackState = { type: 'success' | 'error'; message: string } | null
@@ -209,14 +210,13 @@ export default function SecurityPage() {
                 {schools?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-            <div className="flex items-center gap-2 border border-zinc-200 rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
               <User size={13} className="text-zinc-400 flex-shrink-0" />
-              <input
-                type="number"
-                placeholder="ID élève"
+              <StudentPicker
                 value={ctxStudentId}
-                onChange={(e) => setCtxStudentId(e.target.value)}
-                className="text-sm text-zinc-700 bg-transparent focus:outline-none w-28"
+                onChange={setCtxStudentId}
+                schoolId={ctxSchoolId ? Number(ctxSchoolId) : null}
+                className="flex-1"
               />
             </div>
           </div>
@@ -398,14 +398,8 @@ export default function SecurityPage() {
             <SectionHeader icon={Activity} title="Analyse anomalies élève" desc="Analyse comportementale cross-school" />
             <div className="space-y-3">
               <div>
-                <label className={LABEL_CLS}>ID élève à analyser</label>
-                <input
-                  type="number"
-                  placeholder="ID élève (indépendant du contexte)"
-                  value={anomalyStudentId}
-                  onChange={(e) => setAnomalyStudentId(e.target.value)}
-                  className={INPUT_CLS}
-                />
+                <label className={LABEL_CLS}>Élève à analyser (indépendant du contexte ci-dessus)</label>
+                <StudentPicker value={anomalyStudentId} onChange={setAnomalyStudentId} />
               </div>
               <button
                 onClick={handleAnomalyAnalysis}

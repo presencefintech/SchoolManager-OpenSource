@@ -5,9 +5,7 @@ export const queryKeys = {
 
     schools: (params?: Record<string, unknown>) => ['superadmin', 'schools', params ?? 'all'] as const,
     school: (id: number) => ['superadmin', 'schools', id] as const,
-    schoolPerformance: (id: number) => ['superadmin', 'schools', id, 'performance'] as const,
     schoolPaymentDashboard: (id: number) => ['superadmin', 'schools', id, 'payment-dashboard'] as const,
-    schoolAnomalies: (id: number) => ['superadmin', 'schools', id, 'anomalies'] as const,
 
     core: {
       users: (params?: Record<string, unknown>) => ['superadmin', 'core', 'users', params] as const,

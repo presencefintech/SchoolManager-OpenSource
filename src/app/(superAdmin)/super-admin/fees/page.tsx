@@ -18,6 +18,7 @@ import type { FeeType } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { StudentPicker } from '@/components/ui/student-picker'
 import { formatMoney } from '@/lib/finance/currency'
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
@@ -682,14 +683,8 @@ export default function FeesPage() {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-zinc-500 block mb-1">ID Élève</label>
-                    <input
-                      type="number"
-                      placeholder="Ex : 42"
-                      value={fgStudentId}
-                      onChange={(e) => setFgStudentId(e.target.value)}
-                      className="w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-100 focus:border-amber-300"
-                    />
+                    <label className="text-xs font-medium text-zinc-500 block mb-1">Élève</label>
+                    <StudentPicker value={fgStudentId} onChange={setFgStudentId} schoolId={schoolId} />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-zinc-500 block mb-1">ID Session</label>
@@ -895,14 +890,7 @@ export default function FeesPage() {
 
             <div className="px-7 py-5 border-b border-zinc-100">
               <div className="flex gap-3">
-                <input
-                  type="number"
-                  placeholder="ID de l'élève…"
-                  value={auditInput}
-                  onChange={(e) => setAuditInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && triggerAudit()}
-                  className="flex-1 border border-zinc-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-200"
-                />
+                <StudentPicker value={auditInput} onChange={setAuditInput} schoolId={schoolId} className="flex-1" />
                 <button
                   onClick={triggerAudit}
                   disabled={!auditInput}

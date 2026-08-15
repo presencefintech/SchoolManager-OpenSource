@@ -1,11 +1,11 @@
 import { apiClient } from '@/lib/api/client'
-import type { AnomalyDashboard, AnomalyThresholds, FraudAnalysisResult } from '@/types/super-admin'
+import type { AnomalyDashboard, AnomalyEvent, AnomalyThresholds, FraudAnalysisResult } from '@/types/super-admin'
 
 export const anomaliesApi = {
   getDashboard: () =>
     apiClient
-      .get<{ success: boolean; data: AnomalyDashboard }>('/superadmin/anomalies/dashboard')
-      .then((r) => r.data.data),
+      .get<{ success: boolean; count: number; data: AnomalyEvent[] }>('/superadmin/anomalies/dashboard')
+      .then((r): AnomalyDashboard => ({ count: r.data.count, data: r.data.data })),
 
   analyzeStudent: (studentId: number) =>
     apiClient
