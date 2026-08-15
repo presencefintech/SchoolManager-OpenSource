@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  CreditCard, IdCard, Loader2, Plus, Printer, ShieldAlert, Trash2, Upload,
+  Contact, CreditCard, Loader2, Plus, Printer, ShieldAlert, Trash2, Upload,
 } from 'lucide-react'
 import { pickupApi, type PickupAdult, type PickupAdultPayload } from '@/lib/admin/api/pickup.api'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -162,7 +162,7 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <div>
           <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
-            <IdCard size={14} /> Remise — personnes autorisées
+            <Contact size={14} /> Remise — personnes autorisées
           </h2>
           <p className="text-[11px] text-zinc-400 mt-1 max-w-xl">
             D’abord déclarer qui a le droit de récupérer l’enfant. Ensuite seulement on imprime :

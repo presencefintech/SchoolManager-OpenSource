@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
   FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage, CreditCard,
-  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, IdCard,
+  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, Contact,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -1274,7 +1274,7 @@ export default function StudentDetailPage() {
               onClick={() => document.getElementById('pickup-adults')?.scrollIntoView({ behavior: 'smooth' })}
               className={deskDocButtonClass()}
             >
-              <IdCard size={12} />
+              <Contact size={12} />
               Remise
             </button>
             <button

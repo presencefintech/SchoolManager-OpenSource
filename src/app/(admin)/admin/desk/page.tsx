@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  AlertTriangle, Camera, ClipboardList, CreditCard, FileCheck, IdCard, Inbox,
+  AlertTriangle, Camera, ClipboardList, CreditCard, Contact, FileCheck, Inbox,
   Search, UserPlus, Users,
 } from 'lucide-react'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
@@ -63,7 +63,7 @@ export default function DeskHomePage() {
           { label: 'Dossiers incomplets', value: loading ? '…' : incompleteTotal, loading, icon: ClipboardList, valueClassName: incompleteTotal > 0 ? 'text-amber-300' : 'text-white' },
           { label: 'Sans photo', value: loading ? '…' : missingPhoto, loading, icon: Camera },
           { label: 'Sans parent', value: loading ? '…' : missingParent, loading, icon: Users },
-          { label: 'Sans remise', value: loading ? '…' : missingPickup, loading, icon: IdCard, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
+          { label: 'Sans remise', value: loading ? '…' : missingPickup, loading, icon: Contact, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
         ]}
       />
 
