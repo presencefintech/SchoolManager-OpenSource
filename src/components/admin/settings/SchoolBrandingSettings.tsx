@@ -109,8 +109,9 @@ export function SchoolBrandingSettings() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-zinc-200 divide-y divide-zinc-100">
-      <div className="p-5">
+    <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2">
+      <div className="p-5 border-b lg:border-b-0 lg:border-r border-zinc-100">
         <h3 className="text-sm font-semibold text-zinc-700 mb-1">Identité de l&apos;établissement</h3>
         <p className="text-xs text-zinc-500 mb-4">
           Logo, adresse et couleurs de la carte élève — appliqués aux reçus, rapports PDF, cartes élèves et e-mails.
@@ -277,6 +278,7 @@ export function SchoolBrandingSettings() {
         </div>
       </div>
 
+      <div className="divide-y divide-zinc-100">
       <div className="p-5">
         <h3 className="text-sm font-semibold text-zinc-700 mb-1">Documents PDF &amp; reçus</h3>
         <p className="text-xs text-zinc-500 mb-4">
@@ -465,8 +467,10 @@ export function SchoolBrandingSettings() {
           </div>
         </div>
       </div>
+      </div>
+      </div>
 
-      <div className="px-5 py-3 flex justify-end">
+      <div className="px-5 py-3 flex justify-end border-t border-zinc-100">
         <button
           type="button"
           onClick={() => void handleSave()}

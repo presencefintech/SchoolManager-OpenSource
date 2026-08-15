@@ -282,27 +282,30 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Paramètres école</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Identité, pointage, horaires et notifications présence</p>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.04 }}
-      >
-        <SchoolBrandingSettings />
-      </motion.div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <motion.div
+          className="lg:col-span-2"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.04 }}
+        >
+          <SchoolBrandingSettings />
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.06 }}
-      >
-        <FinanceCurrencySettings />
-      </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.06 }}
+        >
+          <FinanceCurrencySettings />
+        </motion.div>
+      </div>
 
       {isLoading || !form ? (
         <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
@@ -311,12 +314,13 @@ export default function SettingsPage() {
         </div>
       ) : (
         <motion.div
-          className="bg-white rounded-xl border border-zinc-200 divide-y divide-zinc-100"
+          className="bg-white rounded-xl border border-zinc-200 overflow-hidden"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.08 }}
         >
-          <div className="p-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2">
+          <div className="p-5 border-b lg:border-r border-zinc-100">
             <h3 className="text-sm font-semibold text-zinc-700 mb-1">Modes de pointage</h3>
             <p className="text-xs text-zinc-400 mb-3">Au moins un mode doit rester actif.</p>
             <div className="divide-y divide-zinc-50">
@@ -339,7 +343,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="p-5">
+          <div className="p-5 border-b border-zinc-100">
             <h3 className="text-sm font-semibold text-zinc-700 mb-1">Horaires de scan</h3>
             <p className="text-xs text-zinc-400 mb-3">
               Fenêtre {pad2(form.scheduleSettings.startHour)}:{pad2(form.scheduleSettings.startMinute)}
@@ -406,7 +410,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-5">
+          <div className="p-5 border-b lg:border-r border-zinc-100">
             <h3 className="text-sm font-semibold text-zinc-700 mb-3">Règles de validation</h3>
             <div className="divide-y divide-zinc-50">
               <Toggle
@@ -479,7 +483,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-5">
+          <div className="p-5 border-b border-zinc-100">
             <h3 className="text-sm font-semibold text-zinc-700 mb-3">Géofence établissement</h3>
             <div className="grid grid-cols-2 gap-4">
               <NumberField
@@ -506,7 +510,7 @@ export default function SettingsPage() {
             )}
           </div>
 
-          <div className="p-5">
+          <div className="p-5 border-b lg:border-b-0 lg:border-r border-zinc-100">
             <h3 className="text-sm font-semibold text-zinc-700 mb-3">Notifications parents</h3>
             <Toggle
               label="Notifier à l'arrivée"
@@ -598,14 +602,15 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </div>
 
           {settings && (
-            <div className="px-5 py-3 text-xs text-zinc-400">
+            <div className="px-5 py-3 text-xs text-zinc-400 border-t border-zinc-100">
               Source : {settings.source === 'database' ? 'base dédiée' : 'legacy'} · École #{settings.schoolId}
             </div>
           )}
 
-          <div className="px-5 py-4 flex items-center justify-between bg-zinc-50 rounded-b-xl">
+          <div className="px-5 py-4 flex items-center justify-between bg-zinc-50 rounded-b-xl border-t border-zinc-100">
             <div className="text-xs">
               {clientError && <p className="text-red-500">{clientError}</p>}
               {!clientError && updateSettings.isSuccess && !dirty && (
