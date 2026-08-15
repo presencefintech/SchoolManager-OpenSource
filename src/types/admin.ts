@@ -332,6 +332,7 @@ export interface EnrollmentListItem {
   postnom?: string | null
   prenom?: string | null
   matricule?: string
+  qrcodeHmac?: string | null
   status: string
   className?: string
   classId?: number

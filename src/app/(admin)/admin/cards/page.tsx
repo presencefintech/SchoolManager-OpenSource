@@ -28,7 +28,14 @@ import type { EnrollmentListItem } from '@/types/admin'
 type BusyAction = 'class-print' | 'class-dl' | 'sel-print' | 'sel-dl' | 'one' | null
 
 function isCardEligible(student: EnrollmentListItem): boolean {
-  return Boolean(student.matricule)
+  return Boolean(student.matricule) && Boolean(student.qrcodeHmac) && student.status === 'ACTIVE'
+}
+
+function cardIneligibleReason(student: EnrollmentListItem): string {
+  if (student.status !== 'ACTIVE') return 'Inscription non finalisée'
+  if (!student.matricule) return 'Matricule manquant'
+  if (!student.qrcodeHmac) return 'QR code manquant'
+  return ''
 }
 
 export default function StudentCardsPage() {
@@ -247,7 +254,7 @@ function StudentCardsPageContent() {
               </button>
               {skipped > 0 && (
                 <p className="text-xs text-amber-700">
-                  {skipped} élève{skipped > 1 ? 's' : ''} sans matricule — non imprimable
+                  {skipped} élève{skipped > 1 ? 's' : ''} sans matricule/QR/inscription finalisée — non imprimable
                   {skipped > 1 ? 's' : ''}
                 </p>
               )}
@@ -272,7 +279,7 @@ function StudentCardsPageContent() {
                           disabled={!ok}
                           onClick={() => toggleStudent(student.id)}
                           className="disabled:opacity-30"
-                          title={ok ? 'Sélectionner' : 'Matricule manquant'}
+                          title={ok ? 'Sélectionner' : cardIneligibleReason(student)}
                         >
                           {selected.has(student.id) ? (
                             <CheckSquare size={16} className="text-emerald-600" />
