@@ -643,12 +643,6 @@ export function usePresenceAlerts(enabled = true) {
   })
 }
 
-export function useGenerateSessionQR() {
-  return useMutation({
-    mutationFn: (classId: number) => presencesApi.generateSessionQR(classId),
-  })
-}
-
 export function useRecordPresence() {
   const qc = useQueryClient()
   return useMutation({

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import { fadeUp, stagger } from '@/lib/animations'
 import {
   CheckCircle2, XCircle, Clock, ShieldAlert, Activity,
-  QrCode, Plus, ClipboardList, RefreshCw, CheckCheck, Trash2,
+  Plus, ClipboardList, RefreshCw, CheckCheck, Trash2,
   EyeOff, Bell, Settings2, History,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -22,7 +22,6 @@ import type { PresenceSecurityAlert, ClassListItem } from '@/types/admin'
 import { ManualRecordModal } from '@/components/admin/presences/ManualRecordModal'
 import { BulkPresenceGrid } from '@/components/admin/presences/BulkPresenceGrid'
 import { PendingSheetsPanel, type OpenAttendanceSheetParams } from '@/components/admin/presences/PendingSheetsPanel'
-import { QRKioskModal } from '@/components/admin/presences/QRKioskModal'
 import { PresenceScanBadges } from '@/components/admin/presences/PresenceStatusBadge'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -156,7 +155,6 @@ function PresencesPageContent() {
   const filterClassId = filters.classId ? Number(filters.classId) : undefined
   const [showManual, setShowManual] = useState(false)
   const [bulkModal, setBulkModal] = useState<BulkModalState>(null)
-  const [showQR, setShowQR] = useState(false)
   const [alertAction, setAlertAction] = useState<{
     type: 'dismiss' | 'validate' | 'notify'
     alert: PresenceSecurityAlert
@@ -318,14 +316,6 @@ function PresencesPageContent() {
             )}
             {canMutate && (
             <>
-            <button
-              type="button"
-              onClick={() => setShowQR(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50"
-            >
-              <QrCode size={15} />
-              QR Kiosque
-            </button>
             <button
               type="button"
               onClick={() => openBulkSheet()}
@@ -753,7 +743,6 @@ function PresencesPageContent() {
           onClose={() => setBulkModal(null)}
         />
       )}
-      {canMutate && showQR && <QRKioskModal onClose={() => setShowQR(false)} />}
 
       <ConfirmDialog
         open={alertAction != null}

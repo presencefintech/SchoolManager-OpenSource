@@ -512,11 +512,6 @@ export interface PresenceSecurityAlert {
   }
 }
 
-export interface SessionQR {
-  qrCode: string
-  expiresAt: number
-}
-
 export interface RecordPresencePayload {
   studentId: number
   classId: number

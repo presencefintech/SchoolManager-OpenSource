@@ -10,7 +10,7 @@ import { parseFraudReasons } from '@/lib/admin/fraud-alert.utils'
 import type { PresenceMutationResult } from '@/lib/presence/presence-response.utils'
 import type {
   PresenceLiveFeedEntry, PresenceStats, PresenceHeatmapEntry,
-  PresenceSecurityAlert, SessionQR, RecordPresencePayload, BulkPresencePayload,
+  PresenceSecurityAlert, RecordPresencePayload, BulkPresencePayload,
   AdminPresenceRecordResult, BulkPresenceRecordResult,
   AttendanceSheetDraft, PendingAttendanceSheetSummary, SealedAttendanceSheetResult,
   SubmittedAttendanceSheetResult, PresenceReasonCodeEntry, AttendanceSheetStatus,
@@ -123,11 +123,6 @@ export const presencesApi = {
   getAlerts: () =>
     apiClient.get<{ success: boolean; data: any[] }>('/admin/presences/alerts')
       .then(r => (r.data.data ?? []).map((row) => normalizeSecurityAlert(row))),
-
-  generateSessionQR: (classId: number) =>
-    apiClient.get<{ success: boolean; data: SessionQR }>('/admin/presences/session-qr', {
-      params: { classId },
-    }).then(r => r.data.data),
 
   record: (payload: RecordPresencePayload) =>
     apiClient.post<{ success: boolean; data: AdminPresenceRecordResult; message?: string }>(
