@@ -309,6 +309,73 @@ export const enrollmentsApi = {
       `justificatif-presence-${studentId}.pdf`,
     ),
 
+  downloadExitCertificatePdf: (
+    studentId: number,
+    params?: {
+      reason?: string
+      destination?: string
+      destinationCity?: string
+      exitDate?: string
+      observations?: string
+      nothingToReport?: string
+    },
+  ) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/exit-certificate/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `certificat-radiation-${studentId}.pdf`,
+    ),
+
+  downloadParentSummonsPdf: (
+    studentId: number,
+    params?: {
+      reason?: string
+      meetingDate?: string
+      meetingTime?: string
+      location?: string
+      note?: string
+    },
+  ) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/parent-summons/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `convocation-${studentId}.pdf`,
+    ),
+
+  downloadExitPassPdf: (
+    studentId: number,
+    params?: {
+      reason?: string
+      exitDate?: string
+      timeFrom?: string
+      timeTo?: string
+      destination?: string
+      companion?: string
+      unaccompanied?: string
+      parentVisa?: string
+      pickerKind?: string
+      pickerName?: string
+      pickerPhone?: string
+      pickerIdNumber?: string
+      pickerRelation?: string
+      note?: string
+    },
+  ) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/exit-pass/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `autorisation-sortie-${studentId}.pdf`,
+    ),
+
   downloadClassCertificatesPdf: (classId: number) =>
     fetchStudentCardsPdf(
       apiClient.get<Blob>(`/admin/enrollments/class/${classId}/certificates/pdf`, {

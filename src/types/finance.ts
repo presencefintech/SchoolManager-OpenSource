@@ -749,9 +749,9 @@ export interface StudentFinancialRow {
   sectionName: string | null
   optionId: number | null
   optionName: string | null
-  totalFees: number
-  feesPaid: number
-  balance: number
+  totalFees?: number | null
+  feesPaid?: number | null
+  balance?: number | null
   storedBalance?: number
   financialStatus: StudentFinancialStatus
   situation?: StudentFinancialStatus
@@ -781,9 +781,10 @@ export interface StudentsFinancialListResponse {
     drift?: number
     highRisk?: number
     npl90?: number
-    totalBalance: number
-    totalExpectedLoss?: number
+    totalBalance?: number | null
+    totalExpectedLoss?: number | null
   }
+  amountsHidden?: boolean
   filters: {
     classId?: number
     sectionId?: number
@@ -811,25 +812,26 @@ export interface StudentsFinancialPrintReport {
     paid: number
     overpaid?: number
     drift?: number
-    totalBalance: number
-    totalFees: number
-    totalPaid: number
-    totalExpectedLoss?: number
+    totalBalance?: number | null
+    totalFees?: number | null
+    totalPaid?: number | null
+    totalExpectedLoss?: number | null
   }
   columns: string[]
+  amountsHidden?: boolean
   rows: Array<{
     matricule: string
     eleve: string
     classe: string
     section: string
     option: string
-    fraisTotaux: number
-    dejaPaye: number
-    solde: number
+    fraisTotaux?: number | null
+    dejaPaye?: number | null
+    solde?: number | null
     statut: string
-    risque?: number
+    risque?: number | null
     dpd?: number
-    ecl?: number
+    ecl?: number | null
   }>
 }
 

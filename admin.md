@@ -103,6 +103,16 @@ Content-Type: application/json
 | `PATCH` | `/admin/enrollments/:studentId/promote` | Promotion de classe |
 | `PATCH` | `/admin/enrollments/:studentId/reminder-pause` | Pause relances paiement |
 | `DELETE` | `/admin/enrollments/:studentId/purge` | Suppression RGPD définitive |
+| `GET` | `/admin/enrollments/:studentId/pickup` | Foyer + personnes autorisées (cartes remise) |
+| `POST` | `/admin/enrollments/:studentId/pickup/adults` | Déclarer un adulte autorisé |
+| `GET` | `/admin/enrollments/:studentId/pickup/cards/pdf` | PDF cartes remise du foyer |
+| `PATCH` | `/admin/pickup/adults/:adultId` | Mettre à jour un adulte |
+| `PUT` | `/admin/pickup/adults/:adultId/children` | Enfants autorisés pour cette carte |
+| `POST` | `/admin/pickup/adults/:adultId/photo` | Photo adulte (avant impression) |
+| `GET` | `/admin/pickup/adults/:adultId/card/pdf` | PDF 1 carte remise (`?reissue=1`) |
+| `POST` | `/admin/pickup/adults/:adultId/revoke` | Révoquer — la carte ne fonctionne plus |
+
+**Cartes remise ≠ cartes élèves.** QR `{ "kind": "pickup" }`. Voir `docs/PICKUP_CARDS.md`.
 
 **Body `POST /admin/enrollments`** :
 ```json

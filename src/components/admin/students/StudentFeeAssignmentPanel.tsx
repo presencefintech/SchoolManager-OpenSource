@@ -37,6 +37,8 @@ interface StudentFeeAssignmentPanelProps {
   studentId: number
   sessionId?: number
   className?: string
+  /** Guichet : attribuer un pack sans afficher ni saisir de montants. */
+  hideAmounts?: boolean
 }
 
 function toDateInput(iso?: string | null): string {
@@ -57,6 +59,7 @@ export function StudentFeeAssignmentPanel({
   studentId,
   sessionId,
   className,
+  hideAmounts = false,
 }: StudentFeeAssignmentPanelProps) {
   const { success, error } = useToast()
   const [open, setOpen] = useState(false)
@@ -256,7 +259,7 @@ export function StudentFeeAssignmentPanel({
                 className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm disabled:opacity-60"
               >
                 <option value="ASSIGN">Attribuer (frais optionnel / hors classe)</option>
-                <option value="OVERRIDE">Montant personnalisé</option>
+                {!hideAmounts && <option value="OVERRIDE">Montant personnalisé</option>}
                 <option value="EXEMPT">Exonérer</option>
               </select>
             </label>
@@ -275,7 +278,8 @@ export function StudentFeeAssignmentPanel({
                   const currency = (s.currency || 'USD') as FinanceCurrencyCode
                   return (
                     <option key={s.id} value={s.id}>
-                      {s.label} · {formatMoney(s.amount, currency)}
+                      {s.label}
+                      {hideAmounts ? '' : ` · ${formatMoney(s.amount, currency)}`}
                       {s.assignmentMode === 'EXPLICIT' ? ' · optionnel' : ''}
                     </option>
                   )
@@ -284,7 +288,7 @@ export function StudentFeeAssignmentPanel({
             </label>
           </div>
 
-          {(type === 'OVERRIDE' || type === 'ASSIGN' || editingId != null) && type !== 'EXEMPT' && (
+          {!hideAmounts && (type === 'OVERRIDE' || type === 'ASSIGN' || editingId != null) && type !== 'EXEMPT' && (
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-xs text-zinc-600">
                 Montant custom
@@ -377,11 +381,12 @@ export function StudentFeeAssignmentPanel({
                 onEdit={() => startEdit(a)}
                 onRevoke={() => void handleRevoke(a.id)}
                 revoking={revokeMutation.isPending}
+                hideAmounts={hideAmounts}
               />
             ))}
             {includeRevoked &&
               revoked.map((a) => (
-                <AssignmentRow key={a.id} assignment={a} revoked />
+                <AssignmentRow key={a.id} assignment={a} revoked hideAmounts={hideAmounts} />
               ))}
           </>
         )}
@@ -396,12 +401,14 @@ function AssignmentRow({
   onRevoke,
   revoking,
   revoked,
+  hideAmounts,
 }: {
   assignment: StudentFeeAssignmentDto
   onEdit?: () => void
   onRevoke?: () => void
   revoking?: boolean
   revoked?: boolean
+  hideAmounts?: boolean
 }) {
   return (
     <div
@@ -428,9 +435,9 @@ function AssignmentRow({
         </div>
         <p className="mt-0.5 text-xs text-zinc-500">{a.reason}</p>
         <p className="mt-0.5 text-[11px] text-zinc-400 tabular-nums">
-          {a.amountOverride != null &&
+          {!hideAmounts && a.amountOverride != null &&
             `Montant ${a.amountOverride}${a.feeStructure?.currency ? ` ${a.feeStructure.currency}` : ''}`}
-          {a.percentOverride != null && ` · −${a.percentOverride}%`}
+          {!hideAmounts && a.percentOverride != null && ` · −${a.percentOverride}%`}
           {(a.validFrom || a.validTo) && (
             <span className="ml-1">
               · {toDateInput(a.validFrom) || '…'}

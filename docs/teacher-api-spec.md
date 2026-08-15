@@ -349,6 +349,25 @@ Utilitaires UI admin : `src/lib/presence/presence-response.utils.ts`
 
 ---
 
+## 7. Mode Remise — cartes parent (aucune présence)
+
+Base identique `{host}/api/v1/mobile/teachers`. **Écran distinct** du scan matin.
+
+Passation : `backend/src/docs/flutter-teacher-pickup.md` · OpenAPI schémas `PickupPreview` / `PickupConfirm`.
+
+| Endpoint | HTTP | Corps | Effet |
+|----------|------|-------|--------|
+| `POST /pickup/preview` | 200 | `{ "qrPayload": "<json caméra>" }` | Enfants autorisés pour **cette** carte |
+| `POST /pickup/confirm` | 201 | `{ "qrPayload", "studentIds": [2] }` | Enregistre la remise |
+
+QR parent : `{ "v": 1, "kind": "pickup", "t": "…" }`.  
+QR élève dans Remise → `400 PICKUP_USE_PRESENCE_MODE`.  
+QR parent dans `/scan/qr` → `400 PICKUP_USE_REMISE_MODE`.
+
+**Client Flutter :** ne pas réutiliser `scanQr()`. Pas d’offline v1. Afficher `data.children[]` seulement.
+
+---
+
 ## Environnements
 
 | Env | Base URL |
@@ -366,3 +385,4 @@ Utilitaires UI admin : `src/lib/presence/presence-response.utils.ts`
 - [ ] Afficher feedback par élève sur échecs / doublons
 - [ ] Respecter `enabledPresenceModes` école avant d’activer un mode scan
 - [ ] Tester rejeu réseau sur `/scan` (même clé → 202, pas de double insertion)
+- [ ] **Remise :** bouton distinct · `POST /pickup/preview` + `/confirm` · ne jamais envoyer un QR `kind:pickup` à `/scan/qr`

@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet } from 'lucide-react'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -315,6 +316,10 @@ export default function ClassDetailPage() {
               <ArrowRightLeft size={12} />
               Transférer
             </button>
+            <Link href={`/admin/finance/controle?classId=${classId}`} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
+              <Wallet size={12} />
+              Dettes / en ordre
+            </Link>
             <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <Download size={12} />
               Liste CSV

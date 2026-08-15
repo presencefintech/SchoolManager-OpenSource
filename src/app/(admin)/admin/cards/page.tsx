@@ -168,6 +168,14 @@ function StudentCardsPageContent() {
       />
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-4">
+        <p className="text-xs text-zinc-600 rounded-xl border border-zinc-200 bg-white px-4 py-3">
+          Cette page imprime les <strong className="font-medium text-zinc-800">cartes élèves</strong> (présence du matin).
+          Les cartes remise (photo du parent + QR) s’impriment depuis la{' '}
+          <Link href="/admin/desk" className="font-medium text-emerald-700 hover:text-emerald-900">
+            fiche élève
+          </Link>
+          , après déclaration des personnes autorisées — jamais ici.
+        </p>
         <div className="bg-white rounded-xl border border-zinc-200 p-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 min-w-0">
             <span className="block text-xs font-medium text-zinc-600 mb-1.5">Classe</span>

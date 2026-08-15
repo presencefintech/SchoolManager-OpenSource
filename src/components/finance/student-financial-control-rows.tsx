@@ -175,10 +175,12 @@ export function StudentFinancialControlRows({
   rows,
   studentHref,
   scheduleHref,
+  hideAmounts = false,
 }: {
   rows: StudentFinancialRow[]
   studentHref: (id: number) => string
   scheduleHref?: (id: number) => string
+  hideAmounts?: boolean
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
@@ -193,27 +195,33 @@ export function StudentFinancialControlRows({
           <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Classe
           </th>
-          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Frais
-          </th>
-          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Payé
-          </th>
-          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Solde
-          </th>
-          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Risque
-          </th>
-          <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            DPD
-          </th>
+          {!hideAmounts && (
+            <>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Frais
+              </th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Payé
+              </th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Solde
+              </th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                Risque
+              </th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                DPD
+              </th>
+            </>
+          )}
           <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Situation
           </th>
+          {!hideAmounts && (
           <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Actions
           </th>
+          )}
         </tr>
       </thead>
       <tbody className="divide-y divide-zinc-50">
@@ -224,6 +232,9 @@ export function StudentFinancialControlRows({
             <Fragment key={row.id}>
               <tr className="hover:bg-zinc-50/80 transition-colors">
                 <td className="px-2 py-3">
+                  {hideAmounts ? (
+                    <span className="inline-block w-6" />
+                  ) : (
                   <button
                     type="button"
                     aria-label={open ? 'Replier' : 'Déplier le détail des frais'}
@@ -232,6 +243,7 @@ export function StudentFinancialControlRows({
                   >
                     {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
+                  )}
                 </td>
                 <td className="px-5 py-3">
                   <Link href={studentHref(row.id)} className="block group">
@@ -249,19 +261,21 @@ export function StudentFinancialControlRows({
                     </p>
                   )}
                 </td>
+                {!hideAmounts && (
+                  <>
                 <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-700">
-                  {formatMoney(row.totalFees)}
+                  {formatMoney(row.totalFees ?? 0)}
                 </td>
                 <td className="px-5 py-3 text-sm text-right tabular-nums text-emerald-700">
-                  {formatMoney(row.feesPaid)}
+                  {formatMoney(row.feesPaid ?? 0)}
                 </td>
                 <td
                   className={cn(
                     'px-5 py-3 text-sm text-right font-semibold tabular-nums',
-                    row.balance > 0.01 ? 'text-red-600' : row.balance < -0.01 ? 'text-sky-700' : 'text-zinc-700',
+                    (row.balance ?? 0) > 0.01 ? 'text-red-600' : (row.balance ?? 0) < -0.01 ? 'text-sky-700' : 'text-zinc-700',
                   )}
                 >
-                  {formatMoney(row.balance)}
+                  {formatMoney(row.balance ?? 0)}
                   {row.ledgerCoherent === false && (
                     <p className="text-[10px] font-normal text-amber-600">écart {formatMoney(row.ledgerDrift ?? 0)}</p>
                   )}
@@ -273,8 +287,10 @@ export function StudentFinancialControlRows({
                   )}
                 </td>
                 <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-600">
-                  {row.daysPastDue != null && row.balance > 0.01 ? `${row.daysPastDue} j` : '—'}
+                  {row.daysPastDue != null && (row.balance ?? 0) > 0.01 ? `${row.daysPastDue} j` : '—'}
                 </td>
+                  </>
+                )}
                 <td className="px-5 py-3">
                   <span
                     className={cn(
@@ -285,14 +301,16 @@ export function StudentFinancialControlRows({
                     {SITUATION_LABEL[situation] ?? situation}
                   </span>
                 </td>
+                {!hideAmounts && (
                 <td className="px-5 py-3 text-right">
                   <StudentFeeScheduleLink
                     studentId={row.id}
                     href={scheduleHref?.(row.id)}
                   />
                 </td>
+                )}
               </tr>
-              {open && (
+              {!hideAmounts && open && (
                 <tr>
                   <td colSpan={10} className="p-0">
                     <ExpandedFeeSchedule

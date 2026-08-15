@@ -2,16 +2,34 @@
 
 import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Filter, RefreshCw, Users, CheckCircle2, AlertTriangle, ClipboardList, ShieldCheck } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { Filter, RefreshCw, Users, CheckCircle2, AlertTriangle, ClipboardList, ShieldCheck, Download, Printer } from 'lucide-react'
 import { StudentFinancialControlRows } from '@/components/finance/student-financial-control-rows'
 import {
   useStudentsFinancial,
-  useFinanceClasses,
+  useExportStudentsFinancialPrint,
 } from '@/lib/hooks/use-finance'
-import { usePendingVerifications } from '@/lib/hooks/use-admin'
+import { useClasses, usePendingVerifications } from '@/lib/hooks/use-admin'
 import { formatMoney } from '@/lib/finance/currency'
+import { downloadBlob } from '@/lib/finance/download-blob'
+import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
 import { FinanceAdminSubNav } from '@/components/admin/finance/finance-admin-subnav'
 import { VerificationStepper, fmtMoney } from '@/components/admin/finance/verification-ui'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk } from '@/types/auth'
+import type { StudentFinancialSort, StudentFinancialStatus } from '@/types/finance'
+
+const STATUS_VALUES: StudentFinancialStatus[] = [
+  'DEBTOR',
+  'PAID',
+  'OVERPAID',
+  'DRIFT',
+  'HIGH_RISK',
+  'NPL_90',
+  'AGING_0_30',
+  'AGING_31_60',
+  'AGING_61_90',
+]
 
 function ValidationsStrip() {
   const { data: pending = [], isLoading } = usePendingVerifications()
@@ -59,11 +77,20 @@ function ValidationsStrip() {
 }
 
 function ControleContent() {
-  const [classId, setClassId] = useState(0)
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
+  const searchParams = useSearchParams()
+  const statusParam = searchParams.get('status')
+  const classParam = Number(searchParams.get('classId') ?? 0)
+  const initialStatus = STATUS_VALUES.includes(statusParam as StudentFinancialStatus)
+    ? (statusParam as StudentFinancialStatus)
+    : ''
+
+  const [classId, setClassId] = useState(classParam > 0 ? classParam : 0)
   const [sectionId, setSectionId] = useState(0)
   const [optionId, setOptionId] = useState(0)
-  const [status, setStatus] = useState<'' | import('@/types/finance').StudentFinancialStatus>('')
-  const [sort, setSort] = useState<import('@/types/finance').StudentFinancialSort>('balance_desc')
+  const [status, setStatus] = useState<'' | StudentFinancialStatus>(initialStatus)
+  const [sort, setSort] = useState<StudentFinancialSort>('balance_desc')
   const [page, setPage] = useState(1)
 
   const filters = useMemo(
@@ -80,23 +107,13 @@ function ControleContent() {
   )
 
   const { data, isLoading, isFetching, refetch } = useStudentsFinancial(filters)
-  const { data: classesRaw } = useFinanceClasses()
-
-  const classes: Array<{
-    id: number
-    name: string
-    sectionId?: number
-    optionId?: number
-    section?: { id: number; name: string }
-    option?: { id: number; name: string }
-  }> = Array.isArray(classesRaw) ? classesRaw : (classesRaw as { data?: unknown[] })?.data ?? []
+  const exportPrint = useExportStudentsFinancialPrint()
+  const { data: classes = [] } = useClasses({ isActive: true })
 
   const sections = useMemo(() => {
     const map = new Map<number, string>()
     for (const c of classes) {
-      const id = c.sectionId ?? c.section?.id
-      const name = c.section?.name
-      if (id && name) map.set(id, name)
+      if (c.sectionId && c.sectionName) map.set(c.sectionId, c.sectionName)
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [classes])
@@ -104,18 +121,16 @@ function ControleContent() {
   const options = useMemo(() => {
     const map = new Map<number, string>()
     for (const c of classes) {
-      if (sectionId > 0 && (c.sectionId ?? c.section?.id) !== sectionId) continue
-      const id = c.optionId ?? c.option?.id
-      const name = c.option?.name
-      if (id && name) map.set(id, name)
+      if (sectionId > 0 && c.sectionId !== sectionId) continue
+      if (c.optionId && c.optionName) map.set(c.optionId, c.optionName)
     }
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
   }, [classes, sectionId])
 
   const filteredClasses = useMemo(() => {
     return classes.filter((c) => {
-      if (sectionId > 0 && (c.sectionId ?? c.section?.id) !== sectionId) return false
-      if (optionId > 0 && (c.optionId ?? c.option?.id) !== optionId) return false
+      if (sectionId > 0 && c.sectionId !== sectionId) return false
+      if (optionId > 0 && c.optionId !== optionId) return false
       return true
     })
   }, [classes, sectionId, optionId])
@@ -125,30 +140,73 @@ function ControleContent() {
   const selectCls =
     'rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40 min-w-[140px]'
 
+  async function handleExport(format: 'json' | 'csv') {
+    const { page: _page, limit: _limit, ...exportFilters } = filters
+    const result = await exportPrint.mutateAsync({
+      ...exportFilters,
+      format,
+    })
+    if (result.type === 'csv') {
+      downloadBlob(result.blob, `situation-financiere-${new Date().toISOString().slice(0, 10)}.csv`)
+    } else {
+      openStudentsFinancialPrintReport(result.report)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-emerald-700 mb-1">
             <ClipboardList size={18} />
-            <span className="text-xs font-semibold uppercase tracking-wide">Contrôle admin</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">
+              {deskOnly ? 'Guichet' : 'Contrôle admin'}
+            </span>
           </div>
-          <h1 className="text-xl font-bold text-zinc-900">Qui a payé quoi</h1>
+          <h1 className="text-xl font-bold text-zinc-900">
+            {deskOnly ? 'Dettes / en ordre' : 'Qui a payé quoi'}
+          </h1>
           <p className="text-sm text-zinc-500 mt-0.5">
-            Déplier une ligne pour le détail des frais · validations via{' '}
-            <Link href="/admin/finance/paiements" className="text-emerald-700 hover:underline">
-              Paiements
-            </Link>
+            {deskOnly
+              ? 'Filtrer par classe et situation (en ordre / dette), puis imprimer. Les montants restent au service finance.'
+              : (
+                <>
+                  Déplier une ligne pour le détail des frais · validations via{' '}
+                  <Link href="/admin/finance/paiements" className="text-emerald-700 hover:underline">
+                    Paiements
+                  </Link>
+                </>
+              )}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
-        >
-          <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
-          Actualiser
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50"
+          >
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+            Actualiser
+          </button>
+          <button
+            type="button"
+            disabled={exportPrint.isPending}
+            onClick={() => void handleExport('csv')}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+          <button
+            type="button"
+            disabled={exportPrint.isPending}
+            onClick={() => void handleExport('json')}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            <Printer size={14} />
+            Imprimer la liste
+          </button>
+        </div>
       </div>
 
       {meta && (
@@ -162,7 +220,7 @@ function ControleContent() {
             onClick={() => { setStatus('DEBTOR'); setPage(1) }}
             className="rounded-xl border border-red-100 bg-red-50/50 p-4 text-left hover:bg-red-50"
           >
-            <p className="text-xs text-red-600 flex items-center gap-1"><AlertTriangle size={12} /> Qui manque</p>
+            <p className="text-xs text-red-600 flex items-center gap-1"><AlertTriangle size={12} /> Dettes</p>
             <p className="text-2xl font-bold text-red-800">{meta.debtors}</p>
           </button>
           <button
@@ -170,17 +228,19 @@ function ControleContent() {
             onClick={() => { setStatus('PAID'); setPage(1) }}
             className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-left hover:bg-emerald-50"
           >
-            <p className="text-xs text-emerald-700 flex items-center gap-1"><CheckCircle2 size={12} /> À jour</p>
+            <p className="text-xs text-emerald-700 flex items-center gap-1"><CheckCircle2 size={12} /> En ordre</p>
             <p className="text-2xl font-bold text-emerald-800">{meta.paid}</p>
           </button>
+          {!deskOnly && (
           <div className="rounded-xl border border-zinc-200 bg-white p-4">
             <p className="text-xs text-zinc-500">Solde total</p>
-            <p className="text-2xl font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance)}</p>
+            <p className="text-2xl font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance ?? 0)}</p>
           </div>
+          )}
         </div>
       )}
 
-      <ValidationsStrip />
+      {!deskOnly && <ValidationsStrip />}
 
       <div className="rounded-xl border border-zinc-200 bg-white p-4">
         <div className="flex items-center gap-2 mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
@@ -234,7 +294,7 @@ function ControleContent() {
             className={selectCls}
             value={status}
             onChange={(e) => {
-              setStatus(e.target.value as '' | import('@/types/finance').StudentFinancialStatus)
+              setStatus(e.target.value as '' | StudentFinancialStatus)
               setPage(1)
             }}
           >
@@ -250,7 +310,7 @@ function ControleContent() {
             className={selectCls}
             value={sort}
             onChange={(e) => {
-              setSort(e.target.value as import('@/types/finance').StudentFinancialSort)
+              setSort(e.target.value as StudentFinancialSort)
               setPage(1)
             }}
           >
@@ -276,6 +336,7 @@ function ControleContent() {
             rows={rows}
             studentHref={(id) => `/admin/students/${id}`}
             scheduleHref={(id) => `/admin/students/${id}`}
+            hideAmounts={deskOnly}
           />
         )}
       </div>
@@ -308,9 +369,12 @@ function ControleContent() {
 }
 
 export default function AdminFinanceControlePage() {
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <FinanceAdminSubNav />
+      {!deskOnly && <FinanceAdminSubNav />}
       <Suspense fallback={<div className="text-sm text-zinc-400">Chargement…</div>}>
         <ControleContent />
       </Suspense>

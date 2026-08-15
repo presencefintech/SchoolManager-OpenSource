@@ -135,6 +135,7 @@ export const studentsApi = {
             birthCertificate: number
             emergency: number
             class: number
+            pickup: number
           }
           items: Array<{
             id: number

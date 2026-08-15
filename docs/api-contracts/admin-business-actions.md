@@ -347,19 +347,40 @@ Annonce à un ou plusieurs rôles. **≥ 3 destinataires** → file BullMQ `noti
 
 ---
 
+## 8. Remise — personnes autorisées (août 2026)
+
+Cartes **parent** (1 / adulte). Distinct des cartes élèves. Rôles : `ADMIN`, `IT`, `SUPER_ADMIN`.
+
+| Méthode | Route | UI |
+|---------|-------|-----|
+| `GET` | `/admin/enrollments/{studentId}/pickup` | Fiche 360 · `PickupAdultsPanel` |
+| `POST` | `/admin/enrollments/{studentId}/pickup/adults` | Déclarer |
+| `PUT` | `/admin/pickup/adults/{adultId}/children` | Modifier les enfants |
+| `POST` | `/admin/pickup/adults/{adultId}/photo` | Photo (multipart) |
+| `GET` | `/admin/pickup/adults/{adultId}/card/pdf` | Impression CR80 (`?reissue=1`) |
+| `POST` | `/admin/pickup/adults/{adultId}/revoke` | Révoquer |
+| `GET` | `/admin/students/desk/incomplete?gap=pickup` | Guichet · filtre Remise |
+
+**Frontend :** `src/lib/admin/api/pickup.api.ts` · `/admin/students/:id?doc=pickup` · `/admin/desk`.  
+**Passation :** [`web-admin-pickup-handoff.md`](./web-admin-pickup-handoff.md) (copie backend) · produit `docs/PICKUP_CARDS.md`.
+
+---
+
 ## Matrice RBAC récapitulative
 
-| Route | ADMIN | SUPER_ADMIN | FINANCE |
-|-------|:-----:|:-----------:|:-------:|
-| `GET …/enrollments/sessions` | ✓ | ✓ | — |
-| `POST …/enrollments/{id}/sessions` | ✓ | ✓ | — |
-| `PATCH …/enrollments/{id}/admin-profile` | ✓ | ✓ | — |
-| `GET …/pending-verifications/export` | ✓ | ✓ | ✓ |
-| `POST …/verifications/{id}/mark-processed` | ✓ | ✓ | — |
-| `PATCH/POST …/security-events/{id}/*` | ✓ | ✓ | — |
-| `GET/POST …/admin/notifications/dlq*` | ✓ | — | — |
-| `GET/POST …/admin/presences/*` (module) | ✓ | ✓ | — |
-| `GET …/presences/sheets/{id}/export` | ✓ | ✓ | — |
+| Route | ADMIN | SUPER_ADMIN | FINANCE | IT |
+|-------|:-----:|:-----------:|:-------:|:--:|
+| `GET …/enrollments/sessions` | ✓ | ✓ | — | ✓ |
+| `POST …/enrollments/{id}/sessions` | ✓ | ✓ | — | ✓ |
+| `PATCH …/enrollments/{id}/admin-profile` | ✓ | ✓ | — | ✓ |
+| `GET/POST …/enrollments/{id}/pickup*` | ✓ | ✓ | — | ✓ |
+| `GET/POST …/admin/pickup/adults/*` | ✓ | ✓ | — | ✓ |
+| `GET …/pending-verifications/export` | ✓ | ✓ | ✓ | — |
+| `POST …/verifications/{id}/mark-processed` | ✓ | ✓ | — | — |
+| `PATCH/POST …/security-events/{id}/*` | ✓ | ✓ | — | — |
+| `GET/POST …/admin/notifications/dlq*` | ✓ | — | — | — |
+| `GET/POST …/admin/presences/*` (module) | ✓ | ✓ | — | lecture |
+| `GET …/presences/sheets/{id}/export` | ✓ | ✓ | — | — |
 
 ---
 
@@ -367,11 +388,11 @@ Annonce à un ou plusieurs rôles. **≥ 3 destinataires** → file BullMQ `noti
 
 | Couche | Fichier |
 |--------|---------|
-| API | `src/lib/admin/api/enrollments.api.ts`, `finance.api.ts`, `presences.api.ts` |
+| API | `src/lib/admin/api/enrollments.api.ts`, `pickup.api.ts`, `finance.api.ts`, `presences.api.ts` |
 | Hooks | `src/lib/hooks/use-admin.ts` |
 | Schémas UI | `src/lib/schemas/enrollment-actions.ts` |
-| Composants | `enrollment-business-drawers.tsx`, `admin-profile-modal.tsx`, `AttendanceSheetExportButtons.tsx` |
-| Pages | `admin/enrollments`, `admin/students/[id]`, `admin/finance/paiements`, `admin/presences` |
+| Composants | `enrollment-business-drawers.tsx`, `admin-profile-modal.tsx`, `PickupAdultsPanel.tsx`, `AttendanceSheetExportButtons.tsx` |
+| Pages | `admin/enrollments`, `admin/students/[id]`, `admin/desk`, `admin/finance/paiements`, `admin/presences` |
 
 ---
 
@@ -379,5 +400,6 @@ Annonce à un ou plusieurs rôles. **≥ 3 destinataires** → file BullMQ `noti
 
 - [`enrollment-architecture.md`](./enrollment-architecture.md) — flux inscription global
 - [`web-admin-payment-handoff.md`](./web-admin-payment-handoff.md) — workflow vérification paiement
+- [`web-admin-pickup-handoff.md`](./web-admin-pickup-handoff.md) — cartes remise / personnes autorisées
 - [`admin-README.md`](./admin-README.md) — index module admin
 - [`notification-architecture.md`](./notification-architecture.md) — outbox, SMS, DLQ, fan-out

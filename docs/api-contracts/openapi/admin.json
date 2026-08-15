@@ -19,6 +19,14 @@
     {
       "name": "Admin",
       "description": "Toutes les routes du module web admin"
+    },
+    {
+      "name": "Billing SaaS",
+      "description": "Plans Starter/Pro/Enterprise — lecture promoteur (ADMIN/DIRECTOR)"
+    },
+    {
+      "name": "Devoirs",
+      "description": "Module devoirs — liste école + usage quota"
     }
   ],
   "security": [
@@ -268,6 +276,722 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/director/summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Dashboard directeur — sections, classes, présences du jour (scoped)",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/director/sections": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Sections affectées au directeur connecté",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/director/classes": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Classes actives du périmètre directeur",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/director/presence/live": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Flux présences lecture seule (périmètre sections)",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par classe (doit être dans le périmètre)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/director/presence/heatmap": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Heatmap présences lecture seule (périmètre sections)",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par classe",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/directors/{userId}/sections": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "ADMIN — sections affectées à un directeur",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "ID utilisateur DIRECTOR",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "ADMIN — remplacer les sections d'un directeur",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "ID utilisateur DIRECTOR",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sectionIds"
+                ],
+                "properties": {
+                  "sectionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "maxItems": 50
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/announcements": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les communiqués scolaires (DIRECTOR : périmètre sections + globales)",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Créer / publier un communiqué (sectionId optionnel)",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/announcements/insights": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Insights engagement communiqués",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/announcements/preview": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Prévisualiser le nombre de destinataires",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/announcements/{announcementId}/publish": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Publier un brouillon",
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "required": true,
+            "description": "ID annonce",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/announcements/{announcementId}/archive": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Archiver une annonce",
+        "parameters": [
+          {
+            "name": "announcementId",
+            "in": "path",
+            "required": true,
+            "description": "ID annonce",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/class-periods": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lister les créneaux ClassPeriod de l'école",
+        "parameters": [
+          {
+            "name": "teacherId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par Teacher.id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "required": false,
+            "description": "Filtrer par classe",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "academicYear",
+            "in": "query",
+            "required": false,
+            "description": "Année scolaire (ex. 2025-2026)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dayOfWeek",
+            "in": "query",
+            "required": false,
+            "description": "Jour ISO 1=lun…7=dim",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "activeOnly",
+            "in": "query",
+            "required": false,
+            "description": "Uniquement créneaux actifs",
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Créer un créneau (bloque les chevauchements enseignant)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassPeriodCreateBody"
+              }
+            }
+          }
+        },
+        "successDescription": "Créneau créé",
+        "extraResponses": {
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Créneau créé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/class-periods/{id}": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mettre à jour un créneau",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID créneau",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassPeriodUpdateBody"
+              }
+            }
+          }
+        },
+        "extraResponses": {
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Désactiver un créneau (soft delete isActive=false)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID créneau",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "extraResponses": {
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -4139,7 +4863,7 @@
           "Admin"
         ],
         "summary": "Enregistrer le profil de règlement",
-        "description": "Rôles: ADMIN, SUPER_ADMIN. Crée le subaccount Flutterwave et repasse le statut en PENDING. Validation superadmin requise avant paiements parent en ligne.",
+        "description": "Rôles: ADMIN, SUPER_ADMIN. Crée le subaccount Flutterwave et repasse le statut en PENDING. Réponse: `{ profile, onboarding }` (checklist wizard).",
         "requestBody": {
           "required": true,
           "content": {
@@ -4152,11 +4876,44 @@
         },
         "responses": {
           "200": {
-            "description": "Profil enregistré — en attente validation plateforme",
+            "description": "Profil + checklist onboarding",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentProfileResponse"
+                  "$ref": "#/components/schemas/PaymentProfileUpsertResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/finance/payment-profile/onboarding": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Checklist wizard onboarding paiements en ligne",
+        "description": "Étapes: SESSION, FEE_CATALOG, LEGAL_PROFILE, SETTLEMENT_ACCOUNT, KYC_REVIEW, RECEIPTS, DEBT_POLICY. Voir docs/FINANCE_ONBOARDING_1_DAY.md",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentOnboardingChecklist"
                 }
               }
             }
@@ -5423,6 +6180,396 @@
             "schema": {
               "type": "integer",
               "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/enrollments/{studentId}/pickup": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Foyer + personnes autorisées (cartes remise)",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "successDescription": "Liste foyer et adultes. Imprimer seulement si photo + au moins un enfant.",
+        "responses": {
+          "200": {
+            "description": "Liste foyer et adultes. Imprimer seulement si photo + au moins un enfant.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/enrollments/{studentId}/pickup/adults": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Déclarer une personne autorisée à récupérer l'élève",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickupAdultCreateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/enrollments/{studentId}/pickup/cards/pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "PDF cartes remise du foyer (1 carte / adulte)",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "required": true,
+            "description": "ID élève",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/pickup/adults/{adultId}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mettre à jour une personne autorisée",
+        "parameters": [
+          {
+            "name": "adultId",
+            "in": "path",
+            "required": true,
+            "description": "ID adulte",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickupAdultUpdateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/pickup/adults/{adultId}/children": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Remplacer les enfants autorisés pour cette carte",
+        "parameters": [
+          {
+            "name": "adultId",
+            "in": "path",
+            "required": true,
+            "description": "ID adulte",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PickupAdultChildrenBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/pickup/adults/{adultId}/revoke": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Révoquer une personne — la carte ne fonctionne plus",
+        "parameters": [
+          {
+            "name": "adultId",
+            "in": "path",
+            "required": true,
+            "description": "ID adulte",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/pickup/adults/{adultId}/photo": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Photo de la personne autorisée (requis avant impression)",
+        "parameters": [
+          {
+            "name": "adultId",
+            "in": "path",
+            "required": true,
+            "description": "ID adulte",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "photo"
+                ],
+                "properties": {
+                  "photo": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/pickup/adults/{adultId}/card/pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "PDF carte remise CR80 (photo + QR pickup)",
+        "parameters": [
+          {
+            "name": "adultId",
+            "in": "path",
+            "required": true,
+            "description": "ID adulte",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "reissue",
+            "in": "query",
+            "required": false,
+            "description": "Invalide l'ancien QR et en émet un nouveau",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
             }
           }
         ],
@@ -8069,6 +9216,167 @@
           }
         }
       }
+    },
+    "/admin/billing/subscription": {
+      "get": {
+        "tags": [
+          "Billing SaaS"
+        ],
+        "summary": "Plan SaaS de l'école (lecture promoteur)",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchoolBillingSubscriptionRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/billing/plans": {
+      "get": {
+        "tags": [
+          "Billing SaaS"
+        ],
+        "summary": "Comparer les paliers Starter / Pro / Enterprise",
+        "responses": {
+          "200": {
+            "description": "Liste des paliers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccessPublicPlanList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/billing/assignments/usage": {
+      "get": {
+        "tags": [
+          "Billing SaaS",
+          "Devoirs"
+        ],
+        "summary": "Quota devoirs + upsell (dashboard promoteur)",
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentUsageSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
+    },
+    "/admin/billing/assignments": {
+      "get": {
+        "tags": [
+          "Devoirs"
+        ],
+        "summary": "Liste devoirs école (toutes classes)",
+        "parameters": [
+          {
+            "name": "classId",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/AssignmentStatus"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Opération réussie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiSuccess"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8869,12 +10177,134 @@
             "minLength": 2
           },
           "role": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Role"
-              }
+            "type": "string",
+            "enum": [
+              "TEACHER",
+              "FINANCE",
+              "DIRECTOR"
             ],
-            "description": "SUPER_ADMIN interdit — rôle assigné au schoolId du JWT admin."
+            "description": "Rôles créables par ADMIN école (SUPER_ADMIN / ADMIN interdits ici)."
+          }
+        }
+      },
+      "ClassPeriodCreateBody": {
+        "type": "object",
+        "required": [
+          "classId",
+          "teacherId",
+          "academicYear",
+          "dayOfWeek"
+        ],
+        "description": "Horaires : fournir `start`/`end` (HH:mm) ou `startMinute`/`endMinute`. dayOfWeek ISO 1=lun…7=dim. teacherId = Teacher.id (profil).",
+        "properties": {
+          "classId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "teacherId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Teacher.id (pas User.id)"
+          },
+          "academicYear": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 32,
+            "example": "2025-2026"
+          },
+          "dayOfWeek": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+            "example": "08:00"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$",
+            "example": "09:00"
+          },
+          "startMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439
+          },
+          "endMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 120,
+            "nullable": true
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 60,
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "ClassPeriodUpdateBody": {
+        "type": "object",
+        "description": "Tous les champs optionnels. start/end (ou minutes) doivent être fournis ensemble.",
+        "properties": {
+          "classId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "teacherId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "academicYear": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 32
+          },
+          "dayOfWeek": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+          },
+          "startMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439
+          },
+          "endMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1439
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 120,
+            "nullable": true
+          },
+          "room": {
+            "type": "string",
+            "maxLength": 60,
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
           }
         }
       },
@@ -9093,6 +10523,140 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "PickupAdultCreateBody": {
+        "type": "object",
+        "required": [
+          "lastName",
+          "firstName",
+          "phone",
+          "relationship",
+          "idDocumentNumber",
+          "studentIds"
+        ],
+        "properties": {
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "prenom": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "postnom": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32
+          },
+          "relationship": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "idDocumentType": {
+            "type": "string",
+            "maxLength": 40,
+            "nullable": true
+          },
+          "idDocumentNumber": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 40
+          },
+          "photoUrl": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 500,
+            "nullable": true
+          },
+          "parentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "studentIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      },
+      "PickupAdultUpdateBody": {
+        "type": "object",
+        "properties": {
+          "lastName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "firstName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "prenom": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "postnom": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 32
+          },
+          "relationship": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "idDocumentType": {
+            "type": "string",
+            "maxLength": 40,
+            "nullable": true
+          },
+          "idDocumentNumber": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 40
+          }
+        }
+      },
+      "PickupAdultChildrenBody": {
+        "type": "object",
+        "required": [
+          "studentIds"
+        ],
+        "properties": {
+          "studentIds": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            }
           }
         }
       },
@@ -10024,6 +11588,8 @@
           "enabledPresenceModes",
           "offlineSyncEnabled",
           "validationRules",
+          "scheduleSettings",
+          "geofence",
           "notificationSettings",
           "absenceSettings",
           "updatedAt"
@@ -10051,10 +11617,14 @@
           "validationRules": {
             "$ref": "#/components/schemas/AttendanceValidationRules"
           },
+          "scheduleSettings": {
+            "$ref": "#/components/schemas/AttendanceScheduleSettings"
+          },
+          "geofence": {
+            "$ref": "#/components/schemas/SchoolGeofence"
+          },
           "notificationSettings": {
-            "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "$ref": "#/components/schemas/AttendanceNotificationSettings"
           },
           "absenceSettings": {
             "$ref": "#/components/schemas/AttendanceAbsenceSettings"
@@ -10063,6 +11633,102 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "AttendanceScheduleSettings": {
+        "type": "object",
+        "required": [
+          "startHour",
+          "startMinute",
+          "endHour",
+          "endMinute",
+          "lateToleranceMinutes",
+          "scanWindowStrict",
+          "exitScanEnabled"
+        ],
+        "properties": {
+          "startHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Ouverture fenêtre de scan"
+          },
+          "startMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59
+          },
+          "endHour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23,
+            "description": "Fermeture fenêtre de scan"
+          },
+          "endMinute": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 59
+          },
+          "lateToleranceMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 240,
+            "description": "Minutes après le début avant statut LATE"
+          },
+          "scanWindowStrict": {
+            "type": "boolean",
+            "description": "Refuse les scans hors [début, fin] (comme le géofencing)"
+          },
+          "exitScanEnabled": {
+            "type": "boolean",
+            "description": "2e scan du jour = sortie (EXIT) + notif parents"
+          }
+        }
+      },
+      "SchoolGeofence": {
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude",
+          "radiusKm",
+          "radiusMeters",
+          "configured"
+        ],
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "nullable": true
+          },
+          "radiusKm": {
+            "type": "number"
+          },
+          "radiusMeters": {
+            "type": "number"
+          },
+          "configured": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AttendanceNotificationSettings": {
+        "type": "object",
+        "required": [
+          "parentPresenceNotificationsEnabled",
+          "parentDepartureNotificationsEnabled"
+        ],
+        "properties": {
+          "parentPresenceNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Notifie les parents à l’arrivée"
+          },
+          "parentDepartureNotificationsEnabled": {
+            "type": "boolean",
+            "description": "Notifie les parents à la sortie / fin de journée"
           }
         }
       },
@@ -10136,13 +11802,66 @@
               },
               "requireLiveness": {
                 "type": "boolean"
+              },
+              "dualQrRequired": {
+                "type": "boolean"
+              },
+              "maxClockSkewMs": {
+                "type": "integer"
+              },
+              "enforceSchoolGeofence": {
+                "type": "boolean"
+              }
+            }
+          },
+          "scheduleSettings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "startHour": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 23
+              },
+              "startMinute": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 59
+              },
+              "endHour": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 23
+              },
+              "endMinute": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 59
+              },
+              "lateToleranceMinutes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 240
+              },
+              "scanWindowStrict": {
+                "type": "boolean"
+              },
+              "exitScanEnabled": {
+                "type": "boolean"
               }
             }
           },
           "notificationSettings": {
             "type": "object",
-            "nullable": true,
-            "additionalProperties": true
+            "additionalProperties": false,
+            "properties": {
+              "parentPresenceNotificationsEnabled": {
+                "type": "boolean"
+              },
+              "parentDepartureNotificationsEnabled": {
+                "type": "boolean"
+              }
+            }
           },
           "absenceSettings": {
             "$ref": "#/components/schemas/AttendanceAbsenceSettings"
@@ -10275,6 +11994,108 @@
             "properties": {
               "data": {
                 "$ref": "#/components/schemas/PaymentProfileDto"
+              }
+            }
+          }
+        ]
+      },
+      "PaymentOnboardingStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "status"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "KYC_REVIEW"
+          },
+          "label": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DONE",
+              "PENDING",
+              "BLOCKED",
+              "OPTIONAL"
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PaymentOnboardingChecklistDto": {
+        "type": "object",
+        "required": [
+          "schoolId",
+          "readyForOnlinePayments",
+          "currentStep",
+          "steps",
+          "profile"
+        ],
+        "properties": {
+          "schoolId": {
+            "type": "integer"
+          },
+          "readyForOnlinePayments": {
+            "type": "boolean"
+          },
+          "currentStep": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentOnboardingStep"
+            }
+          },
+          "profile": {
+            "$ref": "#/components/schemas/PaymentProfileDto"
+          }
+        }
+      },
+      "PaymentOnboardingChecklist": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "$ref": "#/components/schemas/PaymentOnboardingChecklistDto"
+              }
+            }
+          }
+        ]
+      },
+      "PaymentProfileUpsertResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": [
+                  "profile",
+                  "onboarding"
+                ],
+                "properties": {
+                  "profile": {
+                    "$ref": "#/components/schemas/PaymentProfileDto"
+                  },
+                  "onboarding": {
+                    "$ref": "#/components/schemas/PaymentOnboardingChecklistDto"
+                  }
+                }
               }
             }
           }
@@ -11941,6 +13762,865 @@
                       "$ref": "#/components/schemas/ExchangeRateRowDto"
                     }
                   }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ProductPlanTier": {
+        "type": "string",
+        "enum": [
+          "STARTER",
+          "PRO",
+          "ENTERPRISE"
+        ],
+        "description": "Starter 50 devoirs/mois · Pro 200 · Enterprise illimité"
+      },
+      "SchoolSubscriptionStatus": {
+        "type": "string",
+        "enum": [
+          "TRIAL",
+          "ACTIVE",
+          "PAST_DUE",
+          "CANCELLED",
+          "EXPIRED",
+          "DEFAULT"
+        ]
+      },
+      "AssignmentStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "PUBLISHED",
+          "CLOSED",
+          "ARCHIVED"
+        ]
+      },
+      "AssignmentSubmissionStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "SUBMITTED",
+          "GRADED",
+          "EXCUSED"
+        ]
+      },
+      "AssignmentAttachmentKind": {
+        "type": "string",
+        "enum": [
+          "PHOTO",
+          "DOCUMENT",
+          "LINK"
+        ]
+      },
+      "AssignmentMediaUploadStatus": {
+        "type": "string",
+        "enum": [
+          "LOCAL_PENDING",
+          "UPLOADING",
+          "UPLOADED",
+          "FAILED"
+        ]
+      },
+      "AssignmentMedia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AssignmentAttachmentKind"
+          },
+          "remoteUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "localClientKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true
+          },
+          "byteSize": {
+            "type": "integer",
+            "nullable": true
+          },
+          "width": {
+            "type": "integer",
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "nullable": true
+          },
+          "caption": {
+            "type": "string",
+            "nullable": true
+          },
+          "uploadStatus": {
+            "$ref": "#/components/schemas/AssignmentMediaUploadStatus"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "AssignmentMediaInput": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AssignmentAttachmentKind"
+          },
+          "remoteUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "localClientKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "checksum": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "uploadStatus": {
+            "$ref": "#/components/schemas/AssignmentMediaUploadStatus"
+          },
+          "sortOrder": {
+            "type": "integer"
+          }
+        }
+      },
+      "TenantProductPlan": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "subscriptionStatus",
+          "source"
+        ],
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ProductPlanTier"
+          },
+          "name": {
+            "type": "string",
+            "example": "Pro"
+          },
+          "subscriptionStatus": {
+            "$ref": "#/components/schemas/SchoolSubscriptionStatus"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "subscription",
+              "catalog_default",
+              "tenant_limits_fallback"
+            ]
+          },
+          "currentPeriodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "TenantAssignmentsUsage": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "example": "2026-07"
+          },
+          "used": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true
+          },
+          "remaining": {
+            "type": "integer",
+            "nullable": true
+          },
+          "utilizationPct": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "upsellSuggested": {
+            "type": "boolean",
+            "description": "true si ≥ 80% du quota"
+          },
+          "upsellRequired": {
+            "type": "boolean",
+            "description": "true si quota atteint"
+          },
+          "suggestedPlan": {
+            "$ref": "#/components/schemas/ProductPlanTier",
+            "nullable": true
+          },
+          "publishedOrClosedActive": {
+            "type": "integer"
+          },
+          "submissionsThisMonth": {
+            "type": "integer"
+          }
+        }
+      },
+      "TenantProductBlock": {
+        "type": "object",
+        "required": [
+          "plan"
+        ],
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/TenantProductPlan"
+          },
+          "assignments": {
+            "$ref": "#/components/schemas/TenantAssignmentsUsage"
+          }
+        }
+      },
+      "TenantConfigAssignmentsFeatures": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "parent_submit": {
+            "type": "boolean"
+          },
+          "offline_sync": {
+            "type": "boolean"
+          },
+          "grading": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TenantConfigLimitsAssignments": {
+        "type": "object",
+        "properties": {
+          "max_students": {
+            "type": "integer"
+          },
+          "rate_limit_rpm": {
+            "type": "integer"
+          },
+          "max_assignments_per_month": {
+            "type": "integer",
+            "description": "Aligné sur le plan commercial"
+          },
+          "max_homework_notifs_per_day": {
+            "type": "integer"
+          }
+        }
+      },
+      "UpsellRequiredMeta": {
+        "type": "object",
+        "properties": {
+          "planCode": {
+            "$ref": "#/components/schemas/ProductPlanTier"
+          },
+          "planName": {
+            "type": "string"
+          },
+          "used": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer",
+            "nullable": true
+          },
+          "utilizationPct": {
+            "type": "integer"
+          },
+          "suggestedPlan": {
+            "$ref": "#/components/schemas/ProductPlanTier",
+            "nullable": true
+          },
+          "period": {
+            "type": "string",
+            "example": "2026-07"
+          }
+        }
+      },
+      "ParentAssignmentListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/AssignmentStatus"
+          },
+          "attachmentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentMedia"
+            }
+          },
+          "teacherName": {
+            "type": "string"
+          },
+          "submission": {
+            "$ref": "#/components/schemas/ParentAssignmentSubmissionSummary",
+            "nullable": true
+          }
+        }
+      },
+      "ParentAssignmentSubmissionSummary": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/AssignmentSubmissionStatus"
+          },
+          "grade": {
+            "type": "number",
+            "nullable": true
+          },
+          "maxGrade": {
+            "type": "number",
+            "nullable": true
+          },
+          "teacherComment": {
+            "type": "string",
+            "nullable": true
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "gradedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "attachmentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentMedia"
+            }
+          },
+          "paperValidated": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ParentAssignmentDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ParentAssignmentListItem"
+          }
+        ]
+      },
+      "ParentAssignmentUploadResult": {
+        "type": "object",
+        "properties": {
+          "attachmentUrl": {
+            "type": "string",
+            "description": "Chemin relatif /uploads/..."
+          },
+          "attachmentKind": {
+            "$ref": "#/components/schemas/AssignmentAttachmentKind"
+          },
+          "attachmentMime": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer"
+          }
+        }
+      },
+      "ParentAssignmentList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParentAssignmentListItem"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      },
+      "ParentSubmitAssignmentBody": {
+        "type": "object",
+        "required": [
+          "assignmentId",
+          "studentId"
+        ],
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "attachmentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "attachmentKind": {
+            "$ref": "#/components/schemas/AssignmentAttachmentKind"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentMediaInput"
+            }
+          },
+          "parentComment": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "paperValidated": {
+            "type": "boolean",
+            "default": false
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          }
+        }
+      },
+      "TeacherCreateAssignmentBody": {
+        "type": "object",
+        "required": [
+          "classId",
+          "title",
+          "subject"
+        ],
+        "properties": {
+          "classId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attachmentUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentMediaInput"
+            }
+          },
+          "publish": {
+            "type": "boolean",
+            "default": true
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          }
+        }
+      },
+      "TeacherGradeSubmissionBody": {
+        "type": "object",
+        "required": [
+          "assignmentId",
+          "studentId",
+          "grade"
+        ],
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "studentId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "grade": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "maxGrade": {
+            "type": "number",
+            "default": 20
+          },
+          "teacherComment": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "paperValidated": {
+            "type": "boolean"
+          },
+          "idempotencyKey": {
+            "type": "string"
+          }
+        }
+      },
+      "AssignmentUsageSnapshot": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string"
+          },
+          "planCode": {
+            "$ref": "#/components/schemas/ProductPlanTier"
+          },
+          "planName": {
+            "type": "string"
+          },
+          "assignmentsCreated": {
+            "type": "integer"
+          },
+          "assignmentsLimit": {
+            "type": "integer",
+            "nullable": true
+          },
+          "assignmentsRemaining": {
+            "type": "integer",
+            "nullable": true
+          },
+          "utilizationPct": {
+            "type": "integer"
+          },
+          "upsellSuggested": {
+            "type": "boolean"
+          },
+          "upsellRequired": {
+            "type": "boolean"
+          },
+          "suggestedPlan": {
+            "$ref": "#/components/schemas/ProductPlanTier",
+            "nullable": true
+          },
+          "publishedOrClosedActive": {
+            "type": "integer"
+          },
+          "submissionsThisMonth": {
+            "type": "integer"
+          }
+        }
+      },
+      "AssignmentSyncItemResult": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "op": {
+            "type": "string",
+            "enum": [
+              "UPSERT_ASSIGNMENT",
+              "UPSERT_SUBMISSION",
+              "GRADE_SUBMISSION",
+              "ATTACH_MEDIA"
+            ]
+          },
+          "idempotencyKey": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "DUPLICATE",
+              "FAILED"
+            ]
+          },
+          "resourceId": {
+            "type": "integer"
+          },
+          "errorCode": {
+            "type": "string",
+            "example": "UPSELL_REQUIRED"
+          },
+          "message": {
+            "type": "string"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/UpsellRequiredMeta"
+          }
+        }
+      },
+      "OfflineAssignmentSyncBody": {
+        "type": "object",
+        "required": [
+          "batch",
+          "metadata"
+        ],
+        "properties": {
+          "batch": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "required": [
+                "op",
+                "idempotencyKey",
+                "payload"
+              ],
+              "properties": {
+                "op": {
+                  "type": "string",
+                  "enum": [
+                    "UPSERT_ASSIGNMENT",
+                    "UPSERT_SUBMISSION",
+                    "GRADE_SUBMISSION",
+                    "ATTACH_MEDIA"
+                  ]
+                },
+                "idempotencyKey": {
+                  "type": "string",
+                  "minLength": 10,
+                  "maxLength": 128
+                },
+                "payload": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "syncStartedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "totalItems": {
+                "type": "integer"
+              },
+              "deviceId": {
+                "type": "string"
+              },
+              "batteryLevel": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        }
+      },
+      "AssignmentSyncBatchResult": {
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string"
+          },
+          "itemCount": {
+            "type": "integer"
+          },
+          "successCount": {
+            "type": "integer"
+          },
+          "failedCount": {
+            "type": "integer"
+          },
+          "duplicateCount": {
+            "type": "integer"
+          },
+          "partial": {
+            "type": "boolean"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentSyncItemResult"
+            }
+          }
+        }
+      },
+      "SchoolBillingSubscriptionRead": {
+        "type": "object",
+        "properties": {
+          "school": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/ProductPlanTier"
+              },
+              "name": {
+                "type": "string"
+              },
+              "maxAssignmentsPerMonth": {
+                "type": "integer",
+                "nullable": true
+              },
+              "suggestedUpgrade": {
+                "$ref": "#/components/schemas/ProductPlanTier",
+                "nullable": true
+              }
+            }
+          },
+          "subscription": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "PublicPlanTier": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ProductPlanTier"
+          },
+          "name": {
+            "type": "string"
+          },
+          "maxAssignmentsPerMonth": {
+            "type": "integer",
+            "nullable": true
+          },
+          "maxHomeworkNotifsPerDay": {
+            "type": "integer",
+            "nullable": true
+          },
+          "unlimited": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SuperAdminAssignPlanBody": {
+        "type": "object",
+        "required": [
+          "planCode"
+        ],
+        "properties": {
+          "planCode": {
+            "$ref": "#/components/schemas/ProductPlanTier"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "TRIAL",
+              "ACTIVE",
+              "PAST_DUE"
+            ],
+            "default": "ACTIVE"
+          },
+          "currentPeriodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "externalRef": {
+            "type": "string",
+            "maxLength": 120
+          }
+        }
+      },
+      "ApiSuccessPublicPlanList": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiSuccess"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicPlanTier"
                 }
               }
             }

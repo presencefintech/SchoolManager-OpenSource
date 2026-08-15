@@ -1,7 +1,7 @@
 # Module Web Admin
 
 **Préfixe API :** `/api/v1/admin/*` (via `modules/web/index.ts`)  
-**Rôles :** `ADMIN`, `SUPER_ADMIN`, `FINANCE` (selon route)  
+**Rôles :** `ADMIN`, `SUPER_ADMIN`, `FINANCE`, `IT` (selon route)  
 **Policy finance :** `FinancePolicy`
 
 ## Finance admin (`/admin/finance`)
@@ -36,6 +36,7 @@
 |------|---------|------------|
 | **Passation paiements / KYC (collègue front)** | `web-admin-payment-handoff.md` | — |
 | **Actions métier admin (juin 2026)** | `admin-business-actions.md` | — |
+| **Cartes remise / personnes autorisées (août 2026)** | `web-admin-pickup-handoff.md` | `/api-docs/admin` |
 | **REST admin (source de vérité)** | `openapi/admin.json` | `/api-docs/admin` |
 | **Profil règlement KYC** | `src/docs/school-payment-profile.md` | — |
 | Temps réel Socket.io | `src/docs/openapi-admin.json` | `/api-docs/admin-realtime` |

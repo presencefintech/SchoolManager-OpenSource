@@ -64,6 +64,7 @@ src/
 | Administrateur | `ADMIN` | `/admin/dashboard` |
 | Super Administrateur | `SUPER_ADMIN` | `/super-admin/dashboard` |
 | Finances | `FINANCE` | `/finances/dashboard` |
+| Guichet inscriptions | `IT` | `/admin/desk` |
 
 ---
 
@@ -118,6 +119,25 @@ API_URL=http://localhost:5000
 | Backend Presence API (`dev:local`) | http://localhost:5000 |
 
 Le proxy Next.js réécrit `/api/*` vers `${API_URL}/api/*` (voir `next.config.js`). Redémarrer `npm run dev` après toute modification de `.env.local`.
+
+---
+
+## Documentation (sync backend)
+
+```bash
+cd ../backend
+npm run docs:sync-frontend
+```
+
+| Guide | Chemin |
+| --- | --- |
+| Cartes remise (produit + API) | `docs/PICKUP_CARDS.md` |
+| Guichet IT | `docs/IT_ROLE.md` |
+| Passation UI remise | `docs/api-contracts/web-admin-pickup-handoff.md` |
+| OpenAPI admin (dont `/admin/pickup/*`) | `docs/api-contracts/openapi/admin.json` |
+| Flutter Remise (référence, autre repo) | `docs/flutter-teacher-pickup.md` |
+
+Client API déjà branché : `src/lib/admin/api/pickup.api.ts` · fiche `/admin/students/:id?doc=pickup`.
 
 ---
 

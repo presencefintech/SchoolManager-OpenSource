@@ -158,3 +158,5 @@ Backend workflow détaillé : `backend/docs/ATTENDANCE_SHEET_WORKFLOW.md`
 
 Spécification : `docs/teacher-api-spec.md`  
 Mêmes concepts : draft → submit → seal, hydratation des présences du jour, motifs obligatoires.
+
+**Mode Remise (cartes parent) :** distinct du scan présence — [`PICKUP_CARDS.md`](./PICKUP_CARDS.md). L’écran Flutter est documenté dans le repo mobile (`flutter-teacher-pickup.md`).

@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
   FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage, CreditCard,
-  FileDown, Printer, Wallet,
+  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, IdCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -42,6 +42,7 @@ import { formatStudentInitials, formatRdcFullName } from '@/lib/utils/student-na
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
+import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -60,6 +61,598 @@ function InfoRow({ label, value, action }: { label: string; value?: string | nul
       <span className="text-xs text-zinc-400 w-32 flex-shrink-0 pt-0.5">{label}</span>
       <span className="text-sm text-zinc-700 min-w-0 break-words flex-1">{value}</span>
       {action}
+    </div>
+  )
+}
+
+const EXIT_REASONS = [
+  { value: 'TRANSFER', label: 'Transfert vers un autre établissement' },
+  { value: 'END_CYCLE', label: 'Fin de cycle' },
+  { value: 'FAMILY', label: 'Demande de la famille' },
+  { value: 'RELOCATION', label: 'Changement de résidence' },
+  { value: 'HEALTH', label: 'Raisons de santé' },
+  { value: 'ABANDON', label: 'Abandon de scolarité' },
+  { value: 'OTHER', label: 'Motif administratif' },
+] as const
+
+const SUMMONS_REASONS = [
+  { value: 'MEETING', label: 'Entretien avec la direction' },
+  { value: 'ABSENCE', label: 'Absences répétées' },
+  { value: 'DISCIPLINE', label: 'Entretien disciplinaire' },
+  { value: 'DOSSIER', label: 'Dossier administratif incomplet' },
+  { value: 'OTHER', label: 'Motif administratif' },
+] as const
+
+const EXIT_PASS_REASONS = [
+  { value: 'FAMILY', label: 'Convenance familiale' },
+  { value: 'MEDICAL', label: 'Raison médicale' },
+  { value: 'ADMIN', label: 'Démarche administrative' },
+  { value: 'SPORT', label: 'Activité scolaire / sportive' },
+  { value: 'OTHER', label: 'Autre motif autorisé' },
+] as const
+
+function todayIsoDate() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function isYoungPickupStudent(dateOfBirth?: string, className?: string) {
+  if (/maternel|prescol|préscol|garderie|creche|crèche|jardin/i.test(className ?? '')) return true
+  if (!dateOfBirth) return false
+  const years = (Date.now() - new Date(dateOfBirth).getTime()) / (365.25 * 86_400_000)
+  return years >= 0 && years < 7
+}
+
+function deskDocButtonClass(disabled?: boolean) {
+  return cn(
+    'h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors',
+    disabled && 'opacity-60',
+  )
+}
+
+function ExitCertificateModal({ studentId, onClose }: { studentId: number; onClose: () => void }) {
+  const toast = useToast()
+  const [reason, setReason] = useState<string>('TRANSFER')
+  const [destination, setDestination] = useState('')
+  const [destinationCity, setDestinationCity] = useState('')
+  const [exitDate, setExitDate] = useState(todayIsoDate)
+  const [observations, setObservations] = useState('')
+  const [nothingToReport, setNothingToReport] = useState(true)
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadExitCertificatePdf(studentId, {
+        reason: reason || undefined,
+        destination: destination.trim() || undefined,
+        destinationCity: destinationCity.trim() || undefined,
+        exitDate: exitDate || undefined,
+        observations: observations.trim() || undefined,
+        nothingToReport: nothingToReport ? '1' : '0',
+      })
+      triggerBlobDownload(blob, filename)
+      toast.success('Certificat de radiation', filename)
+      onClose()
+    } catch (err) {
+      toast.error('Radiation impossible', getApiErrorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Certificat de radiation</h2>
+        <p className="text-xs text-zinc-500 mb-5">
+          Document officiel de guichet (identité RDC, scolarité, n° de pièce). Impression seule —
+          n&apos;inactive pas le dossier. Un admin clôture le statut si besoin.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Motif</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            >
+              {EXIT_REASONS.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Date de radiation</label>
+            <input
+              type="date"
+              required
+              value={exitDate}
+              onChange={(e) => setExitDate(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">
+                Établissement d&apos;accueil
+              </label>
+              <input
+                type="text"
+                maxLength={120}
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                placeholder="Ex. Collège Saint-Joseph"
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Ville d&apos;accueil</label>
+              <input
+                type="text"
+                maxLength={80}
+                value={destinationCity}
+                onChange={(e) => setDestinationCity(e.target.value)}
+                placeholder="Ex. Lubumbashi"
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              Observations <span className="text-zinc-400">(optionnel)</span>
+            </label>
+            <textarea
+              maxLength={280}
+              rows={3}
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              placeholder="Mention libre pour l’établissement d’accueil (pas de montants)."
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          <label className="flex items-start gap-2 text-sm text-zinc-700">
+            <input
+              type="checkbox"
+              checked={nothingToReport}
+              onChange={(e) => setNothingToReport(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Mention « rien à signaler » sur le plan disciplinaire
+              <span className="block text-xs text-zinc-400">Décochez si le document ne doit pas porter cette phrase.</span>
+            </span>
+          </label>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {loading ? 'Génération…' : 'Télécharger le PDF'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ParentSummonsModal({ studentId, onClose }: { studentId: number; onClose: () => void }) {
+  const toast = useToast()
+  const [reason, setReason] = useState('MEETING')
+  const [meetingDate, setMeetingDate] = useState(todayIsoDate)
+  const [meetingTime, setMeetingTime] = useState('09:00')
+  const [location, setLocation] = useState('')
+  const [note, setNote] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadParentSummonsPdf(studentId, {
+        reason: reason || undefined,
+        meetingDate: meetingDate || undefined,
+        meetingTime: meetingTime || undefined,
+        location: location.trim() || undefined,
+        note: note.trim() || undefined,
+      })
+      triggerBlobDownload(blob, filename)
+      toast.success('Convocation parent', filename)
+      onClose()
+    } catch (err) {
+      toast.error('Convocation impossible', getApiErrorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Convocation parent</h2>
+        <p className="text-xs text-zinc-500 mb-5">
+          Impression seule — ce document n&apos;envoie pas de SMS ni de notification.
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Objet</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            >
+              {SUMMONS_REASONS.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Date</label>
+              <input
+                type="date"
+                required
+                value={meetingDate}
+                onChange={(e) => setMeetingDate(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Heure</label>
+              <input
+                type="time"
+                value={meetingTime}
+                onChange={(e) => setMeetingTime(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              Lieu <span className="text-zinc-400">(défaut : secrétariat)</span>
+            </label>
+            <input
+              type="text"
+              maxLength={120}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Secrétariat de l'établissement"
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              Mention <span className="text-zinc-400">(optionnel)</span>
+            </label>
+            <textarea
+              maxLength={280}
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ex. Merci d'apporter le carnet de correspondance."
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {loading ? 'Génération…' : 'Télécharger le PDF'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function ExitPassModal({
+  studentId,
+  youngChild,
+  dossierParentName,
+  dossierParentPhone,
+  onClose,
+}: {
+  studentId: number
+  youngChild: boolean
+  dossierParentName?: string | null
+  dossierParentPhone?: string | null
+  onClose: () => void
+}) {
+  const toast = useToast()
+  const [reason, setReason] = useState('FAMILY')
+  const [exitDate, setExitDate] = useState(todayIsoDate)
+  const [timeFrom, setTimeFrom] = useState('10:00')
+  const [timeTo, setTimeTo] = useState('12:00')
+  const [destination, setDestination] = useState('')
+  const [companion, setCompanion] = useState('')
+  const [unaccompanied, setUnaccompanied] = useState(false)
+  const [parentVisa, setParentVisa] = useState<'PRESENT' | 'PHONE' | 'NONE'>(youngChild ? 'PRESENT' : 'PHONE')
+  const [pickerKind, setPickerKind] = useState<'LINKED' | 'MANDATED'>('LINKED')
+  const [pickerPhone, setPickerPhone] = useState('')
+  const [pickerIdNumber, setPickerIdNumber] = useState('')
+  const [pickerRelation, setPickerRelation] = useState('')
+  const [note, setNote] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (youngChild && pickerKind === 'MANDATED' && !pickerIdNumber.trim()) {
+      toast.error('Pièce obligatoire', 'Pour un enfant en bas âge, notez la pièce d’identité de la personne.')
+      return
+    }
+    if (youngChild && pickerKind === 'MANDATED' && parentVisa === 'NONE') {
+      toast.error('Appel parent', 'Confirmez par téléphone que le parent a envoyé cette personne.')
+      return
+    }
+    setLoading(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadExitPassPdf(studentId, {
+        reason: reason || undefined,
+        exitDate: exitDate || undefined,
+        timeFrom: timeFrom || undefined,
+        timeTo: timeTo || undefined,
+        destination: destination.trim() || undefined,
+        companion: unaccompanied ? undefined : companion.trim() || undefined,
+        unaccompanied: !youngChild && unaccompanied ? '1' : undefined,
+        parentVisa: youngChild && parentVisa === 'NONE' ? 'PHONE' : parentVisa,
+        pickerKind,
+        pickerName: companion.trim() || undefined,
+        pickerPhone: pickerPhone.trim() || undefined,
+        pickerIdNumber: pickerIdNumber.trim() || undefined,
+        pickerRelation: pickerRelation.trim() || undefined,
+        note: note.trim() || undefined,
+      })
+      triggerBlobDownload(blob, filename)
+      toast.success('Autorisation de sortie', filename)
+      onClose()
+    } catch (err) {
+      toast.error('Autorisation impossible', getApiErrorMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Autorisation de sortie</h2>
+        <p className="text-xs text-zinc-500 mb-5">
+          {youngChild
+            ? 'Enfant en bas âge : comparer la personne au dossier, ou noter un mandat (pièce + appel au parent). Pas de sortie seule.'
+            : 'Laissez-passer du jour — uniquement si la personne n’a pas de carte remise. Visa parent = signature au guichet, sinon appel. Les titulaires de carte passent par le scan enseignant au préau.'}
+        </p>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {youngChild && (
+            <p className="text-xs rounded-xl bg-amber-50 text-amber-800 px-3 py-2">
+              Dossier parent : {dossierParentName || 'non lié'} {dossierParentPhone ? `· ${dossierParentPhone}` : ''}
+              — vérifiez la pièce avant de remettre l’enfant.
+            </p>
+          )}
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-medium text-zinc-500">Qui récupère l’enfant ?</legend>
+            {([
+              { value: 'LINKED' as const, label: 'Parent / tuteur du dossier', hint: 'Comparer nom et téléphone avec la fiche.' },
+              { value: 'MANDATED' as const, label: 'Personne non déclarée à l’inscription', hint: 'Pas de carte remise. Pièce + appel au parent, comme aujourd’hui.' },
+            ]).map((opt) => (
+              <label key={opt.value} className="flex items-start gap-2 text-sm text-zinc-700">
+                <input
+                  type="radio"
+                  name="pickerKind"
+                  checked={pickerKind === opt.value}
+                  onChange={() => {
+                    setPickerKind(opt.value)
+                    if (opt.value === 'MANDATED') setParentVisa('PHONE')
+                    if (opt.value === 'LINKED') setParentVisa('PRESENT')
+                  }}
+                  className="mt-0.5"
+                />
+                <span>
+                  {opt.label}
+                  <span className="block text-xs text-zinc-400">{opt.hint}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-medium text-zinc-500">Accord parent</legend>
+            {([
+              { value: 'PHONE' as const, label: 'Parent prévenu par téléphone', hint: 'Le n° du dossier est imprimé. Pas de signature sur place.' },
+              { value: 'PRESENT' as const, label: 'Parent ou accompagnateur présent', hint: 'Il signe le papier au guichet.' },
+              ...(!youngChild
+                ? [{ value: 'NONE' as const, label: 'Autorisation du secrétariat seulement', hint: 'Activité scolaire, parent injoignable, etc.' }]
+                : []),
+            ]).map((opt) => (
+              <label key={opt.value} className="flex items-start gap-2 text-sm text-zinc-700">
+                <input
+                  type="radio"
+                  name="parentVisa"
+                  checked={parentVisa === opt.value}
+                  onChange={() => setParentVisa(opt.value)}
+                  className="mt-0.5"
+                />
+                <span>
+                  {opt.label}
+                  <span className="block text-xs text-zinc-400">{opt.hint}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Motif</label>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            >
+              {EXIT_PASS_REASONS.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Date</label>
+            <input
+              type="date"
+              required
+              value={exitDate}
+              onChange={(e) => setExitDate(e.target.value)}
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Sortie à</label>
+              <input
+                type="time"
+                value={timeFrom}
+                onChange={(e) => setTimeFrom(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Retour prévu</label>
+              <input
+                type="time"
+                value={timeTo}
+                onChange={(e) => setTimeTo(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              Destination <span className="text-zinc-400">(optionnel)</span>
+            </label>
+            <input
+              type="text"
+              maxLength={120}
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              placeholder="Ex. Centre de santé, domicile"
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          {!youngChild && (
+            <label className="flex items-start gap-2 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={unaccompanied}
+                onChange={(e) => setUnaccompanied(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>Sortie seule / seul (sans accompagnateur)</span>
+            </label>
+          )}
+          {!unaccompanied && (
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 mb-1">
+                {pickerKind === 'MANDATED' ? 'Nom de la personne envoyée' : 'Nom de la personne présente'}
+                {pickerKind === 'LINKED' ? <span className="text-zinc-400"> (défaut : parent du dossier)</span> : null}
+              </label>
+              <input
+                type="text"
+                maxLength={120}
+                required={pickerKind === 'MANDATED'}
+                value={companion}
+                onChange={(e) => setCompanion(e.target.value)}
+                placeholder={pickerKind === 'MANDATED' ? 'Ex. KABANGE Paul' : dossierParentName || "Nom de l'accompagnateur"}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+              />
+            </div>
+          )}
+          {pickerKind === 'MANDATED' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Lien avec l’enfant</label>
+                  <input
+                    type="text"
+                    maxLength={40}
+                    value={pickerRelation}
+                    onChange={(e) => setPickerRelation(e.target.value)}
+                    placeholder="Tante, oncle, chauffeur…"
+                    className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 mb-1">Tél. de cette personne</label>
+                  <input
+                    type="tel"
+                    maxLength={30}
+                    value={pickerPhone}
+                    onChange={(e) => setPickerPhone(e.target.value)}
+                    placeholder="+243…"
+                    className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1">
+                  Pièce d’identité {youngChild ? '*' : <span className="text-zinc-400">(recommandé)</span>}
+                </label>
+                <input
+                  type="text"
+                  maxLength={40}
+                  required={youngChild}
+                  value={pickerIdNumber}
+                  onChange={(e) => setPickerIdNumber(e.target.value)}
+                  placeholder="N° carte d’électeur, permis…"
+                  className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+                />
+              </div>
+            </>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              Mention <span className="text-zinc-400">(optionnel)</span>
+            </label>
+            <textarea
+              maxLength={280}
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ex. Reprise des cours l'après-midi."
+              className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-800"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {loading ? 'Génération…' : 'Télécharger le PDF'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
@@ -258,6 +851,7 @@ function DossierCheck({ ok, label }: { ok: boolean; label: string }) {
 export default function StudentDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   const { user } = useAuth()
   const deskOnly = isItDesk(user?.role)
@@ -295,6 +889,9 @@ export default function StudentDetailPage() {
   const [downloadingCertificate, setDownloadingCertificate] = useState(false)
   const [downloadingFiche, setDownloadingFiche] = useState(false)
   const [downloadingAttendance, setDownloadingAttendance] = useState(false)
+  const [showExitCertificate, setShowExitCertificate] = useState(false)
+  const [showParentSummons, setShowParentSummons] = useState(false)
+  const [showExitPass, setShowExitPass] = useState(false)
   const [cardElement, setCardElement] = useState<HTMLDivElement | null>(null)
   const [pendingAction, setPendingAction] = useState<{
     key: string
@@ -305,6 +902,25 @@ export default function StudentDetailPage() {
     danger?: boolean
     currentlyLocked?: boolean
   } | null>(null)
+
+  const docParam = searchParams.get('doc')
+  useEffect(() => {
+    if (docParam === 'exit') setShowExitCertificate(true)
+    if (docParam === 'summons') setShowParentSummons(true)
+    if (docParam === 'pass') setShowExitPass(true)
+    if (docParam === 'pickup') {
+      requestAnimationFrame(() => document.getElementById('pickup-adults')?.scrollIntoView({ behavior: 'smooth' }))
+    }
+  }, [docParam])
+
+  function closeDeskDocModal() {
+    setShowExitCertificate(false)
+    setShowParentSummons(false)
+    setShowExitPass(false)
+    if (searchParams.get('doc')) {
+      router.replace(`/admin/students/${studentId}`)
+    }
+  }
 
   const cardData = useMemo(() => {
     if (!student) return null
@@ -332,10 +948,10 @@ export default function StudentDetailPage() {
       placeOfBirth: student.placeOfBirth,
       nationality: student.nationality,
       gender,
-      feesBalance: student.feesBalance ?? student.debtAmount ?? enrollmentDetail?.feesBalance,
+      feesBalance: deskOnly ? undefined : student.feesBalance ?? student.debtAmount ?? enrollmentDetail?.feesBalance,
       isPaymentLocked: student.isPaymentLocked,
     })
-  }, [student, branding, enrollmentDetail])
+  }, [student, branding, enrollmentDetail, deskOnly])
 
   const handleCardElement = useCallback((el: HTMLDivElement | null) => {
     setCardElement(el)
@@ -592,33 +1208,6 @@ export default function StudentDetailPage() {
                   <Printer size={12} />
                   Imprimer
                 </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadCertificate}
-                  disabled={downloadingCertificate || student.status !== 'ACTIVE'}
-                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
-                >
-                  {downloadingCertificate ? <Loader2 size={12} className="animate-spin" /> : <FileCheck size={12} />}
-                  Attestation
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadFiche}
-                  disabled={downloadingFiche || student.status !== 'ACTIVE'}
-                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
-                >
-                  {downloadingFiche ? <Loader2 size={12} className="animate-spin" /> : <FileEdit size={12} />}
-                  Fiche
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadAttendance}
-                  disabled={downloadingAttendance || student.status !== 'ACTIVE'}
-                  className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 transition-colors"
-                >
-                  {downloadingAttendance ? <Loader2 size={12} className="animate-spin" /> : <Clock size={12} />}
-                  Présence
-                </button>
               </div>
             </div>
             <div className="flex justify-center p-5 overflow-x-auto bg-zinc-50/70">
@@ -631,6 +1220,74 @@ export default function StudentDetailPage() {
             </div>
           </div>
         )}
+
+        <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-4 py-3">
+          <p className="text-sm font-semibold text-zinc-800 mb-2">Documents de guichet</p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleDownloadCertificate}
+              disabled={downloadingCertificate || student.status !== 'ACTIVE'}
+              className={deskDocButtonClass()}
+            >
+              {downloadingCertificate ? <Loader2 size={12} className="animate-spin" /> : <FileCheck size={12} />}
+              Attestation
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadFiche}
+              disabled={downloadingFiche || student.status !== 'ACTIVE'}
+              className={deskDocButtonClass()}
+            >
+              {downloadingFiche ? <Loader2 size={12} className="animate-spin" /> : <FileEdit size={12} />}
+              Fiche
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadAttendance}
+              disabled={downloadingAttendance || student.status !== 'ACTIVE'}
+              className={deskDocButtonClass()}
+            >
+              {downloadingAttendance ? <Loader2 size={12} className="animate-spin" /> : <Clock size={12} />}
+              Présence
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowExitCertificate(true)}
+              disabled={!student.matricule || student.status === 'PENDING_ENROLLMENT' || student.status === 'DELETED'}
+              className={deskDocButtonClass()}
+            >
+              <FileMinus size={12} />
+              Radiation
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowParentSummons(true)}
+              disabled={!student.matricule || student.status === 'PENDING_ENROLLMENT' || student.status === 'DELETED'}
+              className={deskDocButtonClass()}
+            >
+              <Mail size={12} />
+              Convocation
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById('pickup-adults')?.scrollIntoView({ behavior: 'smooth' })}
+              className={deskDocButtonClass()}
+            >
+              <IdCard size={12} />
+              Remise
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowExitPass(true)}
+              disabled={student.status !== 'ACTIVE'}
+              className={deskDocButtonClass()}
+            >
+              <DoorOpen size={12} />
+              Sortie
+            </button>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
@@ -691,6 +1348,8 @@ export default function StudentDetailPage() {
               enrollmentFormUrl={student.enrollmentFormUrl}
             />
 
+            <PickupAdultsPanel studentId={studentId} />
+
             {/* Sessions académiques */}
             {enrollmentDetail?.enrollments && enrollmentDetail.enrollments.length > 0 && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
@@ -709,13 +1368,29 @@ export default function StudentDetailPage() {
                 <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
                   <Wallet size={14} /> Finance
                 </h2>
+                {!deskOnly && (
                 <a
                   href="/admin/finance/paiements"
                   className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
                 >
                   Guichet paiements →
                 </a>
+                )}
               </div>
+              {deskOnly ? (
+                <div className={cn(
+                  'rounded-xl p-4 border',
+                  dossier?.isFinanciallyCleared
+                    ? 'bg-emerald-50 border-emerald-100'
+                    : 'bg-red-50 border-red-100',
+                )}>
+                  <p className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Situation</p>
+                  <p className="text-base font-semibold text-zinc-900">
+                    {dossier?.isFinanciallyCleared ? 'En ordre' : 'Dette en cours'}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">Les montants restent au service finance.</p>
+                </div>
+              ) : (
               <div className="grid grid-cols-3 gap-3">
                 {[
                   { label: 'À payer', value: student.totalDue ?? enrollmentDetail?.totalFees, color: 'zinc' },
@@ -734,12 +1409,15 @@ export default function StudentDetailPage() {
                   </div>
                 ))}
               </div>
+              )}
 
               <div className="border-t border-zinc-100 pt-5 space-y-5">
                 <StudentFeeAssignmentPanel
                   studentId={studentId}
                   sessionId={feeAttributionSessionId}
+                  hideAmounts={deskOnly}
                 />
+                {!deskOnly && (
                 <StudentFinanceDashboard
                   studentId={studentId}
                   api="admin"
@@ -747,6 +1425,7 @@ export default function StudentDetailPage() {
                   showNav={false}
                   compactHeader
                 />
+                )}
               </div>
             </div>
 
@@ -897,6 +1576,22 @@ export default function StudentDetailPage() {
         onConfirm={executePendingAction}
         onCancel={closePendingAction}
       />
+
+      {showExitCertificate && (
+        <ExitCertificateModal studentId={studentId} onClose={closeDeskDocModal} />
+      )}
+      {showParentSummons && (
+        <ParentSummonsModal studentId={studentId} onClose={closeDeskDocModal} />
+      )}
+      {showExitPass && (
+        <ExitPassModal
+          studentId={studentId}
+          youngChild={isYoungPickupStudent(student.dateOfBirth, student.className)}
+          dossierParentName={student.parentName}
+          dossierParentPhone={student.parentPhone}
+          onClose={closeDeskDocModal}
+        />
+      )}
     </div>
   )
 }
