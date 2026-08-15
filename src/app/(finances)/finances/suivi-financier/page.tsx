@@ -11,70 +11,10 @@ import {
   useFinanceClasses,
 } from '@/lib/hooks/use-finance'
 import { formatMoney } from '@/lib/finance/currency'
-import type { StudentFinancialSort, StudentFinancialStatus, StudentsFinancialPrintReport } from '@/types/finance'
+import { downloadBlob } from '@/lib/finance/download-blob'
+import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
+import type { StudentFinancialSort, StudentFinancialStatus } from '@/types/finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-function openPrintReport(report: StudentsFinancialPrintReport) {
-  const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700')
-  if (!w) return
-
-  const rows = report.rows
-    .map(
-      (r) => `
-      <tr>
-        <td>${r.matricule}</td>
-        <td>${r.eleve}</td>
-        <td>${r.classe}</td>
-        <td>${r.section}</td>
-        <td>${r.option}</td>
-        <td class="num">${formatMoney(r.fraisTotaux)}</td>
-        <td class="num">${formatMoney(r.dejaPaye)}</td>
-        <td class="num">${formatMoney(r.solde)}</td>
-        <td>${r.statut}</td>
-      </tr>`,
-    )
-    .join('')
-
-  w.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>Suivi financier — ${report.schoolName}</title>
-<style>
-  body{font-family:system-ui,sans-serif;padding:24px;color:#18181b;font-size:12px}
-  h1{font-size:18px;margin:0 0 4px} .meta{color:#71717a;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse} th,td{border:1px solid #e4e4e7;padding:6px 8px;text-align:left}
-  th{background:#f4f4f5;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
-  .num{text-align:right;font-variant-numeric:tabular-nums}
-  .summary{display:flex;gap:16px;margin:16px 0 20px;flex-wrap:wrap}
-  .summary div{padding:10px 14px;border:1px solid #e4e4e7;border-radius:8px;min-width:120px}
-  .summary strong{display:block;font-size:16px;margin-top:2px}
-  @media print{body{padding:12px}}
-</style></head><body>
-  <h1>Suivi financier — ${report.schoolName}</h1>
-  ${report.schoolAddress ? `<p class="meta">${report.schoolAddress}${report.schoolPhone ? ` · Tél. ${report.schoolPhone}` : ''}${report.schoolEmail ? ` · ${report.schoolEmail}` : ''}</p>` : [report.schoolPhone ? `Tél. ${report.schoolPhone}` : null, report.schoolEmail].filter(Boolean).length ? `<p class="meta">${[report.schoolPhone ? `Tél. ${report.schoolPhone}` : null, report.schoolEmail].filter(Boolean).join(' · ')}</p>` : ''}
-  <p class="meta">Généré le ${new Date(report.generatedAt).toLocaleString('fr-FR')}</p>
-  <div class="summary">
-    <div>Élèves<strong>${report.summary.total}</strong></div>
-    <div>Débiteurs<strong>${report.summary.debtors}</strong></div>
-    <div>En ordre<strong>${report.summary.paid}</strong></div>
-    <div>Solde total<strong>${formatMoney(report.summary.totalBalance)}</strong></div>
-    ${report.summary.totalExpectedLoss != null ? `<div>ECL<strong>${formatMoney(report.summary.totalExpectedLoss)}</strong></div>` : ''}
-  </div>
-  <table>
-    <thead><tr>${report.columns.map((c) => `<th>${c}</th>`).join('')}</tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <script>window.onload=()=>window.print()</script>
-</body></html>`)
-  w.document.close()
-}
 
 export default function SuiviFinancierPage() {
   return (
@@ -177,7 +117,7 @@ function SuiviFinancierContent() {
     if (result.type === 'csv') {
       downloadBlob(result.blob, `suivi-financier-${new Date().toISOString().slice(0, 10)}.csv`)
     } else {
-      openPrintReport(result.report)
+      openStudentsFinancialPrintReport(result.report)
     }
   }
 
@@ -261,7 +201,7 @@ function SuiviFinancierContent() {
           </button>
           <div className="rounded-xl border border-zinc-200 bg-white p-4">
             <p className="text-xs text-zinc-500">Solde · ECL</p>
-            <p className="text-lg font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance)}</p>
+            <p className="text-lg font-bold text-zinc-900 tabular-nums">{formatMoney(meta.totalBalance ?? 0)}</p>
             <p className="text-xs text-zinc-500 tabular-nums mt-0.5">
               ECL {formatMoney(meta.totalExpectedLoss ?? 0)}
               {(meta.drift ?? 0) > 0 ? ` · ${meta.drift} écart(s)` : ''}

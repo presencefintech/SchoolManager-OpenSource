@@ -168,9 +168,10 @@ Encaissement guichet (existant) :
 
 Voir [frontend-integration-guide.md §6](./frontend-integration-guide.md) :
 
-- `POST /admin/finance/payments/manual`
-- `POST /admin/finance/payments/link-orphan`
-- `GET /finance/payments/receipts/{paymentId}/download`
+- `POST /admin/finance/payments/manual` — inclure `feeStructureId` + `monthYear` (YYYY-MM) si barème `MONTHLY`
+- `POST /admin/finance/payments/link-orphan` — idem (`feeStructureId`, `monthYear`)
+- `GET /admin/finance/students/:studentId/fee-periods?feeStructureId=` — mois encaissable (`allowedMonthYear`)
+- `GET /finance/payments/receipts/{paymentId}/download` ou alias `GET /finance/receipts/{paymentId}/download`
 
 **Pas de KYC requis** pour l’encaissement manuel.
 

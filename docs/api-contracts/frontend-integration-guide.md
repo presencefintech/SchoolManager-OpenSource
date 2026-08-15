@@ -1,10 +1,16 @@
 # Guide d'intégration Frontend — Presence
 
 **Public :** équipes Flutter (parent), React/Vue (admin / finance)  
-**Dernière mise à jour :** 26 juin 2026  
+**Dernière mise à jour :** 15 août 2026  
 **Backend production (Render) :** `https://gestion-presence-et-paiement-mobile.onrender.com`
 
-> **Collègue web (admin / superadmin / finance) :** pack de passation dédié → **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** (message Slack copiable + écrans + OpenAPI).
+> **Collègue web (admin / superadmin / finance / IT) :**  
+> - Paiements / KYC → **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)**  
+> - Présence / horaires → **[web-admin-attendance-handoff.md](./web-admin-attendance-handoff.md)**  
+> - Cartes remise (guichet) → **[web-admin-pickup-handoff.md](./web-admin-pickup-handoff.md)** · rôle IT [`docs/IT_ROLE.md`](../../docs/IT_ROLE.md)
+>
+> **Collègue Flutter enseignant :**  
+> - Mode Remise (cartes parent, 15 h) → **[flutter-teacher-pickup.md](./flutter-teacher-pickup.md)** — **ne pas** mélanger avec `/scan/qr`
 
 ---
 
@@ -43,35 +49,18 @@ static const socketUrl = 'http://192.168.1.42:5000';
 | App | Préfixe | Rôle JWT |
 |-----|---------|----------|
 | **Parent mobile** | `/api/v1/mobile/parents` | `PARENT` |
+| **Teacher mobile** | `/api/v1/mobile/teachers` | `TEACHER` |
 | **Auth (OTP / login)** | `/api/v1/auth` | — |
 | **Payment Intent (2 étapes)** | `/api/v1/mobile/parents/finance` ou `/api/v1/finance` | `PARENT` |
 | **Admin web** | `/api/v1/admin/*` | `ADMIN`, `SUPER_ADMIN` |
 | **Finance web** | `/api/v1/admin/finance/*`, `/api/v1/finance/*` | `ADMIN`, `FINANCE` |
 
-### Admin web — Dashboard (`/admin/dashboard`)
-
-Page : `src/app/(admin)/admin/dashboard` · contrat : **`types/dashboard.types.ts`**
-
-| Hook | API | Refresh |
-|------|-----|---------|
-| `useAdminStats()` | `GET /admin/stats` | 60s |
-| `useLiveFeed()` | `GET /admin/live-feed?limit=25` | 15s |
-| `useHeatmap()` | `GET /admin/heatmap` | cache 5 min |
-| `useFraudAlerts()` | `GET /admin/fraud-alerts` | 60s |
-| `useControlStats()` | `GET /admin/dashboard/stats` | 30s |
-| `useClasses()` | `GET /admin/classes?limit=100` | 60s |
-
-**Champ clé juin 2026 :** `data.weeklyTrend[]` sur `/admin/stats` — `{ date, label, present, rate }` pour le graphique tendance 7 jours.
-
-**Auth :** refresh automatique sur 401 via `POST /auth/refresh-token` (`src/lib/api/client.ts`).
-
-**Structure inscription :** `GET/POST /admin/structure/sections` · `GET/POST /admin/structure/options?sectionId=` — voir `admin-README.md` § Structure scolaire.
-
 **Swagger / OpenAPI :**
 
-- **Web admin / finance :** **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** · `swagger-docs/admin.json` · `/api-docs/admin`
+- **Web admin / finance :** **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** · **[web-admin-attendance-handoff.md](./web-admin-attendance-handoff.md)** · `swagger-docs/admin.json` · `/api-docs/admin`
 - **Web superadmin :** `swagger-docs/superadmin.json` · `/api-docs/superadmin`
-- **Flutter :** [`flutter-parent-guide.md`](./flutter-parent-guide.md) · [`flutter-parent-moratorium.md`](./flutter-parent-moratorium.md) · [`FLUTTER_AI_PROMPT.md`](./FLUTTER_AI_PROMPT.md)
+- **Flutter parent :** [`flutter-parent-guide.md`](./flutter-parent-guide.md) · [`flutter-parent-moratorium.md`](./flutter-parent-moratorium.md) · [`FLUTTER_AI_PROMPT.md`](./FLUTTER_AI_PROMPT.md)
+- **Flutter teacher :** [`flutter-teacher-guide.md`](./flutter-teacher-guide.md) · `openapi-teacher-mobile.json` · `/api-docs/teacher-mobile`
 - Parent : `src/docs/openapi-parent-finances.json` (+ `openapi-parent-mobile.json`)
 - Auth : `src/docs/openapi-auth.json`
 - Admin temps réel : `src/docs/openapi-admin.json`
@@ -348,14 +337,9 @@ GET /api/v1/mobile/parents/payments/{paymentId}/receipt
 
 ```http
 GET /api/v1/receipts/verify/{token}
-GET /api/v1/receipts/lookup?receiptNumber=REC-…&code=PF-…
 ```
 
-Pages web : `/verify` (saisie manuelle) · `/verify/receipt/{token}` (scan).
-
-Le token QR est encodé dans le ticket (`p{paymentId}_{hmac32}`). Code PF imprimé : `PF-{schoolId}-{YYMM}-{checksum}`.
-
-> Guide complet : [`receipt-verify.md`](./receipt-verify.md) · [`flutter-parent-receipt.md`](./flutter-parent-receipt.md) §2.2–2.3
+Le token est encodé dans le QR du PDF (`p{paymentId}_{hmac32}`).
 
 ---
 
@@ -468,7 +452,7 @@ Authorization: Bearer <JWT>
 |-------|------|
 | `feeStructureId` | **Obligatoire** — montant résolu par `PaymentAmountResolver` |
 | `amount` | **Non accepté** — ne pas envoyer |
-| `monthYear` | Optionnel — période de facturation `YYYY-MM` |
+| `monthYear` | Obligatoire si `billingPeriod=MONTHLY` et `FEE_BILLING_PERIOD_ENFORCEMENT=true` — utiliser `allowedMonthYear` de `GET …/fee-periods` |
 
 Après succès : settlement + génération PDF async + `scheduleReceiptPdf`.
 
@@ -476,9 +460,12 @@ Après succès : settlement + génération PDF async + `scheduleReceiptPdf`.
 
 ```http
 GET /api/v1/finance/payments/receipts/{paymentId}/download?format=A4
+GET /api/v1/finance/receipts/{paymentId}/download?format=A4
 GET /api/v1/finance/payments/receipts/{paymentId}/thermal
 Authorization: Bearer <JWT>   (FINANCE / ADMIN)
 ```
+
+PDF enrichi : matricule élève, lignes de frais avec période, caissier, solde post-paiement.
 
 Réponse : `application/pdf` streamé (même moteur que le parent). Voir **[flutter-parent-receipt.md](./flutter-parent-receipt.md)** §2.3.
 
@@ -580,6 +567,10 @@ Valide que le montant falsifié `0.01` est ignoré au profit du barème serveur.
 | Document | Audience / usage |
 |----------|------------------|
 | **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** | **Passation collègue web** — KYC, OpenAPI, sockets, message à copier |
+| **[web-admin-attendance-handoff.md](./web-admin-attendance-handoff.md)** | **Passation collègue web** — réglages présence, horaires, EXIT |
+| **[web-admin-pickup-handoff.md](./web-admin-pickup-handoff.md)** | **Guichet** — personnes autorisées, cartes remise (1 / adulte) |
+| **[flutter-teacher-pickup.md](./flutter-teacher-pickup.md)** | **Flutter enseignant** — mode Remise, `POST /pickup/preview` + `/confirm` |
+| **[flutter-teacher-guide.md](./flutter-teacher-guide.md)** | App enseignant (présence, Dual-QR, offline) |
 | [school-payment-profile.md](./school-payment-profile.md) | KYC multitenant (détail métier) |
 | [api-coverage.md](./api-coverage.md) | Matrice complète API + sockets |
 | [flutter-parent-receipt.md](./flutter-parent-receipt.md) | Reçus PDF + QR verify |

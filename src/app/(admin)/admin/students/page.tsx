@@ -167,7 +167,7 @@ export default function StudentsPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
-          {([['list', 'Liste'], ['applications', 'Candidatures'], ['debtors', 'Débiteurs']] as [Tab, string][]).map(([t, label]) => (
+          {([['list', 'Liste'], ['applications', 'Candidatures'], ...(!deskOnly ? [['debtors', 'Débiteurs'] as [Tab, string]] : [])] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -311,6 +311,26 @@ export default function StudentsPage() {
                                       })()
                                     },
                                   },
+                                  {
+                                    id: 'exit',
+                                    label: 'Certificat de radiation',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=exit`),
+                                  },
+                                  {
+                                    id: 'summons',
+                                    label: 'Convocation parent',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=summons`),
+                                  },
+                                  {
+                                    id: 'pickup',
+                                    label: 'Cartes remise (parents)',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=pickup`),
+                                  },
+                                  {
+                                    id: 'pass',
+                                    label: 'Autorisation de sortie',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=pass`),
+                                  },
                                 ]}
                               />
                             </td>
@@ -432,7 +452,7 @@ export default function StudentsPage() {
         )}
 
         {/* DEBTORS TAB */}
-        {tab === 'debtors' && (
+        {tab === 'debtors' && !deskOnly && (
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
             {loadingDebtors ? (
               <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>

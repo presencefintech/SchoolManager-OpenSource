@@ -97,6 +97,7 @@ const IT_NAV_SECTIONS: NavSection[] = [
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
       { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
       { label: 'Classes', href: '/admin/classes', icon: BookOpen },
+      { label: 'Dettes / en ordre', href: '/admin/finance/controle', icon: Wallet },
       { label: 'Enseignants', href: '/admin/teachers', icon: School },
       { label: 'Import Excel', href: '/admin/import', icon: FolderOpen },
     ],

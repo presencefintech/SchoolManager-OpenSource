@@ -10,7 +10,7 @@ Régénérer avant partage collaborateur : `npm run docs:openapi`
 | **SuperAdmin** | `superadmin.json` | `SUPER_ADMIN` | `/api-docs/superadmin` |
 | **Parent mobile** | `parent-mobile.json` | `PARENT` | `/api-docs/parent-mobile` |
 
-> **Parcours parent multi-enfants (juil. 2026) :** extension OpenAPI `x-parent-onboarding` dans `parent-mobile.json` — 1× `activate-access` (1er enfant) + N× `claim-student` (enfants suivants). Guide : `backend/docs/FRONTEND_AUTH_INTEGRATION.md`.
+> **Cartes remise (août 2026) :** `admin.json` → `/admin/enrollments/{id}/pickup*` et `/admin/pickup/adults/*`. Guide : [`../web-admin-pickup-handoff.md`](../web-admin-pickup-handoff.md) · produit [`../../PICKUP_CARDS.md`](../../PICKUP_CARDS.md).
 
 > **Invitations admin (juil. 2026) :** `POST /admin/invitations/staff/resend` · revoke body `{ targetUserId? | invitationId? }` · staff invite avec `phone` E.164 · parent-code = **1 code / élève**.
 
@@ -26,7 +26,7 @@ Régénérer avant partage collaborateur : `npm run docs:openapi`
 
 > **KYC :** `PUT` payment-profile → `admin.json` · `GET` (lecture FINANCE) → aussi dans `finance.json` · `verify`/`reject` → `superadmin.json`. Schémas partagés : `paymentProfileSchemas` dans `scripts/swagger-openapi-shared.js`.
 
-**Compteur ops (juil. 2026) :** admin **166** · superadmin **112** · finance **40**
+**Compteur ops (août 2026) :** admin **178+** (dont cartes remise `/admin/pickup/*`) · superadmin **112** · finance **40**
 
 > **Admin & SuperAdmin :** une seule spec REST chacun — `admin.json` et `superadmin.json`. Schémas KYC partagés via `scripts/swagger-openapi-shared.js` → `paymentProfileSchemas`.
 

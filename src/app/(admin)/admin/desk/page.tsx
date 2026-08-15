@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  AlertTriangle, Camera, ClipboardList, CreditCard, FileCheck, Inbox,
-  Search, UserPlus, Users, BookOpen,
+  AlertTriangle, Camera, ClipboardList, CreditCard, FileCheck, IdCard, Inbox,
+  Search, UserPlus, Users,
 } from 'lucide-react'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
 import { useIncompleteDossiers, useIntakeInbox, useStudents } from '@/lib/hooks/use-admin'
@@ -19,6 +19,7 @@ const GAPS: { id: string; label: string }[] = [
   { id: 'birthCertificate', label: 'Acte' },
   { id: 'emergency', label: 'Urgence' },
   { id: 'class', label: 'Classe' },
+  { id: 'pickup', label: 'Remise' },
 ]
 
 export default function DeskHomePage() {
@@ -41,6 +42,7 @@ export default function DeskHomePage() {
   const incompleteTotal = incomplete.data?.total ?? 0
   const missingPhoto = counts?.photo ?? 0
   const missingParent = counts?.parent ?? 0
+  const missingPickup = counts?.pickup ?? 0
 
   const results = useMemo(() => search.data?.data ?? [], [search.data])
 
@@ -49,18 +51,19 @@ export default function DeskHomePage() {
       <AdminModuleHero
         eyebrow="Secrétariat"
         title="Guichet inscriptions"
-        subtitle="Recherche, dossiers incomplets, documents du comptoir"
+        subtitle="Recherche, dossiers incomplets, documents du comptoir — cartes remise après déclaration des tuteurs"
         quickLinks={[
           { href: '/admin/inbox', label: 'Boîte d’entrée', icon: Inbox },
           { href: '/admin/enrollments', label: 'Inscrire', icon: UserPlus },
+          { href: '/admin/finance/controle', label: 'Dettes / en ordre', icon: ClipboardList },
           { href: '/admin/cards', label: 'Cartes', icon: CreditCard },
-          { href: '/admin/classes', label: 'Classes', icon: BookOpen },
         ]}
         metrics={[
           { label: 'À traiter', value: loading ? '…' : inboxTotal, loading, icon: Inbox },
           { label: 'Dossiers incomplets', value: loading ? '…' : incompleteTotal, loading, icon: ClipboardList, valueClassName: incompleteTotal > 0 ? 'text-amber-300' : 'text-white' },
           { label: 'Sans photo', value: loading ? '…' : missingPhoto, loading, icon: Camera },
           { label: 'Sans parent', value: loading ? '…' : missingParent, loading, icon: Users },
+          { label: 'Sans remise', value: loading ? '…' : missingPickup, loading, icon: IdCard, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
         ]}
       />
 
@@ -182,7 +185,13 @@ export default function DeskHomePage() {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => router.push(`/admin/students/${row.id}`)}
+                        onClick={() =>
+                          router.push(
+                            gap === 'pickup'
+                              ? `/admin/students/${row.id}?doc=pickup`
+                              : `/admin/students/${row.id}`,
+                          )
+                        }
                         className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
                       >
                         Compléter
@@ -222,8 +231,8 @@ export default function DeskHomePage() {
         <div className="grid sm:grid-cols-3 gap-3">
           {[
             { href: '/admin/cards', label: 'Imprimer des cartes', icon: CreditCard },
+            { href: '/admin/finance/controle', label: 'Listes dette / en ordre', icon: ClipboardList },
             { href: '/admin/students', label: 'Attestations élèves', icon: FileCheck },
-            { href: '/admin/inbox', label: 'Valider les demandes', icon: Inbox },
           ].map((card) => (
             <Link
               key={card.href}

@@ -60,6 +60,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
     '/admin/announcements',
     '/admin/teachers',
     '/admin/files',
+    '/admin/finance/controle',
     '/admin/profil-securite',
     '/verify',
   ],
@@ -73,4 +74,9 @@ export function pathAllowedForRole(role: UserRole, pathname: string): boolean {
 
 export function isItDesk(role?: UserRole | null): boolean {
   return role === 'IT'
+}
+
+/** Field-level security : montants ledger = ADMIN / FINANCE / SUPER_ADMIN uniquement. */
+export function canSeeFinanceAmounts(role?: UserRole | null): boolean {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE'
 }

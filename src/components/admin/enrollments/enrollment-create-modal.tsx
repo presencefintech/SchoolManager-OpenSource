@@ -492,7 +492,10 @@ export function EnrollmentCreateModal({
           `Paiement #${result.deposit.paymentId} · ${result.deposit.amount} ${result.deposit.currency} — reçu en cours.`,
         )
       } else {
-        toast.success('Inscription créée', 'Le dossier élève a été enregistré avec succès.')
+        toast.success(
+          'Inscription créée',
+          'Dossier enregistré. Ensuite : déclarer les personnes autorisées (Remise) sur la fiche élève.',
+        )
       }
       if (result.explicitFeePack?.assigned?.length) {
         toast.success(
@@ -1027,6 +1030,11 @@ export function EnrollmentCreateModal({
                 <textarea {...register('medicalNotes')} rows={2} placeholder="Informations utiles en cas d'urgence…" className={cn(inputCls, 'resize-none')} />
               </Field>
             </FormSection>
+
+            <p className="text-[11px] text-zinc-600 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2">
+              Après les inscriptions du foyer : sur une fiche élève, déclarez les personnes autorisées
+              (photo + pièce, quels enfants) puis imprimez les cartes remise. Une carte par adulte, pas par enfant.
+            </p>
           </div>
 
           <div className="sticky bottom-0 flex gap-3 px-6 py-4 border-t border-zinc-100 bg-white">
