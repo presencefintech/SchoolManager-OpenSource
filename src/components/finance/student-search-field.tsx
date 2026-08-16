@@ -72,9 +72,13 @@ export function FinanceStudentSearchField({
   }, [query])
 
   const { data: classesRaw } = useFinanceClasses()
-  const classes: ClassRow[] = Array.isArray(classesRaw)
-    ? (classesRaw as ClassRow[])
-    : ((classesRaw as { data?: ClassRow[] })?.data ?? [])
+  const classes: ClassRow[] = useMemo(
+    () =>
+      Array.isArray(classesRaw)
+        ? (classesRaw as ClassRow[])
+        : ((classesRaw as { data?: ClassRow[] })?.data ?? []),
+    [classesRaw],
+  )
 
   const sections = useMemo(() => {
     const map = new Map<number, string>()

@@ -191,7 +191,7 @@ export function ImportPage() {
           </select>
           {!selectedSchoolId && (
             <p className="text-[11px] text-amber-500 mt-1.5">
-              Sélectionnez un établissement avant d'importer
+              Sélectionnez un établissement avant d&apos;importer
             </p>
           )}
         </div>

@@ -99,6 +99,7 @@ export function BulkPresenceGrid({
       setSheetStatus(undefined)
       return
     }
+    const students = studentsData?.data ?? []
     if (students.length === 0) return
 
     if (sheetDraft) {
