@@ -18,7 +18,7 @@ type FinanceAdminNavLink = {
 }
 
 const LINKS: FinanceAdminNavLink[] = [
-  { href: '/admin/finance', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { href: '/admin/finance', label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
   { href: '/admin/finance/rapports', label: 'Rapports', icon: BarChart3, highlight: true },
   { href: '/admin/finance/factures', label: 'Factures & Frais', icon: FileText, highlight: true },
   { href: '/admin/finance/paiements', label: 'Paiements', icon: CreditCard },

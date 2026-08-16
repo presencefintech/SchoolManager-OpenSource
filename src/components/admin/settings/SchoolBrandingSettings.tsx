@@ -250,7 +250,7 @@ export function SchoolBrandingSettings() {
               <p className="mt-1 text-[10px] text-zinc-400">Phrase courte — reçus, e-mails, rapports.</p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-600 mb-1">Devise / motto</label>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">Devise scolaire</label>
               <input
                 type="text"
                 value={form.devise ?? ''}

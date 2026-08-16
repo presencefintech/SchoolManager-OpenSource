@@ -76,7 +76,7 @@ export function ActiveQrSessionsPanel() {
           </div>
         ) : sessions.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
-            Aucune session dual-QR en cours
+            Aucune session QR active
             {realtimeStatus === 'live' && ' — mise à jour auto sur pointage'}
           </p>
         ) : (
@@ -99,7 +99,7 @@ export function ActiveQrSessionsPanel() {
                       <p className="font-medium text-slate-800">
                         {classNameById.get(s.classId) ?? `Classe #${s.classId}`}
                       </p>
-                      <p className="text-[10px] text-slate-400">Ens. #{s.teacherId}</p>
+                      <p className="text-[10px] text-slate-400">Enseignant #{s.teacherId}</p>
                     </td>
                     <td className="px-4 py-2.5 tabular-nums text-slate-700">
                       {s.scanCount}/{s.maxScans}

@@ -27,7 +27,7 @@ type NavSection = { title?: string; links: NavLink[] }
 const NAV_SECTIONS: NavSection[] = [
   {
     links: [
-      { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Tableau de bord', href: '/admin/dashboard', icon: LayoutDashboard },
       { label: 'Présences', href: '/admin/presences', icon: Activity },
     ],
   },
@@ -52,7 +52,7 @@ const NAV_SECTIONS: NavSection[] = [
       {
         label: 'Finance', href: '/admin/finance', icon: Wallet,
         children: [
-          { label: 'Dashboard', href: '/admin/finance', icon: LayoutDashboard },
+          { label: 'Tableau de bord', href: '/admin/finance', icon: LayoutDashboard },
           { label: 'Rapports', href: '/admin/finance/rapports', icon: BarChart3 },
           { label: 'Paiements', href: '/admin/finance/paiements', icon: CreditCard },
           { label: 'Contrôle', href: '/admin/finance/controle', icon: ClipboardList },

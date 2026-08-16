@@ -32,7 +32,7 @@ function BatchDetail({ batchId }: { batchId: string }) {
   const { data, isLoading } = useSyncBatchDetail(batchId)
   if (isLoading) return <Sk className="h-12 mx-4 my-2" />
   if (!data?.results?.length) {
-    return <p className="px-4 py-2 text-[11px] text-slate-400">Aucun détail item.</p>
+    return <p className="px-4 py-2 text-[11px] text-slate-400">Aucun détail.</p>
   }
   return (
     <ul className="px-4 py-2 space-y-1 max-h-32 overflow-y-auto bg-slate-50/80 border-t border-slate-100">
@@ -58,7 +58,7 @@ export function SyncBatchesPanel() {
       <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-2">
           <CloudUpload size={16} className="text-sky-600" />
-          <h3 className="text-sm font-semibold text-slate-800">Sync offline</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Synchronisation hors ligne</h3>
           <span className="text-[10px] text-slate-400">lots récents</span>
         </div>
         <button
@@ -95,7 +95,7 @@ export function SyncBatchesPanel() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-slate-800">
-                          {b.itemCount} item{b.itemCount > 1 ? 's' : ''} · acteur #{b.actorId}
+                          {b.itemCount} enregistrement{b.itemCount > 1 ? 's' : ''} · utilisateur #{b.actorId}
                         </p>
                         <p className="text-[10px] text-slate-400 mt-0.5">{fmtDateTime(b.createdAt)}</p>
                       </div>

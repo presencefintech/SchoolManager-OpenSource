@@ -54,6 +54,22 @@ const SEVERITY_CFG: Record<string, string> = {
   HIGH: 'bg-red-50 text-red-700',
 }
 
+const SEVERITY_LABEL: Record<string, string> = {
+  LOW: 'Faible',
+  MEDIUM: 'Moyen',
+  HIGH: 'Élevé',
+}
+
+function humanizeCode(value: string) {
+  return value.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+}
+
+function realtimeLabel(status: string) {
+  if (status === 'live') return 'Temps réel'
+  if (status === 'connecting') return 'Connexion…'
+  return 'Actualisation'
+}
+
 const KPI_COLORS = {
   indigo: 'bg-indigo-50 text-indigo-600',
   emerald: 'bg-emerald-50 text-emerald-600',
@@ -288,7 +304,7 @@ export function AdminDashboardView() {
                   'w-2 h-2 rounded-full',
                   realtimeStatus === 'live' ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400',
                 )} />
-                {realtimeStatus === 'live' ? 'Socket live' : realtimeStatus === 'connecting' ? 'Connexion…' : 'Polling'}
+                {realtimeLabel(realtimeStatus)}
               </span>
               <button
                 type="button"
@@ -402,7 +418,7 @@ export function AdminDashboardView() {
         {statsError && !authLoading && (
           <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-50/90 border border-amber-200/80 text-sm text-amber-900">
             <span>
-              Impossible de charger les statistiques — vérifiez que le backend tourne sur le port 5000
+              Impossible de charger les statistiques — vérifiez la connexion au serveur
               et reconnectez-vous si besoin.
             </span>
             <button
@@ -417,7 +433,7 @@ export function AdminDashboardView() {
         )}
         {controlError && !statsError && (
           <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700">
-            <span>Métriques système indisponibles (workers / pipeline).</span>
+            <span>Indicateurs système indisponibles pour le moment.</span>
             <button
               type="button"
               onClick={() => refetchControl()}
@@ -447,9 +463,9 @@ export function AdminDashboardView() {
             loading={loadingControl}
           />
           <KpiCard
-            label="Workers actifs"
+            label="Traitements actifs"
             value={fmtKpi(control?.workers?.active, loadingControl)}
-            sub={control?.pipeline?.healthy !== false ? 'Pipeline OK' : 'Pipeline dégradé'}
+            sub={control?.pipeline?.healthy !== false ? 'Système opérationnel' : 'Système ralenti'}
             icon={Zap}
             color="indigo"
             loading={loadingControl}
@@ -489,9 +505,9 @@ export function AdminDashboardView() {
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-sm font-semibold text-slate-800">Flux API</span>
+                  <span className="text-sm font-semibold text-slate-800">Activité récente</span>
                 </div>
-                <span className="text-[10px] text-slate-400">15s</span>
+                <span className="text-[10px] text-slate-400">Actualisé</span>
               </div>
               <div className="flex-1 overflow-y-auto max-h-64">
               {loadingFeed ? (
@@ -559,9 +575,9 @@ export function AdminDashboardView() {
                   {alerts.slice(0, 4).map((alert) => (
                     <li key={alert.id} className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                       <div className="flex justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-800">{alert.type}</span>
+                        <span className="text-xs font-semibold text-slate-800">{humanizeCode(alert.type)}</span>
                         <span className={cn('text-[9px] font-bold px-1.5 py-0.5 rounded-full', SEVERITY_CFG[alert.severity])}>
-                          {alert.severity}
+                          {SEVERITY_LABEL[alert.severity] ?? alert.severity}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">{alert.description}</p>

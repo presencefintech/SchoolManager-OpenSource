@@ -759,7 +759,7 @@ function PhotoDocumentsCard({ studentId, firstName, lastName, photoUrl, birthCer
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-      <h2 className="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2"><Camera size={14} /> Photo & documents</h2>
+      <h2 className="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2"><Camera size={14} /> Photo et documents</h2>
       <div className="flex items-start gap-4">
         <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
           <StudentCardPhoto photoUrl={photoUrl ?? null} firstName={firstName} lastName={lastName} />

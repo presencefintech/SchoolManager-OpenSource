@@ -14,13 +14,13 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import type { AttendanceReadinessChecks } from '@/types/admin'
 
 const CHECK_LABELS: Record<keyof AttendanceReadinessChecks, string> = {
-  settingsProvisioned: 'Réglages provisionnés',
-  qrCodeEnabled: 'Mode QR activé',
-  geofenceConfigured: 'Géofence configurée',
+  settingsProvisioned: 'Paramètres initialisés',
+  qrCodeEnabled: 'Pointage QR activé',
+  geofenceConfigured: 'Zone GPS configurée',
   academicSessionOpen: 'Session académique ouverte',
-  dualQrRequired: 'Dual-QR requis',
-  offlineSyncEnabled: 'Sync hors ligne',
-  parentPresenceNotificationsEnabled: 'Notifs parents',
+  dualQrRequired: 'Double QR requis',
+  offlineSyncEnabled: 'Hors ligne autorisé',
+  parentPresenceNotificationsEnabled: 'Notifications parents',
 }
 
 const CHECK_ORDER: (keyof AttendanceReadinessChecks)[] = [
@@ -103,7 +103,7 @@ export function AttendanceReadinessPanel() {
     return (
       <div className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-amber-950">Readiness pilote indisponible</p>
+          <p className="text-sm font-medium text-amber-950">Préparation au pointage indisponible</p>
           <p className="text-xs text-amber-800/90 mt-0.5 break-words">{detail}</p>
         </div>
         <button
@@ -129,7 +129,7 @@ export function AttendanceReadinessPanel() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-1">
               <Rocket size={16} className="text-indigo-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Readiness pilote</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Préparation au pointage</h2>
               <span
                 className={cn(
                   'text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full',
@@ -138,17 +138,17 @@ export function AttendanceReadinessPanel() {
                     : 'bg-amber-50 text-amber-700',
                 )}
               >
-                {data.ready ? 'Go-live' : 'En cours'}
+                {data.ready ? 'Prêt' : 'En cours'}
               </span>
               {realtimeStatus === 'live' && (
                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
                   <Zap size={10} />
-                  KPIs live
+                  En direct
                 </span>
               )}
             </div>
             <p className="text-xs text-slate-500 mb-3">
-              École #{data.schoolId} — checklist déploiement attendance Sprint 1
+              Checklist de configuration du pointage
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
               {CHECK_ORDER.map((key) => (
@@ -163,15 +163,15 @@ export function AttendanceReadinessPanel() {
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="rounded-lg bg-white border border-slate-100 px-2 py-2">
                 <p className="text-lg font-bold text-slate-800 tabular-nums">{metrics.dualQrValidated}</p>
-                <p className="text-[9px] text-slate-400 uppercase">QR OK</p>
+                <p className="text-[9px] text-slate-400 uppercase">Validés</p>
               </div>
               <div className="rounded-lg bg-white border border-slate-100 px-2 py-2">
                 <p className="text-lg font-bold text-rose-600 tabular-nums">{metrics.dualQrRejected}</p>
-                <p className="text-[9px] text-slate-400 uppercase">QR rej.</p>
+                <p className="text-[9px] text-slate-400 uppercase">Refusés</p>
               </div>
               <div className="rounded-lg bg-white border border-slate-100 px-2 py-2">
                 <p className="text-lg font-bold text-slate-800 tabular-nums">{metrics.syncBatches}</p>
-                <p className="text-[9px] text-slate-400 uppercase">Sync 1h</p>
+                <p className="text-[9px] text-slate-400 uppercase">Sync. 1 h</p>
               </div>
             </div>
           )}
@@ -183,7 +183,7 @@ export function AttendanceReadinessPanel() {
               disabled={provision.isPending}
               className="w-full px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
             >
-              {provision.isPending ? 'Provision…' : 'Provisionner les réglages'}
+              {provision.isPending ? 'Initialisation…' : 'Initialiser les paramètres'}
             </button>
           )}
 
@@ -229,7 +229,7 @@ export function AttendanceReadinessPanel() {
 
       {failedChecks.length > 0 && data.ready && (
         <div className="px-5 py-2 border-t border-slate-100 text-[11px] text-slate-400">
-          Go-live atteint — {failedChecks.length} point(s) optionnel(s) restant(s).
+          Pointage prêt — {failedChecks.length} point(s) optionnel(s) restant(s).
         </div>
       )}
     </div>

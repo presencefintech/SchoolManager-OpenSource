@@ -24,7 +24,7 @@ const ROLES = [
 ]
 
 const CHANNEL_LABEL: Record<string, string> = {
-  WEBSOCKET: 'Socket',
+  WEBSOCKET: 'Application',
   SMS: 'SMS',
   EMAIL: 'Email',
   PUSH: 'Push',
@@ -101,7 +101,7 @@ function DlqPanel({
             <AlertTriangle size={14} className="text-amber-600" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-zinc-900">File morte (DLQ)</h2>
+            <h2 className="text-sm font-semibold text-zinc-900">Livraisons en échec</h2>
             <p className="text-xs text-zinc-400">Livraisons en échec définitif — relance manuelle</p>
           </div>
         </div>
@@ -124,7 +124,7 @@ function DlqPanel({
         <div className="py-16 text-center">
           <CheckCircle size={28} className="mx-auto text-emerald-300 mb-2" />
           <p className="text-sm text-zinc-500">Aucune livraison en échec</p>
-          <p className="text-xs text-zinc-400 mt-1">La DLQ est vide pour cette école</p>
+          <p className="text-xs text-zinc-400 mt-1">Aucune relance n’est en attente pour cette école</p>
         </div>
       ) : (
         <div className="divide-y divide-zinc-50">
@@ -143,7 +143,7 @@ function DlqPanel({
                   )}
                 </div>
                 <p className="text-xs text-zinc-500 mt-0.5 truncate">
-                  {item.userName ?? `User #${item.userId}`} · {item.message}
+                  {item.userName ?? `Utilisateur #${item.userId}`} · {item.message}
                 </p>
                 {item.lastError && (
                   <p className="text-[11px] text-red-600 mt-1 font-mono truncate">{item.lastError}</p>
@@ -278,7 +278,7 @@ export default function NotificationsPage() {
               [
                 ['group', 'Diffusion groupe', Users],
                 ['direct', 'Message direct', User],
-                ['dlq', 'Échecs DLQ', AlertTriangle],
+                ['dlq', 'Échecs de livraison', AlertTriangle],
               ] as const
             ).map(([key, label, Icon]) => (
               <button

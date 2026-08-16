@@ -299,7 +299,7 @@ export default function SettingsPage() {
               />
               <Toggle
                 label="Autoriser le scan de sortie"
-                description="Un second scan le même jour enregistre la sortie (EXIT) et peut notifier les parents."
+                description="Un second scan le même jour enregistre la sortie et peut notifier les parents."
                 checked={form.scheduleSettings.exitScanEnabled}
                 onChange={(v) => updateSchedule('exitScanEnabled', v)}
               />
@@ -320,7 +320,7 @@ export default function SettingsPage() {
                 }
               />
               <Toggle
-                label="Dual-QR obligatoire"
+                label="Double QR obligatoire"
                 description="Élève + établissement"
                 checked={form.validationRules.dualQrRequired}
                 onChange={(v) =>
@@ -363,7 +363,7 @@ export default function SettingsPage() {
             </div>
             <div className="mt-4">
               <NumberField
-                label="Décalage horaire max (ms)"
+                label="Décalage horaire max (millisecondes)"
                 value={form.validationRules.maxClockSkewMs}
                 onChange={(v) =>
                   updateForm((f) => ({
@@ -411,7 +411,7 @@ export default function SettingsPage() {
             </div>
             {geoMessage && <p className="mt-2 text-xs text-red-600">{geoMessage}</p>}
             {settings && !settings.geofence?.configured && !geoMessage && (
-              <p className="mt-2 text-xs text-amber-600">Géofence non configurée — requis pour la readiness pilote.</p>
+              <p className="mt-2 text-xs text-amber-600">Zone GPS non configurée — nécessaire pour le pointage sur place.</p>
             )}
           </div>
 
@@ -433,7 +433,7 @@ export default function SettingsPage() {
             />
             <Toggle
               label="Notifier à la sortie / fin de journée"
-              description="Sortie (EXIT) ou notification automatique après la fermeture si pas de second scan"
+              description="Sortie ou notification automatique après la fermeture s’il n’y a pas de second scan"
               checked={form.notificationSettings.parentDepartureNotificationsEnabled}
               onChange={(v) =>
                 updateForm((f) => ({
@@ -450,8 +450,8 @@ export default function SettingsPage() {
           <div className="p-5">
             <h3 className="text-sm font-semibold text-zinc-700 mb-3">Absences automatiques</h3>
             <Toggle
-              label="Marquer absent après le cutoff"
-              description="Job cron — exécution toutes les 15 min"
+              label="Marquer absent après l’heure limite"
+              description="Traitement automatique toutes les 15 minutes"
               checked={form.absenceSettings.autoMarkEnabled}
               onChange={(v) =>
                 updateForm((f) => ({
@@ -462,7 +462,7 @@ export default function SettingsPage() {
             />
             <div className="grid grid-cols-3 gap-4 mt-4">
               <NumberField
-                label="Heure cutoff"
+                label="Heure limite"
                 value={form.absenceSettings.cutoffHour}
                 min={0}
                 max={23}
@@ -477,7 +477,7 @@ export default function SettingsPage() {
                 }
               />
               <NumberField
-                label="Minute cutoff"
+                label="Minute"
                 value={form.absenceSettings.cutoffMinute}
                 min={0}
                 max={59}
@@ -511,7 +511,7 @@ export default function SettingsPage() {
 
           {settings && (
             <div className="px-5 py-3 text-xs text-zinc-400 border-t border-zinc-100">
-              Source : {settings.source === 'database' ? 'base dédiée' : 'legacy'} · École #{settings.schoolId}
+              Paramètres de l’établissement
             </div>
           )}
 

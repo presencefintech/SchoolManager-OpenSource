@@ -517,7 +517,7 @@ function EnrollmentsPageContent() {
                                         if (pack?.assigned?.length) {
                                           toast.success(
                                             'Inscription approuvée',
-                                            `${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
+                                            `${pack.assigned.length} barème(s) optionnel(s) appliqués.`,
                                           )
                                         } else {
                                           toast.success('Inscription approuvée')

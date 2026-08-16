@@ -19,7 +19,7 @@ const GAPS: { id: string; label: string }[] = [
   { id: 'birthCertificate', label: 'Acte' },
   { id: 'emergency', label: 'Urgence' },
   { id: 'class', label: 'Classe' },
-  { id: 'pickup', label: 'Remise' },
+  { id: 'pickup', label: 'Cartes parent' },
 ]
 
 export default function DeskHomePage() {
@@ -52,7 +52,7 @@ export default function DeskHomePage() {
       <AdminModuleHero
         eyebrow="Secrétariat"
         title="Guichet inscriptions"
-        subtitle="Recherche, dossiers incomplets, documents du comptoir — cartes remise après déclaration des tuteurs"
+        subtitle="Recherche, dossiers incomplets et documents du comptoir — cartes parent après déclaration des tuteurs"
         quickLinks={[
           { href: '/admin/inbox', label: 'Boîte d’entrée', icon: Inbox },
           { href: '/admin/enrollments', label: 'Inscrire', icon: UserPlus },
@@ -64,7 +64,7 @@ export default function DeskHomePage() {
           { label: 'Dossiers incomplets', value: loading ? '…' : incompleteTotal, loading, icon: ClipboardList, valueClassName: incompleteTotal > 0 ? 'text-amber-300' : 'text-white' },
           { label: 'Sans photo', value: loading ? '…' : missingPhoto, loading, icon: Camera },
           { label: 'Sans parent', value: loading ? '…' : missingParent, loading, icon: Users },
-          { label: 'Sans remise', value: loading ? '…' : missingPickup, loading, icon: Contact, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
+          { label: 'Sans carte parent', value: loading ? '…' : missingPickup, loading, icon: Contact, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
         ]}
       />
 
