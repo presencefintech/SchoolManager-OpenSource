@@ -112,7 +112,7 @@ export function FraudView({ embedded = false }: { embedded?: boolean }) {
           <CardTitle icon={Search} title="Analyser un élève" desc="Score de fraude individuel cross-school" />
           <div className="space-y-3">
             <div>
-              <label className={LABEL}>ID de l'élève</label>
+              <label className={LABEL}>ID de l&apos;élève</label>
               <input
                 type="number"
                 placeholder="Ex: 142"
