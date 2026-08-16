@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -23,6 +23,14 @@ const GAPS: { id: string; label: string }[] = [
 ]
 
 export default function DeskHomePage() {
+  return (
+    <Suspense fallback={null}>
+      <DeskHomeContent />
+    </Suspense>
+  )
+}
+
+function DeskHomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [q, setQ] = useState('')

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -277,6 +277,14 @@ function StatusBadge({ status }: { status: PreEnrollmentStatus }) {
 }
 
 export default function PreEnrollmentsPage() {
+  return (
+    <Suspense fallback={null}>
+      <PreEnrollmentsPageContent />
+    </Suspense>
+  )
+}
+
+function PreEnrollmentsPageContent() {
   const toast = useToast()
   const searchParams = useSearchParams()
   const [statusFilter, setStatusFilter] = useState<'' | PreEnrollmentStatus>('PENDING')

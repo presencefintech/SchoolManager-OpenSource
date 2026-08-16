@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -849,6 +849,14 @@ function DossierCheck({ ok, label }: { ok: boolean; label: string }) {
 }
 
 export default function StudentDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudentDetailPageContent />
+    </Suspense>
+  )
+}
+
+function StudentDetailPageContent() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
