@@ -9,8 +9,8 @@ const METHOD_LABELS: Record<string, string> = {
   manual: 'Manuel',
   qrCode: 'QR',
   rfid: 'RFID',
-  facialRecognition: 'Facial',
-  fingerprint: 'Bio',
+  facialRecognition: 'Visage',
+  fingerprint: 'Empreinte',
 }
 
 function Chip({ ok, label }: { ok: boolean; label: string }) {
@@ -50,7 +50,7 @@ export function AttendanceSettingsBanner() {
           <Chip key={m} ok label={m} />
         ))}
         <Chip ok={settings.geofence?.configured ?? false} label="Géofence" />
-        <Chip ok={settings.validationRules?.dualQrRequired ?? false} label="Dual-QR" />
+        <Chip ok={settings.validationRules?.dualQrRequired ?? false} label="Double QR" />
         <Chip
           ok={settings.notificationSettings?.parentPresenceNotificationsEnabled ?? false}
           label="Notifs arrivée"
@@ -60,7 +60,7 @@ export function AttendanceSettingsBanner() {
           label="Notifs sortie"
         />
         <Chip ok={settings.scheduleSettings?.scanWindowStrict ?? false} label="Fenêtre stricte" />
-        <Chip ok={settings.scheduleSettings?.exitScanEnabled ?? false} label="EXIT" />
+        <Chip ok={settings.scheduleSettings?.exitScanEnabled ?? false} label="Sortie" />
         <Chip ok={settings.absenceSettings?.autoMarkEnabled ?? false} label="Absences auto" />
       </div>
 
@@ -78,7 +78,7 @@ export function AttendanceSettingsBanner() {
         {settings.absenceSettings?.autoMarkEnabled && (
           <span className="inline-flex items-center gap-1">
             <Clock size={12} />
-            Cutoff {String(settings.absenceSettings.cutoffHour).padStart(2, '0')}:
+            Limite {String(settings.absenceSettings.cutoffHour).padStart(2, '0')}:
             {String(settings.absenceSettings.cutoffMinute).padStart(2, '0')}
           </span>
         )}
@@ -98,7 +98,7 @@ export function AttendanceSettingsBanner() {
           !(settings.notificationSettings?.parentDepartureNotificationsEnabled ?? false) && (
           <span className="inline-flex items-center gap-1 text-slate-400">
             <Bell size={12} />
-            Notifs off
+            Notifications désactivées
           </span>
         )}
         <Link

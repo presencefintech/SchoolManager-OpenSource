@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  CreditCard, IdCard, Loader2, Plus, Printer, ShieldAlert, Trash2, Upload,
+  Contact, CreditCard, Loader2, Plus, Printer, ShieldAlert, Trash2, Upload,
 } from 'lucide-react'
 import { pickupApi, type PickupAdult, type PickupAdultPayload } from '@/lib/admin/api/pickup.api'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -120,7 +120,7 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
     try {
       const { blob, filename } = await pickupApi.downloadAdultCardPdf(adult.id, reissue)
       triggerBlobDownload(blob, filename)
-      toast.success(reissue ? 'Nouvelle carte (ancien QR invalidé)' : 'Carte remise')
+      toast.success(reissue ? 'Nouvelle carte (l’ancienne n’est plus valable)' : 'Carte parent imprimée')
       void queryClient.invalidateQueries({ queryKey })
     } catch (err) {
       toast.error('Impression impossible', getApiErrorMessage(err))
@@ -134,7 +134,7 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
     try {
       const { blob, filename } = await pickupApi.downloadStudentCardsPdf(studentId)
       triggerBlobDownload(blob, filename)
-      toast.success('Feuille de cartes remise')
+      toast.success('Feuille de cartes parent imprimée')
       void queryClient.invalidateQueries({ queryKey })
     } catch (err) {
       toast.error('Impression impossible', getApiErrorMessage(err))
@@ -162,12 +162,12 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
         <div>
           <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
-            <IdCard size={14} /> Remise — personnes autorisées
+            <Contact size={14} /> Cartes parent — personnes autorisées
           </h2>
           <p className="text-[11px] text-zinc-400 mt-1 max-w-xl">
-            D’abord déclarer qui a le droit de récupérer l’enfant. Ensuite seulement on imprime :
-            <strong className="font-medium text-zinc-500"> 1 carte par adulte</strong>, photo + QR.
-            Le soir, l’enseignant ouvre le mode Remise — pas le scan présence du matin.
+            Déclarez d’abord qui a le droit de récupérer l’enfant, puis imprimez
+            <strong className="font-medium text-zinc-500"> une carte par adulte</strong> (photo + QR).
+            Le soir, l’enseignant utilise le mode sortie — pas le pointage du matin.
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">

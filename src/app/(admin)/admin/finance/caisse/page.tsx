@@ -122,8 +122,7 @@ export default function AdminCashFloatPolicyPage() {
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">Caisse &amp; fonds</h1>
             <p className="mt-1 text-sm text-zinc-500">
-              Niveau production multi-écoles : valeur démo, go-live, synthèse jour/semaine,
-              WhatsApp promoteur.
+              Synthèse journalière, suivi des fonds et rapports pour la direction.
             </p>
           </div>
         </div>
@@ -142,7 +141,7 @@ export default function AdminCashFloatPolicyPage() {
       <div className="flex gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1">
         {(
           [
-            ['valeur', 'Valeur & go-live'],
+            ['valeur', 'Vue d’ensemble'],
             ['journee', 'Synthèse journée'],
             ['suivi', 'Suivi fonds'],
             ['promoteur', 'Boîte promoteur'],
@@ -208,7 +207,7 @@ export default function AdminCashFloatPolicyPage() {
                 <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-zinc-900">Checklist go-live production</p>
+                      <p className="text-sm font-semibold text-zinc-900">Checklist de mise en service</p>
                       <p className="text-xs text-zinc-500">{goLive.salesNarrative}</p>
                     </div>
                     <div
@@ -286,7 +285,7 @@ export default function AdminCashFloatPolicyPage() {
                         ) : (
                           <Send size={12} />
                         )}
-                        Notifier ADMIN / FINANCE
+                        Notifier la direction
                       </button>
                     </div>
                   </div>
@@ -792,7 +791,7 @@ export default function AdminCashFloatPolicyPage() {
                   }
                   className="rounded border-zinc-300"
                 />
-                Dual USD + FC
+                Deux devises (USD et FC)
               </label>
 
               {form.enableDualCurrencyFloat ? (

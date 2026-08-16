@@ -183,7 +183,7 @@ export function EnrollSessionDrawer({
       if (pack?.assigned?.length) {
         toast.success(
           'Frais optionnels',
-          `${pack.assigned.length} barème(s) EXPLICIT attribué(s).`,
+          `${pack.assigned.length} barème(s) optionnel(s) attribué(s).`,
         )
       }
       if (pack?.skipped?.length) {
@@ -293,7 +293,7 @@ export function EnrollSessionDrawer({
 
         {explicitCatalog.length > 0 && (
           <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
-            <p className="text-[11px] font-medium text-amber-900">Frais optionnels (EXPLICIT)</p>
+            <p className="text-[11px] font-medium text-amber-900">Frais optionnels</p>
             <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
               <input
                 type="checkbox"
@@ -494,7 +494,7 @@ export function RentreePackDrawer({
       if (result.explicitFeePack?.assigned?.length) {
         toast.success(
           'Frais optionnels',
-          `${result.explicitFeePack.assigned.length} barème(s) EXPLICIT attribué(s).`,
+          `${result.explicitFeePack.assigned.length} barème(s) optionnel(s) attribué(s).`,
         )
       }
       onClose()
@@ -588,7 +588,7 @@ export function RentreePackDrawer({
 
         {explicitCatalog.length > 0 && (
           <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
-            <p className="text-[11px] font-medium text-amber-900">Frais optionnels (EXPLICIT)</p>
+            <p className="text-[11px] font-medium text-amber-900">Frais optionnels</p>
             <label className="flex items-start gap-2 text-xs text-zinc-700 cursor-pointer">
               <input
                 type="checkbox"

@@ -99,7 +99,7 @@ function AdminIntakePageContent() {
       if (pack?.assigned?.length) {
         toast.success(
           'Approuvé',
-          `Élève activé — ${pack.assigned.length} barème(s) EXPLICIT appliqués.`,
+          `Élève activé — ${pack.assigned.length} barème(s) optionnel(s) appliqués.`,
         )
       } else {
         toast.success('Approuvé', 'Élève activé (matricule + QR).')

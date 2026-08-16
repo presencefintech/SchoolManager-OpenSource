@@ -17,6 +17,13 @@ const INTEGRITY_STYLE = {
   unavailable: 'text-slate-500 bg-slate-100',
 } as const
 
+const INTEGRITY_LABEL = {
+  healthy: 'Sain',
+  warning: 'Attention',
+  critical: 'Critique',
+  unavailable: 'Indisponible',
+} as const
+
 export function ControlDashboardPanel() {
   const { status: realtimeStatus } = useAdminRealtimeStatus()
   const { data: control, isPending } = useControlStats()
@@ -37,18 +44,18 @@ export function ControlDashboardPanel() {
       <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-2">
           <Server size={16} className="text-indigo-600" />
-          <h3 className="text-sm font-semibold text-slate-800">Ops contrôle</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Supervision</h3>
           <span
             className={cn(
               'text-[10px] font-medium px-2 py-0.5 rounded-full',
               control.pipeline.healthy ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700',
             )}
           >
-            Pipeline {control.pipeline.healthy ? 'OK' : 'dégradé'}
+            {control.pipeline.healthy ? 'Système OK' : 'Système ralenti'}
           </span>
         </div>
         <span className="text-[10px] text-slate-400">
-          {realtimeStatus === 'live' ? 'Socket ~3s' : 'Polling 30s'}
+          {realtimeStatus === 'live' ? 'Temps réel' : 'Actualisation'}
           {control.generatedAt && (
             <> · {new Date(control.generatedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</>
           )}
@@ -67,21 +74,21 @@ export function ControlDashboardPanel() {
           <div className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-slate-500 mb-1">
               <Zap size={12} />
-              <span className="text-[10px] uppercase tracking-wide">API ms</span>
+              <span className="text-[10px] uppercase tracking-wide">Latence API</span>
             </div>
             <p className="text-xl font-bold text-slate-900 tabular-nums">{control.performance.apiAvgMs}</p>
           </div>
           <div className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-slate-500 mb-1">
               <Zap size={12} />
-              <span className="text-[10px] uppercase tracking-wide">Worker ms</span>
+              <span className="text-[10px] uppercase tracking-wide">Traitement</span>
             </div>
             <p className="text-xl font-bold text-slate-900 tabular-nums">{control.performance.workerAvgMs}</p>
           </div>
           <div className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-slate-500 mb-1">
               <Server size={12} />
-              <span className="text-[10px] uppercase tracking-wide">File</span>
+              <span className="text-[10px] uppercase tracking-wide">File d’attente</span>
             </div>
             <p className="text-xl font-bold text-slate-900 tabular-nums">{control.pipeline.queueDepth}</p>
             <p className="text-[10px] text-slate-400">{control.workers.active} actif(s)</p>
@@ -94,12 +101,12 @@ export function ControlDashboardPanel() {
           <div className="rounded-lg border border-slate-100 p-3">
             <div className="flex items-center gap-1.5 text-slate-600 font-medium mb-2">
               <Shield size={13} />
-              Gatekeeper (1h)
+              Contrôles anti-fraude (1 h)
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="font-bold text-slate-800 tabular-nums">{control.security.gatekeeper.livenessFailure}</p>
-                <p className="text-[9px] text-slate-400">Liveness</p>
+                <p className="text-[9px] text-slate-400">Vivacité</p>
               </div>
               <div>
                 <p className="font-bold text-slate-800 tabular-nums">{control.security.gatekeeper.imageQuality}</p>
@@ -122,7 +129,7 @@ export function ControlDashboardPanel() {
                 Intégrité scans
               </div>
               <span className={cn('text-[9px] font-bold uppercase px-2 py-0.5 rounded-full', integrityClass)}>
-                {control.integrity.status}
+                {INTEGRITY_LABEL[control.integrity.status] ?? control.integrity.status}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">

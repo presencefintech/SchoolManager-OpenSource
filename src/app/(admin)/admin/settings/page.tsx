@@ -6,77 +6,16 @@ import { Save, RefreshCw } from 'lucide-react'
 import { SchoolBrandingSettings } from '@/components/admin/settings/SchoolBrandingSettings'
 import { FinanceCurrencySettings } from '@/components/admin/settings/FinanceCurrencySettings'
 import { useAttendanceSettings, useUpdateAttendanceSettings } from '@/lib/hooks/use-admin'
+import {
+  buildPatch,
+  geofenceError,
+  settingsToForm,
+  type AttendanceFormState,
+} from '@/lib/admin/attendance-settings-patch'
 import type {
-  AttendanceSettings,
-  PatchAttendanceSettingsPayload,
   AttendanceMethods,
-  AttendanceValidationRules,
-  AttendanceNotificationSettings,
-  AttendanceAbsenceSettings,
   AttendanceScheduleSettings,
 } from '@/types/admin'
-
-const DEFAULT_SCHEDULE: AttendanceScheduleSettings = {
-  startHour: 8,
-  startMinute: 0,
-  endHour: 17,
-  endMinute: 0,
-  lateToleranceMinutes: 15,
-  scanWindowStrict: true,
-  exitScanEnabled: true,
-}
-
-type AttendanceFormState = {
-  methods: AttendanceMethods
-  offlineSyncEnabled: boolean
-  validationRules: AttendanceValidationRules
-  scheduleSettings: AttendanceScheduleSettings
-  geofenceLat: string
-  geofenceLng: string
-  geofenceRadiusKm: string
-  notificationSettings: AttendanceNotificationSettings
-  absenceSettings: AttendanceAbsenceSettings
-}
-
-function normalizeSchedule(
-  raw: AttendanceSettings['scheduleSettings'] | null | undefined,
-): AttendanceScheduleSettings {
-  return {
-    startHour: raw?.startHour ?? DEFAULT_SCHEDULE.startHour,
-    startMinute: raw?.startMinute ?? DEFAULT_SCHEDULE.startMinute,
-    endHour: raw?.endHour ?? DEFAULT_SCHEDULE.endHour,
-    endMinute: raw?.endMinute ?? DEFAULT_SCHEDULE.endMinute,
-    lateToleranceMinutes: raw?.lateToleranceMinutes ?? DEFAULT_SCHEDULE.lateToleranceMinutes,
-    scanWindowStrict: raw?.scanWindowStrict ?? DEFAULT_SCHEDULE.scanWindowStrict,
-    exitScanEnabled: raw?.exitScanEnabled ?? DEFAULT_SCHEDULE.exitScanEnabled,
-  }
-}
-
-const DEFAULT_NOTIFICATION_SETTINGS: AttendanceNotificationSettings = {
-  parentPresenceNotificationsEnabled: false,
-  parentDepartureNotificationsEnabled: false,
-}
-const DEFAULT_ABSENCE_SETTINGS: AttendanceAbsenceSettings = {
-  autoMarkEnabled: false,
-  cutoffHour: 9,
-  cutoffMinute: 0,
-  timezone: 'Africa/Kinshasa',
-}
-
-function settingsToForm(settings: AttendanceSettings): AttendanceFormState {
-  const geofence = settings.geofence ?? { latitude: null, longitude: null, radiusKm: 0.5, radiusMeters: 500, configured: false }
-  return {
-    methods: { ...settings.methods },
-    offlineSyncEnabled: settings.offlineSyncEnabled,
-    validationRules: { ...settings.validationRules },
-    scheduleSettings: normalizeSchedule(settings.scheduleSettings),
-    geofenceLat: geofence.latitude != null ? String(geofence.latitude) : '',
-    geofenceLng: geofence.longitude != null ? String(geofence.longitude) : '',
-    geofenceRadiusKm: String(geofence.radiusKm ?? 0.5),
-    notificationSettings: { ...DEFAULT_NOTIFICATION_SETTINGS, ...settings.notificationSettings },
-    absenceSettings: { ...DEFAULT_ABSENCE_SETTINGS, ...settings.absenceSettings },
-  }
-}
 
 function scheduleToMinutes(s: Pick<AttendanceScheduleSettings, 'startHour' | 'startMinute' | 'endHour' | 'endMinute'>) {
   return {
@@ -85,65 +24,6 @@ function scheduleToMinutes(s: Pick<AttendanceScheduleSettings, 'startHour' | 'st
   }
 }
 
-function buildPatch(original: AttendanceSettings, form: AttendanceFormState): PatchAttendanceSettingsPayload {
-  const patch: PatchAttendanceSettingsPayload = {}
-  const originalSchedule = normalizeSchedule(original.scheduleSettings)
-  const originalNotifs: AttendanceNotificationSettings = {
-    parentPresenceNotificationsEnabled:
-      original.notificationSettings?.parentPresenceNotificationsEnabled ?? false,
-    parentDepartureNotificationsEnabled:
-      original.notificationSettings?.parentDepartureNotificationsEnabled ?? false,
-  }
-
-  const methodKeys = Object.keys(form.methods) as (keyof AttendanceMethods)[]
-  if (methodKeys.some((k) => form.methods[k] !== original.methods[k])) {
-    patch.methods = form.methods
-  }
-
-  if (form.offlineSyncEnabled !== original.offlineSyncEnabled) {
-    patch.offlineSyncEnabled = form.offlineSyncEnabled
-  }
-
-  const ruleKeys = Object.keys(form.validationRules) as (keyof AttendanceValidationRules)[]
-  if (ruleKeys.some((k) => form.validationRules[k] !== original.validationRules[k])) {
-    patch.validationRules = form.validationRules
-  }
-
-  const scheduleKeys = Object.keys(form.scheduleSettings) as (keyof AttendanceScheduleSettings)[]
-  if (scheduleKeys.some((k) => form.scheduleSettings[k] !== originalSchedule[k])) {
-    patch.scheduleSettings = { ...form.scheduleSettings }
-  }
-
-  if (
-    form.notificationSettings.parentPresenceNotificationsEnabled !==
-      originalNotifs.parentPresenceNotificationsEnabled ||
-    form.notificationSettings.parentDepartureNotificationsEnabled !==
-      originalNotifs.parentDepartureNotificationsEnabled
-  ) {
-    patch.notificationSettings = { ...form.notificationSettings }
-  }
-
-  const originalAbsence = original.absenceSettings ?? DEFAULT_ABSENCE_SETTINGS
-  const absenceKeys = Object.keys(form.absenceSettings) as (keyof AttendanceAbsenceSettings)[]
-  if (absenceKeys.some((k) => form.absenceSettings[k] !== originalAbsence[k])) {
-    patch.absenceSettings = form.absenceSettings
-  }
-
-  const originalGeofence = original.geofence ?? { latitude: null, longitude: null, radiusKm: 0.5 }
-  const lat = form.geofenceLat.trim() ? Number(form.geofenceLat) : null
-  const lng = form.geofenceLng.trim() ? Number(form.geofenceLng) : null
-  const radiusKm = Number(form.geofenceRadiusKm)
-  const geoChanged =
-    lat !== originalGeofence.latitude ||
-    lng !== originalGeofence.longitude ||
-    radiusKm !== originalGeofence.radiusKm
-
-  if (geoChanged && lat != null && lng != null && Number.isFinite(radiusKm) && radiusKm > 0) {
-    patch.geofence = { latitude: lat, longitude: lng, radiusKm }
-  }
-
-  return patch
-}
 
 function Toggle({
   label,
@@ -179,6 +59,8 @@ function NumberField({
   hint,
   min,
   max,
+  step,
+  inputMode,
 }: {
   label: string
   value: string | number
@@ -186,15 +68,19 @@ function NumberField({
   hint?: string
   min?: number
   max?: number
+  step?: string
+  inputMode?: 'decimal' | 'numeric'
 }) {
   return (
     <div>
       <label className="block text-xs font-medium text-zinc-600 mb-1">{label}</label>
       <input
-        type="number"
+        type="text"
+        inputMode={inputMode ?? (step === 'any' ? 'decimal' : 'numeric')}
         value={value}
         min={min}
         max={max}
+        step={step}
         onChange={(e) => onChange(e.target.value)}
         className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
       />
@@ -240,11 +126,21 @@ export default function SettingsPage() {
     return end <= start
   }, [form])
 
-  const canSave = dirty && patch != null && Object.keys(patch).length > 0 && !scheduleInvalid
+  const geoMessage = settings && form ? geofenceError(settings, form) : ''
+  const hasPatch = patch != null && Object.keys(patch).length > 0
+  const canSave =
+    dirty &&
+    hasPatch &&
+    !geoMessage &&
+    !(scheduleInvalid && patch?.scheduleSettings != null)
 
   const handleSave = () => {
     if (!patch || Object.keys(patch).length === 0) return
-    if (scheduleInvalid) {
+    if (geoMessage) {
+      setClientError(geoMessage)
+      return
+    }
+    if (scheduleInvalid && patch.scheduleSettings) {
       setClientError('La fin de fenêtre doit être après le début.')
       return
     }
@@ -403,7 +299,7 @@ export default function SettingsPage() {
               />
               <Toggle
                 label="Autoriser le scan de sortie"
-                description="Un second scan le même jour enregistre la sortie (EXIT) et peut notifier les parents."
+                description="Un second scan le même jour enregistre la sortie et peut notifier les parents."
                 checked={form.scheduleSettings.exitScanEnabled}
                 onChange={(v) => updateSchedule('exitScanEnabled', v)}
               />
@@ -424,7 +320,7 @@ export default function SettingsPage() {
                 }
               />
               <Toggle
-                label="Dual-QR obligatoire"
+                label="Double QR obligatoire"
                 description="Élève + établissement"
                 checked={form.validationRules.dualQrRequired}
                 onChange={(v) =>
@@ -467,7 +363,7 @@ export default function SettingsPage() {
             </div>
             <div className="mt-4">
               <NumberField
-                label="Décalage horaire max (ms)"
+                label="Décalage horaire max (millisecondes)"
                 value={form.validationRules.maxClockSkewMs}
                 onChange={(v) =>
                   updateForm((f) => ({
@@ -489,24 +385,33 @@ export default function SettingsPage() {
               <NumberField
                 label="Latitude"
                 value={form.geofenceLat}
+                step="any"
+                inputMode="decimal"
                 onChange={(v) => updateForm((f) => ({ ...f, geofenceLat: v }))}
+                hint="Ex. -4,3276 (Kinshasa) ou 14,7167 (Dakar)"
               />
               <NumberField
                 label="Longitude"
                 value={form.geofenceLng}
+                step="any"
+                inputMode="decimal"
                 onChange={(v) => updateForm((f) => ({ ...f, geofenceLng: v }))}
+                hint="Ex. 15,3136 (Kinshasa) ou -17,4677 (Dakar)"
               />
               <div className="col-span-2">
                 <NumberField
                   label="Rayon (km)"
                   value={form.geofenceRadiusKm}
+                  step="any"
+                  inputMode="decimal"
                   onChange={(v) => updateForm((f) => ({ ...f, geofenceRadiusKm: v }))}
-                  hint="Périmètre autorisé pour le pointage GPS"
+                  hint="Périmètre autorisé pour le pointage GPS (0,2 km par défaut)"
                 />
               </div>
             </div>
-            {settings && !settings.geofence?.configured && (
-              <p className="mt-2 text-xs text-amber-600">Géofence non configurée — requis pour la readiness pilote.</p>
+            {geoMessage && <p className="mt-2 text-xs text-red-600">{geoMessage}</p>}
+            {settings && !settings.geofence?.configured && !geoMessage && (
+              <p className="mt-2 text-xs text-amber-600">Zone GPS non configurée — nécessaire pour le pointage sur place.</p>
             )}
           </div>
 
@@ -528,7 +433,7 @@ export default function SettingsPage() {
             />
             <Toggle
               label="Notifier à la sortie / fin de journée"
-              description="Sortie (EXIT) ou notification automatique après la fermeture si pas de second scan"
+              description="Sortie ou notification automatique après la fermeture s’il n’y a pas de second scan"
               checked={form.notificationSettings.parentDepartureNotificationsEnabled}
               onChange={(v) =>
                 updateForm((f) => ({
@@ -545,8 +450,8 @@ export default function SettingsPage() {
           <div className="p-5">
             <h3 className="text-sm font-semibold text-zinc-700 mb-3">Absences automatiques</h3>
             <Toggle
-              label="Marquer absent après le cutoff"
-              description="Job cron — exécution toutes les 15 min"
+              label="Marquer absent après l’heure limite"
+              description="Traitement automatique toutes les 15 minutes"
               checked={form.absenceSettings.autoMarkEnabled}
               onChange={(v) =>
                 updateForm((f) => ({
@@ -557,7 +462,7 @@ export default function SettingsPage() {
             />
             <div className="grid grid-cols-3 gap-4 mt-4">
               <NumberField
-                label="Heure cutoff"
+                label="Heure limite"
                 value={form.absenceSettings.cutoffHour}
                 min={0}
                 max={23}
@@ -572,7 +477,7 @@ export default function SettingsPage() {
                 }
               />
               <NumberField
-                label="Minute cutoff"
+                label="Minute"
                 value={form.absenceSettings.cutoffMinute}
                 min={0}
                 max={59}
@@ -606,13 +511,14 @@ export default function SettingsPage() {
 
           {settings && (
             <div className="px-5 py-3 text-xs text-zinc-400 border-t border-zinc-100">
-              Source : {settings.source === 'database' ? 'base dédiée' : 'legacy'} · École #{settings.schoolId}
+              Paramètres de l’établissement
             </div>
           )}
 
           <div className="px-5 py-4 flex items-center justify-between bg-zinc-50 rounded-b-xl border-t border-zinc-100">
             <div className="text-xs">
               {clientError && <p className="text-red-500">{clientError}</p>}
+              {!clientError && geoMessage && <p className="text-red-500">{geoMessage}</p>}
               {!clientError && updateSettings.isSuccess && !dirty && (
                 <p className="text-emerald-600">Paramètres sauvegardés</p>
               )}

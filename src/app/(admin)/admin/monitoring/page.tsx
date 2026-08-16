@@ -152,7 +152,7 @@ export default function MonitoringPage() {
                   <Clock size={14} className="text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400 font-medium">Uptime</p>
+                  <p className="text-xs text-zinc-400 font-medium">Disponibilité</p>
                   <p className="text-lg font-bold text-zinc-900">{uptime ? formatUptime(uptime) : '—'}</p>
                 </div>
               </div>
@@ -206,18 +206,6 @@ export default function MonitoringPage() {
           )}
         </motion.div>
 
-        {/* Raw JSON health */}
-        {health != null && !healthLoading && (
-          <details className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] group">
-            <summary className="px-6 py-4 text-sm font-medium text-zinc-500 cursor-pointer list-none flex items-center gap-2 hover:text-zinc-800 transition-colors">
-              <span className="text-zinc-300 group-open:rotate-90 transition-transform inline-block">▶</span>
-              Réponse brute (JSON)
-            </summary>
-            <pre className="px-6 pb-6 text-xs text-zinc-500 overflow-x-auto">
-              {JSON.stringify(health, null, 2)}
-            </pre>
-          </details>
-        )}
       </div>
     </div>
   )

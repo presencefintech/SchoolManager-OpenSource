@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  AlertTriangle, Camera, ClipboardList, CreditCard, FileCheck, IdCard, Inbox,
+  AlertTriangle, Camera, ClipboardList, CreditCard, Contact, FileCheck, Inbox,
   Search, UserPlus, Users,
 } from 'lucide-react'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
@@ -19,14 +19,15 @@ const GAPS: { id: string; label: string }[] = [
   { id: 'birthCertificate', label: 'Acte' },
   { id: 'emergency', label: 'Urgence' },
   { id: 'class', label: 'Classe' },
-  { id: 'pickup', label: 'Remise' },
+  { id: 'pickup', label: 'Cartes parent' },
 ]
 
 export default function DeskHomePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [q, setQ] = useState('')
   const [applied, setApplied] = useState('')
-  const [gap, setGap] = useState('')
+  const [gap, setGap] = useState(() => searchParams.get('gap') ?? '')
   const [page, setPage] = useState(1)
 
   const inbox = useIntakeInbox({ page: 1, limit: 1 })
@@ -51,7 +52,7 @@ export default function DeskHomePage() {
       <AdminModuleHero
         eyebrow="Secrétariat"
         title="Guichet inscriptions"
-        subtitle="Recherche, dossiers incomplets, documents du comptoir — cartes remise après déclaration des tuteurs"
+        subtitle="Recherche, dossiers incomplets et documents du comptoir — cartes parent après déclaration des tuteurs"
         quickLinks={[
           { href: '/admin/inbox', label: 'Boîte d’entrée', icon: Inbox },
           { href: '/admin/enrollments', label: 'Inscrire', icon: UserPlus },
@@ -63,7 +64,7 @@ export default function DeskHomePage() {
           { label: 'Dossiers incomplets', value: loading ? '…' : incompleteTotal, loading, icon: ClipboardList, valueClassName: incompleteTotal > 0 ? 'text-amber-300' : 'text-white' },
           { label: 'Sans photo', value: loading ? '…' : missingPhoto, loading, icon: Camera },
           { label: 'Sans parent', value: loading ? '…' : missingParent, loading, icon: Users },
-          { label: 'Sans remise', value: loading ? '…' : missingPickup, loading, icon: IdCard, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
+          { label: 'Sans carte parent', value: loading ? '…' : missingPickup, loading, icon: Contact, valueClassName: missingPickup > 0 ? 'text-amber-300' : 'text-white' },
         ]}
       />
 

@@ -730,7 +730,7 @@ export default function FacturesPage() {
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
             >
               <option value="AUTOMATIC">Automatique (classe / école)</option>
-              <option value="EXPLICIT">Optionnel (ASSIGN à l&apos;inscription)</option>
+              <option value="EXPLICIT">Optionnel (à l&apos;inscription)</option>
             </select>
           </div>
           <div>

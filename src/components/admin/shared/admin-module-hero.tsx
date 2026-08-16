@@ -24,7 +24,7 @@ function HeroMetricCell({ label, value, loading, valueClassName, icon: Icon }: A
   return (
     <div className="flex flex-col justify-center gap-2 px-5 sm:px-6 py-5 min-w-0 border-t sm:border-t-0 sm:border-l border-white/10 sm:first:border-l-0">
       <div className="flex items-center gap-2">
-        <Icon size={14} className="text-emerald-300/80 flex-shrink-0" />
+        {Icon ? <Icon size={14} className="text-emerald-300/80 flex-shrink-0" /> : null}
         <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-100/70 truncate">{label}</p>
       </div>
       <p className={cn('text-3xl sm:text-4xl font-bold tabular-nums leading-none', valueClassName ?? 'text-white')}>

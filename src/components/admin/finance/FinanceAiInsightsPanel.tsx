@@ -10,7 +10,6 @@ import {
   MessageCircle,
   Phone,
   RefreshCw,
-  Sparkles,
   Target,
   TrendingUp,
 } from 'lucide-react'
@@ -255,13 +254,9 @@ export function FinanceAiInsightsPanel({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-bold tracking-tight">Intelligence financière</h3>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-indigo-100 ring-1 ring-white/15">
-                  <Sparkles size={10} />
-                  Fintech v4
-                </span>
               </div>
               <p className="text-xs text-slate-300 mt-1">
-                EWMA · ECL · score risque · scénarios · contractuel
+                Prévisions, risque et scénarios
               </p>
             </div>
           </div>
@@ -324,10 +319,7 @@ export function FinanceAiInsightsPanel({
                 {data.narrative}
               </p>
               <p className="mt-2 text-[10px] text-slate-400">
-                Confiance {data.confidencePct}% · {data.modelVersion}
-                {data.forecast.method ? ` · ${data.forecast.method}` : ''}
-                {data.provenance.cacheHit ? ' · cache' : ''} · fenêtre{' '}
-                {data.provenance.dataWindowDays}j · estimation, pas une garantie
+                Confiance {data.confidencePct}% · estimation, pas une garantie
               </p>
             </div>
 

@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
   FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage, CreditCard,
-  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, IdCard,
+  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, Contact,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -759,7 +759,7 @@ function PhotoDocumentsCard({ studentId, firstName, lastName, photoUrl, birthCer
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-      <h2 className="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2"><Camera size={14} /> Photo & documents</h2>
+      <h2 className="text-sm font-semibold text-zinc-700 mb-4 flex items-center gap-2"><Camera size={14} /> Photo et documents</h2>
       <div className="flex items-start gap-4">
         <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
           <StudentCardPhoto photoUrl={photoUrl ?? null} firstName={firstName} lastName={lastName} />
@@ -1272,10 +1272,10 @@ export default function StudentDetailPage() {
             <button
               type="button"
               onClick={() => document.getElementById('pickup-adults')?.scrollIntoView({ behavior: 'smooth' })}
-              className={deskDocButtonClass()}
+              className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg text-[11px] font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
             >
-              <IdCard size={12} />
-              Remise
+              <Contact size={12} />
+              Cartes parent
             </button>
             <button
               type="button"

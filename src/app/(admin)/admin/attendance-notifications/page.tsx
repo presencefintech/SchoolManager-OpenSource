@@ -42,7 +42,7 @@ function LiveBadge({ status }: { status: ReturnType<typeof useAdminRealtimeStatu
   const cfg = {
     live: { label: 'Temps réel', dot: 'bg-emerald-500 animate-pulse' },
     connecting: { label: 'Connexion…', dot: 'bg-amber-400' },
-    polling: { label: 'Polling', dot: 'bg-zinc-400' },
+    polling: { label: 'Actualisation', dot: 'bg-zinc-400' },
     offline: { label: 'Hors ligne', dot: 'bg-zinc-300' },
   }[status]
 
@@ -68,7 +68,7 @@ function DeliveryRow({ row }: { row: AttendanceNotificationDelivery }) {
             STATUS_STYLES[row.status] ?? 'bg-zinc-100 text-zinc-600',
           )}
         >
-          {row.status}
+          {STATUS_OPTIONS.find((o) => o.value === row.status)?.label ?? row.status}
         </span>
       </td>
       <td className="px-4 py-3 text-xs text-zinc-400 whitespace-nowrap">{fmtDate(row.createdAt)}</td>
@@ -141,7 +141,7 @@ export default function AttendanceNotificationsPage() {
           <div className="p-12 text-center">
             <p className="text-sm text-zinc-500">Aucune livraison pour ce filtre.</p>
             <p className="text-xs text-zinc-400 mt-1">
-              Vérifiez que `ATTENDANCE_NOTIFICATION_HANDLER_ENABLED=true` côté backend.
+              Les notifications parents apparaîtront ici après un pointage.
             </p>
           </div>
         ) : (

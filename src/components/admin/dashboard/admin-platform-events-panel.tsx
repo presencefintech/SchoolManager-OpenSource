@@ -41,7 +41,7 @@ export function AdminPlatformEventsPanel() {
               status === 'live' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500',
             )}
           >
-            {status === 'live' ? 'Socket live' : 'Polling'}
+            {status === 'live' ? 'Temps réel' : 'Actualisation'}
           </span>
         </div>
         <div className="flex gap-3 text-[11px]">
@@ -80,7 +80,7 @@ export function AdminPlatformEventsPanel() {
                           {p.studentName ?? `Paiement #${p.paymentId}`}
                         </p>
                         <p className="text-slate-500">
-                          {fmtAmount(p.amount, p.currency) ?? '—'} · {p.provider ?? 'provider'}
+                          {fmtAmount(p.amount, p.currency) ?? '—'}{p.provider ? ` · ${p.provider}` : ''}
                         </p>
                       </>
                     ) : (
