@@ -102,11 +102,23 @@ export function DocumentVerifyCard({ result }: { result: DocumentVerifyResult })
           <div>
             <p className="font-mono text-xs text-zinc-800">{result.documentRef}</p>
             <p className="font-mono text-xs text-emerald-700 mt-0.5">{result.publicVerifyCode}</p>
+            {result.documentSerial ? (
+              <p className="font-mono text-[11px] text-zinc-500 mt-0.5">
+                Série {result.documentSerial}
+              </p>
+            ) : null}
           </div>
         </div>
         <div className="flex items-start gap-3">
           <Calendar className="mt-0.5 h-4 w-4 text-zinc-400" />
-          <p className="text-zinc-700">Émis le {formatDocumentDate(result.issuedAt)}</p>
+          <div>
+            <p className="text-zinc-700">Émis le {formatDocumentDate(result.issuedAt)}</p>
+            {result.expiresAt ? (
+              <p className="text-xs text-zinc-500 mt-0.5">
+                Valide jusqu’au {formatDocumentDate(result.expiresAt)}
+              </p>
+            ) : null}
+          </div>
         </div>
         <div className="flex items-start gap-3">
           <Building2 className="mt-0.5 h-4 w-4 text-zinc-400" />
@@ -118,7 +130,17 @@ export function DocumentVerifyCard({ result }: { result: DocumentVerifyResult })
         {isCertified ? (
           <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             <BadgeCheck className="h-4 w-4" />
-            Document généré et signé par SchoolManager
+            Signature HMAC + empreinte contenu validées ({result.algorithm})
+          </div>
+        ) : null}
+        {isSuspect ? (
+          <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <ShieldAlert className="h-4 w-4" />
+            {!result.hmacValid
+              ? 'Signature cryptographique altérée'
+              : !result.contentHashValid
+                ? 'Empreinte du contenu incohérente'
+                : 'Contrôle manuel recommandé'}
           </div>
         ) : null}
       </div>

@@ -6,6 +6,9 @@ const REASON_LABELS: Record<DocumentVerifyFailureReason, string> = {
   NOT_FOUND: 'Document introuvable dans SchoolManager.',
   SIGNATURE_MISMATCH: 'Signature de sécurité incorrecte — document suspect.',
   DOCUMENT_INCOMPLETE: 'Données du document incomplètes.',
+  REVOKED: 'Ce document a été révoqué par l’établissement.',
+  EXPIRED: 'Ce document a expiré — demandez une nouvelle émission.',
+  SCHOOL_INACTIVE: 'Établissement inactif — vérification impossible.',
 }
 
 export function documentVerifyReasonLabel(reason: DocumentVerifyFailureReason): string {
