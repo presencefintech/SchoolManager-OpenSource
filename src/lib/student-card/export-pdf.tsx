@@ -13,9 +13,15 @@ import {
   waitForCardLayout,
 } from './capture-ready'
 import { prepareStudentCardAssets, type StudentCardAssets } from './resolve-assets'
+import { printStudentCardInPlace } from './print-in-place'
+import {
+  computeCr80ImagePlacement,
+  PRINT_WINDOW_FALLBACK_MS,
+  sanitizePrintDocumentTitle,
+} from './export-geometry'
 
 export interface StudentCardExportOptions {
-  /** Élément aperçu visible — capture WYSIWYG (recommandé) */
+  /** Élément aperçu visible — cloné hors écran pour éviter découpe (transform parent) */
   sourceElement?: HTMLElement | null
   assets?: StudentCardAssets
 }
@@ -25,53 +31,103 @@ function triggerBlobDownload(blob: Blob, filename: string): void {
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  a.rel = 'noopener'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  document.body.removeChild(a)
+  // Laisser le temps au navigateur d’amorcer le téléchargement
+  window.setTimeout(() => URL.revokeObjectURL(url), 2_000)
 }
 
-async function captureCardElement(card: HTMLElement): Promise<Blob> {
-  await waitForCardLayout(card)
+function applyCr80BoxStyles(el: HTMLElement, unit: 'px' | 'mm'): void {
+  const w = unit === 'px' ? `${CARD.widthPx}px` : `${CARD_WIDTH_MM}mm`
+  const h = unit === 'px' ? `${CARD.heightPx}px` : `${CARD_HEIGHT_MM}mm`
+  el.style.position = 'relative'
+  el.style.width = w
+  el.style.height = h
+  el.style.minWidth = w
+  el.style.minHeight = h
+  el.style.maxWidth = w
+  el.style.maxHeight = h
+  el.style.transform = 'none'
+  el.style.margin = '0'
+  el.style.boxSizing = 'border-box'
+  el.style.overflow = 'hidden'
+}
 
-  const canvas = await html2canvas(card, {
-    scale: CARD_EXPORT_SCALE,
-    width: CARD.widthPx,
-    height: CARD.heightPx,
-    windowWidth: CARD.widthPx,
-    windowHeight: CARD.heightPx,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    logging: false,
-    imageTimeout: 15_000,
-    onclone: (doc, cloned) => {
-      cloned.style.width = `${CARD.widthPx}px`
-      cloned.style.height = `${CARD.heightPx}px`
-      cloned.style.overflow = 'hidden'
-      cloned.style.boxSizing = 'border-box'
-      cloned.style.transform = 'none'
+/**
+ * Clone hors écran à taille CR80 fixe — évite la découpe html2canvas
+ * quand l’aperçu est dans un panneau scrollable / transformé.
+ */
+async function captureCardToCanvas(sourceCard: HTMLElement): Promise<HTMLCanvasElement> {
+  const mount = document.createElement('div')
+  mount.setAttribute('aria-hidden', 'true')
+  mount.style.cssText = [
+    'position:fixed',
+    'left:0',
+    'top:0',
+    `width:${CARD.widthPx}px`,
+    `height:${CARD.heightPx}px`,
+    'opacity:1',
+    'pointer-events:none',
+    'z-index:-1',
+    'overflow:visible',
+    'background:#fff',
+  ].join(';')
 
-      // Anti-coupure : boîtes texte un peu plus hautes à la capture
-      doc.querySelectorAll<HTMLElement>('.student-card [data-card-text="1"]').forEach((el) => {
-        el.style.setProperty('overflow', 'hidden')
-        el.style.setProperty('word-break', 'break-word')
-        el.style.setProperty('-webkit-font-smoothing', 'antialiased')
-      })
-    },
-  })
+  const clone = sourceCard.cloneNode(true) as HTMLElement
+  applyCr80BoxStyles(clone, 'px')
 
+  mount.appendChild(clone)
+  document.body.appendChild(mount)
+
+  try {
+    await waitForCardLayout(clone)
+
+    const canvas = await html2canvas(clone, {
+      scale: CARD_EXPORT_SCALE,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      imageTimeout: 15_000,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      onclone: (_doc, cloned) => {
+        applyCr80BoxStyles(cloned, 'px')
+      },
+    })
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error('Capture carte vide — réessayez après chargement complet de la photo/QR.')
+    }
+
+    return canvas
+  } finally {
+    if (mount.parentNode) document.body.removeChild(mount)
+  }
+}
+
+async function canvasToCr80Pdf(canvas: HTMLCanvasElement): Promise<Blob> {
   const pdf = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
     format: [CARD_WIDTH_MM, CARD_HEIGHT_MM],
+    compress: true,
   })
+
+  // Capture contrôlée à ratio CR80 → stretch plein cadre (pas de bandes blanches)
+  const place = computeCr80ImagePlacement(canvas.width, canvas.height, 'stretch')
 
   pdf.addImage(
     canvas.toDataURL('image/png', 1.0),
     'PNG',
-    0,
-    0,
-    CARD_WIDTH_MM,
-    CARD_HEIGHT_MM,
+    place.x,
+    place.y,
+    place.w,
+    place.h,
     undefined,
     'FAST',
   )
@@ -91,10 +147,10 @@ async function mountCardOffscreen(
     'top:0',
     `width:${CARD.widthPx}px`,
     `height:${CARD.heightPx}px`,
-    'opacity:0',
+    'opacity:1',
     'pointer-events:none',
     'z-index:-1',
-    'overflow:hidden',
+    'overflow:visible',
   ].join(';')
   document.body.appendChild(container)
 
@@ -109,6 +165,8 @@ async function mountCardOffscreen(
     }
   })
 
+  await waitForCardLayout(container)
+
   const card = container.querySelector<HTMLElement>('.student-card')
   if (!card) {
     root.unmount()
@@ -119,7 +177,11 @@ async function mountCardOffscreen(
   return {
     card,
     cleanup: () => {
-      root?.unmount()
+      try {
+        root?.unmount()
+      } catch {
+        /* ignore */
+      }
       root = null
       if (container.parentNode) document.body.removeChild(container)
     },
@@ -152,35 +214,40 @@ async function renderCardBlob(
 ): Promise<{ blob: Blob; assets: StudentCardAssets }> {
   const { card, cleanup, assets } = await resolveCardElement(data, options)
   try {
-    const blob = await captureCardElement(card)
+    const canvas = await captureCardToCanvas(card)
+    const blob = await canvasToCr80Pdf(canvas)
     return { blob, assets }
   } finally {
     cleanup()
   }
 }
 
-/** Télécharge le PDF — capture WYSIWYG de l'aperçu si `sourceElement` fourni */
+/** Télécharge le PDF CR80 — capture sans découpe */
 export async function downloadStudentCardPdf(
   data: StudentCardData,
   filename: string,
   options?: StudentCardExportOptions,
 ): Promise<void> {
   const { blob } = await renderCardBlob(data, options)
+  if (!blob.size) {
+    throw new Error('PDF carte vide — export impossible.')
+  }
   triggerBlobDownload(blob, filename)
 }
 
 const PRINT_PAGE_CSS = `
   @page { size: ${CARD_WIDTH_MM}mm ${CARD_HEIGHT_MM}mm; margin: 0; }
   html, body {
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
     width: ${CARD_WIDTH_MM}mm;
     height: ${CARD_HEIGHT_MM}mm;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    overflow: hidden;
   }
-  body { display: flex; align-items: center; justify-content: center; }
+  body { display: block; }
   .student-card-print-mount {
     width: ${CARD_WIDTH_MM}mm;
     height: ${CARD_HEIGHT_MM}mm;
@@ -193,7 +260,8 @@ const PRINT_PAGE_CSS = `
     min-height: ${CARD_HEIGHT_MM}mm !important;
     max-width: ${CARD_WIDTH_MM}mm !important;
     max-height: ${CARD_HEIGHT_MM}mm !important;
-    transform-origin: top left;
+    transform: none !important;
+    margin: 0 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -203,20 +271,25 @@ const PRINT_PAGE_CSS = `
   }
 `
 
+/**
+ * Ouvre une fenêtre d’impression.
+ * Ne pas passer `noopener` dans windowFeatures — certains navigateurs
+ * renvoient alors `null` (faux positif « popup bloquée »).
+ */
 function openPrintDocument(
   schoolName: string,
   onMount: (mount: HTMLElement) => void,
-): Window {
-  const printWindow = window.open(
-    '',
-    '_blank',
-    'noopener,noreferrer,width=480,height=320',
-  )
-  if (!printWindow) {
-    throw new Error('Fenêtre d\'impression bloquée — autorisez les popups pour ce site.')
+): Window | null {
+  const printWindow = window.open('', '_blank', 'width=520,height=360')
+  if (!printWindow) return null
+
+  try {
+    printWindow.opener = null
+  } catch {
+    /* ignore */
   }
 
-  const safeTitle = schoolName.replace(/[<>&"]/g, '') || 'Établissement'
+  const safeTitle = sanitizePrintDocumentTitle(schoolName)
 
   printWindow.document.open()
   printWindow.document.write(`<!DOCTYPE html>
@@ -235,17 +308,42 @@ function openPrintDocument(
   const mount = printWindow.document.getElementById('mount')
   if (!mount) {
     printWindow.close()
-    throw new Error('Impossible de préparer la fenêtre d\'impression')
+    return null
   }
 
   onMount(mount)
-
   return printWindow
 }
 
+function schedulePrintWindowClose(printWindow: Window, unmount?: () => void): void {
+  let closed = false
+  const close = () => {
+    if (closed) return
+    closed = true
+    try {
+      unmount?.()
+    } catch {
+      /* ignore */
+    }
+    if (!printWindow.closed) printWindow.close()
+  }
+
+  printWindow.addEventListener('afterprint', close)
+  window.setTimeout(close, PRINT_WINDOW_FALLBACK_MS)
+}
+
+async function runPrintInWindow(printWindow: Window, unmount?: () => void): Promise<void> {
+  await waitForCardLayout(printWindow.document.body)
+  // Laisser le layout mm/px se stabiliser avant le dialogue
+  await new Promise<void>((r) => requestAnimationFrame(() => r()))
+  printWindow.focus()
+  printWindow.print()
+  schedulePrintWindowClose(printWindow, unmount)
+}
+
 /**
- * Impression isolée — fenêtre dédiée + @media print CR80.
- * Préfère `sourceElement` (aperçu visible) pour un rendu identique.
+ * Impression isolée — fenêtre dédiée CR80.
+ * Si popup bloquée → fallback impression in-place (sans nouvelle fenêtre).
  */
 export async function printStudentCard(
   data: StudentCardData,
@@ -264,20 +362,16 @@ export async function printStudentCard(
   if (fromDom) {
     const printWindow = openPrintDocument(data.schoolName, (mount) => {
       const clone = fromDom.cloneNode(true) as HTMLElement
-      clone.style.width = `${CARD.widthPx}px`
-      clone.style.height = `${CARD.heightPx}px`
+      applyCr80BoxStyles(clone, 'mm')
       mount.appendChild(clone)
     })
 
-    await waitForCardLayout(printWindow.document.body)
+    if (!printWindow) {
+      printStudentCardInPlace(fromDom)
+      return
+    }
 
-    printWindow.focus()
-    printWindow.print()
-
-    printWindow.addEventListener('afterprint', () => printWindow.close())
-    window.setTimeout(() => {
-      if (!printWindow.closed) printWindow.close()
-    }, 2_000)
+    await runPrintInWindow(printWindow)
     return
   }
 
@@ -287,40 +381,25 @@ export async function printStudentCard(
     root.render(<StudentCardPreview data={data} assets={resolved} />)
   })
 
+  if (!printWindow) {
+    const { card, cleanup } = await mountCardOffscreen(data, resolved)
+    try {
+      printStudentCardInPlace(card)
+      await new Promise((r) => setTimeout(r, 800))
+    } finally {
+      cleanup()
+    }
+    return
+  }
+
   try {
-    await waitForCardLayout(printWindow.document.body)
-    printWindow.focus()
-    printWindow.print()
-    printWindow.addEventListener('afterprint', () => {
-      root?.unmount()
-      printWindow.close()
-    })
-    window.setTimeout(() => {
-      root?.unmount()
-      if (!printWindow.closed) printWindow.close()
-    }, 2_000)
+    await runPrintInWindow(printWindow, () => root?.unmount())
   } catch (e) {
-    if (root) root.unmount()
-    printWindow.close()
+    root?.unmount()
+    if (!printWindow.closed) printWindow.close()
     throw e
   }
 }
 
-/** Impression via classe body (aperçu déjà visible dans la page admin) */
-export function printStudentCardInPlace(cardRoot: HTMLElement): void {
-  const root = cardRoot.closest('.student-card-print-root') ?? cardRoot
-  document.body.classList.add('student-card-printing')
-  root.classList.add('student-card-print-target')
-
-  const cleanup = () => {
-    document.body.classList.remove('student-card-printing')
-    root.classList.remove('student-card-print-target')
-    window.removeEventListener('afterprint', cleanup)
-  }
-
-  window.addEventListener('afterprint', cleanup)
-  window.print()
-  window.setTimeout(cleanup, 3_000)
-}
-
+export { printStudentCardInPlace } from './print-in-place'
 export { prepareStudentCardAssets, type StudentCardAssets }

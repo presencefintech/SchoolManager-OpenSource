@@ -16,6 +16,7 @@ import {
   useStudentDossier,
 } from '@/lib/hooks/use-super-admin'
 import { useToggleStudentPaymentLock } from '@/lib/hooks/use-student-mutations'
+import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 import { StudentCard } from '@/components/StudentCard'
 import { mapDashboardToStudentCard } from '@/lib/student-card/utils'
 import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/export-actions'
@@ -87,7 +88,8 @@ export function StudentDetailPanel({ studentId, schoolId, open, onClose }: Stude
     cardElementRef.current = el
   }, [])
 
-  const { data: dashboard, isLoading: dashLoading, isError: dashError } = useStudentDashboard(studentId)
+  const { data: dashboard, isLoading: dashLoading, isError: dashError, error: dashQueryError } =
+    useStudentDashboard(studentId)
   const { data: activity, isLoading: actLoading } = useStudentActivity(studentId)
   const { data: dossier, isLoading: dossierLoading } = useStudentDossier(studentId)
   const toggleLock = useToggleStudentPaymentLock()
@@ -251,7 +253,12 @@ export function StudentDetailPanel({ studentId, schoolId, open, onClose }: Stude
               {dashError ? (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-4 flex items-center gap-3 text-red-700">
                   <XCircle size={18} className="flex-shrink-0" />
-                  <p className="text-sm font-medium">Élève introuvable ou accès refusé</p>
+                  <p className="text-sm font-medium">
+                    {resolveApiErrorMessage(
+                      (dashQueryError as { response?: { data?: unknown } })?.response?.data,
+                      'Élève introuvable ou accès refusé',
+                    )}
+                  </p>
                 </div>
               ) : dashLoading && tab !== 'activity' ? (
                 <div className="space-y-3">

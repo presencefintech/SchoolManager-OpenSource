@@ -1,4 +1,6 @@
+import axios from 'axios'
 import { apiClient } from '@/lib/api/client'
+import { readBlobErrorMessage } from '@/lib/download-blob'
 import type {
   PlatformStats,
   School,
@@ -60,8 +62,26 @@ export const coreApi = {
 
   exportSchoolCardsZip: (id: number) =>
     apiClient
-      .get<Blob>(`/superadmin/core/schools/${id}/cards/batch-zip`, { responseType: 'blob' })
-      .then((r) => r.data as Blob),
+      .get<Blob>(`/superadmin/core/schools/${id}/cards/batch-zip`, {
+        responseType: 'blob',
+        timeout: 300_000,
+      })
+      .then(async (r) => {
+        const contentType = String(r.headers['content-type'] ?? '')
+        if (!contentType.includes('application/zip') && !contentType.includes('application/octet-stream')) {
+          throw new Error(await readBlobErrorMessage(r.data))
+        }
+        return r.data as Blob
+      })
+      .catch(async (error: unknown) => {
+        if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+          throw new Error(await readBlobErrorMessage(error.response.data))
+        }
+        if (axios.isAxiosError(error) && error.code === 'ECONNABORTED') {
+          throw new Error('Export trop long — réessayez (timeout).')
+        }
+        throw error
+      }),
 
   suspendSchool: (
     id: number,

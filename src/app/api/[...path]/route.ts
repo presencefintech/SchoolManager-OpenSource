@@ -41,9 +41,15 @@ async function proxy(req: NextRequest, path: string[]) {
     headers.Authorization = `Bearer ${accessToken}`
   }
 
-  const schoolId = req.cookies.get(AUTH_COOKIE.school)?.value
-  if (schoolId && !headers['x-school-id']) {
-    headers['x-school-id'] = schoolId
+  const joined = path.join('/')
+  const isSuperAdminApi = joined.startsWith('v1/superadmin') || joined.startsWith('superadmin')
+  if (!isSuperAdminApi) {
+    const schoolId = req.cookies.get(AUTH_COOKIE.school)?.value
+    if (schoolId && schoolId !== '0' && !headers['x-school-id']) {
+      headers['x-school-id'] = schoolId
+    }
+  } else {
+    delete headers['x-school-id']
   }
 
   const method = req.method.toUpperCase()

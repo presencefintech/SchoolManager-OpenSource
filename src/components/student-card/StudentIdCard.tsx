@@ -7,22 +7,7 @@ import { cn } from '@/lib/utils'
 import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
 import { serializeStudentCardQrPayload } from '@/lib/student-card/build-qr-payload'
 import { CARD_WIDTH_MM, CARD_HEIGHT_MM } from '@/lib/student-card/card-dimensions'
-
-function printCardInPlace(cardRoot: HTMLElement): void {
-  const root = cardRoot.closest('.student-card-print-root') ?? cardRoot
-  document.body.classList.add('student-card-printing')
-  root.classList.add('student-card-print-target')
-
-  const cleanup = () => {
-    document.body.classList.remove('student-card-printing')
-    root.classList.remove('student-card-print-target')
-    window.removeEventListener('afterprint', cleanup)
-  }
-
-  window.addEventListener('afterprint', cleanup)
-  window.print()
-  window.setTimeout(cleanup, 3_000)
-}
+import { printStudentCardInPlace } from '@/lib/student-card/print-in-place'
 
 export type StudentIdCardProps = {
   studentId: number
@@ -73,7 +58,7 @@ export function StudentIdCard({
   const handlePrint = useCallback(() => {
     const card = rootRef.current?.querySelector('.student-card') as HTMLElement | null
     if (!card) return
-    printCardInPlace(card)
+    printStudentCardInPlace(card)
   }, [])
 
   return (

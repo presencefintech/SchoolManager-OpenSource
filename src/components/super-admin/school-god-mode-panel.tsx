@@ -28,8 +28,13 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
       triggerBlobDownload(blob, `cartes-pvc-school-${schoolId}.zip`)
       toast.success('Export ZIP des cartes prêt')
       void refetch()
-    } catch {
-      toast.error('Échec de l’export des cartes')
+
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message.trim()
+          ? err.message
+          : 'Échec de l’export des cartes'
+      toast.error(message)
     } finally {
       setZipBusy(false)
     }

@@ -67,10 +67,17 @@ export async function POST(req: NextRequest) {
   res.cookies.set(buildAuthCookie(AUTH_COOKIE.access, data.token, ACCESS_MAX_AGE, true))
   res.cookies.set(buildAuthCookie(AUTH_COOKIE.refresh, data.refreshToken, REFRESH_MAX_AGE, true))
 
-  if (data.user.schoolId != null) {
+  if (
+    data.user.role !== 'SUPER_ADMIN' &&
+    data.user.schoolId != null &&
+    Number(data.user.schoolId) > 0
+  ) {
     res.cookies.set(
       buildAuthCookie(AUTH_COOKIE.school, String(data.user.schoolId), REFRESH_MAX_AGE, false),
     )
+  } else {
+    // Évite un x-school-id résiduel (impersonation / session école) pour le SuperAdmin
+    res.cookies.set(buildAuthCookie(AUTH_COOKIE.school, '', 0, false))
   }
 
   return res

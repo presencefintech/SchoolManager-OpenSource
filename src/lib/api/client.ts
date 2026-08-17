@@ -13,6 +13,16 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   if (typeof window === 'undefined') return config
+  try {
+    const raw = localStorage.getItem('auth_user')
+    const role = raw ? (JSON.parse(raw) as { role?: string }).role : undefined
+    if (role === 'SUPER_ADMIN') {
+      delete config.headers['x-school-id']
+      return config
+    }
+  } catch {
+    /* ignore malformed auth_user */
+  }
   const schoolId = getAuthSchoolId()
   if (schoolId) config.headers['x-school-id'] = schoolId
   return config

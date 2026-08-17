@@ -29,9 +29,9 @@ export function getAuthToken(): string | null {
 export function getAuthSchoolId(): string | null {
   if (typeof window === 'undefined' || !authHydrated) return null
   const fromStorage = localStorage.getItem(AUTH_SCHOOL_ID_KEY)
-  if (fromStorage && fromStorage !== 'null') return fromStorage
+  if (fromStorage && fromStorage !== 'null' && fromStorage !== '0') return fromStorage
   const fromCookie = getCookie('auth_school_id')
-  return fromCookie && fromCookie !== 'null' ? fromCookie : null
+  return fromCookie && fromCookie !== 'null' && fromCookie !== '0' ? fromCookie : null
 }
 
 export function getAuthRefreshToken(): string | null {
@@ -65,7 +65,12 @@ export function clearAuthStorage(): void {
 
 export function persistAuthSession(data: LoginResponse): void {
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
-  if (data.user.schoolId != null) {
+  // SUPER_ADMIN / schoolId 0 : pas de cloisonnement école côté client
+  if (
+    data.user.role !== 'SUPER_ADMIN' &&
+    data.user.schoolId != null &&
+    Number(data.user.schoolId) > 0
+  ) {
     localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(data.user.schoolId))
   } else {
     localStorage.removeItem(AUTH_SCHOOL_ID_KEY)
@@ -90,7 +95,9 @@ export function resyncAuthFromCookies(): { token: string | null; user: AuthUser 
 
 export function persistUserProfile(user: AuthUser): void {
   localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
-  if (user.schoolId != null) {
+  if (user.role !== 'SUPER_ADMIN' && user.schoolId != null && Number(user.schoolId) > 0) {
     localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(user.schoolId))
+  } else {
+    localStorage.removeItem(AUTH_SCHOOL_ID_KEY)
   }
 }
