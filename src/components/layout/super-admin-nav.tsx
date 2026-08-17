@@ -26,6 +26,8 @@ import {
   Activity,
   Upload,
   Users,
+  ScrollText,
+  Megaphone,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -78,6 +80,8 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Opérations',
     items: [
       { label: 'Centre opérations', href: '/super-admin/operations', icon: Activity },
+      { label: 'Journal d’audit', href: '/super-admin/audit-logs', icon: ScrollText },
+      { label: 'Diffusion', href: '/super-admin/broadcast', icon: Megaphone },
       { label: 'Notifications', href: '/super-admin/notifications', icon: Bell },
       { label: 'Outils SA', href: '/super-admin/outils', icon: Wrench },
       { label: 'Import', href: '/super-admin/import', icon: Upload },

@@ -7,6 +7,7 @@ import {
   ImpersonationBanner,
   ImpersonationBannerSpacer,
 } from '@/components/auth/impersonation-banner'
+import { PlatformBroadcastBanner } from '@/components/auth/platform-broadcast-banner'
 import { AdminRealtimeShell } from '@/components/admin/admin-realtime-shell'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <AdminGlobalSearch />
           </div>
           <EmailVerificationBanner />
+          <PlatformBroadcastBanner />
           <ErrorBoundary>
             <PageTransition>{children}</PageTransition>
           </ErrorBoundary>
