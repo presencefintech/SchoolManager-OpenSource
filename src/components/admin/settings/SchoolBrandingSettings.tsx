@@ -114,7 +114,7 @@ export function SchoolBrandingSettings() {
       <div className="p-5 border-b lg:border-b-0 lg:border-r border-zinc-100">
         <h3 className="text-sm font-semibold text-zinc-700 mb-1">Identité de l&apos;établissement</h3>
         <p className="text-xs text-zinc-500 mb-4">
-          Logo, adresse et couleurs de la carte élève — appliqués aux reçus, rapports PDF, cartes élèves et e-mails.
+          Logo, adresse et couleurs — appliqués aux cartes élèves, reçus, rapports PDF, fiches d&apos;inscription, attestations et e-mails.
         </p>
 
         {loadError ? (
@@ -282,7 +282,7 @@ export function SchoolBrandingSettings() {
       <div className="p-5">
         <h3 className="text-sm font-semibold text-zinc-700 mb-1">Documents PDF &amp; reçus</h3>
         <p className="text-xs text-zinc-500 mb-4">
-          Couleur d&apos;accent sur les reçus et rapports (hors carte CR80). Laissez vide pour utiliser la couleur du thème carte (
+          Couleur d&apos;accent sur les reçus, rapports, fiches d&apos;inscription et attestations (hors carte CR80). Laissez vide pour utiliser la couleur du thème carte (
           <span className="font-mono text-zinc-600">{branding?.documentAccentColor ?? cardTheme.headerTo}</span>
           ).
         </p>
@@ -346,7 +346,7 @@ export function SchoolBrandingSettings() {
             />
           </label>
           <p className="text-[10px] text-zinc-400">
-            Affiché en bas des reçus, rapports Z, synthèses et registres d&apos;appel.
+            Affiché en bas des reçus, rapports Z, synthèses, registres d&apos;appel, fiches d&apos;inscription et attestations.
           </p>
         </div>
       </div>
