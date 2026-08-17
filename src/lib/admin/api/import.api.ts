@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
+import { getAuthSchoolId } from '@/lib/api/auth-storage'
 
 export type ImportType = 'students' | 'parents' | 'structure' | 'fees'
 
@@ -18,8 +18,7 @@ export interface ImportJobResult {
 }
 
 /**
- * Upload via fetch natif — bypasse intentionnellement l'intercepteur axios
- * pour éviter que les erreurs (400/401/500) ne déclenchent un redirect to login.
+ * Upload via fetch natif — cookies HttpOnly (credentials) ; pas de Bearer factice.
  */
 export const importApi = {
   upload: async (
@@ -31,8 +30,6 @@ export const importApi = {
     fd.append('file', file)
 
     const headers: Record<string, string> = {}
-    const token = getAuthToken()
-    if (token) headers['Authorization'] = `Bearer ${token}`
     const storageSchoolId = getAuthSchoolId()
     if (storageSchoolId) headers['x-school-id'] = storageSchoolId
 
@@ -44,6 +41,7 @@ export const importApi = {
       method: 'POST',
       headers,
       body: fd,
+      credentials: 'include',
     })
 
     if (!res.ok) {
@@ -51,7 +49,9 @@ export const importApi = {
       try {
         const json = await res.json()
         msg = json?.message ?? json?.error ?? msg
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       throw new Error(msg)
     }
 
@@ -60,5 +60,5 @@ export const importApi = {
   },
 
   getStatus: (jobId: string): Promise<ImportJobResult> =>
-    apiClient.get(`/admin/import/${jobId}`).then(r => r.data.data),
+    apiClient.get(`/admin/import/${jobId}`).then((r) => r.data.data),
 }

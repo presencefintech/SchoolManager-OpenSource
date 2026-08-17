@@ -58,10 +58,7 @@ export const enrollmentApi = {
       appendFormFields(fd, payload)
       fd.append('photo', photo)
       return apiClient
-        .post<{ success: boolean; data: EnrollmentCreateResult }>('/superadmin/enrollment', fd, {
-          ...config,
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        .post<{ success: boolean; data: EnrollmentCreateResult }>('/superadmin/enrollment', fd, config)
         .then((r) => r.data.data)
     }
 

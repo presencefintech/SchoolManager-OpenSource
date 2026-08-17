@@ -12,12 +12,17 @@ export const adminCloudinaryApi = {
       .post<{ success: boolean; data: { url: string; publicId: string } }>(
         `/admin/cloudinary/students/${studentId}/photo`,
         fd,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
+        { timeout: 60_000 },
       )
       .then((r) => r.data.data)
   },
 
-  uploadDocument: (studentId: number, documentType: 'certificates' | 'reports', file: File, description?: string) => {
+  uploadDocument: (
+    studentId: number,
+    documentType: 'certificates' | 'reports',
+    file: File,
+    description?: string,
+  ) => {
     const fd = new FormData()
     fd.append('file', file)
     const schoolId = getAuthSchoolId()
@@ -27,7 +32,7 @@ export const adminCloudinaryApi = {
       .post<{ success: boolean; data: { url: string; publicId: string; fieldUpdated?: string } }>(
         `/admin/cloudinary/students/${studentId}/documents/${documentType}`,
         fd,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
+        { timeout: 60_000 },
       )
       .then((r) => r.data.data)
   },

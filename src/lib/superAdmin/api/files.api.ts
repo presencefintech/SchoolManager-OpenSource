@@ -5,7 +5,7 @@ export const filesApi = {
   upload: (formData: FormData) =>
     apiClient
       .post<{ success: boolean; data: FileUploadResult }>('/superadmin/files/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60_000,
       })
       .then((r) => r.data.data),
 
