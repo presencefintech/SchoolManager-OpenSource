@@ -81,6 +81,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Sanctions', href: '/admin/sanctions', icon: Gavel },
       { label: 'Fichiers', href: '/admin/files', icon: FolderOpen },
       { label: 'État du système', href: '/admin/monitoring', icon: Monitor },
+      { label: 'Vérifier document', href: '/verify', icon: QrCode },
       { label: 'Paramètres', href: '/admin/settings', icon: Settings },
       { label: 'Profil & sécurité', href: '/admin/profil-securite', icon: UserCircle },
     ],

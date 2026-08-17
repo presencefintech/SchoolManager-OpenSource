@@ -54,7 +54,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
               ? 'Fiche scolaire authentifiée'
               : receiptResult?.valid
                 ? 'Reçu scolaire authentifié'
-                : 'Vérifiez un reçu (PF) ou une fiche d’inscription (SM)'}
+                : 'Vérifiez un reçu (PF) ou un document scolaire (SM)'}
           </p>
         </div>
 
@@ -70,13 +70,12 @@ export default async function VerifyPage({ searchParams }: PageProps) {
 
         <p className="text-center text-[11px] text-zinc-400 leading-relaxed px-4">
           Scannez le QR imprimé, ou saisissez le numéro et le code (PF pour les reçus, SM pour les
-          fiches). Accessible au guichet, à l&apos;IT et à la direction.
+          documents scolaires). Accessible au guichet, à l&apos;IT, à l&apos;admin et à la direction.
         </p>
       </div>
     </div>
   )
 }
-
 export const metadata = {
   title: 'Vérifier un document scolaire',
   description: "Vérifiez l'authenticité d'un reçu ou d'une fiche d'inscription SchoolManager.",

@@ -44,7 +44,8 @@ export function VerifyManualForm({
       <div>
         <h2 className="text-sm font-semibold text-zinc-800">Vérification manuelle</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Reçu de caisse (code PF) ou fiche d&apos;inscription (code SM) imprimés par SchoolManager.
+          Reçu de caisse (code PF) ou tout document scolaire SchoolManager (code SM) :
+          fiche, attestation, radiation, convocation, autorisation de sortie.
         </p>
       </div>
 
@@ -65,7 +66,7 @@ export function VerifyManualForm({
             kind === 'document' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500'
           }`}
         >
-          Fiche (SM)
+          Fiche / doc (SM)
         </button>
       </div>
 
@@ -114,7 +115,7 @@ export function VerifyManualForm({
         className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700"
       >
         <Search size={16} />
-        {kind === 'receipt' ? 'Vérifier le reçu' : 'Vérifier la fiche'}
+        {kind === 'receipt' ? 'Vérifier le reçu' : 'Vérifier le document'}
       </button>
     </form>
   )

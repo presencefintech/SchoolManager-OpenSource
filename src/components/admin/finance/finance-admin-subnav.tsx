@@ -28,7 +28,7 @@ const LINKS: FinanceAdminNavLink[] = [
   { href: '/admin/finance/scelles', label: 'Scellés', icon: Fingerprint },
   { href: '/admin/finance/payment-profile', label: 'Profil règlement', icon: Building2 },
   { href: '/admin/finance/audit', label: 'Audit', icon: Shield },
-  { href: '/verify', label: 'Vérifier reçu', icon: QrCode },
+  { href: '/verify', label: 'Vérifier document', icon: QrCode },
 ]
 
 export function FinanceAdminSubNav() {
