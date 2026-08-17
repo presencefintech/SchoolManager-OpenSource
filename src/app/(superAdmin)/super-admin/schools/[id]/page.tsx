@@ -29,6 +29,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
 import { SchoolSuspensionPanel } from '@/components/super-admin/school-suspension-panel'
 import { SchoolGodModePanel } from '@/components/super-admin/school-god-mode-panel'
+import { SchoolSupportDesk } from '@/components/super-admin/school-support-desk'
+import { StatusBadge } from '@/components/super-admin/school-saas-drawer'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -241,19 +243,12 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h1 className="text-base font-semibold text-zinc-900">{school.name}</h1>
+                      <StatusBadge status={school.status ?? (school.active ? 'ACTIVE' : 'SUSPENDED')} />
                       {school.deletedAt ? (
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-100">
                           Supprimée
                         </span>
-                      ) : school.active === false ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-red-50 text-red-600 border border-red-100">
-                          Suspendue
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100">
-                          Active
-                        </span>
-                      )}
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-zinc-400 mt-1">
                       {school.city && (
@@ -266,7 +261,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                           <Mail size={11} /> {school.email}
                         </span>
                       )}
-                      <span>ID #{school.id}</span>
+                      <span className="font-mono">#{school.id}</span>
                     </div>
                   </div>
                 </div>
@@ -336,6 +331,8 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
       </div>
 
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
+
+        {school ? <SchoolSupportDesk school={school} /> : null}
 
         {school ? <SchoolSuspensionPanel school={school} /> : null}
 

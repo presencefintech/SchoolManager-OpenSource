@@ -9,6 +9,7 @@ export interface AuthUser {
   role: UserRole
   schoolId: number | null
   isEmailConfirmed?: boolean
+  mustChangePassword?: boolean
 }
 
 export interface LoginPayload {

@@ -165,7 +165,13 @@ export function AdminNav() {
   const badgeLabel = user?.role === 'IT' ? 'IT · Guichet' : 'Admin'
 
   return (
-    <aside className="fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]">
+    <aside
+      className="fixed left-0 w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]"
+      style={{
+        top: 'var(--impersonation-banner-h, 0px)',
+        height: 'calc(100vh - var(--impersonation-banner-h, 0px))',
+      }}
+    >
       <Link href={homeHref} className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
         <div className="w-8 h-8 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
           <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />

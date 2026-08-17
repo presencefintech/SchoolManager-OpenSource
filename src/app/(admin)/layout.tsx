@@ -3,11 +3,17 @@ import { PageTransition } from '@/components/ui/page-transition'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { AdminGlobalSearch } from '@/components/admin/shared/global-search'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
+import {
+  ImpersonationBanner,
+  ImpersonationBannerSpacer,
+} from '@/components/auth/impersonation-banner'
 import { AdminRealtimeShell } from '@/components/admin/admin-realtime-shell'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminRealtimeShell>
+      <ImpersonationBanner />
+      <ImpersonationBannerSpacer />
       <div className="flex min-h-screen">
         <AdminNav />
         <main className="flex-1 min-w-0 ml-64 min-h-screen bg-[#e8ecf4]">

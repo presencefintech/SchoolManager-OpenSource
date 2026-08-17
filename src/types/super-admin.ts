@@ -112,6 +112,11 @@ export interface SchoolDetail {
   name: string
   city: string
   email?: string
+  phone?: string | null
+  address?: string | null
+  createdAt?: string
+  promoterName?: string | null
+  promoterPhone?: string | null
   active: boolean
   status?: SchoolLifecycleStatus
   features?: SchoolFeaturesMap
