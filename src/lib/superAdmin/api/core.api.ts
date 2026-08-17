@@ -18,6 +18,19 @@ export const coreApi = {
       .get<{ success: boolean; stats: PlatformStats }>('/superadmin/core/stats')
       .then((r) => r.data.stats),
 
+  getDashboardStats: (params?: { days?: number; refresh?: boolean }) =>
+    apiClient
+      .get<{ success: boolean; data: import('@/types/super-admin').GodModeDashboardStats }>(
+        '/superadmin/core/dashboard-stats',
+        {
+          params: {
+            ...(params?.days != null ? { days: params.days } : {}),
+            ...(params?.refresh ? { refresh: '1' } : {}),
+          },
+        },
+      )
+      .then((r) => r.data.data),
+
   getSchools: (params?: {
     q?: string
     page?: number

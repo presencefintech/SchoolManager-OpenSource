@@ -6,6 +6,48 @@ export interface PlatformStats {
   arpu: string
 }
 
+export interface GodModeDashboardStats {
+  schemaVersion?: number
+  etag?: string
+  mrr: {
+    amount: number
+    currency: string
+    previousAmount: number
+    deltaPct: number
+    commissionPerCard: number
+    avgSubscription: number
+    formula: string
+    components?: {
+      studentCommission: number
+      subscriptionRevenue: number
+    }
+  }
+  schools: {
+    active: number
+    suspended: number
+    pending: number
+    expired: number
+    total: number
+    byStatus: Record<string, number>
+  }
+  totalStudents: number
+  enrollmentsLast30Days: Array<{ date: string; count: number }>
+  enrollmentWindowDays?: number
+  period: {
+    from: string
+    to: string
+    previousMonthStart: string
+  }
+  meta?: {
+    cached: boolean
+    degraded: boolean
+    partialFailures: string[]
+    generatedAt: string
+  }
+  /** @deprecated compat ancienne forme */
+  generatedAt?: string
+}
+
 export interface SchoolHealth {
   score: number
   level: 'CRITICAL' | 'STABLE' | 'EXCELLENT'

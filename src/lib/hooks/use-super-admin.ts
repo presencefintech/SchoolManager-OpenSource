@@ -85,6 +85,16 @@ export function usePlatformStats() {
   })
 }
 
+export function useGodModeDashboardStats(days = 30) {
+  return useQuery({
+    queryKey: ['superadmin', 'dashboard-stats', days],
+    queryFn: () => superAdminApi.getDashboardStats({ days }),
+    enabled: !!getAuthToken(),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export type SchoolsListParams = {
   q?: string
   page?: number
