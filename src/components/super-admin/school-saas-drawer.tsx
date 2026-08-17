@@ -288,5 +288,3 @@ export function ThemeToggle({
     </button>
   )
 }
-
-export { StatusBadge, CapacityBar }

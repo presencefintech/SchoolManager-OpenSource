@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
@@ -47,6 +47,14 @@ function actorLabel(row: AuditLogRow) {
 }
 
 export default function AuditLogsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuditLogsPageContent />
+    </Suspense>
+  )
+}
+
+function AuditLogsPageContent() {
   const searchParams = useSearchParams()
   const [tab, setTab] = useState<'all' | 'security'>(() =>
     searchParams.get('tab') === 'security' ? 'security' : 'all'
