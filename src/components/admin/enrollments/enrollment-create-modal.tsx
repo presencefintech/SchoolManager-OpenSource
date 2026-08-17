@@ -35,6 +35,8 @@ import {
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { newIdempotencyKey } from '@/lib/idempotency'
+import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
+import { triggerBlobDownload } from '@/lib/download-blob'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { isValidInternationalPhone } from '@/lib/phone/validation'
 
@@ -494,8 +496,18 @@ export function EnrollmentCreateModal({
       } else {
         toast.success(
           'Inscription créée',
-          'Dossier enregistré. Ensuite : déclarez les personnes autorisées sur la fiche élève.',
+          'Dossier enregistré. Remettez la fiche d’inscription au parent.',
         )
+      }
+
+      if (studentId) {
+        try {
+          const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(studentId)
+          triggerBlobDownload(blob, filename)
+          toast.success('Fiche d’inscription', 'PDF prêt à imprimer pour le parent.')
+        } catch {
+          // L’inscription a réussi ; la fiche reste disponible sur la fiche élève.
+        }
       }
       if (result.explicitFeePack?.assigned?.length) {
         toast.success(
@@ -779,7 +791,7 @@ export function EnrollmentCreateModal({
             <FormSection
               icon={FileText}
               title="Documents"
-              hint="Photo, acte de naissance et fiche — uploadés juste après création."
+              hint="Photo, acte de naissance — la fiche d’inscription PDF est générée automatiquement."
             >
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Photo élève">

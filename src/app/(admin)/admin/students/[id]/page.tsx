@@ -999,9 +999,9 @@ export default function StudentDetailPage() {
     try {
       const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(studentId)
       triggerBlobDownload(blob, filename)
-      toast.success('Fiche administrative', filename)
+      toast.success('Fiche d’inscription', filename)
     } catch (err) {
-      toast.error('Fiche impossible', getApiErrorMessage(err))
+      toast.error('Fiche d’inscription impossible', getApiErrorMessage(err))
     } finally {
       setDownloadingFiche(false)
     }
@@ -1239,7 +1239,7 @@ export default function StudentDetailPage() {
               className={deskDocButtonClass()}
             >
               {downloadingFiche ? <Loader2 size={12} className="animate-spin" /> : <FileEdit size={12} />}
-              Fiche
+              Fiche d’inscription
             </button>
             <button
               type="button"

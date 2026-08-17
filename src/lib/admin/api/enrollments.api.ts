@@ -296,7 +296,7 @@ export const enrollmentsApi = {
         responseType: 'blob',
         timeout: 60_000,
       }),
-      `fiche-administrative-${studentId}.pdf`,
+      `fiche-inscription-${studentId}.pdf`,
     ),
 
   downloadAttendanceCertificatePdf: (studentId: number, params?: { from?: string; to?: string }) =>

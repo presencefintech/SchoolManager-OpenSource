@@ -309,6 +309,21 @@ export default function StudentsPage() {
                                     },
                                   },
                                   {
+                                    id: 'fiche',
+                                    label: 'Fiche d’inscription',
+                                    onClick: () => {
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(s.id)
+                                          triggerBlobDownload(blob, filename)
+                                          toast.success('Fiche d’inscription', filename)
+                                        } catch (error) {
+                                          toast.error('Fiche d’inscription', getApiErrorMessage(error))
+                                        }
+                                      })()
+                                    },
+                                  },
+                                  {
                                     id: 'exit',
                                     label: 'Certificat de radiation',
                                     onClick: () => router.push(`/admin/students/${s.id}?doc=exit`),
