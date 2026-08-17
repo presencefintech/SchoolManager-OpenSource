@@ -1805,7 +1805,7 @@ export function useAcknowledgeCashSessionReport() {
     mutationFn: (sessionId: number) => financeApi.acknowledgeCashSessionReport(sessionId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
-      toast.success('Rapport visé', 'Le visa promoteur a été enregistré.')
+      toast.success('Rapport visé', 'Le visa de la direction a été enregistré.')
     },
     onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
   })
