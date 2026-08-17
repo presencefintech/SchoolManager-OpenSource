@@ -110,9 +110,11 @@ export const enrollmentsApi = {
       .then((r) => r.data),
 
   updateBiometrics: (studentId: number, formData: FormData) =>
-    apiClient.put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then((r) => r.data),
+    apiClient
+      .put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics`, formData, {
+        timeout: 60_000,
+      })
+      .then((r) => r.data),
 
   updateFingerprintBiometrics: (studentId: number, payload: { fingerprintVector: number[] }) =>
     apiClient.put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics/fingerprint`, payload)

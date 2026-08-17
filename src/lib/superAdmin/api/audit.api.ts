@@ -30,7 +30,7 @@ export const auditApi = {
   forceStorageUpload: (formData: FormData) =>
     apiClient
       .post<{ success: boolean; data: { message: string } }>('/superadmin/storage/force-upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60_000,
       })
       .then((r) => r.data.data),
 }

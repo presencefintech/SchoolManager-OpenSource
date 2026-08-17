@@ -13,6 +13,34 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   if (typeof window === 'undefined') return config
+
+  // FormData : retirer le Content-Type JSON par défaut pour que le navigateur
+  // pose multipart + boundary (sinon multer / proxy cassent l’upload partout)
+  const data = config.data
+  if (typeof FormData !== 'undefined' && data instanceof FormData) {
+    const headers = config.headers
+    if (headers && typeof (headers as { delete?: (k: string) => void }).delete === 'function') {
+      ;(headers as { delete: (k: string) => void }).delete('Content-Type')
+      ;(headers as { delete: (k: string) => void }).delete('content-type')
+    } else if (headers) {
+      delete (headers as Record<string, unknown>)['Content-Type']
+      delete (headers as Record<string, unknown>)['content-type']
+    }
+    if (config.timeout == null || config.timeout < 60_000) {
+      config.timeout = 60_000
+    }
+  }
+
+  try {
+    const raw = localStorage.getItem('auth_user')
+    const role = raw ? (JSON.parse(raw) as { role?: string }).role : undefined
+    if (role === 'SUPER_ADMIN') {
+      delete config.headers['x-school-id']
+      return config
+    }
+  } catch {
+    /* ignore malformed auth_user */
+  }
   const schoolId = getAuthSchoolId()
   if (schoolId) config.headers['x-school-id'] = schoolId
   return config

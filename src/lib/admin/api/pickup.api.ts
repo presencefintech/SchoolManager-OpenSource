@@ -114,7 +114,7 @@ export const pickupApi = {
     fd.append('photo', file)
     return apiClient
       .post<{ success: boolean; data: PickupAdult }>(`/admin/pickup/adults/${adultId}/photo`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60_000,
       })
       .then((r) => r.data.data)
   },
