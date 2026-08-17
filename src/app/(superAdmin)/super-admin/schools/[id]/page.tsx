@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
 import { SchoolSuspensionPanel } from '@/components/super-admin/school-suspension-panel'
+import { SchoolGodModePanel } from '@/components/super-admin/school-god-mode-panel'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -337,6 +338,16 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
       <div className="max-w-7xl mx-auto px-6 pt-6 pb-10 space-y-6">
 
         {school ? <SchoolSuspensionPanel school={school} /> : null}
+
+        <Panel>
+          <PanelHeader
+            icon={CreditCard}
+            iconClass="bg-zinc-900 text-white"
+            title="God Mode — Impression PVC"
+            description="Batch ZIP HD, modules SaaS et journal des impressions."
+          />
+          <SchoolGodModePanel schoolId={id} />
+        </Panel>
 
         {/* ── KPI opérationnels ─────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

@@ -12,6 +12,15 @@ export interface SchoolHealth {
   label: string
 }
 
+export type SchoolLifecycleStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING' | 'EXPIRED'
+
+export type SchoolFeaturesMap = {
+  printing: boolean
+  mobile_app: boolean
+  finance_reports: boolean
+  [key: string]: boolean
+}
+
 export interface SchoolOperationalSuspension {
   reason: string
   code: 'INSOLVENCY' | 'CONTRACT_BREACH' | 'OTHER'
@@ -25,6 +34,14 @@ export interface School {
   city: string
   email?: string
   active: boolean
+  status?: SchoolLifecycleStatus
+  features?: SchoolFeaturesMap
+  contractExpiry?: string | null
+  cardPrintingAllowed?: boolean
+  subscriptionTier?: string
+  studentCapacity?: number | null
+  studentCount?: number
+  capacityPct?: number | null
   deletedAt: null | string
   operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
@@ -54,6 +71,14 @@ export interface SchoolDetail {
   city: string
   email?: string
   active: boolean
+  status?: SchoolLifecycleStatus
+  features?: SchoolFeaturesMap
+  contractExpiry?: string | null
+  cardPrintingAllowed?: boolean
+  subscriptionTier?: string
+  studentCapacity?: number | null
+  studentCount?: number
+  capacityPct?: number | null
   deletedAt: null | string
   operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
@@ -62,6 +87,24 @@ export interface SchoolDetail {
     payments: number
   }
   admins: SchoolAdminRecord[]
+}
+
+export interface SchoolPrintLog {
+  id: number
+  channel: string
+  studentCount: number
+  actorId: number | null
+  meta: unknown
+  createdAt: string
+}
+
+export interface SchoolSaasUpdatePayload {
+  status?: SchoolLifecycleStatus
+  features?: Partial<SchoolFeaturesMap>
+  contractExpiry?: string | null
+  cardPrintingAllowed?: boolean
+  subscriptionTier?: 'BASIC' | 'PREMIUM' | 'ENTERPRISE'
+  studentCapacity?: number | null
 }
 
 export interface SchoolPerformance {

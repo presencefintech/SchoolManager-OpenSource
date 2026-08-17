@@ -89,7 +89,7 @@ export type SchoolsListParams = {
   q?: string
   page?: number
   take?: number
-  status?: 'all' | 'active' | 'suspended'
+  status?: string
 }
 
 export function useSchools() {
@@ -127,6 +127,27 @@ export function useSchool(id: number) {
     queryFn: () => superAdminApi.getSchool(id),
     staleTime: 60_000,
     enabled: !!getAuthToken() && !!id,
+  })
+}
+
+export function useUpdateSchoolSaas(schoolId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: import('@/types/super-admin').SchoolSaasUpdatePayload) =>
+      superAdminApi.updateSchoolSaas(schoolId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.superadmin.school(schoolId) })
+      void qc.invalidateQueries({ queryKey: ['superadmin', 'schools'] })
+    },
+  })
+}
+
+export function useSchoolPrintLogs(schoolId: number) {
+  return useQuery({
+    queryKey: ['superadmin', 'school-print-logs', schoolId],
+    queryFn: () => superAdminApi.getSchoolPrintLogs(schoolId, 25),
+    enabled: !!getAuthToken() && !!schoolId,
+    staleTime: 15_000,
   })
 }
 
