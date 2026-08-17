@@ -377,7 +377,7 @@ export default function OutilsPage() {
               className={cn(BTN, 'bg-zinc-900 text-white hover:bg-zinc-700')}
             >
               {downloadingAuditPdf ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
-              Télécharger l'audit global
+              Télécharger l&apos;audit global
             </button>
             <FeedbackBanner state={auditPdfFeedback} />
           </div>

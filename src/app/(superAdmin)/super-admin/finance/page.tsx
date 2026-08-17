@@ -337,7 +337,7 @@ export default function FinancePage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-base font-semibold text-zinc-900">Clôture du jour</h2>
-                <p className="text-xs text-zinc-400 mt-0.5">Paiements confirmés aujourd'hui</p>
+                <p className="text-xs text-zinc-400 mt-0.5">Paiements confirmés aujourd&apos;hui</p>
               </div>
               {snapshot && (
                 <span className={cn(
@@ -372,7 +372,7 @@ export default function FinancePage() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-zinc-400">Aucune activité aujourd'hui</p>
+              <p className="text-sm text-zinc-400">Aucune activité aujourd&apos;hui</p>
             )}
           </div>
 
@@ -382,7 +382,7 @@ export default function FinancePage() {
             {/* Efficacité par niveau */}
             <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
               <h2 className="text-base font-semibold text-zinc-900 mb-1">Recouvrement par niveau</h2>
-              <p className="text-xs text-zinc-400 mb-5">Taux d'encaissement par segment</p>
+              <p className="text-xs text-zinc-400 mb-5">Taux d&apos;encaissement par segment</p>
               {loadingLevels ? <Skeleton className="h-52 rounded-xl" /> : levels?.length ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={levels} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barSize={28}>
@@ -467,7 +467,7 @@ export default function FinancePage() {
             <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h2 className="text-base font-semibold text-zinc-900">Détection d'anomalies</h2>
+                  <h2 className="text-base font-semibold text-zinc-900">Détection d&apos;anomalies</h2>
                   <p className="text-xs text-zinc-400 mt-0.5">30 derniers jours · Loi de Benford</p>
                 </div>
                 {anomalies && (

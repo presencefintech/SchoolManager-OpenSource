@@ -56,7 +56,6 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
   const [editingChildrenId, setEditingChildrenId] = useState<number | null>(null)
   const [editChildIds, setEditChildIds] = useState<number[]>([])
 
-  const household = data?.household ?? []
   const adults = data?.adults ?? []
   const printableCount = adults.filter((a) => a.canPrint).length
 
@@ -93,8 +92,8 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
   })
 
   const childrenToggle = useMemo(
-    () => household.length > 0 ? household : (data?.student ? [data.student] : []),
-    [household, data?.student],
+    () => (data?.household?.length ? data.household : (data?.student ? [data.student] : [])),
+    [data?.household, data?.student],
   )
 
   function submitForm(e: React.FormEvent) {

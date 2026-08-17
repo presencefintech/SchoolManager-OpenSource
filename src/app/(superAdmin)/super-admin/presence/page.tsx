@@ -757,7 +757,7 @@ export default function PresencePage() {
                   </button>
                   <div className="mt-3">
                     <p className="text-[11px] text-zinc-300">
-                      L'ID est visible dans le flux live ci-dessus.
+                      L&apos;ID est visible dans le flux live ci-dessus.
                     </p>
                   </div>
                   {valResult && <div className="mt-2"><ResultBanner result={valResult} /></div>}
@@ -770,7 +770,7 @@ export default function PresencePage() {
                     <span className="text-xs font-semibold text-zinc-700">Sync offline → online</span>
                   </div>
                   <p className="text-[11px] text-zinc-400 mb-3">
-                    Collez un tableau JSON d'opérations collectées hors ligne.
+                    Collez un tableau JSON d&apos;opérations collectées hors ligne.
                   </p>
                   <div className="mb-1.5">
                     <p className="text-[11px] text-zinc-400 mb-1.5">Payload JSON</p>
