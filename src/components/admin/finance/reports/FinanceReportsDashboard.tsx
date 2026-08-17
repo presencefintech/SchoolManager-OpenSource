@@ -265,7 +265,7 @@ export function FinanceReportsDashboard() {
     mutationFn: () => financeApi.getAggregateReport({ period, anchor, persist: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
-      toast.success('Snapshot figé', 'Ce rapport ne changera plus, même si le taux évolue.')
+      toast.success('Rapport figé', 'Ce rapport ne changera plus, même si le taux évolue.')
     },
     onError: (err) => toast.error('Impossible de figer', getApiErrorMessage(err)),
   })
@@ -282,8 +282,8 @@ export function FinanceReportsDashboard() {
       })
     },
     onSuccess: (data) => {
-      downloadJson(`presencefintech-ai-${anchor}.json`, data)
-      toast.success('Export prêt', 'Dataset IA téléchargé (3 mois glissants).')
+      downloadJson(`rapports-finance-${anchor}.json`, data)
+      toast.success('Export prêt', 'Données d’analyse téléchargées (3 derniers mois).')
     },
     onError: (err) => toast.error('Export impossible', getApiErrorMessage(err)),
   })
@@ -292,18 +292,17 @@ export function FinanceReportsDashboard() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* En-tête */}
       <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-6 py-6 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-200/90">
-              {branding?.name ? `${branding.name} · Reporting` : 'Reporting financier'}
+              {branding?.name ? `${branding.name} · Rapports` : 'Rapports financiers'}
             </p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Rapports financiers</h1>
             <p className="mt-2 max-w-xl text-sm text-slate-300 leading-relaxed">
               Base comptable <strong className="text-white">USD</strong> · affichage{' '}
-              <strong className="text-white">{displayCurrency}</strong> · snapshots auditables multi-échelles
+              <strong className="text-white">{displayCurrency}</strong>
             </p>
           </div>
           {currency ? (
@@ -319,7 +318,6 @@ export function FinanceReportsDashboard() {
         </div>
       </div>
 
-      {/* Filtres */}
       <Panel className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -367,14 +365,12 @@ export function FinanceReportsDashboard() {
         </div>
       </Panel>
 
-      {/* Erreur */}
       {reportQuery.isError ? (
         <Panel className="border-red-200 bg-red-50/50 p-5 text-sm text-red-800">
           Impossible de charger le rapport. {getApiErrorMessage(reportQuery.error)}
         </Panel>
       ) : null}
 
-      {/* KPIs */}
       {reportQuery.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -393,7 +389,7 @@ export function FinanceReportsDashboard() {
               )}
             >
               {report.fromCache ? <Lock size={11} /> : <Zap size={11} />}
-              {report.fromCache ? 'Snapshot figé' : 'Calcul live'}
+              {report.fromCache ? 'Rapport figé' : 'Calcul à jour'}
             </span>
             <span className="text-xs text-slate-500">
               {periodLabel} · clé <code className="font-mono text-slate-700">{report.periodKey}</code>
@@ -461,14 +457,13 @@ export function FinanceReportsDashboard() {
                 className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-900 hover:bg-violet-100 disabled:opacity-50"
               >
                 <Download size={15} />
-                Export dataset IA
+                Exporter l’analyse
               </button>
             ) : null}
           </motion.div>
         </motion.div>
       ) : null}
 
-      {/* Taux de change */}
       <Panel>
         <div className="border-b border-slate-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">Politique de change & audit</h2>

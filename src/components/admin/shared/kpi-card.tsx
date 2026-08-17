@@ -69,7 +69,6 @@ export function KpiCard({
   )
 }
 
-/** Barre de progression inline */
 export function MiniBar({
   value, max, color = 'bg-emerald-500',
 }: {
@@ -83,7 +82,6 @@ export function MiniBar({
   )
 }
 
-/** Grille de cartes KPI — 2 cols sur mobile, N cols sur desktop */
 export function KpiGrid({
   cols = 4, children,
 }: {

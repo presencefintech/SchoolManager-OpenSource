@@ -279,7 +279,6 @@ export default function ClassDetailPage() {
   return (
     <div className="min-h-screen bg-zinc-50/50">
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-        {/* Header */}
         <motion.div
           className="flex items-start gap-4"
           initial={{ opacity: 0, y: -10 }}
@@ -341,7 +340,6 @@ export default function ClassDetailPage() {
           </div>
         </motion.div>
 
-        {/* Stats */}
         {!deskOnly && stats && (
           <motion.div className="grid grid-cols-4 gap-4" variants={stagger} initial="hidden" animate="show">
             {[
@@ -365,7 +363,6 @@ export default function ClassDetailPage() {
           </motion.div>
         )}
 
-        {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 p-1 rounded-xl w-fit">
           {(deskOnly
             ? ([['eleves', 'Élèves']] as [Tab, string][])
@@ -381,7 +378,6 @@ export default function ClassDetailPage() {
           ))}
         </div>
 
-        {/* Tab Content */}
         {tab === 'eleves' && (
           <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
             {!students.length ? (

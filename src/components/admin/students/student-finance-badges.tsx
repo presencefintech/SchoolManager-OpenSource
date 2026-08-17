@@ -53,9 +53,9 @@ export function StudentFinanceBadges({
 
 export function KycStatusBadge({ status, onlineEnabled }: { status: string; onlineEnabled?: boolean }) {
   const cfg: Record<string, { label: string; cls: string }> = {
-    VERIFIED: { label: onlineEnabled ? 'KYC validé · Paiements en ligne actifs' : 'KYC validé', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-100' },
-    PENDING: { label: 'KYC en attente de validation', cls: 'bg-amber-50 text-amber-700 ring-amber-100' },
-    REJECTED: { label: 'KYC rejeté', cls: 'bg-red-50 text-red-700 ring-red-100' },
+    VERIFIED: { label: onlineEnabled ? 'Identité validée · Paiements en ligne actifs' : 'Identité validée', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-100' },
+    PENDING: { label: 'Identité en attente de validation', cls: 'bg-amber-50 text-amber-700 ring-amber-100' },
+    REJECTED: { label: 'Identité refusée', cls: 'bg-red-50 text-red-700 ring-red-100' },
     NOT_CONFIGURED: { label: 'Profil règlement non configuré', cls: 'bg-zinc-100 text-zinc-600 ring-zinc-200' },
   }
   const c = cfg[status] ?? cfg.NOT_CONFIGURED

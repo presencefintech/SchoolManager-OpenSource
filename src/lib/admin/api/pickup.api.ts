@@ -126,7 +126,7 @@ export const pickupApi = {
         responseType: 'blob',
         timeout: 60_000,
       }),
-      `carte-remise-${adultId}.pdf`,
+      `carte-parent-${adultId}.pdf`,
     ),
 
   downloadStudentCardsPdf: (studentId: number) =>
@@ -135,6 +135,6 @@ export const pickupApi = {
         responseType: 'blob',
         timeout: 60_000,
       }),
-      `cartes-remise-eleve-${studentId}.pdf`,
+      `cartes-parent-eleve-${studentId}.pdf`,
     ),
 }

@@ -158,7 +158,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
                 <div>
                   <h3 className="text-base font-semibold text-zinc-900">Cahiers d&apos;appel</h3>
                   <p className="text-xs text-zinc-500">
-                    Workflow DRAFT → SUBMITTED → SEALED · export registre officiel
+                    Brouillon → soumis → clôturé · export du registre
                   </p>
                 </div>
               </div>
@@ -430,7 +430,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
       <ConfirmDialog
         open={submitTarget != null}
         title="Soumettre ce cahier d'appel ?"
-        description="La feuille passera en statut SUBMITTED et pourra ensuite être clôturée définitivement."
+        description="Le cahier sera soumis, puis pourra être clôturé définitivement."
         impact={
           submitTarget
             ? [

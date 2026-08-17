@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Building2, GraduationCap,
   ArrowRight, Activity, ScrollText,
-  ShieldAlert, Calendar,
+  ShieldAlert, Calendar, RefreshCw,
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -15,6 +15,7 @@ import {
 import {
   usePlatformStats, useSchools, useActiveSessions,
   useProviderStats, useFinanceReport, useWorkerHealth,
+  useGodModeDashboardStats,
 } from '@/lib/hooks/use-super-admin'
 import { useQueryLoading } from '@/lib/hooks/use-auth-query'
 import { useAuth } from '@/providers/auth-provider'
@@ -24,6 +25,11 @@ import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
 import { PlatformKpiStrip } from '@/components/super-admin/platform-kpi-strip'
 import { OwnerActionQueue } from '@/components/super-admin/owner-action-queue'
 import { MasterAnalyticsSection } from '@/components/super-admin/master-analytics-section'
+import {
+  EnrollmentTrendChart,
+  GodModeKpiCards,
+} from '@/components/super-admin/god-mode-dashboard'
+import { superAdminApi } from '@/lib/superAdmin/api'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -97,6 +103,13 @@ function DonutTooltip({ active, payload }: {
 export default function SuperAdminDashboardPage() {
   const { isLoading: authLoading } = useAuth()
   const { data: stats, isPending: statsPending, isError, refetch } = usePlatformStats()
+  const {
+    data: godStats,
+    isPending: godPending,
+    isFetching: godFetching,
+    isError: godError,
+    refetch: refetchGod,
+  } = useGodModeDashboardStats()
   const { data: schools, isPending: schoolsPending } = useSchools()
   const { data: sessions, isPending: sessionsPending } = useActiveSessions()
 
@@ -108,6 +121,7 @@ export default function SuperAdminDashboardPage() {
   const [revenueSchoolId, setRevenueSchoolId] = useState<number | null>(null)
   const [revenueFrom, setRevenueFrom] = useState(thirtyDaysAgo)
   const [revenueTo, setRevenueTo]     = useState(today)
+  const [refreshing, setRefreshing] = useState(false)
 
   const revenueParams = revenueSchoolId
     ? { schoolId: revenueSchoolId, startDate: revenueFrom + 'T00:00:00.000Z', endDate: revenueTo + 'T23:59:59.999Z' }
@@ -141,6 +155,20 @@ export default function SuperAdminDashboardPage() {
   const loadingRevenue = useQueryLoading(authLoading || revenuePending)
   const loadingPipeline = useQueryLoading(authLoading || pipelinePending)
   const loadingStats = useQueryLoading(authLoading || statsPending)
+  const loadingGod = useQueryLoading(authLoading || godPending)
+
+  async function refreshAll() {
+    setRefreshing(true)
+    try {
+      await Promise.all([
+        refetch(),
+        // Force recalcul serveur (idempotent) + bypass cache Redis
+        superAdminApi.getDashboardStats({ days: 30, refresh: true }).then(() => refetchGod()),
+      ])
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const providerTotal = (providers ?? []).reduce((s, p) => s + p.volume, 0)
   const chartData = (providers ?? []).map(p => ({
@@ -175,7 +203,16 @@ export default function SuperAdminDashboardPage() {
               })}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <button
+              type="button"
+              onClick={() => void refreshAll()}
+              disabled={refreshing || godFetching}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={cn((refreshing || godFetching) && 'animate-spin')} />
+              Refresh Data
+            </button>
             <Link
               href="/super-admin/billing"
               className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 transition-colors"
@@ -204,11 +241,45 @@ export default function SuperAdminDashboardPage() {
         className="max-w-7xl mx-auto px-8 py-8 space-y-6"
       >
 
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <GodModeKpiCards data={godStats} loading={loadingGod} />
+        </div>
+        {godStats?.meta?.degraded ? (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Mode dégradé — certaines agrégations ont échoué (
+            {godStats.meta.partialFailures.join(', ') || 'inconnu'}). Les compteurs peuvent être
+            partiels.
+          </p>
+        ) : null}
+        {godStats?.meta?.cached ? (
+          <p className="text-[11px] text-zinc-400">
+            Cache hit · ETag {godStats.etag?.slice(0, 8)}… · généré{' '}
+            {godStats.meta.generatedAt
+              ? new Date(godStats.meta.generatedAt).toLocaleTimeString('fr-FR')
+              : '—'}
+          </p>
+        ) : null}
+
+        {(godError || isError) && !loadingGod && !loadingStats && (
+          <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            <span>Impossible de charger les statistiques God Mode.</span>
+            <button
+              type="button"
+              onClick={() => void refreshAll()}
+              className="font-medium underline underline-offset-2"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
+
+        <EnrollmentTrendChart data={godStats} loading={loadingGod} />
+
         <PlatformKpiStrip stats={stats} loading={loadingStats} />
 
-        {isError && !loadingStats && (
+        {isError && !loadingStats && !godError && (
           <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            <span>Impossible de charger les statistiques.</span>
+            <span>Impossible de charger les statistiques plateforme.</span>
             <button onClick={() => refetch()} className="font-medium underline underline-offset-2">Réessayer</button>
           </div>
         )}

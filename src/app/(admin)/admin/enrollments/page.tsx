@@ -661,7 +661,6 @@ function EnrollmentsPageContent() {
         </div>
       </div>
 
-      {/* Detail panel — sessions académiques */}
       <AnimatePresence>
         {selectedId != null && (
           <>

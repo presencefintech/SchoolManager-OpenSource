@@ -27,6 +27,19 @@ export const schoolsApi = {
   getBranding: () =>
     apiClient.get('/admin/schools/branding').then(r => r.data.data as SchoolBranding),
 
+  getEntitlements: () =>
+    apiClient.get('/admin/schools/entitlements').then(
+      (r) =>
+        r.data.data as {
+          status: string
+          features: Record<string, boolean>
+          cardPrintingAllowed: boolean
+          contractExpiry: string | null
+          subscriptionTier: string
+          studentCapacity: number | null
+        },
+    ),
+
   updateBranding: (
     payload: Partial<
       Pick<

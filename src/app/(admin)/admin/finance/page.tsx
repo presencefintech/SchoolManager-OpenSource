@@ -52,7 +52,6 @@ function initials(name: string) {
     .join('') || '?'
 }
 
-/* ── Glass panel ───────────────────────────────────────────────────────────── */
 function Panel({
   children, className, glow,
 }: { children: React.ReactNode; className?: string; glow?: 'emerald' | 'violet' | 'amber' }) {
@@ -99,7 +98,6 @@ function PanelHeader({
   )
 }
 
-/* ── KPI tile (secondary row) ──────────────────────────────────────────────── */
 function MetricTile({
   label, value, sub, icon: Icon, tone = 'zinc', href,
 }: {
@@ -185,12 +183,10 @@ function QuickLink({ href, icon: Icon, label, count, gradient, vibrant }: {
   )
 }
 
-/* ══════════════════════════════════════════════════════════════════════════ */
 
 export default function FinanceDashboardPage() {
   const [dashboardPeriod, setDashboardPeriod] = useState<'day' | 'month'>('month')
   const { data: kpis, isLoading, isError, error, isSuccess: coreReady } = useFinanceDashboard()
-  /** Vague 2 — après le KPI principal pour éviter 13 requêtes simultanées au mount */
   const secondary = { enabled: coreReady }
   const { data: topPayers = [] } = useFinanceTopPayers(secondary)
   const { data: insights } = useFinanceInsights(secondary)
@@ -205,7 +201,6 @@ export default function FinanceDashboardPage() {
   const { data: pending = [] } = usePendingVerifications(secondary)
   const { data: alerts = [], isError: fraudAlertsError } = useFinanceFraudAlerts(secondary)
   const { data: paymentProfile } = usePaymentProfile(secondary)
-  /** Vague 3 — widgets bas de page */
   const tertiary = { enabled: coreReady && efficiencyFetched }
   const { data: detailedReport } = useFinanceDetailedReport(tertiary)
   const { data: healthCheck } = useFinanceHealthCheck(tertiary)
@@ -263,7 +258,6 @@ export default function FinanceDashboardPage() {
 
   return (
     <div className="relative min-h-screen -m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-[#f4f6fa]">
-      {/* Ambient background — soft SaaS mesh */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#f4f6fa]">
         <div className="absolute -top-32 right-[-10%] h-[420px] w-[420px] rounded-full bg-emerald-200/30 blur-3xl" />
         <div className="absolute top-[20%] -left-24 h-[360px] w-[360px] rounded-full bg-violet-200/25 blur-3xl" />
@@ -284,7 +278,6 @@ export default function FinanceDashboardPage() {
           </div>
         )}
 
-        {/* ── Hero ── */}
         <motion.section
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -330,7 +323,6 @@ export default function FinanceDashboardPage() {
               </div>
             </div>
 
-            {/* Hero metrics */}
             {isLoading ? (
               <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {Array.from({ length: 4 }).map((_, i) => (
@@ -394,7 +386,6 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
-            {/* Progress bar */}
             {!isLoading && display.totalDue > 0 && (
               <div className="mt-6 px-1">
                 <div className="flex justify-between text-[11px] text-slate-500 mb-2">
@@ -414,7 +405,6 @@ export default function FinanceDashboardPage() {
           </div>
         </motion.section>
 
-        {/* Intelligence financière IA — impact commercial école */}
         {coreReady && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -425,7 +415,6 @@ export default function FinanceDashboardPage() {
           </motion.div>
         )}
 
-        {/* KYC banner */}
         {paymentProfile && paymentProfile.kycStatus !== 'VERIFIED' && (
           <Link href="/admin/finance/payment-profile">
             <Panel className="flex items-center justify-between gap-4 p-5 hover:ring-amber-200 transition-all group" glow="amber">
@@ -443,7 +432,6 @@ export default function FinanceDashboardPage() {
           </Link>
         )}
 
-        {/* Secondary metrics */}
         {!isLoading && (
           <motion.div
             className="grid grid-cols-2 lg:grid-cols-4 gap-4"
@@ -498,10 +486,8 @@ export default function FinanceDashboardPage() {
           </motion.div>
         )}
 
-        {/* Main grid */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
 
-          {/* Top payers */}
           <motion.div
             className="xl:col-span-7"
             initial={{ opacity: 0, y: 16 }}
@@ -572,10 +558,8 @@ export default function FinanceDashboardPage() {
             </Panel>
           </motion.div>
 
-          {/* Sidebar */}
           <div className="xl:col-span-5 flex flex-col gap-6">
 
-            {/* EOD */}
             {endOfDay && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
                 <Panel glow="violet">
@@ -620,7 +604,6 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
-            {/* Recouvrement par niveau — style Power BI */}
             {collectionLevels.length > 0 && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
                 <div className="relative overflow-hidden rounded-2xl border border-[#EDEBE9] bg-white shadow-sm ring-1 ring-slate-100">
@@ -637,7 +620,6 @@ export default function FinanceDashboardPage() {
                   </div>
 
                   <div className="px-5 py-4">
-                    {/* KPI strip */}
                     <div className="grid grid-cols-3 gap-2 mb-4">
                       <div className="rounded-lg border border-[#EDEBE9] bg-[#FAF9F8] px-3 py-2.5">
                         <p className="text-[10px] uppercase tracking-wider text-[#605E5C] font-medium">Moyenne</p>
@@ -665,7 +647,6 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
-            {/* F-06 + Increment A — Période & répartitions */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -696,7 +677,6 @@ export default function FinanceDashboardPage() {
             </motion.div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {/* F-06 — Payment methods (real data) */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
               <Panel glow="emerald">
                 <PanelHeader
@@ -731,7 +711,6 @@ export default function FinanceDashboardPage() {
               </Panel>
             </motion.div>
 
-            {/* Increment A — Fee types */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <Panel glow="violet">
                 <PanelHeader
@@ -767,7 +746,6 @@ export default function FinanceDashboardPage() {
             </motion.div>
             </div>
 
-            {/* Insights */}
             {ins && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <Panel glow="violet">
@@ -806,7 +784,6 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
-            {/* Bilan de santé financière */}
             {healthCheck && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
                 <Panel glow={healthCheck.isHealthy ? 'emerald' : 'amber'}>
@@ -824,7 +801,6 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
-            {/* Rapport détaillé */}
             {detailedReport && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}>
                 <Panel glow="violet">
@@ -842,7 +818,6 @@ export default function FinanceDashboardPage() {
               </motion.div>
             )}
 
-            {/* Quick links — accent vif */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
               <div className="relative overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/90 via-white to-violet-50/60 shadow-lg shadow-emerald-100/40 ring-1 ring-emerald-100/80">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-violet-500" />

@@ -20,10 +20,13 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { printPdfBlob } from '@/lib/finance/download-blob'
 import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
+import { schoolsApi } from '@/lib/admin/api/schools.api'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
 import { useClasses, useEnrollmentsByClass } from '@/lib/hooks/use-admin'
+import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/providers/toast-provider'
 import type { EnrollmentListItem } from '@/types/admin'
+import { AlertTriangle } from 'lucide-react'
 
 type BusyAction = 'class-print' | 'class-dl' | 'sel-print' | 'sel-dl' | 'one' | null
 
@@ -58,6 +61,12 @@ function StudentCardsPageContent() {
 
   const { data: classes = [], isLoading: classesLoading } = useClasses({ isActive: true })
   const { data: students = [], isLoading: studentsLoading, refetch, isFetching } = useEnrollmentsByClass(classId)
+  const { data: entitlements } = useQuery({
+    queryKey: ['admin', 'school-entitlements'],
+    queryFn: () => schoolsApi.getEntitlements(),
+    staleTime: 60_000,
+  })
+  const printLocked = entitlements?.cardPrintingAllowed === false
 
   useEffect(() => {
     const fromUrl = Number(searchParams.get('classId') ?? '') || 0
@@ -170,12 +179,24 @@ function StudentCardsPageContent() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-4">
         <p className="text-xs text-zinc-600 rounded-xl border border-zinc-200 bg-white px-4 py-3">
           Cette page imprime les <strong className="font-medium text-zinc-800">cartes élèves</strong> (présence du matin).
-          Les cartes remise (photo du parent + QR) s’impriment depuis la{' '}
+          Les cartes parent (photo + QR) s’impriment depuis la{' '}
           <Link href="/admin/desk" className="font-medium text-emerald-700 hover:text-emerald-900">
             fiche élève
           </Link>
           , après déclaration des personnes autorisées — jamais ici.
         </p>
+
+        {printLocked ? (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">Service d&apos;impression non actif. Contacter le support.</p>
+              <p className="text-xs mt-1 text-amber-800">
+                Le module cartes PVC n&apos;est pas activé pour cet établissement.
+              </p>
+            </div>
+          </div>
+        ) : null}
         <div className="bg-white rounded-xl border border-zinc-200 p-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 min-w-0">
             <span className="block text-xs font-medium text-zinc-600 mb-1.5">Classe</span>
@@ -198,7 +219,7 @@ function StudentCardsPageContent() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={!eligible.length || busy != null}
+                disabled={!eligible.length || busy != null || printLocked}
                 onClick={() =>
                   runPdf('class-print', () => enrollmentsApi.downloadClassCardsPdf(classId), 'print')
                 }
@@ -209,7 +230,7 @@ function StudentCardsPageContent() {
               </button>
               <button
                 type="button"
-                disabled={!eligible.length || busy != null}
+                disabled={!eligible.length || busy != null || printLocked}
                 onClick={() =>
                   runPdf('class-dl', () => enrollmentsApi.downloadClassCardsPdf(classId), 'download')
                 }
@@ -220,7 +241,7 @@ function StudentCardsPageContent() {
               </button>
               <button
                 type="button"
-                disabled={selectedIds.length === 0 || busy != null}
+                disabled={selectedIds.length === 0 || busy != null || printLocked}
                 onClick={() =>
                   runPdf('sel-print', () => enrollmentsApi.downloadBatchCardsPdf(selectedIds), 'print')
                 }
@@ -309,7 +330,7 @@ function StudentCardsPageContent() {
                         {ok && (
                           <button
                             type="button"
-                            disabled={busy != null}
+                            disabled={busy != null || printLocked}
                             onClick={() =>
                               runPdf(
                                 'one',
@@ -318,6 +339,11 @@ function StudentCardsPageContent() {
                               )
                             }
                             className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50"
+                            title={
+                              printLocked
+                                ? "Service d'impression non actif. Contacter le support."
+                                : undefined
+                            }
                           >
                             {busy === 'one' ? <Loader2 size={12} className="animate-spin" /> : <Printer size={12} />}
                             Imprimer

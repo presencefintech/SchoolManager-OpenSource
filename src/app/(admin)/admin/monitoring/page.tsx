@@ -81,11 +81,10 @@ export default function MonitoringPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f7fb]">
-      {/* Header */}
       <div className="bg-white border-b border-zinc-200">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-8 py-5">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-900">Monitoring système</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900">État du système</h1>
             <p className="text-sm text-zinc-400 mt-0.5">
               {lastUpdate
                 ? `Dernière mise à jour : ${lastUpdate.toLocaleTimeString('fr-FR')}`
@@ -99,9 +98,7 @@ export default function MonitoringPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-8 space-y-6">
-        {/* Vitaux serveur */}
         <div className="grid grid-cols-3 gap-4">
-          {/* CPU */}
           <motion.div variants={fadeUp} initial="hidden" animate="show"
             className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
             {statsLoading ? <Sk className="h-20" /> : (
@@ -122,7 +119,6 @@ export default function MonitoringPage() {
             )}
           </motion.div>
 
-          {/* Mémoire */}
           <motion.div variants={fadeUp} initial="hidden" animate="show"
             className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
             {statsLoading ? <Sk className="h-20" /> : (
@@ -143,7 +139,6 @@ export default function MonitoringPage() {
             )}
           </motion.div>
 
-          {/* Uptime */}
           <motion.div variants={fadeUp} initial="hidden" animate="show"
             className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
             {statsLoading ? <Sk className="h-20" /> : (
@@ -160,7 +155,6 @@ export default function MonitoringPage() {
           </motion.div>
         </div>
 
-        {/* Services */}
         <motion.div variants={fadeUp} initial="hidden" animate="show"
           className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-6 py-4 border-b border-zinc-100 flex items-center gap-2">
@@ -175,7 +169,7 @@ export default function MonitoringPage() {
           ) : services.length === 0 ? (
             <div className="py-12 text-center">
               <Activity size={26} className="mx-auto text-zinc-200 mb-2" />
-              <p className="text-sm text-zinc-400">Aucun service remonté</p>
+              <p className="text-sm text-zinc-400">Aucun service à afficher</p>
             </div>
           ) : (
             <div className="divide-y divide-zinc-50">

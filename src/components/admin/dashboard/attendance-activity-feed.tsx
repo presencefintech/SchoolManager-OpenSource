@@ -42,7 +42,7 @@ export function AttendanceActivityFeed() {
               status === 'live' ? 'bg-violet-500 animate-pulse' : 'bg-zinc-400',
             )}
           />
-          <span className="text-sm font-semibold text-slate-800">Activité socket</span>
+          <span className="text-sm font-semibold text-slate-800">Pointages en direct</span>
         </div>
         <span className="text-[10px] text-slate-400">
           {status === 'live' ? 'Temps réel' : 'Hors ligne'}

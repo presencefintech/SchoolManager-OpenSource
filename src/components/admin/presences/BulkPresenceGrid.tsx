@@ -295,7 +295,7 @@ export function BulkPresenceGrid({
   return (
     <AdminModal
       title="Cahier d'appel"
-      subtitle="Saisie groupée conforme DfE/CEDS — une feuille par classe et par jour"
+      subtitle="Saisie groupée — une feuille par classe et par jour"
       icon={ClipboardList}
       size="xl"
       onClose={onClose}

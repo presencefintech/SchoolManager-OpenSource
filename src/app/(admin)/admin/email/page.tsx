@@ -115,7 +115,6 @@ export default function EmailPage() {
           </div>
 
           <form onSubmit={handleSend} className="space-y-4">
-            {/* Destinataire */}
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1.5">Destinataire</label>
               <input
@@ -128,7 +127,6 @@ export default function EmailPage() {
               />
             </div>
 
-            {/* Sujet */}
             <div>
               <label className="block text-xs font-medium text-zinc-500 mb-1.5">Sujet</label>
               <input
@@ -141,7 +139,6 @@ export default function EmailPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              {/* Template */}
               <div>
                 <label className="block text-xs font-medium text-zinc-500 mb-1.5">Template</label>
                 <select value={templateName} onChange={e => setTemplateName(e.target.value)} className={inputCls} required>
@@ -152,7 +149,6 @@ export default function EmailPage() {
                 </select>
               </div>
 
-              {/* Catégorie */}
               <div>
                 <label className="block text-xs font-medium text-zinc-500 mb-1.5">Catégorie</label>
                 <select
@@ -167,7 +163,6 @@ export default function EmailPage() {
               </div>
             </div>
 
-            {/* Variables du template */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-zinc-500">Variables du template</label>

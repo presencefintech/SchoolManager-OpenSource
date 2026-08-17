@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import type { UserRole } from '@/types/auth'
 import { ROLE_HOME, isWebRole, pathAllowedForRole } from '@/types/auth'
 import { decodeAccessToken } from '@/lib/auth/verify-access-token'
+import { AUTH_COOKIE, decodeImpersonationCookie } from '@/lib/auth/session-cookies'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite']
 
@@ -41,6 +42,20 @@ export function middleware(request: NextRequest) {
   }
 
   const role = session.role
+  const impersonation =
+    decodeImpersonationCookie(request.cookies.get(AUTH_COOKIE.impersonation)?.value) ||
+    (session.impersonatedBy != null
+      ? {
+          schoolId: session.schoolId ?? 0,
+          schoolName: '',
+          byUserId: session.impersonatedBy,
+          startedAt: '',
+        }
+      : null)
+
+  if (impersonation && pathname.startsWith('/super-admin')) {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+  }
 
   if (!isWebRole(role)) {
     const res = NextResponse.redirect(new URL('/login?error=role_not_supported', request.url))

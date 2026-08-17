@@ -6,10 +6,61 @@ export interface PlatformStats {
   arpu: string
 }
 
+export interface GodModeDashboardStats {
+  schemaVersion?: number
+  etag?: string
+  mrr: {
+    amount: number
+    currency: string
+    previousAmount: number
+    deltaPct: number
+    commissionPerCard: number
+    avgSubscription: number
+    formula: string
+    components?: {
+      studentCommission: number
+      subscriptionRevenue: number
+    }
+  }
+  schools: {
+    active: number
+    suspended: number
+    pending: number
+    expired: number
+    total: number
+    byStatus: Record<string, number>
+  }
+  totalStudents: number
+  enrollmentsLast30Days: Array<{ date: string; count: number }>
+  enrollmentWindowDays?: number
+  period: {
+    from: string
+    to: string
+    previousMonthStart: string
+  }
+  meta?: {
+    cached: boolean
+    degraded: boolean
+    partialFailures: string[]
+    generatedAt: string
+  }
+  /** @deprecated compat ancienne forme */
+  generatedAt?: string
+}
+
 export interface SchoolHealth {
   score: number
   level: 'CRITICAL' | 'STABLE' | 'EXCELLENT'
   label: string
+}
+
+export type SchoolLifecycleStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING' | 'EXPIRED'
+
+export type SchoolFeaturesMap = {
+  printing: boolean
+  mobile_app: boolean
+  finance_reports: boolean
+  [key: string]: boolean
 }
 
 export interface SchoolOperationalSuspension {
@@ -25,6 +76,14 @@ export interface School {
   city: string
   email?: string
   active: boolean
+  status?: SchoolLifecycleStatus
+  features?: SchoolFeaturesMap
+  contractExpiry?: string | null
+  cardPrintingAllowed?: boolean
+  subscriptionTier?: string
+  studentCapacity?: number | null
+  studentCount?: number
+  capacityPct?: number | null
   deletedAt: null | string
   operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
@@ -53,7 +112,20 @@ export interface SchoolDetail {
   name: string
   city: string
   email?: string
+  phone?: string | null
+  address?: string | null
+  createdAt?: string
+  promoterName?: string | null
+  promoterPhone?: string | null
   active: boolean
+  status?: SchoolLifecycleStatus
+  features?: SchoolFeaturesMap
+  contractExpiry?: string | null
+  cardPrintingAllowed?: boolean
+  subscriptionTier?: string
+  studentCapacity?: number | null
+  studentCount?: number
+  capacityPct?: number | null
   deletedAt: null | string
   operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
@@ -62,6 +134,24 @@ export interface SchoolDetail {
     payments: number
   }
   admins: SchoolAdminRecord[]
+}
+
+export interface SchoolPrintLog {
+  id: number
+  channel: string
+  studentCount: number
+  actorId: number | null
+  meta: unknown
+  createdAt: string
+}
+
+export interface SchoolSaasUpdatePayload {
+  status?: SchoolLifecycleStatus
+  features?: Partial<SchoolFeaturesMap>
+  contractExpiry?: string | null
+  cardPrintingAllowed?: boolean
+  subscriptionTier?: 'BASIC' | 'PREMIUM' | 'ENTERPRISE'
+  studentCapacity?: number | null
 }
 
 export interface SchoolPerformance {

@@ -201,9 +201,9 @@ function PortfolioKpis({ data }: { data: FinanceAiInsightBundle }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
       {[
-        { label: 'DSO', value: `${p.dsoDays} j`, sub: 'délai encaissement' },
-        { label: 'NPL 90+', value: `${p.nplRatioPct}%`, sub: 'créances longues' },
-        { label: 'ECL', value: formatMoney(p.expectedLoss), sub: `couverture ${p.coverageRatioPct}%` },
+        { label: 'Délai d’encaissement', value: `${p.dsoDays} j`, sub: 'jours moyens' },
+        { label: 'Impayés 90+ j', value: `${p.nplRatioPct}%`, sub: 'créances longues' },
+        { label: 'Perte estimée', value: formatMoney(p.expectedLoss), sub: `couverture ${p.coverageRatioPct}%` },
         {
           label: 'Pression aging',
           value: `${p.agingPressure}/100`,
@@ -227,7 +227,6 @@ export function FinanceAiInsightsPanel({
   source = 'admin',
 }: {
   enabled?: boolean
-  /** `finance` = guichet rôle FINANCE ; `admin` = console admin */
   source?: 'admin' | 'finance'
 }) {
   const [horizon, setHorizon] = useState<FinanceAiHorizon>(30)
@@ -430,7 +429,7 @@ export function FinanceAiInsightsPanel({
                           {a.date} · {a.direction === 'SPIKE' ? 'pic' : 'chute'}
                         </span>
                         <span className="tabular-nums text-slate-200">
-                          {formatMoney(a.amount)} · z={a.zScore}
+                          {formatMoney(a.amount)}
                         </span>
                       </div>
                     ))}
@@ -442,7 +441,7 @@ export function FinanceAiInsightsPanel({
                     ? ` · ${data.portfolio.moratoriumCount} moratoire(s)`
                     : ''}
                   {data.portfolio.stalePendingCount > 0
-                    ? ` · ${data.portfolio.stalePendingCount} pending >72h`
+                    ? ` · ${data.portfolio.stalePendingCount} en attente > 72 h`
                     : ''}
                 </p>
               </div>
@@ -451,7 +450,7 @@ export function FinanceAiInsightsPanel({
             {data.portfolio.classHotspots.length > 0 && (
               <div className="rounded-xl bg-white/5 px-3 py-3 ring-1 ring-white/10 space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                  Hotspots classes
+                  Classes à surveiller
                 </p>
                 {data.portfolio.classHotspots.slice(0, 4).map((h) => (
                   <div
@@ -543,7 +542,7 @@ export function FinanceAiInsightsPanel({
                           {action.className ?? 'Sans classe'} · dette{' '}
                           {formatMoney(action.debtAmount)} · récup.{' '}
                           {formatMoney(action.expectedRecovery)} ({action.recoverabilityPct}%) ·
-                          ECL {formatMoney(action.expectedLoss)}
+                          Perte estimée {formatMoney(action.expectedLoss)}
                         </p>
                         <p className="text-[11px] text-indigo-200 mt-0.5 flex items-center gap-1">
                           <Icon size={11} />

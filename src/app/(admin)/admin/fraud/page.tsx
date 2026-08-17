@@ -64,7 +64,6 @@ export default function FraudPage() {
       </motion.div>
 
       <div className="grid grid-cols-2 gap-6">
-        {/* Vérification manuelle */}
         <motion.div variants={fadeUp} initial="hidden" animate="show" className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-5">
             <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center">
@@ -107,7 +106,6 @@ export default function FraudPage() {
             </button>
           </form>
 
-          {/* Résultat */}
           {checkResult && (
             <motion.div
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -137,7 +135,6 @@ export default function FraudPage() {
           )}
         </motion.div>
 
-        {/* Alertes fraude */}
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">

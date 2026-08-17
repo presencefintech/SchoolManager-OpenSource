@@ -4,6 +4,7 @@ export type VerifiedAccessToken = {
   userId: number
   role: UserRole
   schoolId?: number
+  impersonatedBy?: number
 }
 
 function base64UrlDecode(value: string): Uint8Array {
@@ -34,6 +35,7 @@ export function decodeAccessToken(token: string): VerifiedAccessToken | null {
       userId?: number
       role?: string
       schoolId?: number
+      impersonatedBy?: number
       exp?: number
     }
 
@@ -44,6 +46,8 @@ export function decodeAccessToken(token: string): VerifiedAccessToken | null {
       userId: decoded.userId,
       role: decoded.role as UserRole,
       schoolId: decoded.schoolId,
+      impersonatedBy:
+        decoded.impersonatedBy != null ? Number(decoded.impersonatedBy) : undefined,
     }
   } catch {
     return null

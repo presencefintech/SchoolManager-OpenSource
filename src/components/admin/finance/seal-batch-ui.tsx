@@ -81,7 +81,7 @@ export function SealBatchDetailPanel({
           </div>
           <p className="text-sm font-medium text-slate-700">Aucun lot sélectionné</p>
           <p className="text-xs text-slate-500 mt-1 max-w-[220px]">
-            Choisissez un lot pour consulter les paiements, le sceau HMAC et exporter l&apos;archive PDF.
+            Choisissez un lot pour consulter les paiements, le sceau d’intégrité et exporter l&apos;archive PDF.
           </p>
         </div>
       </div>
@@ -208,7 +208,7 @@ export function SealBatchDetailPanel({
           />
         </RefundDetailBlock>
 
-        <RefundDetailBlock title="Sceau HMAC">
+        <RefundDetailBlock title="Sceau d’intégrité">
           <div className="flex items-start gap-2">
             <code className="flex-1 text-[11px] font-mono text-slate-600 bg-slate-100/80 rounded-lg px-3 py-2 break-all">
               {detail.sealHmac ?? '—'}

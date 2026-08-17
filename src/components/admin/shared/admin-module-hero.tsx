@@ -38,7 +38,6 @@ function HeroMetricCell({ label, value, loading, valueClassName, icon: Icon }: A
   )
 }
 
-/** Bandeau module admin — gradient emerald, KPI, actions (aligné dashboard). */
 export function AdminModuleHero({
   eyebrow,
   title,

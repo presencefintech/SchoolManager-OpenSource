@@ -47,7 +47,6 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
         </h2>
       </div>
 
-      {/* Stats */}
       {stats && (
         <div className="grid grid-cols-3 gap-4">
           {Object.entries(stats).map(([key, val]) => (
@@ -59,7 +58,6 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
         </div>
       )}
 
-      {/* Classes */}
       {dashboard.classes?.length > 0 && (
         <div className="bg-white rounded-xl border border-zinc-200 p-4">
           <h3 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-1.5">
@@ -75,7 +73,6 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
         </div>
       )}
 
-      {/* Update classes */}
       <div className="bg-white rounded-xl border border-zinc-200 p-4">
         <h3 className="text-sm font-semibold text-zinc-700 mb-3">Modifier les classes</h3>
         <div className="flex gap-2">
@@ -97,7 +94,6 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
         {updateClasses.isError && <p className="mt-1.5 text-xs text-red-500">Erreur</p>}
       </div>
 
-      {/* Scans */}
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-1.5">
           <QrCode size={14} className="text-zinc-400" />

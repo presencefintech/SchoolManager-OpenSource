@@ -302,9 +302,9 @@ function ControleContent() {
             <option value="DEBTOR">Débiteurs</option>
             <option value="PAID">En ordre</option>
             <option value="OVERPAID">Sur-payés</option>
-            <option value="DRIFT">Écart ledger</option>
+            <option value="DRIFT">Écart de solde</option>
             <option value="HIGH_RISK">Risque élevé</option>
-            <option value="NPL_90">NPL 90+</option>
+            <option value="NPL_90">Impayés 90+ j</option>
           </select>
           <select
             className={selectCls}
@@ -316,8 +316,8 @@ function ControleContent() {
           >
             <option value="balance_desc">Tri · solde ↓</option>
             <option value="risk_desc">Tri · risque ↓</option>
-            <option value="dpd_desc">Tri · DPD ↓</option>
-            <option value="ecl_desc">Tri · ECL ↓</option>
+            <option value="dpd_desc">Tri · jours de retard</option>
+            <option value="ecl_desc">Tri · perte estimée</option>
             <option value="name_asc">Tri · nom</option>
           </select>
         </div>

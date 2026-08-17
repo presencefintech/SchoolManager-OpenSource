@@ -137,7 +137,6 @@ export default function StudentsPage() {
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-5">
 
-        {/* Stats bar */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
@@ -165,7 +164,6 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
           {([['list', 'Liste'], ['applications', 'Candidatures'], ...(!deskOnly ? [['debtors', 'Débiteurs'] as [Tab, string]] : [])] as [Tab, string][]).map(([t, label]) => (
             <button
@@ -181,7 +179,6 @@ export default function StudentsPage() {
           ))}
         </div>
 
-        {/* LIST TAB */}
         {tab === 'list' && (
           <div className="space-y-4">
             <AdminMultiCriteriaSearch
@@ -312,6 +309,21 @@ export default function StudentsPage() {
                                     },
                                   },
                                   {
+                                    id: 'fiche',
+                                    label: 'Fiche d’inscription',
+                                    onClick: () => {
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(s.id)
+                                          triggerBlobDownload(blob, filename)
+                                          toast.success('Fiche d’inscription', filename)
+                                        } catch (error) {
+                                          toast.error('Fiche d’inscription', getApiErrorMessage(error))
+                                        }
+                                      })()
+                                    },
+                                  },
+                                  {
                                     id: 'exit',
                                     label: 'Certificat de radiation',
                                     onClick: () => router.push(`/admin/students/${s.id}?doc=exit`),
@@ -323,7 +335,7 @@ export default function StudentsPage() {
                                   },
                                   {
                                     id: 'pickup',
-                                    label: 'Cartes remise (parents)',
+                                    label: 'Cartes parent',
                                     onClick: () => router.push(`/admin/students/${s.id}?doc=pickup`),
                                   },
                                   {
@@ -369,7 +381,6 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* APPLICATIONS TAB */}
         {tab === 'applications' && (
           <div className="space-y-4">
             <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
@@ -451,7 +462,6 @@ export default function StudentsPage() {
           </div>
         )}
 
-        {/* DEBTORS TAB */}
         {tab === 'debtors' && !deskOnly && (
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
             {loadingDebtors ? (
@@ -500,7 +510,6 @@ export default function StudentsPage() {
         )}
       </div>
 
-      {/* Reject modal */}
       {rejectId !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div

@@ -64,7 +64,6 @@ export default function SanctionsPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-8 py-8 grid grid-cols-2 gap-6">
-        {/* Formulaire */}
         <motion.div variants={fadeUp} initial="hidden" animate="show"
           className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
           <div className="flex items-center gap-2 mb-5">
@@ -82,7 +81,6 @@ export default function SanctionsPage() {
               required
             />
 
-            {/* Score de fraude */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-zinc-500">Score de fraude</label>
@@ -118,7 +116,6 @@ export default function SanctionsPage() {
           </form>
         </motion.div>
 
-        {/* Résultat */}
         <div className="space-y-4">
           <motion.div variants={fadeUp} initial="hidden" animate="show"
             className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
@@ -135,8 +132,6 @@ export default function SanctionsPage() {
               const validated = result.validated as boolean | undefined
               const sanctionType = (result.sanctionType as string | undefined) ?? severityToLabel(severity)
 
-              // Une sanction existe si status est présent et différent de NONE / pas de champ status
-              // OU si sanctionApplied est explicitement true
               const noSanction =
                 result.sanctionApplied === false ||
                 status === 'NONE' ||
