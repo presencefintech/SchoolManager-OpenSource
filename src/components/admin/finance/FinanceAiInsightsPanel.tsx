@@ -227,7 +227,6 @@ export function FinanceAiInsightsPanel({
   source = 'admin',
 }: {
   enabled?: boolean
-  /** `finance` = guichet rôle FINANCE ; `admin` = console admin */
   source?: 'admin' | 'finance'
 }) {
   const [horizon, setHorizon] = useState<FinanceAiHorizon>(30)

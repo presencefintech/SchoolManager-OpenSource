@@ -417,7 +417,6 @@ export default function FacturesPage() {
         effectiveTo: fresh.effectiveTo ?? null,
       })
     } catch {
-      // Conserve le snapshot liste si getById échoue
     }
   }
 

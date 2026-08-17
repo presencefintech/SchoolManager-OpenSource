@@ -292,7 +292,6 @@ export function FinanceReportsDashboard() {
 
   return (
     <div className="space-y-6 pb-8">
-      {/* En-tête */}
       <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-6 py-6 text-white shadow-xl">
         <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="relative flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -319,7 +318,6 @@ export function FinanceReportsDashboard() {
         </div>
       </div>
 
-      {/* Filtres */}
       <Panel className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -367,14 +365,12 @@ export function FinanceReportsDashboard() {
         </div>
       </Panel>
 
-      {/* Erreur */}
       {reportQuery.isError ? (
         <Panel className="border-red-200 bg-red-50/50 p-5 text-sm text-red-800">
           Impossible de charger le rapport. {getApiErrorMessage(reportQuery.error)}
         </Panel>
       ) : null}
 
-      {/* KPIs */}
       {reportQuery.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (
@@ -468,7 +464,6 @@ export function FinanceReportsDashboard() {
         </motion.div>
       ) : null}
 
-      {/* Taux de change */}
       <Panel>
         <div className="border-b border-slate-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">Politique de change & audit</h2>

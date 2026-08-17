@@ -99,13 +99,11 @@ export default function FilesPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-8 py-8 grid grid-cols-[1fr_360px] gap-6">
-        {/* Zone d'upload */}
         <div className="space-y-4">
           <motion.div variants={fadeUp} initial="hidden" animate="show"
             className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
             <h2 className="text-sm font-semibold text-zinc-900 mb-4">Envoyer un fichier</h2>
 
-            {/* Dossier */}
             <div className="mb-4">
               <label className="block text-xs font-medium text-zinc-500 mb-1.5">Dossier de destination</label>
               <select value={folder} onChange={e => setFolder(e.target.value)} className={inputCls}>
@@ -115,7 +113,6 @@ export default function FilesPage() {
               </select>
             </div>
 
-            {/* Drop zone */}
             <div
               onDragOver={e => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
@@ -158,7 +155,6 @@ export default function FilesPage() {
           )}
         </div>
 
-        {/* Liste des fichiers uploadés */}
         <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
           <div className="px-5 py-4 border-b border-zinc-100 flex items-center justify-between">
             <div className="flex items-center gap-2">

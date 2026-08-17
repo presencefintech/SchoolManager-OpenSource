@@ -439,7 +439,7 @@ function ExitPassModal({
         <p className="text-xs text-zinc-500 mb-5">
           {youngChild
             ? 'Enfant en bas âge : comparer la personne au dossier, ou noter un mandat (pièce + appel au parent). Pas de sortie seule.'
-            : 'Laissez-passer du jour — uniquement si la personne n’a pas de carte remise. Visa parent = signature au guichet, sinon appel. Les titulaires de carte passent par le scan enseignant au préau.'}
+            : 'Laissez-passer du jour — uniquement si la personne n’a pas de carte parent. Visa parent = signature au guichet, sinon appel. Les titulaires de carte passent par le scan enseignant au préau.'}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {youngChild && (
@@ -452,7 +452,7 @@ function ExitPassModal({
             <legend className="text-xs font-medium text-zinc-500">Qui récupère l’enfant ?</legend>
             {([
               { value: 'LINKED' as const, label: 'Parent / tuteur du dossier', hint: 'Comparer nom et téléphone avec la fiche.' },
-              { value: 'MANDATED' as const, label: 'Personne non déclarée à l’inscription', hint: 'Pas de carte remise. Pièce + appel au parent, comme aujourd’hui.' },
+              { value: 'MANDATED' as const, label: 'Personne non déclarée à l’inscription', hint: 'Pas de carte parent. Pièce + appel au parent, comme aujourd’hui.' },
             ]).map((opt) => (
               <label key={opt.value} className="flex items-start gap-2 text-sm text-zinc-700">
                 <input
@@ -1178,7 +1178,6 @@ export default function StudentDetailPage() {
 
       <div className="max-w-4xl mx-auto px-8 py-6 space-y-5">
 
-        {/* Aperçu carte — toujours visible en premier (desktop + mobile) */}
         {cardData && (
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-zinc-100">
@@ -1291,7 +1290,6 @@ export default function StudentDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-          {/* Profile */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
               <div className="flex items-center justify-between mb-3">
@@ -1350,7 +1348,6 @@ export default function StudentDetailPage() {
 
             <PickupAdultsPanel studentId={studentId} />
 
-            {/* Sessions académiques */}
             {enrollmentDetail?.enrollments && enrollmentDetail.enrollments.length > 0 && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <h2 className="text-sm font-semibold text-zinc-700 mb-4">Inscriptions par session</h2>
@@ -1362,7 +1359,6 @@ export default function StudentDetailPage() {
               </div>
             )}
 
-            {/* Finance — agrégats + échéancier dus / non dus */}
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 space-y-5">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
@@ -1429,7 +1425,6 @@ export default function StudentDetailPage() {
               </div>
             </div>
 
-            {/* Activity */}
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
               <div className="px-5 py-4 border-b border-zinc-100">
                 <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><Clock size={14} /> Activité récente</h2>
@@ -1456,10 +1451,8 @@ export default function StudentDetailPage() {
               )}
             </div>
           </div>
-          {/* Right column */}
           <div className="space-y-4">
 
-            {/* Dossier */}
             {dossierItem && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -1478,7 +1471,6 @@ export default function StudentDetailPage() {
                 </div>
               </div>
             )}
-            {/* Presence stats */}
             {student.presenceCount !== undefined && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
                 <h2 className="text-sm font-semibold text-zinc-700 mb-3">Présence</h2>
@@ -1503,7 +1495,6 @@ export default function StudentDetailPage() {
               </div>
             )}
 
-            {/* Security actions */}
             {!deskOnly && (
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
               <h2 className="text-sm font-semibold text-zinc-700 mb-3 flex items-center gap-2">

@@ -87,7 +87,6 @@ function fmtKpi(value: number | undefined, loading: boolean): string | number {
   return value ?? 0
 }
 
-/** KPI dans le bandeau hero sombre */
 function HeroMetric({
   label,
   value,
@@ -275,7 +274,6 @@ export function AdminDashboardView() {
 
   return (
     <div className="min-h-full bg-[#e8ecf4]">
-      {/* Bandeau ERP — gradient sombre, KPI visibles */}
       <div className="relative w-full overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white shadow-[0_4px_24px_rgba(0,0,0,0.18)]">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(16,185,129,0.22),_transparent_55%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(15,23,42,0.4),_transparent_50%)]" />
@@ -352,7 +350,6 @@ export function AdminDashboardView() {
           </div>
         </div>
 
-        {/* Strip KPI — intégré au bandeau sombre */}
         <div className="relative border-t border-white/10 bg-black/20 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-5">
             <HeroMetric
@@ -445,7 +442,6 @@ export function AdminDashboardView() {
           </div>
         )}
 
-        {/* KPI opérationnels (complément bandeau) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard
             label="Taux de présence"
@@ -481,7 +477,6 @@ export function AdminDashboardView() {
 
         <AdminPlatformEventsPanel />
 
-        {/* Graphiques */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <Panel title="Tendance de présence" subtitle="7 derniers jours (%)" className="lg:col-span-5">
             {loadingStats ? <Sk className="h-[220px]" /> : <WeeklyAttendanceChart data={weeklyTrend} />}
@@ -500,7 +495,6 @@ export function AdminDashboardView() {
           <div className="lg:col-span-4 space-y-4">
             <AttendanceActivityFeed />
 
-            {/* Live feed REST (complément polling) */}
             <div className="rounded-xl border border-slate-200/80 bg-white/85 backdrop-blur-sm shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden flex flex-col">
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-2">

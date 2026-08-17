@@ -522,7 +522,6 @@ export default function ClassesPage() {
           ]}
         />
 
-        {/* Tableau ERP */}
         <div className="bg-white rounded-xl border border-zinc-200/80 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/60">
             <div className="flex items-center gap-2">

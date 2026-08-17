@@ -96,7 +96,6 @@ export default function PaymentProfilePage() {
         </p>
       </motion.div>
 
-      {/* Stepper */}
       {isLoading ? (
         <div className="h-40 rounded-2xl bg-zinc-100 animate-pulse" />
       ) : onboarding && (

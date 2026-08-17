@@ -142,7 +142,6 @@ export function ImportPage() {
         </p>
       </div>
 
-      {/* Type selector */}
       <div className="grid grid-cols-4 gap-3">
         {IMPORT_TYPES.map(t => {
           const active = type === t.id
@@ -166,7 +165,6 @@ export function ImportPage() {
         })}
       </div>
 
-      {/* School selector — SUPER_ADMIN only */}
       {isSuperAdmin && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
           <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -197,7 +195,6 @@ export function ImportPage() {
         </div>
       )}
 
-      {/* Column reference */}
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
         <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-3">
           Colonnes attendues — {typeInfo.label}
@@ -234,7 +231,6 @@ export function ImportPage() {
         )}
       </div>
 
-      {/* Upload zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
@@ -296,7 +292,6 @@ export function ImportPage() {
         </label>
       </div>
 
-      {/* Job result */}
       <AnimatePresence>
         {jobId && (
           <motion.div
@@ -306,7 +301,6 @@ export function ImportPage() {
             transition={{ duration: 0.2 }}
             className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5 space-y-4"
           >
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 {status === 'COMPLETED' && <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />}
@@ -335,7 +329,6 @@ export function ImportPage() {
               </div>
             </div>
 
-            {/* Progress bar */}
             <div className="w-full bg-zinc-100 rounded-full h-1.5 overflow-hidden">
               <motion.div
                 className={cn('h-full rounded-full', statusCfg?.bar ?? 'bg-zinc-300')}
@@ -345,7 +338,6 @@ export function ImportPage() {
               />
             </div>
 
-            {/* Stats */}
             {job && (
               <div className="grid grid-cols-3 gap-3">
                 {(
@@ -363,7 +355,6 @@ export function ImportPage() {
               </div>
             )}
 
-            {/* Error table */}
             {job?.errors && job.errors.length > 0 && (
               <div>
                 <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">

@@ -164,7 +164,6 @@ export default function AuditPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        {/* Sécurité présences */}
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center">
@@ -189,7 +188,6 @@ export default function AuditPage() {
           )}
         </div>
 
-        {/* Analyse risque fraude */}
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center">
@@ -227,7 +225,6 @@ export default function AuditPage() {
           </form>
         </div>
 
-        {/* Audit caissier */}
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
