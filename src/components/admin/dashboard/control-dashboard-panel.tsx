@@ -74,7 +74,7 @@ export function ControlDashboardPanel() {
           <div className="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2.5">
             <div className="flex items-center gap-1.5 text-slate-500 mb-1">
               <Zap size={12} />
-              <span className="text-[10px] uppercase tracking-wide">Latence API</span>
+              <span className="text-[10px] uppercase tracking-wide">Délai de réponse</span>
             </div>
             <p className="text-xl font-bold text-slate-900 tabular-nums">{control.performance.apiAvgMs}</p>
           </div>

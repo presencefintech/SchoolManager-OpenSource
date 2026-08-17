@@ -56,11 +56,11 @@ export default function PaymentProfilePage() {
     setError(null)
     setSuccess(false)
     if (!form.settlementAccountNumber.trim() && displayProfile?.kycStatus === 'NOT_CONFIGURED') {
-      setError('Saisissez le numéro de compte settlement (requis à chaque enregistrement).')
+      setError('Saisissez le numéro de compte de règlement (requis à chaque enregistrement).')
       return
     }
     if (!form.settlementAccountNumber.trim()) {
-      setError('Saisissez le numéro de compte settlement (requis à chaque enregistrement).')
+      setError('Saisissez le numéro de compte de règlement (requis à chaque enregistrement).')
       return
     }
     const payload: UpsertPaymentProfilePayload = {
@@ -90,9 +90,9 @@ export default function PaymentProfilePage() {
   return (
     <div className="space-y-6 max-w-3xl">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
-        <h1 className="text-2xl font-bold text-zinc-900">Paiements en ligne — onboarding</h1>
+        <h1 className="text-2xl font-bold text-zinc-900">Paiements en ligne</h1>
         <p className="text-sm text-zinc-500 mt-0.5">
-          Wizard KYC marchand — activez les paiements parents pour votre établissement
+          Activez les paiements parents pour votre établissement
         </p>
       </motion.div>
 
@@ -224,7 +224,7 @@ export default function PaymentProfilePage() {
             <input
               value={form.settlementAccountNumber}
               onChange={(e) => setForm((f) => ({ ...f, settlementAccountNumber: e.target.value }))}
-              placeholder={displayProfile?.settlementAccountMasked ?? 'Compte settlement'}
+              placeholder={displayProfile?.settlementAccountMasked ?? 'Compte de règlement'}
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>

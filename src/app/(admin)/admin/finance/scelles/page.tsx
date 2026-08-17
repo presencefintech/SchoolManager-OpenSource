@@ -202,7 +202,7 @@ export default function AdminSealBatchesPage() {
                 </div>
                 <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Lots scellés</h1>
                 <p className="text-sm text-slate-400 mt-2 max-w-lg">
-                  Registre des clôtures financières avec sceau d&apos;intégrité HMAC et export PDF pour la comptabilité.
+                  Registre des clôtures financières avec sceau d&apos;intégrité et export PDF pour la comptabilité.
                 </p>
                 <Link
                   href="/admin/finance"

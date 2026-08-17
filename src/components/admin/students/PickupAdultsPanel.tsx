@@ -165,9 +165,8 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
             <Contact size={14} /> Cartes parent — personnes autorisées
           </h2>
           <p className="text-[11px] text-zinc-400 mt-1 max-w-xl">
-            Déclarez d’abord qui a le droit de récupérer l’enfant, puis imprimez
+            Déclarez les personnes autorisées à récupérer l’enfant, puis imprimez
             <strong className="font-medium text-zinc-500"> une carte par adulte</strong> (photo + QR).
-            Le soir, l’enseignant utilise le mode sortie — pas le pointage du matin.
           </p>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -193,7 +192,7 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
 
       {adults.length === 0 && !isLoading && (
         <p className="text-xs rounded-xl bg-amber-50 text-amber-800 px-3 py-2 mb-3">
-          Sans cette liste, on n’imprime rien. Personne non déclarée : laissez-passer du jour (bouton Sortie) + appel au parent + pièce.
+          Déclarez d’abord les personnes autorisées. Sinon utilisez une autorisation de sortie du jour (appel au parent + pièce d’identité).
         </p>
       )}
 
@@ -380,13 +379,13 @@ export function PickupAdultsPanel({ studentId }: { studentId: number }) {
 
       <p className="mt-3 text-[11px] text-zinc-400 flex items-start gap-1.5">
         <ShieldAlert size={12} className="mt-0.5 flex-shrink-0" />
-        QR parent ≠ QR élève. Scanner une carte parent en mode présence est refusé. Exception (personne non déclarée) : bouton Sortie.
+        La carte parent ne sert pas au pointage du matin. Pour une personne non déclarée, créez une autorisation de sortie.
       </p>
 
       <ConfirmDialog
         open={revokeId != null}
         title="Révoquer cette personne ?"
-        description="Sa carte ne pourra plus ouvrir la liste des enfants au préau. Vous pourrez en déclarer une autre ensuite."
+        description="Sa carte ne pourra plus être utilisée pour récupérer les enfants. Vous pourrez en déclarer une autre ensuite."
         confirmLabel="Révoquer"
         variant="danger"
         loading={revokeMutation.isPending}

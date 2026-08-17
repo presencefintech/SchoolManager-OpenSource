@@ -439,7 +439,7 @@ function ExitPassModal({
         <p className="text-xs text-zinc-500 mb-5">
           {youngChild
             ? 'Enfant en bas âge : comparer la personne au dossier, ou noter un mandat (pièce + appel au parent). Pas de sortie seule.'
-            : 'Laissez-passer du jour — uniquement si la personne n’a pas de carte parent. Visa parent = signature au guichet, sinon appel. Les titulaires de carte passent par le scan enseignant au préau.'}
+            : 'Autorisation du jour pour une personne sans carte parent. Demandez une signature ou appelez le parent.'}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {youngChild && (
@@ -452,7 +452,7 @@ function ExitPassModal({
             <legend className="text-xs font-medium text-zinc-500">Qui récupère l’enfant ?</legend>
             {([
               { value: 'LINKED' as const, label: 'Parent / tuteur du dossier', hint: 'Comparer nom et téléphone avec la fiche.' },
-              { value: 'MANDATED' as const, label: 'Personne non déclarée à l’inscription', hint: 'Pas de carte parent. Pièce + appel au parent, comme aujourd’hui.' },
+              { value: 'MANDATED' as const, label: 'Personne non déclarée à l’inscription', hint: 'Sans carte parent : pièce d’identité et appel au parent.' },
             ]).map((opt) => (
               <label key={opt.value} className="flex items-start gap-2 text-sm text-zinc-700">
                 <input

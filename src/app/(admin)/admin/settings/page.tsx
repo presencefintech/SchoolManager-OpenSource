@@ -363,18 +363,18 @@ export default function SettingsPage() {
             </div>
             <div className="mt-4">
               <NumberField
-                label="Décalage horaire max (millisecondes)"
-                value={form.validationRules.maxClockSkewMs}
+                label="Écart d’horloge max (secondes)"
+                value={Math.round(form.validationRules.maxClockSkewMs / 1000)}
                 onChange={(v) =>
                   updateForm((f) => ({
                     ...f,
                     validationRules: {
                       ...f.validationRules,
-                      maxClockSkewMs: Number(v) || f.validationRules.maxClockSkewMs,
+                      maxClockSkewMs: (Number(v) || Math.round(f.validationRules.maxClockSkewMs / 1000)) * 1000,
                     },
                   }))
                 }
-                hint="Tolérance entre l'heure appareil et serveur"
+                hint="Tolérance entre l’heure de l’appareil et celle du serveur"
               />
             </div>
           </div>

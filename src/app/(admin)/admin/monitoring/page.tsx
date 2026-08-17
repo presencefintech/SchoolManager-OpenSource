@@ -84,7 +84,7 @@ export default function MonitoringPage() {
       <div className="bg-white border-b border-zinc-200">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-8 py-5">
           <div>
-            <h1 className="text-2xl font-semibold text-zinc-900">Monitoring système</h1>
+            <h1 className="text-2xl font-semibold text-zinc-900">État du système</h1>
             <p className="text-sm text-zinc-400 mt-0.5">
               {lastUpdate
                 ? `Dernière mise à jour : ${lastUpdate.toLocaleTimeString('fr-FR')}`
@@ -169,7 +169,7 @@ export default function MonitoringPage() {
           ) : services.length === 0 ? (
             <div className="py-12 text-center">
               <Activity size={26} className="mx-auto text-zinc-200 mb-2" />
-              <p className="text-sm text-zinc-400">Aucun service remonté</p>
+              <p className="text-sm text-zinc-400">Aucun service à afficher</p>
             </div>
           ) : (
             <div className="divide-y divide-zinc-50">

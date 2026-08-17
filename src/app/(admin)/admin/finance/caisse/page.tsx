@@ -144,7 +144,7 @@ export default function AdminCashFloatPolicyPage() {
             ['valeur', 'Vue d’ensemble'],
             ['journee', 'Synthèse journée'],
             ['suivi', 'Suivi fonds'],
-            ['promoteur', 'Boîte promoteur'],
+            ['promoteur', 'Visas direction'],
             ['ecarts', 'Écarts'],
             ['politique', 'Politique'],
           ] as const
@@ -175,7 +175,6 @@ export default function AdminCashFloatPolicyPage() {
                 <div className="space-y-3">
                   <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
                     <p className="text-sm font-semibold text-emerald-950">{valuePanel.headline}</p>
-                    <p className="mt-1 text-xs text-emerald-800">{valuePanel.closingPitch}</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {valuePanel.cards.map((c) => (
@@ -195,8 +194,7 @@ export default function AdminCashFloatPolicyPage() {
                         <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-900">
                           {c.value}
                         </p>
-                        <p className="mt-1 text-[11px] text-zinc-500">{c.hint}</p>
-                        <p className="mt-2 text-[11px] text-zinc-600">{c.salesNarrative}</p>
+                        {c.hint ? <p className="mt-1 text-[11px] text-zinc-500">{c.hint}</p> : null}
                       </div>
                     ))}
                   </div>
@@ -208,7 +206,11 @@ export default function AdminCashFloatPolicyPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="text-sm font-semibold text-zinc-900">Checklist de mise en service</p>
-                      <p className="text-xs text-zinc-500">{goLive.salesNarrative}</p>
+                      <p className="text-xs text-zinc-500">
+                        {goLive.ready
+                          ? 'La caisse et les paiements sont prêts.'
+                          : 'Complétez les points restants pour activer la caisse.'}
+                      </p>
                     </div>
                     <div
                       className={cn(
@@ -259,7 +261,6 @@ export default function AdminCashFloatPolicyPage() {
                       <p className="text-sm font-semibold text-zinc-900">
                         Bilan hebdo — {weekDigest.label}
                       </p>
-                      <p className="text-xs text-zinc-500">{weekDigest.pitchLine}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <button
@@ -272,7 +273,7 @@ export default function AdminCashFloatPolicyPage() {
                         className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
                       >
                         <MessageSquare size={12} />
-                        {copiedWeek ? 'Copié !' : 'WhatsApp semaine'}
+                        {copiedWeek ? 'Copié !' : 'Copier le bilan'}
                       </button>
                       <button
                         type="button"
@@ -305,7 +306,7 @@ export default function AdminCashFloatPolicyPage() {
                     <Kpi
                       label="À viser"
                       value={String(weekDigest.totals.pendingPromoterReviews)}
-                      hint="Rapports Z en attente"
+                      hint="Rapports de clôture en attente"
                     />
                   </div>
                   <pre className="whitespace-pre-wrap rounded-xl bg-zinc-50 p-3 text-xs text-zinc-700">
@@ -361,7 +362,7 @@ export default function AdminCashFloatPolicyPage() {
               }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
             >
-              <MessageSquare size={12} /> {copied ? 'Copié !' : 'Copier WhatsApp'}
+              <MessageSquare size={12} /> {copied ? 'Copié !' : 'Copier le message'}
             </button>
           </div>
 
@@ -371,9 +372,6 @@ export default function AdminCashFloatPolicyPage() {
             </div>
           ) : digest ? (
             <>
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/60 px-4 py-3 text-sm text-emerald-900">
-                {digest.pitchLine}
-              </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Kpi
                   label="Recettes du jour"
@@ -412,7 +410,7 @@ export default function AdminCashFloatPolicyPage() {
                       <th className="px-4 py-3 font-medium">Statut</th>
                       <th className="px-4 py-3 font-medium">Encaissé</th>
                       <th className="px-4 py-3 font-medium">Écart</th>
-                      <th className="px-4 py-3 font-medium">Promoteur</th>
+                      <th className="px-4 py-3 font-medium">Visa</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50">
@@ -446,7 +444,7 @@ export default function AdminCashFloatPolicyPage() {
 
               <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                  Message WhatsApp promoteur
+                  Message pour la direction
                 </p>
                 <pre className="whitespace-pre-wrap text-xs leading-relaxed text-zinc-700">
                   {digest.whatsappText}
@@ -492,7 +490,7 @@ export default function AdminCashFloatPolicyPage() {
                   hint="Sur sessions encore ouvertes"
                 />
                 <Kpi
-                  label="À viser (promoteur)"
+                  label="À viser (direction)"
                   value={String(kpis?.pendingPromoterReviews ?? 0)}
                   hint="Rapports Z soumis en attente"
                   tone={(kpis?.pendingPromoterReviews ?? 0) > 0 ? 'warn' : 'ok'}
@@ -576,7 +574,7 @@ export default function AdminCashFloatPolicyPage() {
         <div className="space-y-4">
           {(trace?.promoterInbox ?? []).length === 0 ? (
             <div className="rounded-2xl border border-zinc-100 bg-white px-4 py-12 text-center text-sm text-zinc-400 shadow-sm">
-              Aucun rapport en attente de visa promoteur
+              Aucun rapport en attente de visa
             </div>
           ) : (
             <div className="space-y-3">

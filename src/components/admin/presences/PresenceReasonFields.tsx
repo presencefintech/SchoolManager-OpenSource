@@ -53,7 +53,7 @@ export function PresenceReasonFields({
           Motif d&apos;absence ou de retard <span className="text-red-500">*</span>
         </label>
         <p className="mb-2 text-[11px] text-zinc-400">
-          Référentiel DfE / CEDS — regroupé par catégorie officielle.
+          Motifs officiels, regroupés par catégorie.
         </p>
         <select
           value={resolvedCode}

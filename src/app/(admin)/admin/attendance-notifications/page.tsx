@@ -100,7 +100,7 @@ export default function AttendanceNotificationsPage() {
             Livraisons présence
           </h1>
           <p className="text-sm text-zinc-500 mt-0.5">
-            Notifications parents orchestrées après pointage ou absence
+            Notifications envoyées aux parents après un pointage ou une absence
           </p>
         </div>
         <div className="flex items-center gap-3">

@@ -52,7 +52,7 @@ export default function DeskHomePage() {
       <AdminModuleHero
         eyebrow="Secrétariat"
         title="Guichet inscriptions"
-        subtitle="Recherche, dossiers incomplets et documents du comptoir — cartes parent après déclaration des tuteurs"
+        subtitle="Recherche, dossiers incomplets et cartes parent"
         quickLinks={[
           { href: '/admin/inbox', label: 'Boîte d’entrée', icon: Inbox },
           { href: '/admin/enrollments', label: 'Inscrire', icon: UserPlus },

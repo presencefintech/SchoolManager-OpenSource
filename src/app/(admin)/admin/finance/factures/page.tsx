@@ -154,7 +154,7 @@ function CategoryModal({
             <p className="mt-1 text-[11px] text-zinc-400">
               {isEdit
                 ? 'Le code n’est pas modifiable après création.'
-                : 'Généré automatiquement (UPPER_SNAKE). Ex. CANTEEN, TUITION, SCOLARITE'}
+                : 'Code généré automatiquement (ex. SCOLARITE, CANTINE)'}
             </p>
           </div>
           <div>
