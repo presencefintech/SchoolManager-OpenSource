@@ -13,6 +13,7 @@ import type { FraudAnalysisResult, AnomalyThresholds } from '@/types/super-admin
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { StudentPicker } from '@/components/ui/student-picker'
+import { humanizeEnum, riskLevelLabel } from '@/lib/i18n/display-labels'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 type FeedbackState = { type: 'success' | 'error'; message: string } | null
@@ -424,7 +425,7 @@ export default function SecurityPage() {
                       : anomalyResult.riskLevel === 'MEDIUM' ? 'text-amber-600'
                       : 'text-emerald-600'
                     )}>
-                      {anomalyResult.riskLevel ?? '—'}
+                      {riskLevelLabel(anomalyResult.riskLevel)}
                     </span>
                   </div>
                   {anomalyResult.score !== undefined && (
@@ -436,7 +437,9 @@ export default function SecurityPage() {
                   {anomalyResult.flags && anomalyResult.flags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {anomalyResult.flags.map((f, i) => (
-                        <span key={i} className="text-[10px] font-mono bg-white border border-zinc-200 px-2 py-0.5 rounded">{f}</span>
+                        <span key={i} className="text-[10px] bg-white border border-zinc-200 px-2 py-0.5 rounded">
+                          {humanizeEnum(String(f))}
+                        </span>
                       ))}
                     </div>
                   )}

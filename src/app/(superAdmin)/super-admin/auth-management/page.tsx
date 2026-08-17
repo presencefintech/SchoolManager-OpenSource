@@ -28,6 +28,9 @@ import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/valida
 import { StaffInvitationRowActions } from '@/components/invitations/staff-invitation-row-actions'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StudentPicker } from '@/components/ui/student-picker'
+import { WhatsAppInviteAssist } from '@/components/super-admin/whatsapp-invite-assist'
+import { TempPasswordRevealModal } from '@/components/ui/temp-password-reveal-modal'
+import { deliveryStatusLabel, roleLabel } from '@/lib/i18n/display-labels'
 
 function CopyInline({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -118,6 +121,10 @@ export default function AuthManagementPage() {
   const suspendUserMutation = useSuspendUserSuperAdmin()
   const reactivateUserMutation = useReactivateUserSuperAdmin()
   const [revokeTarget, setRevokeTarget] = useState<StaffInvitation | null>(null)
+  const [whatsappAssist, setWhatsappAssist] = useState<{
+    link: string | null
+    error?: string | null
+  } | null>(null)
 
   /* Force logout */
   const [logoutUserId, setLogoutUserId] = useState('')
@@ -160,10 +167,12 @@ export default function AuthManagementPage() {
 
   /* Create admin (bootstrap d'urgence) */
   const [adminEmail,    setAdminEmail]    = useState('')
-  const [adminPassword, setAdminPassword] = useState('')
   const [adminSchoolId, setAdminSchoolId] = useState('')
+  const [adminReason,   setAdminReason]   = useState('')
+  const [adminConfirm,  setAdminConfirm]  = useState(false)
   const [adminLoading,  setAdminLoading]  = useState(false)
   const [adminFeedback, setAdminFeedback] = useState<FeedbackState>(null)
+  const [adminTemp, setAdminTemp] = useState<{ email: string; password: string } | null>(null)
 
   /* Per-session force logout */
   const [logoutingId, setLogoutingId] = useState<number | null>(null)
@@ -242,6 +251,12 @@ export default function AuthManagementPage() {
       {
         onSuccess: (res) => {
           setStaffFeedback({ type: 'success', message: res.message ?? `Invitation 2FA envoyée à ${staffEmail}.` })
+          setWhatsappAssist({
+            link: res.whatsappDeepLink ?? null,
+            error: res.whatsappDeepLink
+              ? null
+              : res.whatsappError ?? 'Lien WhatsApp non généré — code dans l’email',
+          })
           setStaffEmail('')
           setStaffPhone('')
           setStaffFirstName('')
@@ -282,7 +297,15 @@ export default function AuthManagementPage() {
     resendStaffMutation.mutate(
       { targetUserId: inv.userId, schoolId: invSchoolId },
       {
-        onSuccess: (res) => setStaffFeedback({ type: 'success', message: res.message ?? 'Invitation renvoyée (email + SMS).' }),
+        onSuccess: (res) => {
+          setStaffFeedback({ type: 'success', message: res.message ?? 'Invitation renvoyée.' })
+          setWhatsappAssist({
+            link: res.whatsappDeepLink ?? null,
+            error: res.whatsappDeepLink
+              ? null
+              : res.whatsappError ?? 'Lien WhatsApp non généré — code dans l’email',
+          })
+        },
         onError: (err) => setInvListError(getApiErrorMessage(err)),
       },
     )
@@ -336,15 +359,27 @@ export default function AuthManagementPage() {
   }
 
   const handleCreateAdmin = async () => {
-    if (!adminEmail || !adminPassword || !adminSchoolId) return
+    if (!adminEmail || !adminSchoolId || !adminConfirm || adminReason.trim().length < 20) return
     setAdminLoading(true); setAdminFeedback(null)
     try {
       const res = await invitationsApi.createAdmin({
-        email: adminEmail, password: adminPassword, schoolId: Number(adminSchoolId),
+        email: adminEmail,
+        schoolId: Number(adminSchoolId),
+        confirmEmergency: true,
+        reason: adminReason.trim(),
       })
-      setAdminFeedback({ type: 'success', message: res.message ?? `Admin créé : ${adminEmail}` })
-      setAdminEmail(''); setAdminPassword(''); setAdminSchoolId('')
-    } catch { setAdminFeedback({ type: 'error', message: 'Erreur lors de la création.' }) }
+      const tempPassword = res.data?.tempPassword
+      if (tempPassword) {
+        setAdminTemp({ email: adminEmail, password: tempPassword })
+      }
+      setAdminFeedback({
+        type: 'success',
+        message: res.message ?? `Admin créé : ${adminEmail}`,
+      })
+      setAdminEmail(''); setAdminSchoolId(''); setAdminReason(''); setAdminConfirm(false)
+    } catch (err) {
+      setAdminFeedback({ type: 'error', message: getApiErrorMessage(err) })
+    }
     finally { setAdminLoading(false) }
   }
 
@@ -399,7 +434,7 @@ export default function AuthManagementPage() {
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-zinc-800 truncate">{s.user.firstName} {s.user.lastName}</p>
-                            <p className="text-xs text-zinc-400 truncate">{s.user.email} · <span className="font-medium">{s.user.role}</span></p>
+                            <p className="text-xs text-zinc-400 truncate">{s.user.email} · <span className="font-medium">{roleLabel(s.user.role)}</span></p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
@@ -546,41 +581,66 @@ export default function AuthManagementPage() {
               </div>
             </div>
 
-            {/* Create admin */}
-            <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
+            {/* Create admin — urgence uniquement */}
+            <div className="bg-white rounded-2xl border border-amber-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center">
-                  <Shield size={14} className="text-zinc-500" />
+                <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
+                  <Shield size={14} className="text-amber-700" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-zinc-900">Créer un admin</p>
-                  <p className="text-xs text-zinc-400">Bootstrap d&apos;urgence — préférez l&apos;invitation 2FA</p>
+                  <p className="text-sm font-semibold text-zinc-900">Bootstrap d’urgence</p>
+                  <p className="text-xs text-zinc-400">
+                    Parcours normal = invitation 2FA. Ici : MDP généré + changement forcé.
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">
                 <input
                   type="email" placeholder="email@ecole.com"
                   value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-                <input
-                  type="password" placeholder="Mot de passe"
-                  value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200"
                 />
                 <select
                   value={adminSchoolId} onChange={(e) => setAdminSchoolId(e.target.value)}
-                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-600 bg-white focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm text-zinc-600 bg-white focus:outline-none focus:ring-2 focus:ring-amber-200"
                 >
                   <option value="">École…</option>
                   {schools?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
+                <textarea
+                  placeholder="Motif d’urgence (min. 20 caractères) — ex. invitation email injoignable, go-live bloqué…"
+                  value={adminReason}
+                  onChange={(e) => setAdminReason(e.target.value)}
+                  rows={3}
+                  className="w-full border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 resize-none"
+                />
+                <label className="flex items-start gap-2 text-xs text-zinc-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={adminConfirm}
+                    onChange={(e) => setAdminConfirm(e.target.checked)}
+                    className="mt-0.5 rounded border-zinc-300"
+                  />
+                  <span>
+                    Je confirme qu’il s’agit d’une <strong>urgence</strong> : le mot de passe sera généré
+                    une seule fois, journalisé en audit sécurité, et le changement sera forcé à la
+                    première connexion.
+                  </span>
+                </label>
                 <button
-                  onClick={handleCreateAdmin} disabled={adminLoading || !adminEmail || !adminPassword || !adminSchoolId}
-                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 transition-colors"
+                  type="button"
+                  onClick={handleCreateAdmin}
+                  disabled={
+                    adminLoading ||
+                    !adminEmail ||
+                    !adminSchoolId ||
+                    !adminConfirm ||
+                    adminReason.trim().length < 20
+                  }
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-amber-700 text-white text-sm font-medium hover:bg-amber-800 disabled:opacity-40 transition-colors"
                 >
                   {adminLoading ? <Loader2 size={13} className="animate-spin" /> : <Shield size={13} />}
-                  Créer l'administrateur
+                  Créer (urgence)
                 </button>
                 <Feedback state={adminFeedback} />
               </div>
@@ -660,18 +720,18 @@ export default function AuthManagementPage() {
                             <td className="px-4 py-2.5 font-medium text-zinc-800">{inv.firstName} {inv.lastName}</td>
                             <td className="px-4 py-2.5 text-zinc-600 text-xs">{inv.email}</td>
                             <td className="px-4 py-2.5">
-                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{inv.role}</span>
+                              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{roleLabel(inv.role)}</span>
                             </td>
                             <td className="px-4 py-2.5 text-zinc-600 text-xs">
                               {inv.verificationLabel ?? inv.verificationStep ?? '—'}
                             </td>
                             <td className="px-4 py-2.5">
                               <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', STATUS_COLORS[inv.status] ?? 'bg-zinc-100 text-zinc-500')}>
-                                {inv.status}
+                                {deliveryStatusLabel(inv.status)}
                               </span>
                             </td>
                             <td className="px-4 py-2.5 text-xs text-zinc-600">
-                              {inv.userStatus ?? '—'}
+                              {inv.userStatus ? deliveryStatusLabel(inv.userStatus) : '—'}
                             </td>
                             <td className="px-4 py-2.5">
                               <StaffInvitationRowActions
@@ -709,7 +769,7 @@ export default function AuthManagementPage() {
                             </span>
                           )}
                         <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full ml-auto', STATUS_COLORS[inv.status] ?? 'bg-zinc-100 text-zinc-500')}>
-                            {inv.status}
+                            {deliveryStatusLabel(inv.status)}
                           </span>
                         </div>
                       ))}
@@ -775,6 +835,13 @@ export default function AuthManagementPage() {
                     Envoyer l'invitation 2FA
                   </button>
                   <Feedback state={staffFeedback} />
+                  {whatsappAssist ? (
+                    <WhatsAppInviteAssist
+                      className="mt-3"
+                      link={whatsappAssist.link}
+                      error={whatsappAssist.error}
+                    />
+                  ) : null}
                 </div>
               </div>
 
@@ -852,6 +919,13 @@ export default function AuthManagementPage() {
         loading={revokeStaffMutation.isPending}
         onConfirm={confirmRevokeStaff}
         onCancel={() => setRevokeTarget(null)}
+      />
+
+      <TempPasswordRevealModal
+        open={adminTemp != null}
+        userName={adminTemp?.email ?? ''}
+        tempPassword={adminTemp?.password ?? ''}
+        onClose={() => setAdminTemp(null)}
       />
     </div>
   )

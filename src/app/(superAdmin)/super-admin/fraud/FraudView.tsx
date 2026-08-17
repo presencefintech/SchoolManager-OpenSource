@@ -13,6 +13,7 @@ import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import type { FraudAnalysisResult } from '@/types/super-admin'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { formatMoney } from '@/lib/finance/currency'
+import { humanizeEnum, paymentMethodLabel } from '@/lib/i18n/display-labels'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const INPUT = 'w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-red-200 placeholder:text-zinc-300'
@@ -173,7 +174,7 @@ export function FraudView({ embedded = false }: { embedded?: boolean }) {
                       {result.flags.map((f, i) => (
                         <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-600 border border-red-100">
                           <Flag size={9} />
-                          {f}
+                          {humanizeEnum(String(f))}
                         </span>
                       ))}
                     </div>
@@ -189,7 +190,7 @@ export function FraudView({ embedded = false }: { embedded?: boolean }) {
 
         {/* ── Signalements récents ────────────────────────────────────── */}
         <div className={CARD}>
-          <CardTitle icon={Flag} title="Signalements cross-school" desc="Derniers flags de fraude tous établissements" />
+          <CardTitle icon={Flag} title="Signalements multi-écoles" desc="Derniers signalements de fraude tous établissements" />
           {loadingFlags ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => <div key={i} className={cn(SKELETON, 'h-14')} />)}
@@ -212,7 +213,7 @@ export function FraudView({ embedded = false }: { embedded?: boolean }) {
                       )}
                       {flag.payment && (
                         <p className="text-xs text-zinc-500 mt-0.5">
-                          {formatMoney(flag.payment.amount)} · {flag.payment.method}
+                          {formatMoney(flag.payment.amount)} · {paymentMethodLabel(flag.payment.method)}
                           <span className="ml-1 text-zinc-300">· {flag.payment.school.name}</span>
                         </p>
                       )}

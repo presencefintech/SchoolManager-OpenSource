@@ -64,7 +64,7 @@ export interface NotificationDirectBody {
 export interface ParentNotificationSettingsBody {
   email?: boolean
   push?: boolean
-  /** Active SMS présence/absence (outbox + Africa's Talking) */
+  /** Active SMS présence/absence (outbox + Twilio) */
   sms?: boolean
 }
 

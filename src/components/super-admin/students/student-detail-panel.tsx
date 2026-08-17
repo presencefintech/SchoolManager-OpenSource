@@ -20,6 +20,7 @@ import { StudentCard } from '@/components/StudentCard'
 import { mapDashboardToStudentCard } from '@/lib/student-card/utils'
 import { downloadStudentCardPdf, printStudentCard } from '@/lib/student-card/export-actions'
 import { fmtCurrency, fmtDate, statusBadgeClass } from './student-utils'
+import { studentStatusLabel } from '@/lib/i18n/display-labels'
 
 type PanelTab = 'overview' | 'history' | 'dossier' | 'activity'
 
@@ -164,7 +165,7 @@ export function StudentDetailPanel({ studentId, schoolId, open, onClose }: Stude
             {formatRdcFullName(dashboard.profile)}
           </h3>
           <span className={cn('px-1.5 py-0.5 text-[10px] rounded-full ring-1', statusBadgeClass(dashboard.profile.status))}>
-            {dashboard.profile.status}
+            {studentStatusLabel(dashboard.profile.status)}
           </span>
         </div>
         <p className="text-[11px] text-zinc-500 mt-0.5 truncate">

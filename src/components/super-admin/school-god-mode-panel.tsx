@@ -8,6 +8,7 @@ import { useSchool, useSchoolPrintLogs, useUpdateSchoolSaas } from '@/lib/hooks/
 import { useToast } from '@/providers/toast-provider'
 import { CapacityBar, StatusBadge } from '@/components/super-admin/school-saas-drawer'
 import { cn } from '@/lib/utils'
+import { subscriptionTierLabel } from '@/lib/i18n/display-labels'
 
 export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
   const toast = useToast()
@@ -25,10 +26,10 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
     try {
       const blob = await coreApi.exportSchoolCardsZip(schoolId)
       triggerBlobDownload(blob, `cartes-pvc-school-${schoolId}.zip`)
-      toast.success('Batch Export ZIP prêt')
+      toast.success('Export ZIP des cartes prêt')
       void refetch()
     } catch {
-      toast.error('Échec du Batch Export')
+      toast.error('Échec de l’export des cartes')
     } finally {
       setZipBusy(false)
     }
@@ -39,7 +40,7 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <StatusBadge status={school.status ?? (school.active ? 'ACTIVE' : 'SUSPENDED')} />
-          <span className="text-xs font-mono text-zinc-500">{school.subscriptionTier ?? 'BASIC'}</span>
+          <span className="text-xs text-zinc-500">{subscriptionTierLabel(school.subscriptionTier)}</span>
         </div>
         <button
           type="button"
@@ -48,7 +49,7 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
           className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50"
         >
           {zipBusy ? <Loader2 size={15} className="animate-spin" /> : <Archive size={15} />}
-          Batch Export ZIP
+          Exporter les cartes (ZIP)
         </button>
       </div>
 

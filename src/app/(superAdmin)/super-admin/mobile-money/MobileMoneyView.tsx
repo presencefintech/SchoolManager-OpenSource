@@ -10,6 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { formatMoney } from '@/lib/finance/currency'
+import { paymentMethodLabel, paymentStatusLabel } from '@/lib/i18n/display-labels'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const INPUT = 'w-full border border-zinc-200 rounded-xl px-3 py-2.5 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-200 placeholder:text-zinc-300'
@@ -55,13 +56,17 @@ function StatusBadge({ status }: { status: string }) {
     COMPLETED: 'bg-emerald-50 text-emerald-700 border-emerald-100',
     FAILED:    'bg-red-50 text-red-600 border-red-100',
     CANCELLED: 'bg-zinc-100 text-zinc-500 border-zinc-200',
+    CANCELED:  'bg-zinc-100 text-zinc-500 border-zinc-200',
   }
   return (
-    <span className={cn(
-      'inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border',
-      colors[status] ?? 'bg-zinc-50 text-zinc-500 border-zinc-100'
-    )}>
-      {status}
+    <span
+      className={cn(
+        'inline-block px-2 py-0.5 rounded-full text-[10px] font-semibold border',
+        colors[status] ?? 'bg-zinc-50 text-zinc-500 border-zinc-100'
+      )}
+      title={status}
+    >
+      {paymentStatusLabel(status)}
     </span>
   )
 }
@@ -182,7 +187,7 @@ export function MobileMoneyView({ embedded = false }: { embedded?: boolean }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-zinc-700">
                         {formatMoney(item.payment.amount)}
-                        <span className="ml-1 font-mono text-zinc-400 text-[11px]">· {item.payment.method}</span>
+                        <span className="ml-1 text-zinc-400 text-[11px]">· {paymentMethodLabel(item.payment.method)}</span>
                       </p>
                       <p className="text-[11px] text-zinc-400 truncate mt-0.5">{item.payment.school.name}</p>
                     </div>
@@ -236,7 +241,7 @@ export function MobileMoneyView({ embedded = false }: { embedded?: boolean }) {
                       <td className="px-4 py-2.5 font-semibold text-zinc-700">
                         {formatMoney(p.amount)}
                       </td>
-                      <td className="px-4 py-2.5 font-mono uppercase text-zinc-500">{p.method}</td>
+                      <td className="px-4 py-2.5 text-zinc-600">{paymentMethodLabel(p.method)}</td>
                       <td className="px-4 py-2.5 text-zinc-500 truncate max-w-[180px]">{p.school.name}</td>
                       <td className="px-4 py-2.5"><StatusBadge status={p.status} /></td>
                       <td className="px-4 py-2.5 text-zinc-400">

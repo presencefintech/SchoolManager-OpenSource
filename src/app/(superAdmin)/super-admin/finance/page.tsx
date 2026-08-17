@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { formatMoney } from '@/lib/finance/currency'
+import { kycStatusLabel, riskLevelLabel, severityLabel } from '@/lib/i18n/display-labels'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -541,7 +542,7 @@ export default function FinancePage() {
                       ? 'bg-red-50 text-red-600 ring-1 ring-red-200'
                       : 'bg-emerald-50 text-emerald-700'
                   )}>
-                    {audit.meta.risk}
+                    {riskLevelLabel(audit.meta.risk)}
                   </span>
                 )}
               </div>
@@ -617,7 +618,7 @@ export default function FinancePage() {
                       'text-xs font-bold px-2.5 py-1 rounded-full',
                       audit.audit.stats.fraudAlerts.severity === 'HIGH' ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-500'
                     )}>
-                      {audit.audit.stats.fraudAlerts.severity}
+                      {severityLabel(audit.audit.stats.fraudAlerts.severity)}
                     </span>
                   </div>
 
@@ -795,7 +796,7 @@ export default function FinancePage() {
                       <div className="flex items-center gap-3 flex-shrink-0">
                         {status && (
                           <span className={cn('text-[10px] font-bold px-2.5 py-0.5 rounded-full', STATUS_COLORS[status] ?? 'bg-zinc-100 text-zinc-500')}>
-                            {status}
+                            {kycStatusLabel(status)}
                           </span>
                         )}
                         {status !== 'VERIFIED' && (

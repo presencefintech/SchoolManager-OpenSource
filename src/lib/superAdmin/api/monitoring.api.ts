@@ -3,6 +3,7 @@ import type {
   ReconciliationHealth,
   ProviderStat,
   SecurityAlerts,
+  PlatformHealth,
   AnomalyDashboard,
   PendingPayment,
   FraudRadarItem,
@@ -11,6 +12,11 @@ import type {
 } from '@/types/super-admin'
 
 export const monitoringApi = {
+  getPlatformHealth: () =>
+    apiClient
+      .get<{ success: boolean; data: PlatformHealth }>('/superadmin/monitoring/platform-health')
+      .then((r) => r.data.data),
+
   getReconciliationHealth: () =>
     apiClient
       .get<{ success: boolean; data: ReconciliationHealth }>('/superadmin/monitoring/reconciliation')

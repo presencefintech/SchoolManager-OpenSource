@@ -270,6 +270,49 @@ export interface SecurityAlerts {
   }>
 }
 
+/** Santé runtime plateforme (board Superadmin — enrichit /system/health) */
+export interface PlatformHealth {
+  status: 'ok' | 'degraded' | 'down'
+  services: {
+    db: boolean
+    redis: boolean
+    notifications: boolean
+    biometrics: boolean
+  }
+  sms: {
+    ready: boolean
+    enabled: boolean
+    forceMock: boolean
+    activeProvider?: string
+  }
+  whatsapp: {
+    ready: boolean
+    enabled: boolean
+    forceMock: boolean
+    activeProvider?: string
+  }
+  messaging?: {
+    smsReady: boolean
+    whatsappReady: boolean
+  }
+  security: {
+    windowHours?: number
+    accessDenied24h: number
+    securityEvents24h: number
+  }
+  observability: {
+    sentryEnabled: boolean
+    release: string | null
+    environment: string
+    uptimeSeconds?: number
+  }
+  boot?: {
+    status: 'ok' | 'degraded' | 'down'
+    alerts: string[]
+  } | null
+  checkedAt: string
+}
+
 /* ─── Dashboard global — Anomalies ─────────────────────────── */
 export interface AnomalyEvent {
   id: number

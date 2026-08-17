@@ -152,6 +152,17 @@ export function useUpdateSchoolSaas(schoolId: number) {
   })
 }
 
+export function useOnboardSchool() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Parameters<typeof superAdminApi.onboardSchool>[0]) =>
+      superAdminApi.onboardSchool(body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['superadmin', 'schools'] })
+    },
+  })
+}
+
 export function useSchoolPrintLogs(schoolId: number) {
   return useQuery({
     queryKey: ['superadmin', 'school-print-logs', schoolId],
@@ -212,6 +223,16 @@ export function useSecurityAlerts() {
     queryFn: () => superAdminApi.getSecurityAlerts(),
     enabled: !!getAuthToken(),
     staleTime: 30_000,
+  })
+}
+
+export function usePlatformHealth() {
+  return useQuery({
+    queryKey: queryKeys.superadmin.monitoring.platformHealth(),
+    queryFn: () => superAdminApi.getPlatformHealth(),
+    enabled: !!getAuthToken(),
+    staleTime: 15_000,
+    refetchInterval: 30_000,
   })
 }
 

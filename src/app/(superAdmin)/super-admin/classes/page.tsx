@@ -12,6 +12,7 @@ import { useSchools, useClasses, useCapacityAlerts, useClassSetup, useClassPerfo
 import { superAdminApi } from '@/lib/superAdmin/api'
 import type { ClassItem } from '@/types/super-admin'
 import { formatMoney } from '@/lib/finance/currency'
+import { auditActionLabel } from '@/lib/i18n/display-labels'
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
@@ -235,7 +236,7 @@ function ClassDetail({ cls }: { cls: ClassItem }) {
                   {fmtDate(log.createdAt)}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-zinc-700">{log.action}</p>
+                  <p className="text-xs font-medium text-zinc-700">{auditActionLabel(log.action)}</p>
                   {log.description && <p className="text-xs text-zinc-400 mt-0.5 truncate">{log.description}</p>}
                 </div>
                 {log.user && (

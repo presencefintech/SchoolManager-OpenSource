@@ -11,6 +11,7 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { StaffInvitationRowActions } from '@/components/invitations/staff-invitation-row-actions'
+import { WhatsAppInviteAssist } from '@/components/super-admin/whatsapp-invite-assist'
 import { staffApi } from '@/lib/admin/api/staff.api'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
@@ -147,6 +148,10 @@ function StaffInvitationsTab() {
   const [form, setForm] = useState<InviteStaffPayload>({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '' })
   const [inviteError, setInviteError] = useState('')
   const [revokeError, setRevokeError] = useState('')
+  const [whatsappAssist, setWhatsappAssist] = useState<{
+    link: string | null
+    error?: string | null
+  } | null>(null)
 
   const invitations = data?.staffInvitations ?? []
 
@@ -185,6 +190,12 @@ function StaffInvitationsTab() {
         onSuccess: (res) => {
           setForm({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '', })
           refetch()
+          setWhatsappAssist({
+            link: res?.whatsappDeepLink ?? null,
+            error: res?.whatsappDeepLink
+              ? null
+              : res?.whatsappError ?? 'Lien WhatsApp non généré — code dans l’email',
+          })
           if (res?.emailSent === false) {
             setInviteError(
               res.message ||
@@ -247,6 +258,13 @@ function StaffInvitationsTab() {
         {inviteStaff.isError && !inviteError && (
           <p className="mt-2 text-xs text-red-500">Erreur lors de l&apos;envoi</p>
         )}
+        {whatsappAssist ? (
+          <WhatsAppInviteAssist
+            className="mt-3"
+            link={whatsappAssist.link}
+            error={whatsappAssist.error}
+          />
+        ) : null}
       </div>
 
       <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden">
@@ -296,7 +314,20 @@ function StaffInvitationsTab() {
                       resendPending={resendInvitation.isPending}
                       revokePending={revokeInvitation.isPending}
                       suspendPending={suspendStaff.isPending}
-                      onResend={() => resendInvitation.mutate(inv.userId!, { onSuccess: () => refetch() })}
+                      onResend={() =>
+                        resendInvitation.mutate(inv.userId!, {
+                          onSuccess: (res) => {
+                            setWhatsappAssist({
+                              link: res?.whatsappDeepLink ?? null,
+                              error: res?.whatsappDeepLink
+                                ? null
+                                : res?.whatsappError ??
+                                  'Lien WhatsApp non généré — code dans l’email',
+                            })
+                            refetch()
+                          },
+                        })
+                      }
                       onDelete={() => handleRevoke(inv)}
                       onSuspend={() => handleSuspend(inv)}
                     />

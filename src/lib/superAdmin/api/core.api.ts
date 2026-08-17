@@ -82,6 +82,56 @@ export const coreApi = {
       )
       .then((r) => r.data.school),
 
+  /** Créer école + inviter admin principal (parcours officiel) */
+  onboardSchool: (body: {
+    school: {
+      name: string
+      email?: string | null
+      phone?: string | null
+      city?: string | null
+      address?: string | null
+      baseCurrency?: 'USD' | 'CDF'
+    }
+    admin: {
+      email: string
+      phone: string
+      firstName: string
+      lastName: string
+    }
+    confirmInvite: true
+    note?: string | null
+  }) =>
+    apiClient
+      .post<{
+        success: boolean
+        message: string
+        school: {
+          id: number
+          uuid: string
+          name: string
+          email: string | null
+          city: string | null
+          status: string
+        }
+        invitation: {
+          emailSent?: boolean
+          smsSent?: boolean
+          emailError?: string | null
+          smsError?: string | null
+          whatsappDeepLink?: string | null
+          whatsappReady?: boolean
+          whatsappError?: string | null
+          message: string
+          admin: {
+            id: number | null
+            email: string
+            firstName: string
+            lastName: string
+          }
+        }
+      }>('/superadmin/core/schools/onboard', body)
+      .then((r) => r.data),
+
   listCoreUsers: (params?: { page?: number; take?: number; role?: string; q?: string }) =>
     apiClient
       .get<CoreListResponse<CoreUser>>('/superadmin/core/users', { params })

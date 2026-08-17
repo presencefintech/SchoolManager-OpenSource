@@ -51,16 +51,25 @@ export const invitationsApi = {
         emailSent?: boolean
         smsSent?: boolean
         emailError?: string
+        whatsappDeepLink?: string | null
+        whatsappReady?: boolean
+        whatsappError?: string
       }
       emailSent?: boolean
       smsSent?: boolean
       emailError?: string
+      whatsappDeepLink?: string | null
+      whatsappReady?: boolean
+      whatsappError?: string
     }>('/admin/invitations/staff', payload).then((r) => ({
       ...(r.data.data ?? {}),
       message: r.data.message,
       emailSent: r.data.emailSent ?? r.data.data?.emailSent,
       smsSent: r.data.smsSent ?? r.data.data?.smsSent,
       emailError: r.data.emailError ?? r.data.data?.emailError,
+      whatsappDeepLink: r.data.whatsappDeepLink ?? r.data.data?.whatsappDeepLink,
+      whatsappReady: r.data.whatsappReady ?? r.data.data?.whatsappReady,
+      whatsappError: r.data.whatsappError ?? r.data.data?.whatsappError,
     })),
 
   revokeStaffInvitation: (payload: RevokeStaffInvitationPayload) =>
@@ -74,6 +83,9 @@ export const invitationsApi = {
         emailSent?: boolean
         smsSent?: boolean
         emailError?: string
+        whatsappDeepLink?: string | null
+        whatsappReady?: boolean
+        whatsappError?: string
       }>('/admin/invitations/staff/resend', { targetUserId })
       .then((r) => r.data),
 }

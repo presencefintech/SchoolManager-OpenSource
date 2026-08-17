@@ -62,7 +62,7 @@ Détail flux Flutter : **[frontend-integration-guide.md](./frontend-integration-
 | **Finance — Profil règlement (KYC)** | **[school-payment-profile.md](./school-payment-profile.md)** · **[web-admin-payment-handoff.md](./web-admin-payment-handoff.md)** | Guide REST | Complet | Admin `payment-profile` · Superadmin `payment-profiles` · gate parent `online_enabled` |
 | Finance — Moratoires | **`openapi-parent-finances.json`** + admin | OpenAPI 3 | Complet | `GET/POST .../moratorium*` parent · `MoratoriumPublicInfo` dans wallet/finances · admin `moratoriums/policy` |
 | Notifications push | **`openapi-parent-mobile.json`** | OpenAPI 3 | Complet | register-token parent (pas auth) |
-| SMS / OTP | **`openapi-auth.json`** | OpenAPI 3 | Validé staging | Africa's Talking + mock |
+| SMS / OTP | **`openapi-auth.json`** | OpenAPI 3 | Validé staging | Twilio + mock |
 | **Temps réel — Parent** | **`openapi-parent-mobile.json`** → `x-socket-events` | Hybride | Validé staging | Catalog v0 : `payment.settled`, `attendance.recorded` |
 | **Temps réel — Admin / Finance** | `openapi-admin.json` → **`x-socket-events`** | OpenAPI 3 + TypeScript | **Validé staging** | `payment.confirmed.*`, `payment.failed.admin` |
 | Admin / superadmin REST | **`openapi/admin.json`** | `/api/v1/admin/*` | ADMIN, SUPER_ADMIN, FINANCE | REST complet — moratoires, finance admin, **dashboard juin 2026** |

@@ -18,6 +18,7 @@ import type { FeeType } from '@/types/super-admin'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { deliveryStatusLabel } from '@/lib/i18n/display-labels'
 import { StudentPicker } from '@/components/ui/student-picker'
 import { formatMoney } from '@/lib/finance/currency'
 
@@ -930,7 +931,7 @@ export default function FeesPage() {
                       'text-xs font-semibold px-2.5 py-1 rounded-full',
                       STATUS_COLORS[inv.status] ?? 'bg-zinc-100 text-zinc-500'
                     )}>
-                      {inv.status}
+                      {deliveryStatusLabel(inv.status)}
                     </span>
                     <span className="text-sm font-bold text-zinc-900 tabular-nums w-28 text-right">
                       {fmt(inv.amount)}

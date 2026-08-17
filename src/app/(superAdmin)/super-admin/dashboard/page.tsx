@@ -20,6 +20,7 @@ import {
 import { useQueryLoading } from '@/lib/hooks/use-auth-query'
 import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
+import { roleLabel } from '@/lib/i18n/display-labels'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
 import { PlatformKpiStrip } from '@/components/super-admin/platform-kpi-strip'
@@ -530,7 +531,7 @@ export default function SuperAdminDashboardPage() {
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <span className="text-sm text-zinc-700">{s.user.firstName} {s.user.lastName}</span>
                   </div>
-                  <span className="text-xs font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-lg">{s.user.role}</span>
+                  <span className="text-xs font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-lg">{roleLabel(s.user.role)}</span>
                 </div>
               ))}
               {sessions.length > 5 && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Calendar,
@@ -15,6 +16,7 @@ import { auditLogsApi, type AuditLogRow } from '@/lib/superAdmin/api/audit-logs.
 import { useSchools } from '@/lib/hooks/use-super-admin'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { auditActionLabel, severityLabel } from '@/lib/i18n/display-labels'
 
 const SEVERITY_BADGE: Record<string, string> = {
   INFO: 'bg-zinc-100 text-zinc-700 border-zinc-200',
@@ -45,7 +47,10 @@ function actorLabel(row: AuditLogRow) {
 }
 
 export default function AuditLogsPage() {
-  const [tab, setTab] = useState<'all' | 'security'>('all')
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<'all' | 'security'>(() =>
+    searchParams.get('tab') === 'security' ? 'security' : 'all'
+  )
   const [page, setPage] = useState(1)
   const [schoolId, setSchoolId] = useState<string>('')
   const [action, setAction] = useState('')
@@ -88,6 +93,11 @@ export default function AuditLogsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  useEffect(() => {
+    const next = searchParams.get('tab') === 'security' ? 'security' : 'all'
+    setTab((prev) => (prev === next ? prev : next))
+  }, [searchParams])
 
   useEffect(() => {
     setPage(1)
@@ -176,7 +186,7 @@ export default function AuditLogsPage() {
               <input
                 value={action}
                 onChange={(e) => setAction(e.target.value)}
-                placeholder="IMPERSONATE, CASH…"
+                placeholder="ex. impersonation, cash…"
                 className="mt-1 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 py-2 text-sm"
               />
             </label>
@@ -247,7 +257,9 @@ export default function AuditLogsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <code className="text-xs font-semibold text-zinc-800">{row.action}</code>
+                        <span className="text-xs font-semibold text-zinc-800" title={row.action}>
+                          {auditActionLabel(row.action)}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-zinc-700">{row.school?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-zinc-600">{actorLabel(row)}</td>
@@ -260,8 +272,9 @@ export default function AuditLogsPage() {
                             'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold',
                             SEVERITY_BADGE[row.severity] ?? SEVERITY_BADGE.INFO,
                           )}
+                          title={row.severity}
                         >
-                          {row.severity}
+                          {severityLabel(row.severity)}
                         </span>
                       </td>
                     </tr>

@@ -42,12 +42,30 @@ function normalizeSchoolInvitations(raw: unknown): SchoolInvitationsStatus {
 export const invitationsApi = {
   inviteStaff: (data: InviteStaffPayload) =>
     apiClient
-      .post<{ success: boolean; message: string; data: unknown }>('/superadmin/invitations/staff', data)
+      .post<{
+        success: boolean
+        message: string
+        data: unknown
+        emailSent?: boolean
+        smsSent?: boolean
+        emailError?: string
+        whatsappDeepLink?: string | null
+        whatsappReady?: boolean
+        whatsappError?: string
+      }>('/superadmin/invitations/staff', data)
       .then((r) => r.data),
 
   resendStaffInvitation: (data: ResendStaffInvitationPayload) =>
     apiClient
-      .post<{ success: boolean; message: string }>('/superadmin/invitations/staff/resend', data)
+      .post<{
+        success: boolean
+        message: string
+        emailSent?: boolean
+        smsSent?: boolean
+        whatsappDeepLink?: string | null
+        whatsappReady?: boolean
+        whatsappError?: string
+      }>('/superadmin/invitations/staff/resend', data)
       .then((r) => r.data),
 
   generateParentCode: (data: { studentId: number; schoolId: number; email?: string }) =>
@@ -68,8 +86,19 @@ export const invitationsApi = {
       .delete<{ success: boolean; message: string }>('/superadmin/invitations/staff/revoke', { data })
       .then((r) => r.data),
 
-  createAdmin: (data: { email: string; password: string; schoolId: number }) =>
+  createAdmin: (data: {
+    email: string
+    schoolId: number
+    confirmEmergency: true
+    reason: string
+    firstName?: string
+    lastName?: string
+  }) =>
     apiClient
-      .post<{ success: boolean; message: string; data: unknown }>('/superadmin/users/create-admin', data)
+      .post<{
+        success: boolean
+        message: string
+        data: { user: unknown; tempPassword: string }
+      }>('/superadmin/users/create-admin', data)
       .then((r) => r.data),
 }

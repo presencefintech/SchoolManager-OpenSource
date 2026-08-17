@@ -15,6 +15,7 @@ import { analyticsApi, type MasterDashboardAnalytics } from '@/lib/superAdmin/ap
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { formatMoney } from '@/lib/finance/currency'
+import { lifecycleStatusLabel } from '@/lib/i18n/display-labels'
 
 function useMasterAnalytics() {
   return useQuery({
@@ -147,7 +148,7 @@ function ChurnPanel({ data }: { data: MasterDashboardAnalytics }) {
                 </p>
               </div>
               <span className="shrink-0 text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                AT_RISK
+                {lifecycleStatusLabel('AT_RISK')}
               </span>
             </li>
           ))}

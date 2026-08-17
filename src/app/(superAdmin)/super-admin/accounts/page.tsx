@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { TempPasswordRevealModal } from '@/components/ui/temp-password-reveal-modal'
+import { roleLabel } from '@/lib/i18n/display-labels'
 
 const PAGE_SIZE = 20
 
@@ -140,7 +141,7 @@ export default function AccountsPage() {
                       <td className="px-6 py-3 text-zinc-600 text-xs">{u.email}</td>
                       <td className="px-6 py-3">
                         <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', ROLE_COLORS[u.role] ?? 'bg-zinc-100 text-zinc-500')}>
-                          {u.role}
+                          {roleLabel(u.role)}
                         </span>
                       </td>
                       <td className="px-6 py-3 text-zinc-600 text-xs">{u.school?.name ?? '—'}</td>

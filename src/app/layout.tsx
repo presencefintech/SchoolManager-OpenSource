@@ -6,6 +6,8 @@ import { AuthProvider } from '@/providers/auth-provider'
 import { ToastProvider } from '@/providers/toast-provider'
 import { SecurityEventListener } from '@/components/auth/security-event-listener'
 import { OfflineBanner } from '@/components/layout/offline-banner'
+import { SentryClientInit } from '@/components/observability/sentry-client-init'
+import { ForcePasswordChangeGate } from '@/components/auth/force-password-change-gate'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -31,6 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <QueryProvider>
           <AuthProvider>
             <ToastProvider>
+              <SentryClientInit />
+              <ForcePasswordChangeGate />
               <OfflineBanner />
               <SecurityEventListener />
               {children}

@@ -78,7 +78,7 @@
 - **Application mobile dédiée** (Android) : tableau de bord, historique de présence, paiements, reçus, notifications.
 - **Codes d’activation simples** : pas d’inscription libre — l’école contrôle qui accède à la plateforme.
 - **Pré-inscription en ligne** : les parents peuvent soumettre une demande ; l’administration valide ou refuse.
-- **Notifications multicanal** : push mobile, SMS (Africa’s Talking), e-mail selon les préférences.
+- **Notifications multicanal** : push mobile, SMS (Twilio), e-mail selon les préférences.
 - **Passe numérique élève** : carte d’identité scolaire avec QR code sécurisé.
 
 ---
@@ -197,7 +197,7 @@ Si un parent a plusieurs enfants dans la même école ou ailleurs :
 - **Mobile Money en priorité** : Orange Money, Airtel Money, M-Pesa — les moyens de paiement que vos parents utilisent déjà.
 - **Guichet espèces conservé** : le digital ne remplace pas le cash — il le complète et le trace.
 - **Numéros +243 normalisés** : validation automatique des numéros congolais.
-- **SMS via Africa’s Talking** : codes OTP et alertes même sans smartphone haut de gamme.
+- **SMS via Twilio** : codes OTP et alertes même sans smartphone haut de gamme.
 - **Fuseau Africa/Kinshasa** : relances et réconciliations calées sur votre réalité horaire.
 - **Français natif** : interface, notifications et reçus en français.
 - **Fonctionnement dégradé** : saisie manuelle de présence si le réseau ou la biométrie est indisponible.
@@ -330,7 +330,7 @@ Direction (Web)    ──┼──► API Presence ──► Base de données s�
 Finance (Web)      ──┘         │
                                ├── Mobile Money (Orange, Airtel, M-Pesa)
                                ├── Flutterwave (cartes + versement école)
-                               ├── SMS (Africa's Talking)
+                               ├── SMS (Twilio)
                                └── Notifications push (Firebase)
 ```
 

@@ -7,14 +7,15 @@ import { cn } from '@/lib/utils'
 import { useUpdateSchoolSaas } from '@/lib/hooks/use-super-admin'
 import { useToast } from '@/providers/toast-provider'
 import type { School, SchoolFeaturesMap, SchoolLifecycleStatus } from '@/types/super-admin'
+import { lifecycleStatusLabel, subscriptionTierLabel } from '@/lib/i18n/display-labels'
 
 const FEATURE_LABELS: { key: keyof SchoolFeaturesMap; label: string; hint: string }[] = [
-  { key: 'printing', label: 'Impression cartes PVC', hint: 'PDF / batch cartes élèves' },
+  { key: 'printing', label: 'Impression cartes PVC', hint: 'PDF / lot de cartes élèves' },
   { key: 'mobile_app', label: 'Application mobile', hint: 'Parents & enseignants' },
   { key: 'finance_reports', label: 'Rapports finance', hint: 'Exports & tableaux de bord' },
 ]
 
-function StatusBadge({ status }: { status?: SchoolLifecycleStatus | string }) {
+export function StatusBadge({ status }: { status?: SchoolLifecycleStatus | string }) {
   const s = status ?? 'ACTIVE'
   const map: Record<string, string> = {
     ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
@@ -24,12 +25,12 @@ function StatusBadge({ status }: { status?: SchoolLifecycleStatus | string }) {
   }
   return (
     <span className={cn('inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold', map[s] ?? map.ACTIVE)}>
-      {s}
+      {lifecycleStatusLabel(s)}
     </span>
   )
 }
 
-function CapacityBar({ count, capacity }: { count: number; capacity: number | null | undefined }) {
+export function CapacityBar({ count, capacity }: { count: number; capacity: number | null | undefined }) {
   if (!capacity || capacity <= 0) {
     return <p className="text-xs text-zinc-500 dark:text-zinc-400">{count} élèves · capacité non définie</p>
   }
@@ -196,13 +197,13 @@ export function SchoolSaasDrawer({
               >
                 {(['ACTIVE', 'PENDING', 'SUSPENDED', 'EXPIRED'] as const).map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {lifecycleStatusLabel(s)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-xs text-zinc-500">
-              Tier
+              Offre
               <select
                 value={tier}
                 onChange={(e) => {
@@ -214,7 +215,7 @@ export function SchoolSaasDrawer({
               >
                 {(['BASIC', 'PREMIUM', 'ENTERPRISE'] as const).map((t) => (
                   <option key={t} value={t}>
-                    {t}
+                    {subscriptionTierLabel(t)}
                   </option>
                 ))}
               </select>

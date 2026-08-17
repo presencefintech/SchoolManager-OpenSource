@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LayoutGrid,
+  Plus,
   Search,
   Settings2,
   Table2,
@@ -82,6 +83,13 @@ export default function SchoolsPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/super-admin/schools/onboard"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+              >
+                <Plus size={15} />
+                Nouvelle école
+              </Link>
               <ThemeToggle dark={dark} onToggle={toggleTheme} />
               <div className="flex gap-1 rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-1">
                 <button

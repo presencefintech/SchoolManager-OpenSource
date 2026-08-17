@@ -24,17 +24,25 @@ import {
   Clock3,
   Gauge,
   X,
+  UserPlus,
+  Mail,
 } from 'lucide-react'
 import {
   schoolSupportApi,
   type PlatformCashPayment,
   type SchoolSupportAction,
+  type SchoolSupportPrimaryAdmin,
 } from '@/lib/superAdmin/api/school-support.api'
+import { WhatsAppInviteAssist } from '@/components/super-admin/whatsapp-invite-assist'
 import { TempPasswordRevealModal } from '@/components/ui/temp-password-reveal-modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StatusBadge } from '@/components/super-admin/school-saas-drawer'
+import { PhoneInput } from '@/components/ui/phone-input'
+import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { useToast } from '@/providers/toast-provider'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { auditActionLabel, subscriptionTierLabel } from '@/lib/i18n/display-labels'
 import type { SchoolDetail, SchoolLifecycleStatus } from '@/types/super-admin'
 
 const ACTION_META: Record<
@@ -80,6 +88,21 @@ const ACTION_META: Record<
     label: 'Contrôles SaaS',
     tone: 'bg-violet-50 text-violet-800 border-violet-100',
     dot: 'bg-violet-500',
+  },
+  STAFF_INVITED: {
+    label: 'Invitation admin',
+    tone: 'bg-emerald-50 text-emerald-800 border-emerald-100',
+    dot: 'bg-emerald-500',
+  },
+  STAFF_INVITATION_RESENT: {
+    label: 'Invitation renvoyée',
+    tone: 'bg-sky-50 text-sky-800 border-sky-100',
+    dot: 'bg-sky-500',
+  },
+  EMERGENCY_ADMIN_BOOTSTRAP: {
+    label: 'Bootstrap urgence',
+    tone: 'bg-amber-50 text-amber-900 border-amber-100',
+    dot: 'bg-amber-500',
   },
 }
 
@@ -242,16 +265,30 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
   const [tempPwd, setTempPwd] = useState<{ name: string; password: string } | null>(null)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const [copiedDossier, setCopiedDossier] = useState(false)
+  const [primaryAdmin, setPrimaryAdmin] = useState<SchoolSupportPrimaryAdmin | null>(null)
+  const [hasPrimaryAdmin, setHasPrimaryAdmin] = useState(false)
+
+  const [inviteOpen, setInviteOpen] = useState(false)
+  const [invFirst, setInvFirst] = useState('')
+  const [invLast, setInvLast] = useState('')
+  const [invEmail, setInvEmail] = useState('')
+  const [invPhone, setInvPhone] = useState('')
+  const [inviteBusy, setInviteBusy] = useState(false)
+  const [whatsappDeepLink, setWhatsappDeepLink] = useState<string | null>(null)
+  const [whatsappError, setWhatsappError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const [p, a] = await Promise.all([
+      const [p, a, profile] = await Promise.all([
         schoolSupportApi.listPayments(schoolId),
         schoolSupportApi.listActions(schoolId),
+        schoolSupportApi.getProfile(schoolId),
       ])
       setPayments(p)
       setActions(a)
+      setPrimaryAdmin(profile.primaryAdmin)
+      setHasPrimaryAdmin(Boolean(profile.hasPrimaryAdmin ?? profile.primaryAdmin))
       setLastSyncedAt(new Date())
     } catch {
       toast.error('Impossible de charger le support école')
@@ -294,7 +331,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
       `Promoteur: ${school.promoterName ?? '—'}`,
       `Téléphone: ${phone}`,
       `Adresse: ${[school.address, school.city].filter(Boolean).join(', ') || '—'}`,
-      `Offre: ${school.subscriptionTier ?? 'BASIC'}`,
+      `Offre: ${subscriptionTierLabel(school.subscriptionTier)}`,
       `Contrat: ${school.contractExpiry ? fmtDate(school.contractExpiry) : '—'}`,
       `Cash SaaS: ${fmtUsd(totals.sum)} (${totals.count} règlements)`,
     ]
@@ -365,6 +402,51 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
       toast.error(e instanceof Error ? e.message : 'Échec reset mot de passe')
     } finally {
       setResetBusy(false)
+    }
+  }
+
+  async function runInviteAdmin() {
+    if (!invFirst.trim() || !invLast.trim() || !invEmail.trim()) {
+      toast.error('Nom, prénom et email requis')
+      return
+    }
+    if (!isValidInternationalPhone(invPhone)) {
+      toast.error('Téléphone mobile invalide (WhatsApp OTP)')
+      return
+    }
+    setInviteBusy(true)
+    try {
+      const res = await invitationsApi.inviteStaff({
+        email: invEmail.trim().toLowerCase(),
+        phone: formatPhoneToE164(invPhone),
+        role: 'ADMIN',
+        schoolId,
+        firstName: invFirst.trim(),
+        lastName: invLast.trim(),
+      })
+      setWhatsappDeepLink(res.whatsappDeepLink ?? null)
+      setWhatsappError(
+        res.whatsappDeepLink
+          ? null
+          : (res as { whatsappError?: string }).whatsappError ??
+              'Lien WhatsApp non généré — utilisez le code dans l’email',
+      )
+      toast.success(
+        'Invitation créée',
+        res.whatsappDeepLink
+          ? 'Ouvrez WhatsApp pour envoyer l’OTP'
+          : res.message || 'Vérifiez l’email / OTP',
+      )
+      setInviteOpen(false)
+      setInvFirst('')
+      setInvLast('')
+      setInvEmail('')
+      setInvPhone('')
+      await refresh()
+    } catch (e) {
+      toast.error(getApiErrorMessage(e))
+    } finally {
+      setInviteBusy(false)
     }
   }
 
@@ -505,9 +587,110 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
             </div>
             <p className="text-[11px] text-zinc-400 flex items-center gap-1.5 justify-end">
               <Shield size={11} />
-              Actions auditées · SUPER_ADMIN uniquement
+              Actions auditées · réservé aux superadmins
             </p>
           </div>
+        </div>
+
+        {/* Identité admin — invitation officielle */}
+        <div
+          className={cn(
+            'mt-5 rounded-2xl border px-4 py-4',
+            hasPrimaryAdmin
+              ? 'border-zinc-100 bg-white/80'
+              : 'border-amber-200/80 bg-amber-50/40',
+          )}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                Admin principal
+              </p>
+              {hasPrimaryAdmin && primaryAdmin ? (
+                <div className="mt-1 space-y-1">
+                  <p className="text-sm font-semibold text-zinc-900 truncate">{primaryAdmin.name}</p>
+                  <p className="text-xs text-zinc-500 truncate">{primaryAdmin.email ?? '—'}</p>
+                  {primaryAdmin.mustChangePassword ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                      <KeyRound size={10} /> Changement de MDP obligatoire
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      <CheckCircle2 size={10} /> Compte prêt
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-1">
+                  <p className="text-sm font-semibold text-amber-900">Aucun admin actif</p>
+                  <p className="text-xs text-amber-800/80 mt-0.5 max-w-md">
+                    Parcours actuel : email + lien WhatsApp direct (OTP prérempli). L’admin choisit
+                    son mot de passe à l’activation — pas de SMS payant tant que l’app ne monétise
+                    pas.
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setInviteOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-50"
+            >
+              <UserPlus size={15} />
+              {hasPrimaryAdmin ? 'Inviter un autre admin' : 'Inviter l’admin'}
+            </button>
+          </div>
+
+          {inviteOpen ? (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 border-t border-zinc-100/80 pt-4">
+              <input
+                placeholder="Prénom"
+                value={invFirst}
+                onChange={(e) => setInvFirst(e.target.value)}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              <input
+                placeholder="Nom"
+                value={invLast}
+                onChange={(e) => setInvLast(e.target.value)}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              <input
+                type="email"
+                placeholder="email@ecole.com"
+                value={invEmail}
+                onChange={(e) => setInvEmail(e.target.value)}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-100"
+              />
+              <PhoneInput
+                value={invPhone}
+                onChange={setInvPhone}
+                className="rounded-xl border border-zinc-200 bg-white"
+              />
+              <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={inviteBusy}
+                  onClick={() => void runInviteAdmin()}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+                >
+                  {inviteBusy ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}
+                  Envoyer l’invitation 2FA
+                </button>
+                <p className="text-[11px] text-zinc-400">
+                  Email + lien WhatsApp (OTP) · action journalisée
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {(whatsappDeepLink || whatsappError) ? (
+            <WhatsAppInviteAssist
+              className="mt-3"
+              link={whatsappDeepLink}
+              error={whatsappError}
+            />
+          ) : null}
         </div>
 
         <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -547,7 +730,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
                 Offre SaaS
               </p>
               <p className="text-sm font-semibold text-zinc-900 truncate">
-                {school.subscriptionTier ?? 'BASIC'}
+                {subscriptionTierLabel(school.subscriptionTier)}
               </p>
             </div>
           </div>
@@ -792,7 +975,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
             <ol className="relative space-y-0 max-h-[22rem] overflow-y-auto pr-1">
               {actions.map((a, idx) => {
                 const meta = ACTION_META[a.action] ?? {
-                  label: a.action,
+                  label: auditActionLabel(a.action),
                   tone: 'bg-zinc-100 text-zinc-700 border-zinc-200',
                   dot: 'bg-zinc-400',
                 }
@@ -952,7 +1135,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
           'Durée limitée à 30 minutes',
           'Bannière « Mode Impersonation » visible dans /admin',
           'Actions Superadmin bloquées jusqu’à la sortie',
-          'Audit START_IMPERSONATION journalisé',
+          'Journal d’audit : démarrage d’impersonation',
         ]}
         confirmLabel="Ouvrir la session école"
         variant="danger"
@@ -968,7 +1151,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
         impact={[
           'Changement de MDP forcé à la prochaine connexion',
           'Le mot de passe ne s’affiche qu’une seule fois',
-          'Action journalisée (SUPPORT_PASSWORD_RESET)',
+          'Action journalisée dans l’audit support',
         ]}
         confirmLabel="Générer le mot de passe"
         variant="danger"

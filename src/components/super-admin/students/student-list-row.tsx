@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatStudentFullName, formatStudentInitials } from '@/lib/utils/student-name.util'
 import { statusBadgeClass } from '@/components/super-admin/students/student-utils'
+import { studentStatusLabel } from '@/lib/i18n/display-labels'
 import type { StudentListItem } from '@/types/super-admin'
 
 export interface StudentListRowProps {
@@ -47,7 +48,7 @@ export const StudentListRow = memo(function StudentListRow({
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <span className={cn('px-2 py-0.5 text-xs rounded-full ring-1', statusBadgeClass(student.status))}>
-          {student.status}
+          {studentStatusLabel(student.status)}
         </span>
         {student.isPaymentLocked && (
           <span className="px-2 py-0.5 text-xs rounded-full bg-red-50 text-red-600 ring-1 ring-red-200">

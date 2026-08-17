@@ -13,6 +13,10 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { monitoringApi } from '@/lib/superAdmin/api/monitoring.api'
 import { anomaliesApi } from '@/lib/superAdmin/api/anomalies.api'
 import { formatMoney } from '@/lib/finance/currency'
+import { queryKeys } from '@/lib/query/keys'
+import { usePlatformHealth } from '@/lib/hooks/use-super-admin'
+import { PlatformHealthPanel } from '@/components/super-admin/platform-health-panel'
+import { paymentMethodLabel } from '@/lib/i18n/display-labels'
 
 const CARD = 'bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-6'
 const SKELETON = 'bg-zinc-100 rounded-xl animate-pulse'
@@ -76,26 +80,32 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
   const [testChannel, setTestChannel] = useState<'sms' | 'whatsapp'>('sms')
   const [smsFeedback, setSmsFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  const {
+    data: platform,
+    isLoading: loadingPlatform,
+    isError: platformError,
+  } = usePlatformHealth()
+
   const { data: health, isLoading: loadingHealth } = useQuery({
-    queryKey: ['superadmin', 'monitoring', 'reconciliation'],
+    queryKey: queryKeys.superadmin.monitoring.reconciliation(),
     queryFn: monitoringApi.getReconciliationHealth,
     refetchInterval: 60_000,
   })
 
   const { data: providers = [], isLoading: loadingProviders } = useQuery({
-    queryKey: ['superadmin', 'monitoring', 'providers'],
+    queryKey: queryKeys.superadmin.monitoring.providers(),
     queryFn: monitoringApi.getProviderStats,
     refetchInterval: 60_000,
   })
 
   const { data: alerts, isLoading: loadingAlerts } = useQuery({
-    queryKey: ['superadmin', 'monitoring', 'alerts'],
+    queryKey: queryKeys.superadmin.monitoring.alerts(),
     queryFn: monitoringApi.getSecurityAlerts,
     refetchInterval: 30_000,
   })
 
   const { data: anomalies, isLoading: loadingAnomalies } = useQuery({
-    queryKey: ['superadmin', 'anomalies', 'dashboard'],
+    queryKey: queryKeys.superadmin.anomalies.dashboard(),
     queryFn: anomaliesApi.getDashboard,
     refetchInterval: 60_000,
   })
@@ -149,7 +159,9 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
             </div>
             <div>
               <h1 className="text-3xl font-semibold text-zinc-900 tracking-tight">Monitoring</h1>
-              <p className="text-sm text-zinc-400 mt-0.5">Réconciliation, providers, alertes sécurité — surveillance temps réel</p>
+              <p className="text-sm text-zinc-400 mt-0.5">
+                Santé plateforme, réconciliation, providers et alertes — temps réel
+              </p>
             </div>
           </div>
         </div>
@@ -157,6 +169,8 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
       ) : null}
 
       <div className={cn('max-w-6xl mx-auto px-8 py-8 space-y-5', embedded && 'py-6')}>
+
+        <PlatformHealthPanel data={platform} loading={loadingPlatform} error={platformError} />
 
         {/* ── Réconciliation ───────────────────────────────────────────── */}
         <div className={CARD}>
@@ -242,13 +256,13 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-[11px]">
                     <div>
-                      <p className="text-zinc-400">Actif</p>
-                      <p className="font-mono text-zinc-800">{smsStatus.activeProvider}</p>
+                      <p className="text-zinc-400">Fournisseur</p>
+                      <p className="text-zinc-800 font-medium">{smsStatus.activeProvider}</p>
                     </div>
                     <div>
-                      <p className="text-zinc-400">Credentials</p>
+                      <p className="text-zinc-400">Identifiants</p>
                       <p className={cn('font-semibold', smsStatus.credentialsPresent ? 'text-emerald-600' : 'text-red-600')}>
-                        {smsStatus.credentialsPresent ? 'OK' : 'Placeholders / manquants'}
+                        {smsStatus.credentialsPresent ? 'Présents' : 'Manquants'}
                       </p>
                     </div>
                   </div>
@@ -265,13 +279,13 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
                   {smsStatus.whatsapp ? (
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
                       <div>
-                        <p className="text-zinc-400">Actif</p>
-                        <p className="font-mono text-zinc-800">{smsStatus.whatsapp.activeProvider}</p>
+                        <p className="text-zinc-400">Fournisseur</p>
+                        <p className="text-zinc-800 font-medium">{smsStatus.whatsapp.activeProvider}</p>
                       </div>
                       <div>
-                        <p className="text-zinc-400">Template OTP</p>
+                        <p className="text-zinc-400">Modèle OTP</p>
                         <p className={cn('font-semibold', smsStatus.whatsapp.otpTemplatePresent ? 'text-emerald-600' : 'text-red-600')}>
-                          {smsStatus.whatsapp.otpTemplatePresent ? 'OK' : 'Manquant'}
+                          {smsStatus.whatsapp.otpTemplatePresent ? 'Présent' : 'Manquant'}
                         </p>
                       </div>
                     </div>
@@ -283,9 +297,8 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
 
               {(!smsStatus.ready || (smsStatus.whatsapp && !smsStatus.whatsapp.ready)) && (
                 <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
-                  Remplacez les placeholders (`EAAxxxx`, `votre_username_at`, …) dans Railway/Render,
-                  puis `SMS_FORCE_MOCK=false` / `WHATSAPP_FORCE_MOCK=false`. Guide :{' '}
-                  <code className="bg-white/80 px-1 rounded">docs/MESSAGING_SETUP.md</code>
+                  Les identifiants de messagerie sont incomplets ou en mode test.
+                  Configurez les secrets d’environnement du backend, puis désactivez le mode mock SMS/WhatsApp.
                 </p>
               )}
 
@@ -357,7 +370,7 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
               {providers.map((p) => (
                 <div key={p.method} className="flex items-center gap-4">
                   <div className="w-28 flex-shrink-0">
-                    <span className="text-xs font-medium text-zinc-700 font-mono uppercase">{p.method}</span>
+                    <span className="text-xs font-medium text-zinc-700">{paymentMethodLabel(p.method)}</span>
                   </div>
                   <div className="flex-1">
                     <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
@@ -425,7 +438,7 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
                           <td className="px-4 py-2.5 font-semibold text-zinc-700">
                             {formatMoney(a.amount)}
                           </td>
-                          <td className="px-4 py-2.5 font-mono uppercase text-zinc-500">{a.method}</td>
+                          <td className="px-4 py-2.5 text-zinc-500">{paymentMethodLabel(a.method)}</td>
                           <td className="px-4 py-2.5 text-zinc-500">{a.studentId}</td>
                           <td className="px-4 py-2.5 text-zinc-400">
                             <span className="flex items-center gap-1">

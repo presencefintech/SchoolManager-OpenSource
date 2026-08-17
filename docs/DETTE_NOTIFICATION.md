@@ -247,7 +247,7 @@ Traçabilité **partielle** (audit présence, `EmailLog` pour emails admin), **p
 
 ### Risques opérationnels
 
-- **Blacklist opérateurs locaux** (Africa's Talking, etc.) si SMS masse branché sans throttle par école/seconde.
+- **Blacklist opérateurs locaux** (Twilio, etc.) si SMS masse branché sans throttle par école/seconde.
 - **Saturation SMTP** : 500 emails simultanés avec 5 connexions → délais importants ou rejet provider.
 - **Pas de circuit breaker** sur le provider SMS en cas d'erreurs répétées.
 
@@ -278,7 +278,7 @@ POST /auth/verify-otp   →  OtpService.verifyCode() + session AuthService
 |----------|--------|----------------|
 | Code | 6 chiffres | `crypto.randomInt(100000, 999999)` |
 | Stockage | Redis `otp:{phone}` | TTL **5 min** (`OTP_EXPIRY_SECONDS = 300`) |
-| Provider SMS | Africa's Talking ou mock | `sms.factory.ts` → `createSmsProvider()` |
+| Provider SMS | Twilio ou mock | `sms.factory.ts` → `createSmsProvider()` |
 | Rate limit demande | 5 / 15 min / téléphone | Redis `otp_limit:{phone}` |
 | Cooldown entre demandes | 60 s | Redis `otp_cooldown:{phone}` |
 | Rate limit vérification | 5 échecs / 15 min | Redis `otp_verify:{phone}` |
@@ -341,7 +341,7 @@ Votre code de connexion Presence est: {code}. Valide 5 minutes. Ne le partagez p
 | `backend/src/services/invitation.service.ts` | Codes parent, activation, staff invitations |
 | `backend/src/utils/invitation.utils.ts` | Génération code crypto, templates email |
 | `backend/src/services/sms/otp.service.ts` | OTP login parent |
-| `backend/src/services/sms/sms.factory.ts` | Provider SMS (Africa's Talking / mock) |
+| `backend/src/services/sms/sms.factory.ts` | Provider SMS (Twilio / mock) |
 
 ### Rate limit & quotas
 
@@ -425,7 +425,7 @@ backend/src/services/notifications/
 │   └── workers/
 │       ├── fanout.worker.ts
 │       ├── email-delivery.worker.ts       # rate limit SMTP
-│       ├── sms-delivery.worker.ts         # rate limit Africa's Talking
+│       ├── sms-delivery.worker.ts         # rate limit Twilio
 │       └── push-delivery.worker.ts
 ├── channels/
 │   ├── email.channel.ts

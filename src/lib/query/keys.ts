@@ -15,6 +15,7 @@ export const queryKeys = {
     },
 
     monitoring: {
+      platformHealth: () => ['superadmin', 'monitoring', 'platform-health'] as const,
       reconciliation: () => ['superadmin', 'monitoring', 'reconciliation'] as const,
       providers: () => ['superadmin', 'monitoring', 'providers'] as const,
       alerts: () => ['superadmin', 'monitoring', 'alerts'] as const,

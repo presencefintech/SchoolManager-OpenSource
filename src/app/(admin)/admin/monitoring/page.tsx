@@ -6,6 +6,7 @@ import { Activity, Cpu, MemoryStick, Clock, RefreshCw, CheckCircle, AlertTriangl
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { adminMonitoringApi } from '@/lib/admin/api'
+import { formatDetailValue, humanizeEnum, serviceLabel } from '@/lib/i18n/display-labels'
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } }
 
@@ -180,13 +181,13 @@ export default function MonitoringPage() {
                 const details = typeof val === 'object' && val !== null
                   ? Object.entries(val as Record<string, unknown>)
                       .filter(([k]) => k !== 'status' && k !== 'state')
-                      .map(([k, v]) => `${k}: ${v}`)
+                      .map(([k, v]) => `${humanizeEnum(k)}: ${formatDetailValue(v)}`)
                       .join(' · ')
                   : ''
                 return (
                   <div key={name} className="flex items-center justify-between px-6 py-4">
                     <div>
-                      <p className="text-sm font-medium text-zinc-900 capitalize">{name.replace(/_/g, ' ')}</p>
+                      <p className="text-sm font-medium text-zinc-900">{serviceLabel(name)}</p>
                       {details && <p className="text-xs text-zinc-400 mt-0.5">{details}</p>}
                     </div>
                     <span className={cn('flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border', cfg.cls)}>

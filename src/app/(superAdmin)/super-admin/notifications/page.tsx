@@ -10,6 +10,7 @@ import { useNotificationLogs, useQueueStatus } from '@/lib/hooks/use-super-admin
 import { notificationsApi } from '@/lib/superAdmin/api/notifications.api'
 import { emailsApi } from '@/lib/superAdmin/api/emails.api'
 import { Skeleton } from '@/components/ui/skeleton'
+import { deliveryStatusLabel } from '@/lib/i18n/display-labels'
 
 type Feedback = { type: 'success' | 'error'; message: string } | null
 
@@ -258,7 +259,7 @@ export default function NotificationsPage() {
                         : log.status === 'FAILED' ? 'bg-red-50 text-red-500'
                         : 'bg-zinc-100 text-zinc-500'
                       )}>
-                        {log.status}
+                        {deliveryStatusLabel(log.status)}
                       </span>
                     )}
                     <p className="text-[10px] text-zinc-300 mt-1 tabular-nums">

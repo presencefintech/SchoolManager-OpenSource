@@ -18,6 +18,15 @@ import { superAdminApi } from '@/lib/superAdmin/api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatMoney } from '@/lib/finance/currency'
+import {
+  auditActionLabel,
+  formatDetailValue,
+  humanizeEnum,
+  paymentMethodLabel,
+  queueStateLabel,
+  roleLabel,
+  severityLabel,
+} from '@/lib/i18n/display-labels'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -223,7 +232,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
                   {providers.map((p) => (
                     <div key={p.method}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-zinc-600 truncate">{p.method}</span>
+                        <span className="text-sm text-zinc-600 truncate">{paymentMethodLabel(p.method)}</span>
                         <span className={cn('text-sm font-mono font-bold tabular-nums',
                           p.reliabilityRate >= 90 ? 'text-emerald-600' : p.reliabilityRate >= 70 ? 'text-amber-600' : 'text-red-600')}>
                           {p.reliabilityRate.toFixed(0)}%
@@ -246,7 +255,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 flex flex-col gap-4">
                 <div className="flex items-center gap-2">
                   {queue.redisEnabled ? <Zap size={14} className="text-zinc-400" /> : <WifiOff size={14} className="text-zinc-400" />}
-                  <span className="text-xs font-medium text-zinc-400">Queue BullMQ</span>
+                  <span className="text-xs font-medium text-zinc-400">File de traitement</span>
                 </div>
                 {!queue.redisEnabled ? (
                   <div className="flex items-center gap-2 text-sm text-red-600">
@@ -256,14 +265,14 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
                 ) : (
                   <div className="space-y-2.5">
                     {([
-                      { label: 'Waiting',   val: queue.waiting,   alert: false },
-                      { label: 'Active',    val: queue.active,    alert: false },
-                      { label: 'Completed', val: queue.completed, alert: false },
-                      { label: 'Failed',    val: queue.failed,    alert: queue.failed > 0 },
-                      { label: 'Delayed',   val: queue.delayed,   alert: queue.delayed > 0 },
-                    ]).map(({ label, val, alert }) => (
-                      <div key={label} className="flex justify-between text-sm">
-                        <span className="text-zinc-400">{label}</span>
+                      { key: 'waiting',   val: queue.waiting,   alert: false },
+                      { key: 'active',    val: queue.active,    alert: false },
+                      { key: 'completed', val: queue.completed, alert: false },
+                      { key: 'failed',    val: queue.failed,    alert: queue.failed > 0 },
+                      { key: 'delayed',   val: queue.delayed,   alert: queue.delayed > 0 },
+                    ]).map(({ key, val, alert }) => (
+                      <div key={key} className="flex justify-between text-sm">
+                        <span className="text-zinc-400">{queueStateLabel(key)}</span>
                         <span className={cn('font-mono font-semibold tabular-nums', alert ? 'text-red-600' : 'text-zinc-800')}>{val}</span>
                       </div>
                     ))}
@@ -336,7 +345,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
                           <span className="text-sm text-zinc-600 truncate max-w-[200px]">{s.user.firstName} {s.user.lastName}</span>
                         </div>
-                        <span className="text-xs font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-lg">{s.user.role}</span>
+                        <span className="text-xs font-medium bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-lg">{roleLabel(s.user.role)}</span>
                       </div>
                     ))}
                     {sessions.length > 5 && <p className="text-xs text-zinc-400 pt-3">+ {sessions.length - 5} autres</p>}
@@ -361,12 +370,14 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
                   <div className="divide-y divide-zinc-50">
                     {auditSnap.map((e) => (
                       <div key={e.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                        <span className="text-sm text-zinc-600 truncate max-w-[200px]">{e.action}</span>
+                        <span className="text-sm text-zinc-600 truncate max-w-[200px]" title={e.action}>{auditActionLabel(e.action)}</span>
                         <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-lg',
                           e.severity === 'CRITICAL' ? 'bg-red-50 text-red-600'
                           : e.severity === 'WARNING' ? 'bg-amber-50 text-amber-600'
-                          : 'bg-zinc-100 text-zinc-500')}>
-                          {e.severity}
+                          : 'bg-zinc-100 text-zinc-500')}
+                          title={e.severity}
+                        >
+                          {severityLabel(e.severity)}
                         </span>
                       </div>
                     ))}
@@ -619,12 +630,31 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
               </div>
             ) : paymentFlags && paymentFlags.length > 0 ? (
               <div className="divide-y divide-zinc-100 max-h-64 overflow-y-auto">
-                {paymentFlags.map((f, i) => (
-                  <div key={i} className="flex items-center gap-4 px-6 py-3 text-xs hover:bg-zinc-50 transition-colors">
+                {paymentFlags.map((f, i) => {
+                  const row = f as Record<string, unknown>
+                  const id = row.id ?? row.paymentId ?? i
+                  const reason = String(row.reason ?? row.flag ?? row.code ?? '')
+                  const amount = typeof row.amount === 'number' ? formatMoney(row.amount) : null
+                  const method = typeof row.method === 'string' ? paymentMethodLabel(row.method) : null
+                  const summary = [reason ? humanizeEnum(reason) : null, amount, method].filter(Boolean).join(' · ')
+                  return (
+                  <div key={String(id)} className="flex items-center gap-4 px-6 py-3 text-xs hover:bg-zinc-50 transition-colors">
                     <Flag size={11} className="text-amber-400 flex-shrink-0" />
-                    <pre className="font-mono text-zinc-600 truncate flex-1">{JSON.stringify(f)}</pre>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-zinc-700 font-medium truncate">
+                        {summary || 'Signalement paiement'}
+                      </p>
+                      <p className="text-[10px] text-zinc-400 truncate mt-0.5">
+                        {Object.entries(row)
+                          .filter(([k]) => !['reason', 'flag', 'code', 'amount', 'method', 'id', 'paymentId'].includes(k))
+                          .slice(0, 4)
+                          .map(([k, v]) => `${humanizeEnum(k)}: ${formatDetailValue(v)}`)
+                          .join(' · ')}
+                      </p>
+                    </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="px-6 py-10 text-center text-sm text-zinc-400">
@@ -668,7 +698,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-zinc-800">{log.action}</span>
+                        <span className="text-sm font-medium text-zinc-800" title={log.action}>{auditActionLabel(log.action)}</span>
                         {log.resource && (
                           <span className="text-xs text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded">{log.resource}</span>
                         )}

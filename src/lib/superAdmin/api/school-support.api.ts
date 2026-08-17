@@ -18,6 +18,22 @@ export type SchoolSupportAction = {
   payload: unknown
 }
 
+export type SchoolSupportPrimaryAdmin = {
+  id: number
+  name: string
+  email: string | null
+  phone: string | null
+  mustChangePassword: boolean
+  status?: string
+}
+
+export type SchoolSupportProfile = {
+  id: number
+  name: string
+  hasPrimaryAdmin: boolean
+  primaryAdmin: SchoolSupportPrimaryAdmin | null
+}
+
 async function parseJson<T>(res: Response): Promise<T> {
   const data = (await res.json().catch(() => ({}))) as T & { message?: string }
   if (!res.ok) {
@@ -29,6 +45,14 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 export const schoolSupportApi = {
+  getProfile: (schoolId: number) =>
+    fetch(`/api/superadmin/schools/${schoolId}/support`, {
+      credentials: 'include',
+      cache: 'no-store',
+    }).then((r) =>
+      parseJson<{ success: boolean; school: SchoolSupportProfile }>(r).then((d) => d.school),
+    ),
+
   listPayments: (schoolId: number, take = 50) =>
     fetch(`/api/superadmin/schools/${schoolId}/manual-payments?take=${take}`, {
       credentials: 'include',

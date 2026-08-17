@@ -179,7 +179,7 @@ Orange Money · Airtel Money · M-Pesa · Carte · Virement · **Guichet espèce
 - Mobile Money en priorité (Orange, Airtel, M-Pesa)
 - Guichet espèces conservé
 - Numéros +243 validés automatiquement
-- SMS (Africa's Talking) pour OTP et alertes
+- SMS (Twilio) pour OTP et alertes
 - Fuseau **Africa/Kinshasa**
 - Interface en **français**
 - Mode dégradé si réseau coupé (saisie manuelle)

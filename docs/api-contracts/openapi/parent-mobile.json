@@ -399,7 +399,7 @@
           "Dashboard"
         ],
         "summary": "Préférences de notification (email, push, SMS)",
-        "description": "Active ou désactive les canaux de livraison.\n\n- **`sms: true`** — présence/absences envoyées par **SMS** (Africa's Talking / mock) via outbox transactionnelle.\n- **`push`** — FCM / Web Push.\n- **`email`** — SMTP système.\n\nComplète le temps réel `attendance.recorded` et l'événement socket `notification`.",
+        "description": "Active ou désactive les canaux de livraison.\n\n- **`sms: true`** — présence/absences envoyées par **SMS** (Twilio / mock) via outbox transactionnelle.\n- **`push`** — FCM / Web Push.\n- **`email`** — SMTP système.\n\nComplète le temps réel `attendance.recorded` et l'événement socket `notification`.",
         "security": [
           {
             "bearerAuth": []
