@@ -80,6 +80,7 @@ export function ActiveQrSessionsPanel() {
             {realtimeStatus === 'live' && ' — mise à jour auto sur pointage'}
           </p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-[10px] uppercase tracking-wide text-slate-400 border-b border-slate-100">
@@ -126,6 +127,7 @@ export function ActiveQrSessionsPanel() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

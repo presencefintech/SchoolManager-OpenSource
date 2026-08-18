@@ -288,6 +288,7 @@ function StudentCardsPageContent() {
                 </p>
               )}
             </div>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-zinc-50 text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
@@ -355,6 +356,7 @@ function StudentCardsPageContent() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

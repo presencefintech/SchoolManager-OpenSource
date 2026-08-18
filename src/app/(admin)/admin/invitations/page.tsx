@@ -89,6 +89,7 @@ function ParentCodesTab() {
         ) : codes.length === 0 ? (
           <div className="p-6 text-center text-sm text-zinc-400">Aucun code d'invitation parent</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-zinc-50 text-xs text-zinc-500 uppercase tracking-wide">
@@ -128,6 +129,7 @@ function ParentCodesTab() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
@@ -282,6 +284,7 @@ function StaffInvitationsTab() {
         ) : invitations.length === 0 ? (
           <div className="p-6 text-center text-sm text-zinc-400">Aucune invitation envoyée</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-zinc-50 text-xs text-zinc-500 uppercase tracking-wide">
@@ -336,6 +339,7 @@ function StaffInvitationsTab() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

@@ -440,6 +440,7 @@ function PreEnrollmentsPageContent() {
               <p className="text-sm text-zinc-400">Aucune demande pour ce filtre</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
@@ -484,6 +485,7 @@ function PreEnrollmentsPageContent() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
