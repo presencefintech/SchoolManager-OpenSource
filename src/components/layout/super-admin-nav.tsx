@@ -147,7 +147,7 @@ export function SuperAdminNav() {
   return (
     <>
       {/* Barre mobile — hamburger + logo, masquée en desktop */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white/95 backdrop-blur-md border-b border-zinc-200/80">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-zinc-200/80">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -176,7 +176,7 @@ export function SuperAdminNav() {
       <aside
         className={cn(
           'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden',
-          'bg-white/92 backdrop-blur-md border-r border-zinc-200/80',
+          'bg-white lg:bg-white/92 lg:backdrop-blur-md border-r border-zinc-200/80',
           'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
           'transition-transform duration-200 ease-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
