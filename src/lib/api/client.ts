@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthSchoolId, redirectToLogin } from '@/lib/api/auth-storage'
-import { extractApiErrorPayload, resolveApiErrorMessage } from '@/lib/auth/security-errors'
+import { extractApiErrorPayload, mapSecurityErrorCode, resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -156,7 +156,16 @@ export function getApiErrorMessage(error: unknown): string {
       return 'Conflit : cette ressource existe déjà.'
     }
   }
+  if (error && typeof error === 'object' && 'response' in error) {
+    const data = (error as { response?: { data?: unknown } }).response?.data
+    if (data) {
+      const resolved = resolveApiErrorMessage(data)
+      if (resolved !== 'Une erreur inattendue est survenue') return resolved
+    }
+  }
   if (error instanceof Error && error.message && error.message !== 'Network Error') {
+    const fromCode = mapSecurityErrorCode(error.message)
+    if (fromCode) return fromCode
     return error.message
   }
   return 'Une erreur inattendue est survenue'
