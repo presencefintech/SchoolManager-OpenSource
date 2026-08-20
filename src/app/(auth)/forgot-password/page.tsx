@@ -35,8 +35,9 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify(values),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.message ?? 'Erreur lors de la demande.')
+        const data = await res.json().catch(() => ({})) as { message?: string | string[] }
+        const msg = Array.isArray(data.message) ? data.message.join(' · ') : data.message
+        throw new Error(msg || 'Erreur lors de la demande.')
       }
       setSent(true)
     } catch (err) {

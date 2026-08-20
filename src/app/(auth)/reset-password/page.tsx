@@ -13,7 +13,11 @@ import { cn } from '@/lib/utils'
 
 const resetSchema = z
   .object({
-    newPassword: z.string().min(8, 'Minimum 8 caractères'),
+    newPassword: z
+      .string()
+      .min(8, 'Minimum 8 caractères')
+      .regex(/[A-Z]/, 'Au moins une majuscule')
+      .regex(/[0-9]/, 'Au moins un chiffre'),
     confirmPassword: z.string().min(8, 'Minimum 8 caractères'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
@@ -47,8 +51,9 @@ function ResetPasswordContent() {
         body: JSON.stringify({ token, newPassword: values.newPassword }),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.message ?? 'Ce lien est invalide ou a expiré.')
+        const data = await res.json().catch(() => ({})) as { message?: string | string[] }
+        const msg = Array.isArray(data.message) ? data.message.join(' · ') : data.message
+        throw new Error(msg || 'Ce lien est invalide ou a expiré.')
       }
       setDone(true)
       setTimeout(() => router.push('/login'), 2500)
@@ -118,7 +123,9 @@ function ResetPasswordContent() {
             <>
               <div className="mb-6">
                 <h2 className="text-lg font-semibold text-zinc-900">Nouveau mot de passe</h2>
-                <p className="text-sm text-zinc-400 mt-1">Choisissez un mot de passe d&apos;au moins 8 caractères.</p>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Au moins 8 caractères, une majuscule et un chiffre.
+                </p>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
