@@ -7,10 +7,7 @@ export const STAFF_PASSWORD_REGEX =
 export const staffPasswordField = z
   .string()
   .min(12, 'Minimum 12 caractères')
-  .regex(/[a-z]/, 'Au moins une minuscule')
-  .regex(/[A-Z]/, 'Au moins une majuscule')
-  .regex(/\d/, 'Au moins un chiffre')
-  .regex(/[@$!%*?&]/, 'Au moins un caractère spécial (@$!%*?&)')
+  .regex(STAFF_PASSWORD_REGEX, 'Uniquement lettres, chiffres et caractères @ $ ! % * ? &')
 
 export type PasswordRequirement = {
   id: string
