@@ -188,12 +188,19 @@ export default function SchoolOnboardPage() {
       if (axios.isAxiosError(e)) {
         const data = e.response?.data as {
           code?: string
+          errorCode?: string
           errors?: { code?: string; details?: { schoolId?: number } }
         } | undefined
-        const code = data?.code ?? data?.errors?.code
+        const code = data?.code ?? data?.errorCode ?? data?.errors?.code
         const schoolId = data?.errors?.details?.schoolId
         if (code === 'SCHOOL_CREATED_INVITE_FAILED' && schoolId) {
           router.push(`/super-admin/schools/${schoolId}`)
+        }
+        if (code === 'SCHOOL_EMAIL_ALREADY_USED') {
+          const match = /#(\d+)/.exec(msg)
+          if (match) {
+            setTimeout(() => router.push(`/super-admin/schools/${match[1]}`), 1800)
+          }
         }
       }
     }
@@ -329,13 +336,17 @@ export default function SchoolOnboardPage() {
                   />
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Email établissement">
+                  <Field
+                    label="Email établissement"
+                    hint="Optionnel. Doit être unique : ce n’est pas l’email de l’admin. Laissez vide si vous n’avez pas d’adresse dédiée à l’école."
+                  >
                     <input
                       type="email"
+                      autoComplete="off"
                       className={inputClass}
                       value={school.email}
                       onChange={(e) => setSchool((s) => ({ ...s, email: e.target.value }))}
-                      placeholder="contact@ecole.cd"
+                      placeholder="laisser vide si besoin"
                     />
                   </Field>
                   <Field label="Téléphone établissement">

@@ -44,6 +44,16 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Impossible de supprimer un compte déjà actif. Contactez un super-admin.',
   ACCOUNT_SUSPENDED:
     'Ce compte est suspendu. Contactez l\'administration.',
+  INVALID_CREDENTIALS:
+    'Email ou mot de passe incorrect. Utilisez l’email de l’invitation (pas l’email de l’établissement) et le mot de passe choisi à l’activation — pas le code SMS.',
+  INVALID_OLD_PASSWORD:
+    'Le mot de passe temporaire actuel est incorrect. Recopiez-le exactement, ou régénérez-en un depuis le Superadmin.',
+  PASSWORD_CHANGE_REQUIRED:
+    'Changement de mot de passe obligatoire avant de continuer.',
+  ACCOUNT_NOT_VERIFIED:
+    'Le mot de passe est enregistré, mais le compte n’est pas encore vérifié. Reprenez le lien d’invitation et saisissez le code SMS (ou WhatsApp) à 6 chiffres.',
+  SCHOOL_SUSPENDED:
+    'Établissement suspendu — connexion refusée.',
   INVITATION_NOT_FOUND:
     'Invitation introuvable. Actualisez la page.',
   WEAK_PASSWORD:

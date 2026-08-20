@@ -52,7 +52,7 @@ export const invitationsApi = {
         whatsappDeepLink?: string | null
         whatsappReady?: boolean
         whatsappError?: string
-      }>('/superadmin/invitations/staff', data)
+      }>('/superadmin/invitations/staff', data, { timeout: 90_000 })
       .then((r) => r.data),
 
   resendStaffInvitation: (data: ResendStaffInvitationPayload) =>

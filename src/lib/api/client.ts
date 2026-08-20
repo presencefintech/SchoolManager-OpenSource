@@ -1,13 +1,13 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthSchoolId, redirectToLogin } from '@/lib/api/auth-storage'
-import { extractApiErrorPayload, resolveApiErrorMessage } from '@/lib/auth/security-errors'
+import { extractApiErrorPayload, mapSecurityErrorCode, resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
 export const apiClient = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15_000,
+  timeout: 30_000,
   withCredentials: true,
 })
 
@@ -109,7 +109,11 @@ apiClient.interceptors.response.use(
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response && (error.code === 'ECONNABORTED' || /timeout/i.test(error.message))) {
-      return 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez avec un fichier plus léger.'
+      const isUpload =
+        typeof FormData !== 'undefined' && error.config?.data instanceof FormData
+      return isUpload
+        ? 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez avec un fichier plus léger.'
+        : 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez dans quelques secondes.'
     }
     if (!error.response && error.code === 'ERR_NETWORK') {
       return 'Connexion au serveur impossible (réseau ou proxy). Réessayez dans quelques secondes.'
@@ -152,7 +156,16 @@ export function getApiErrorMessage(error: unknown): string {
       return 'Conflit : cette ressource existe déjà.'
     }
   }
+  if (error && typeof error === 'object' && 'response' in error) {
+    const data = (error as { response?: { data?: unknown } }).response?.data
+    if (data) {
+      const resolved = resolveApiErrorMessage(data)
+      if (resolved !== 'Une erreur inattendue est survenue') return resolved
+    }
+  }
   if (error instanceof Error && error.message && error.message !== 'Network Error') {
+    const fromCode = mapSecurityErrorCode(error.message)
+    if (fromCode) return fromCode
     return error.message
   }
   return 'Une erreur inattendue est survenue'

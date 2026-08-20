@@ -25,7 +25,12 @@ const SKIP_RESPONSE_HEADERS = new Set([
 
 async function proxy(req: NextRequest, path: string[]) {
   const search = req.nextUrl.search
-  const target = `${BACKEND}/api/${path.join('/')}${search}`
+  let joined = path.join('/')
+  // `/api/auth/*` (pages login / mot de passe oublié) → backend `/api/v1/auth/*`
+  if (joined === 'auth' || joined.startsWith('auth/')) {
+    joined = `v1/${joined}`
+  }
+  const target = `${BACKEND}/api/${joined}${search}`
 
   const headers: Record<string, string> = {
     'accept-encoding': 'identity',
@@ -41,8 +46,8 @@ async function proxy(req: NextRequest, path: string[]) {
     headers.Authorization = `Bearer ${accessToken}`
   }
 
-  const joined = path.join('/')
-  const isSuperAdminApi = joined.startsWith('v1/superadmin') || joined.startsWith('superadmin')
+  const originalPath = path.join('/')
+  const isSuperAdminApi = originalPath.startsWith('v1/superadmin') || originalPath.startsWith('superadmin')
   if (!isSuperAdminApi) {
     const schoolId = req.cookies.get(AUTH_COOKIE.school)?.value
     if (schoolId && schoolId !== '0' && !headers['x-school-id']) {

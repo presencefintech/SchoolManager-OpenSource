@@ -33,6 +33,7 @@ export function ForcePasswordChangeGate() {
   const { user, logout, refreshUser } = useAuth()
   const toast = useToast()
   const [show, setShow] = useState(false)
+  const [formError, setFormError] = useState('')
 
   const {
     register,
@@ -47,15 +48,19 @@ export function ForcePasswordChangeGate() {
   if (!user?.mustChangePassword) return null
 
   async function onSubmit(values: FormValues) {
+    setFormError('')
     try {
       await authApi.changePassword({
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
       })
       toast.success('Mot de passe mis à jour', 'Reconnectez-vous avec votre nouveau mot de passe.')
-      await logout()
+      await logout().catch(() => undefined)
+      window.location.assign('/login?passwordChanged=1')
     } catch (err) {
-      toast.error('Échec', getApiErrorMessage(err))
+      const message = getApiErrorMessage(err)
+      setFormError(message)
+      toast.error('Échec', message)
       void refreshUser()
     }
   }
@@ -145,6 +150,12 @@ export function ForcePasswordChangeGate() {
               </li>
             ))}
           </ul>
+
+          {formError && (
+            <div role="alert" className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-700">
+              {formError}
+            </div>
+          )}
 
           <button
             type="submit"

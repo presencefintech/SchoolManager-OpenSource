@@ -149,7 +149,7 @@ export const coreApi = {
             lastName: string
           }
         }
-      }>('/superadmin/core/schools/onboard', body)
+      }>('/superadmin/core/schools/onboard', body, { timeout: 90_000 })
       .then((r) => r.data),
 
   listCoreUsers: (params?: { page?: number; take?: number; role?: string; q?: string }) =>

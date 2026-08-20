@@ -24,7 +24,11 @@ export const authApi = {
 
   triggerPasswordReset: (email: string) =>
     apiClient
-      .post<{ success: boolean; message: string }>('/superadmin/auth/trigger-reset', { email })
+      .post<{ success: boolean; message: string }>(
+        '/superadmin/auth/trigger-reset',
+        { email },
+        { timeout: 90_000 },
+      )
       .then((r) => r.data),
 
   regeneratePassword: (userId: number) =>
