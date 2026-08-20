@@ -7,7 +7,7 @@ type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 export const apiClient = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15_000,
+  timeout: 30_000,
   withCredentials: true,
 })
 
@@ -109,7 +109,11 @@ apiClient.interceptors.response.use(
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response && (error.code === 'ECONNABORTED' || /timeout/i.test(error.message))) {
-      return 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez avec un fichier plus léger.'
+      const isUpload =
+        typeof FormData !== 'undefined' && error.config?.data instanceof FormData
+      return isUpload
+        ? 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez avec un fichier plus léger.'
+        : 'Délai dépassé — le serveur met trop de temps à répondre. Réessayez dans quelques secondes.'
     }
     if (!error.response && error.code === 'ERR_NETWORK') {
       return 'Connexion au serveur impossible (réseau ou proxy). Réessayez dans quelques secondes.'
