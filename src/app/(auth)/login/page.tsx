@@ -40,6 +40,7 @@ export default function LoginPage() {
 function LoginPageContent() {
   const searchParams = useSearchParams()
   const justActivated = searchParams.get('activated') === '1'
+  const passwordChanged = searchParams.get('passwordChanged') === '1'
   const roleNotSupported = searchParams.get('error') === 'role_not_supported'
   const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
@@ -109,8 +110,18 @@ function LoginPageContent() {
               role="status"
               className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800"
             >
-              Compte activé. Connectez-vous, puis confirmez votre email pour débloquer les opérations
-              financières.
+              Compte activé. Connectez-vous avec l’email du compte et le mot de passe que vous venez
+              de choisir.
+            </div>
+          )}
+
+          {passwordChanged && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800"
+            >
+              Mot de passe mis à jour. Connectez-vous avec votre <strong>nouveau</strong> mot de
+              passe — le mot de passe temporaire ne fonctionne plus.
             </div>
           )}
 
