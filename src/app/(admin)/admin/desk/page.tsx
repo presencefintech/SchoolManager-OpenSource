@@ -165,6 +165,7 @@ function DeskHomeContent() {
           ) : !incomplete.data?.items.length ? (
             <p className="p-8 text-center text-sm text-zinc-400">Aucun dossier incomplet pour ce filtre.</p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/60 text-[11px] uppercase tracking-wide text-zinc-400">
@@ -210,6 +211,7 @@ function DeskHomeContent() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
 
           {(incomplete.data?.totalPages ?? 1) > 1 && (

@@ -104,6 +104,7 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
         ) : !scans?.length ? (
           <div className="p-6 text-center text-sm text-zinc-400">Aucun scan</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-zinc-50 text-xs text-zinc-500 uppercase tracking-wide">
@@ -140,6 +141,7 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

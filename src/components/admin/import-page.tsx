@@ -360,7 +360,7 @@ export function ImportPage() {
                 <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">
                   Lignes en erreur ({job.errors.length})
                 </p>
-                <div className="rounded-xl border border-red-100 overflow-hidden">
+                <div className="rounded-xl border border-red-100 overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-red-50/60 border-b border-red-100">
