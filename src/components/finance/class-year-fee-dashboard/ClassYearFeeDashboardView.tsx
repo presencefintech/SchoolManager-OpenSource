@@ -13,7 +13,10 @@ import {
   CircleDollarSign,
   Landmark,
   RefreshCw,
+  BadgeCheck,
+  Scale,
 } from 'lucide-react'
+import { StudentFeeLedgerTable } from '@/components/finance/student-fee-ledger-table'
 import {
   FinanceEmptyState,
   FinancePageHeader,
@@ -283,9 +286,21 @@ export function ClassYearFeeDashboardView({ source }: { source: ClassYearFeeSour
                           {col.categoryName}
                         </th>
                       ))}
-                      <th className="px-3 py-3 text-right">Total dû</th>
-                      <th className="px-3 py-3 text-right">Payé</th>
-                      <th className="px-3 py-3 text-right">Reste</th>
+                      <th className="px-3 py-3 text-right">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <Scale size={12} className="text-slate-400" /> Total dû
+                        </span>
+                      </th>
+                      <th className="px-3 py-3 text-right">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <BadgeCheck size={12} className="text-emerald-500" /> Payé
+                        </span>
+                      </th>
+                      <th className="px-3 py-3 text-right">
+                        <span className="inline-flex items-center justify-end gap-1">
+                          <Wallet size={12} className="text-rose-400" /> Reste
+                        </span>
+                      </th>
                       <th className="px-4 py-3 text-right">Taux</th>
                     </tr>
                   </thead>
@@ -447,67 +462,115 @@ type ClassYearFeeDashboardViewColumns = Array<{
 
 function ClassDetail({ cls, currency }: { cls: ClassYearFeeClass; currency: string }) {
   const students = cls.students ?? []
+  const [openStudentId, setOpenStudentId] = useState<number | null>(students[0]?.studentId ?? null)
+
   return (
-    <div className="space-y-4">
-      <div className="grid gap-2 sm:grid-cols-3">
-        {cls.fees.map((fee) => (
-          <div key={fee.categoryId} className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5">
-            <p className="text-[11px] font-semibold text-zinc-500">{fee.categoryName}</p>
-            <p className="mt-1 text-sm font-bold tabular-nums text-zinc-900">
-              {formatMoney(fee.expected, currency)}
-            </p>
-            <p className="text-[11px] text-zinc-500">
-              Payé {formatMoney(fee.paid, currency)} · reste {formatMoney(fee.remaining, currency)}
-            </p>
-            {fee.billingPeriod === 'MONTHLY' && (
-              <p className="mt-1 text-[10px] text-zinc-400">
-                Barème {formatMoney(fee.catalogUnitAmount, currency)} / mois ·{' '}
-                {formatMoney(fee.catalogYearAmount, currency)} / élève
-              </p>
-            )}
-          </div>
-        ))}
+    <div className="space-y-5">
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+          Synthèse de la classe
+        </p>
+        <StudentFeeLedgerTable
+          currency={currency}
+          totals={cls.totals}
+          lines={cls.fees.map((fee) => ({
+            id: `class-${fee.categoryId}`,
+            name: fee.categoryName,
+            billingPeriod: fee.billingPeriod,
+            expected: fee.expected,
+            paid: fee.paid,
+            remaining: fee.remaining,
+          }))}
+        />
       </div>
 
       {students.length === 0 ? (
         <p className="text-xs text-zinc-500">Aucun élève actif dans cette classe.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-          <table className="min-w-full text-sm">
-            <thead className="bg-zinc-50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              <tr>
-                <th className="px-3 py-2 text-left">Élève</th>
-                {cls.fees.map((fee) => (
-                  <th key={fee.categoryId} className="px-3 py-2 text-right">
-                    {fee.categoryName}
-                  </th>
-                ))}
-                <th className="px-3 py-2 text-right">Reste</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {students.map((s) => (
-                <tr key={s.studentId}>
-                  <td className="px-3 py-2">
-                    <p className="font-medium text-zinc-900">{s.fullName}</p>
-                    <p className="text-[11px] text-zinc-400">{s.matricule ?? '—'}</p>
-                  </td>
-                  {cls.fees.map((fee) => {
-                    const line = s.fees.find((f) => f.categoryId === fee.categoryId)
-                    return (
-                      <td key={fee.categoryId} className="px-3 py-2 text-right tabular-nums text-zinc-600">
-                        <span className="text-zinc-800">{formatMoney(line?.paid ?? 0, currency)}</span>
-                        <span className="text-zinc-400"> / {formatMoney(line?.expected ?? 0, currency)}</span>
-                      </td>
-                    )
-                  })}
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold text-rose-700">
-                    {formatMoney(s.remaining, currency)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+            Détail par élève
+          </p>
+          {students.map((s) => {
+            const open = openStudentId === s.studentId
+            const cleared = s.remaining <= 0.01
+            return (
+              <div
+                key={s.studentId}
+                className={cn(
+                  'overflow-hidden rounded-2xl border bg-white',
+                  open ? 'border-emerald-200 shadow-sm' : 'border-zinc-200/80',
+                )}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenStudentId(open ? null : s.studentId)}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
+                    {s.fullName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('')}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold text-zinc-900">{s.fullName}</span>
+                    <span className="block text-[11px] text-zinc-400">{s.matricule ?? '—'}</span>
+                  </span>
+                  <span className="hidden text-right sm:block">
+                    <span className="block text-[10px] uppercase tracking-wide text-zinc-400">Dû</span>
+                    <span className="block text-sm tabular-nums font-medium text-slate-800">
+                      {formatMoney(s.expected, currency)}
+                    </span>
+                  </span>
+                  <span className="hidden text-right sm:block">
+                    <span className="block text-[10px] uppercase tracking-wide text-zinc-400">Payé</span>
+                    <span className="block text-sm tabular-nums font-semibold text-emerald-700">
+                      {formatMoney(s.paid, currency)}
+                    </span>
+                  </span>
+                  <span className="text-right">
+                    <span className="block text-[10px] uppercase tracking-wide text-zinc-400">Reste</span>
+                    <span
+                      className={cn(
+                        'block text-sm tabular-nums font-semibold',
+                        cleared ? 'text-zinc-400' : 'text-rose-700',
+                      )}
+                    >
+                      {formatMoney(s.remaining, currency)}
+                    </span>
+                  </span>
+                  <span
+                    className={cn(
+                      'hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline-flex',
+                      cleared
+                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
+                        : 'bg-rose-50 text-rose-700 ring-rose-100',
+                    )}
+                  >
+                    {cleared ? 'Soldé' : 'À recouvrer'}
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    className={cn('text-zinc-400 transition-transform', open && 'rotate-180')}
+                  />
+                </button>
+                {open && (
+                  <div className="border-t border-zinc-100 px-3 pb-3 pt-2">
+                    <StudentFeeLedgerTable
+                      currency={currency}
+                      totals={{ expected: s.expected, paid: s.paid, remaining: s.remaining }}
+                      lines={s.fees.map((fee) => ({
+                        id: `${s.studentId}-${fee.categoryId}`,
+                        name: fee.categoryName,
+                        billingPeriod: cls.fees.find((f) => f.categoryId === fee.categoryId)?.billingPeriod,
+                        expected: fee.expected,
+                        paid: fee.paid,
+                        remaining: fee.remaining,
+                      }))}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
