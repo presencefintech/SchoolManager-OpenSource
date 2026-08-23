@@ -266,6 +266,20 @@ export default function FinanceDashboardPage() {
 
       <div className="mx-auto max-w-7xl space-y-8">
 
+        <Link
+          href="/admin/finance/frais-annuels-classes"
+          className="group flex items-center justify-between gap-4 rounded-2xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50 to-white px-5 py-4 shadow-sm ring-1 ring-emerald-100/80 transition hover:border-emerald-300 hover:shadow-md"
+        >
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Recouvrement annuel</p>
+            <p className="mt-0.5 text-sm font-semibold text-zinc-900">Frais dus par classe — payé et reste à recouvrer</p>
+            <p className="mt-0.5 text-xs text-zinc-500">Inscription, scolarité et État, pour toute l’année scolaire.</p>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-emerald-700">
+            Ouvrir <ArrowRight size={16} className="transition group-hover:translate-x-0.5" />
+          </span>
+        </Link>
+
         {isError && (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 flex items-start gap-3">
             <AlertTriangle size={18} className="text-red-600 flex-shrink-0 mt-0.5" />
