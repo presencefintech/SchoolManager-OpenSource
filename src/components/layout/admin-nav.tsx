@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -54,6 +54,7 @@ const NAV_SECTIONS: NavSection[] = [
         children: [
           { label: 'Tableau de bord', href: '/admin/finance', icon: LayoutDashboard },
           { label: 'Rapports', href: '/admin/finance/rapports', icon: BarChart3 },
+          { label: 'Frais annuels par classe', href: '/admin/finance/frais-annuels-classes', icon: Layers3 },
           { label: 'Paiements', href: '/admin/finance/paiements', icon: CreditCard },
           { label: 'Contrôle', href: '/admin/finance/controle', icon: ClipboardList },
           { label: 'Remboursements', href: '/admin/finance/remboursements', icon: RotateCcw },

@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote,
   CalendarCheck, RotateCcw,   ClipboardCheck, BarChart3, Radio,
-  QrCode, LineChart, Bell, FileSpreadsheet, Sparkles, FileText, Wallet,
+  QrCode, LineChart, Bell, FileSpreadsheet, Sparkles, FileText, Wallet, Layers3,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ const NAV_LINKS = [
   { label: 'Exports', href: '/finances/exports', icon: FileSpreadsheet },
   { label: 'Remboursements', href: '/finances/remboursements', icon: RotateCcw },
   { label: 'Transactions', href: '/finances/transactions', icon: Search },
+  { label: 'Frais par classe', href: '/finances/frais-annuels-classes', icon: Layers3 },
   { label: 'Classes', href: '/finances/classes', icon: BookOpen },
   { label: 'Clôture', href: '/finances/cloture', icon: CalendarCheck },
   { label: 'Vérifier reçu', href: '/verify', icon: QrCode },

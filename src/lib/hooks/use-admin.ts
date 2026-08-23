@@ -1074,6 +1074,15 @@ export function useFinanceDashboard() {
   })
 }
 
+export function useAdminClassYearFeeDashboard(params?: { sessionId?: number; classId?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'class-year-fees', params?.sessionId ?? null, params?.classId ?? null],
+    queryFn: () => financeApi.getClassYearFees(params),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export function useFinanceTopPayers(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['admin', 'finance', 'top-payers'],

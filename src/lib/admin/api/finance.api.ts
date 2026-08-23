@@ -39,6 +39,7 @@ import { parseContentDispositionFilename, isExportContentType, readBlobErrorMess
 import { asFeeStructureList, normalizeFeeStructureListItem, type FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
 import { asStudentPaymentsDetailedPage } from '@/lib/finance/payment-history.utils'
 import { formatRdcFullName, type StudentIdentityFields } from '@/lib/utils/student-name.util'
+import type { ClassYearFeeDashboard } from '@/types/finance'
 
 function asItemList<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[]
@@ -232,6 +233,11 @@ export const financeApi = {
     apiClient
       .get('/admin/finance/dashboard/strategic')
       .then((r) => mapEnterpriseDashboardToKpi(r.data.data)),
+
+  getClassYearFees: (params?: { sessionId?: number; classId?: number }) =>
+    apiClient
+      .get('/admin/finance/dashboard/class-year-fees', { params })
+      .then((r) => r.data.data as ClassYearFeeDashboard),
 
 
   getDetailedReport: () =>
