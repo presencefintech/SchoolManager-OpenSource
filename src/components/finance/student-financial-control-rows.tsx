@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { StudentFeeLedgerTable } from '@/components/finance/student-fee-ledger-table'
 import { cn } from '@/lib/utils'
 import { formatMoney } from '@/lib/finance/currency'
 import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-schedule'
@@ -44,14 +45,6 @@ function situationTone(status: string): string {
   }
 }
 
-const FEE_LINE_STATUS_LABEL: Record<string, string> = {
-  PAID: 'Payé',
-  PARTIALLY_PAID: 'Partiel',
-  DUE: 'Dû',
-  UPCOMING: 'À venir',
-  OVERDUE: 'En retard',
-}
-
 function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
   if (lines.length === 0) {
     return <p className="text-xs text-zinc-400 py-2">Aucun frais sur l&apos;échéancier</p>
@@ -68,75 +61,18 @@ function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
           {missing.length > 4 ? '…' : ''}
         </p>
       )}
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-zinc-100 bg-zinc-50/80 text-left text-[10px] uppercase tracking-wide text-zinc-400">
-              <th className="px-3 py-2">Frais</th>
-              <th className="px-3 py-2">Période</th>
-              <th className="px-3 py-2 text-right">Dû</th>
-              <th className="px-3 py-2 text-right">Payé</th>
-              <th className="px-3 py-2 text-right">Reste</th>
-              <th className="px-3 py-2">Statut</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-50">
-            {lines.map((line) => (
-              <tr key={`${line.feeStructureId}-${line.monthYear ?? 'once'}-${line.categoryId}`}>
-                <td className="px-3 py-2 font-medium text-zinc-800">
-                  <span className="inline-flex flex-wrap items-center gap-1.5">
-                    {line.categoryName}
-                    {line.attributionSource && line.attributionSource !== 'AUTOMATIC' && (
-                      <span
-                        className={cn(
-                          'rounded px-1 py-0.5 text-[9px] font-medium',
-                          line.attributionSource === 'ASSIGN' && 'bg-sky-50 text-sky-700',
-                          line.attributionSource === 'OVERRIDE' && 'bg-amber-50 text-amber-800',
-                          line.attributionSource === 'EXEMPT' && 'bg-zinc-100 text-zinc-600',
-                        )}
-                        title={line.attributionReason ?? undefined}
-                      >
-                        {line.attributionSource === 'ASSIGN'
-                          ? 'Attribué'
-                          : line.attributionSource === 'OVERRIDE'
-                            ? 'Custom'
-                            : 'Exonéré'}
-                      </span>
-                    )}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-zinc-500">{line.monthYear ?? '—'}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{formatMoney(line.amount)}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-emerald-700">
-                  {formatMoney(line.amountPaid ?? 0)}
-                </td>
-                <td
-                  className={cn(
-                    'px-3 py-2 text-right tabular-nums font-medium',
-                    (line.amountRemaining ?? 0) > 0 ? 'text-red-600' : 'text-zinc-600',
-                  )}
-                >
-                  {formatMoney(line.amountRemaining ?? Math.max(0, line.amount - (line.amountPaid ?? 0)))}
-                </td>
-                <td className="px-3 py-2">
-                  <span
-                    className={cn(
-                      'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
-                      line.paid
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : line.status === 'OVERDUE'
-                          ? 'bg-red-50 text-red-700'
-                          : 'bg-amber-50 text-amber-800',
-                    )}
-                  >
-                    {FEE_LINE_STATUS_LABEL[line.status] ?? line.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <StudentFeeLedgerTable
+        currency="USD"
+        lines={lines.map((line) => ({
+          id: `${line.feeStructureId}-${line.monthYear ?? 'once'}-${line.categoryId}`,
+          name: line.categoryName,
+          billingPeriod: line.billingPeriod,
+          periodLabel: line.monthYear ?? undefined,
+          expected: line.amount,
+          paid: line.amountPaid ?? 0,
+          remaining: line.amountRemaining ?? Math.max(0, line.amount - (line.amountPaid ?? 0)),
+        }))}
+      />
     </div>
   )
 }
