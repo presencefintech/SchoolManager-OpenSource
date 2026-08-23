@@ -9,6 +9,7 @@ import {
   LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote,
   CalendarCheck, RotateCcw,   ClipboardCheck, BarChart3, Radio,
   QrCode, LineChart, Bell, FileSpreadsheet, Sparkles, FileText, Wallet, Layers3,
+  Menu, X,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
