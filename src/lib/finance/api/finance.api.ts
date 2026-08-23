@@ -28,6 +28,7 @@ import type {
   LateFeeRunResult,
   GuichetDashboard,
   CollectionAnalyticsSummary,
+  ClassYearFeeDashboard,
 } from '@/types/finance'
 import type { FeeCategoryItem, PaymentProfile, PendingVerificationItem } from '@/types/admin'
 
@@ -46,6 +47,11 @@ export const financeRoleApi = {
 
   getGuichetDashboard: () =>
     apiClient.get('/finance/dashboard/guichet').then((r) => r.data.data as GuichetDashboard),
+
+  getClassYearFees: (params?: { sessionId?: number; classId?: number }) =>
+    apiClient
+      .get('/finance/dashboard/class-year-fees', { params })
+      .then((r) => r.data.data as ClassYearFeeDashboard),
 
   checkIntegrity: () =>
     apiClient

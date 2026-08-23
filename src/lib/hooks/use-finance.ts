@@ -25,6 +25,15 @@ export function useGuichetDashboard() {
   })
 }
 
+export function useFinanceClassYearFeeDashboard(params?: { sessionId?: number; classId?: number }) {
+  return useQuery({
+    queryKey: ['finance', 'class-year-fees', params?.sessionId ?? null, params?.classId ?? null],
+    queryFn: () => financeRoleApi.getClassYearFees(params),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 /** Réseau scolaire — sites accessibles depuis la caisse (hub multi-sites). */
 export function useNetworkContext() {
   return useQuery({

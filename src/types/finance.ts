@@ -1148,3 +1148,71 @@ export interface MonthlySituationReport {
     }
   }
 }
+
+export type ClassYearFeeLine = {
+  categoryId: number
+  categoryCode: string
+  categoryName: string
+  billingPeriod: string
+  catalogUnitAmount: number
+  catalogYearAmount: number
+  expected: number
+  paid: number
+  remaining: number
+}
+
+export type ClassYearFeeTotals = {
+  expected: number
+  paid: number
+  remaining: number
+  unallocatedPaid: number
+  collectionRatePct: number
+}
+
+export type ClassYearFeeStudentFee = {
+  categoryId: number
+  categoryCode: string
+  categoryName: string
+  expected: number
+  paid: number
+  remaining: number
+}
+
+export type ClassYearFeeStudent = {
+  studentId: number
+  matricule: string | null
+  fullName: string
+  expected: number
+  paid: number
+  remaining: number
+  fees: ClassYearFeeStudentFee[]
+}
+
+export type ClassYearFeeClass = {
+  classId: number
+  className: string
+  level: string | null
+  studentCount: number
+  debtorCount: number
+  clearedCount: number
+  totals: ClassYearFeeTotals
+  fees: ClassYearFeeLine[]
+  students?: ClassYearFeeStudent[]
+}
+
+export type ClassYearFeeDashboard = {
+  sessionId: number
+  sessionLabel: string
+  billingStart: string
+  billingEnd: string
+  billingMonths: number
+  currency: string
+  schoolTotals: ClassYearFeeTotals & { studentCount: number; debtorCount: number }
+  feeColumns: Array<{
+    categoryId: number
+    categoryCode: string
+    categoryName: string
+    billingPeriod: string
+  }>
+  classes: ClassYearFeeClass[]
+}
