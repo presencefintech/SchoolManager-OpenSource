@@ -441,9 +441,9 @@ function ClassRows({
       </tr>
       {open && (
         <tr>
-          <td colSpan={colSpan} className="bg-zinc-50/80 px-5 py-4">
+          <td colSpan={colSpan} className="bg-[#f4f6fa] px-4 py-5 sm:px-6">
             {detailLoading && !detail && (
-              <p className="text-xs text-zinc-500">Chargement des élèves…</p>
+              <p className="text-xs text-zinc-500">Chargement du dossier de classe…</p>
             )}
             {detail && <ClassDetail cls={detail} currency={currency} />}
           </td>
@@ -463,71 +463,118 @@ type ClassYearFeeDashboardViewColumns = Array<{
 function ClassDetail({ cls, currency }: { cls: ClassYearFeeClass; currency: string }) {
   const students = cls.students ?? []
   const [openStudentId, setOpenStudentId] = useState<number | null>(students[0]?.studentId ?? null)
+  const rate = cls.totals.collectionRatePct
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-          Synthèse de la classe
-        </p>
-        <StudentFeeLedgerTable
-          currency={currency}
-          totals={cls.totals}
-          lines={cls.fees.map((fee) => ({
-            id: `class-${fee.categoryId}`,
-            name: fee.categoryName,
-            billingPeriod: fee.billingPeriod,
-            expected: fee.expected,
-            paid: fee.paid,
-            remaining: fee.remaining,
-          }))}
-        />
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 text-white shadow-[0_12px_32px_rgba(15,23,42,0.18)]">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              Dossier de recouvrement
+            </p>
+            <p className="mt-1 text-xl font-semibold tracking-tight">{cls.className}</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {cls.level ? `${cls.level} · ` : ''}
+              {cls.studentCount} élève{cls.studentCount > 1 ? 's' : ''} · {cls.debtorCount} débiteur
+              {cls.debtorCount > 1 ? 's' : ''}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+              Taux de la classe
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {rate.toLocaleString('fr-FR')} %
+            </p>
+          </div>
+        </div>
       </div>
+
+      <StudentFeeLedgerTable
+        heading="Situation annuelle de la classe"
+        subtitle="Montants dus, encaissés et restants pour chaque nature de frais."
+        footerLabel="Total classe"
+        currency={currency}
+        totals={cls.totals}
+        extra={
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+            {cls.fees.length} frais
+          </span>
+        }
+        lines={cls.fees.map((fee) => ({
+          id: `class-${fee.categoryId}`,
+          name: fee.categoryName,
+          billingPeriod: fee.billingPeriod,
+          expected: fee.expected,
+          paid: fee.paid,
+          remaining: fee.remaining,
+        }))}
+      />
 
       {students.length === 0 ? (
         <p className="text-xs text-zinc-500">Aucun élève actif dans cette classe.</p>
       ) : (
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-            Détail par élève
-          </p>
+          <div className="flex items-end justify-between gap-3 px-0.5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
+                Relevés individuels
+              </p>
+              <p className="mt-0.5 text-sm font-medium text-zinc-700">
+                Ouvrez un élève pour voir dû, payé et reste à payer.
+              </p>
+            </div>
+            <p className="text-xs tabular-nums text-zinc-400">{students.length} dossiers</p>
+          </div>
+
           {students.map((s) => {
             const open = openStudentId === s.studentId
             const cleared = s.remaining <= 0.01
+            const initials = s.fullName
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((w) => w[0])
+              .join('')
             return (
               <div
                 key={s.studentId}
                 className={cn(
-                  'overflow-hidden rounded-2xl border bg-white',
-                  open ? 'border-emerald-200 shadow-sm' : 'border-zinc-200/80',
+                  'overflow-hidden rounded-2xl border bg-white transition-shadow',
+                  open
+                    ? 'border-slate-300 shadow-[0_10px_28px_rgba(15,23,42,0.08)]'
+                    : 'border-zinc-200/80 hover:border-slate-300',
                 )}
               >
                 <button
                   type="button"
                   onClick={() => setOpenStudentId(open ? null : s.studentId)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left"
+                  className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-600">
-                    {s.fullName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('')}
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-[12px] font-semibold tracking-wide text-white">
+                    {initials}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-zinc-900">{s.fullName}</span>
-                    <span className="block text-[11px] text-zinc-400">{s.matricule ?? '—'}</span>
+                    <span className="mt-0.5 inline-flex items-center rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500">
+                      {s.matricule ?? '—'}
+                    </span>
                   </span>
-                  <span className="hidden text-right sm:block">
-                    <span className="block text-[10px] uppercase tracking-wide text-zinc-400">Dû</span>
+                  <span className="hidden min-w-[88px] text-right md:block">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Dû</span>
                     <span className="block text-sm tabular-nums font-medium text-slate-800">
                       {formatMoney(s.expected, currency)}
                     </span>
                   </span>
-                  <span className="hidden text-right sm:block">
-                    <span className="block text-[10px] uppercase tracking-wide text-zinc-400">Payé</span>
+                  <span className="hidden min-w-[88px] text-right md:block">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Payé</span>
                     <span className="block text-sm tabular-nums font-semibold text-emerald-700">
                       {formatMoney(s.paid, currency)}
                     </span>
                   </span>
-                  <span className="text-right">
-                    <span className="block text-[10px] uppercase tracking-wide text-zinc-400">Reste</span>
+                  <span className="min-w-[88px] text-right">
+                    <span className="block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Reste</span>
                     <span
                       className={cn(
                         'block text-sm tabular-nums font-semibold',
@@ -539,12 +586,13 @@ function ClassDetail({ cls, currency }: { cls: ClassYearFeeClass; currency: stri
                   </span>
                   <span
                     className={cn(
-                      'hidden rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 sm:inline-flex',
+                      'hidden items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 sm:inline-flex',
                       cleared
                         ? 'bg-emerald-50 text-emerald-700 ring-emerald-100'
                         : 'bg-rose-50 text-rose-700 ring-rose-100',
                     )}
                   >
+                    {cleared ? <BadgeCheck size={12} /> : <Wallet size={12} />}
                     {cleared ? 'Soldé' : 'À recouvrer'}
                   </span>
                   <ChevronDown
@@ -553,10 +601,18 @@ function ClassDetail({ cls, currency }: { cls: ClassYearFeeClass; currency: stri
                   />
                 </button>
                 {open && (
-                  <div className="border-t border-zinc-100 px-3 pb-3 pt-2">
+                  <div className="border-t border-zinc-100 bg-slate-50/70 px-3 py-3">
                     <StudentFeeLedgerTable
+                      heading={`Relevé — ${s.fullName}`}
+                      subtitle="Détail dû, payé et reste à payer pour l’année scolaire."
+                      footerLabel="Total élève"
                       currency={currency}
                       totals={{ expected: s.expected, paid: s.paid, remaining: s.remaining }}
+                      extra={
+                        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                          {s.fees.length} ligne{s.fees.length > 1 ? 's' : ''}
+                        </span>
+                      }
                       lines={s.fees.map((fee) => ({
                         id: `${s.studentId}-${fee.categoryId}`,
                         name: fee.categoryName,
