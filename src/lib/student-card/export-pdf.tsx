@@ -95,6 +95,10 @@ async function captureCardToCanvas(sourceCard: HTMLElement): Promise<HTMLCanvasE
       scrollY: 0,
       x: 0,
       y: 0,
+      width: CARD.widthPx,
+      height: CARD.heightPx,
+      windowWidth: CARD.widthPx,
+      windowHeight: CARD.heightPx,
       onclone: (_doc, cloned) => {
         applyCr80BoxStyles(cloned, 'px')
       },
@@ -112,14 +116,14 @@ async function captureCardToCanvas(sourceCard: HTMLElement): Promise<HTMLCanvasE
 
 async function canvasToCr80Pdf(canvas: HTMLCanvasElement): Promise<Blob> {
   const pdf = new jsPDF({
-    orientation: 'landscape',
+    orientation: CARD_WIDTH_MM >= CARD_HEIGHT_MM ? 'landscape' : 'portrait',
     unit: 'mm',
     format: [CARD_WIDTH_MM, CARD_HEIGHT_MM],
     compress: true,
   })
 
-  // Capture contrôlée à ratio CR80 → stretch plein cadre (pas de bandes blanches)
-  const place = computeCr80ImagePlacement(canvas.width, canvas.height, 'stretch')
+  // Capture CR80 : contain évite de recadrer si html2canvas ajoute 1 px
+  const place = computeCr80ImagePlacement(canvas.width, canvas.height, 'contain')
 
   pdf.addImage(
     canvas.toDataURL('image/png', 1.0),
@@ -200,11 +204,8 @@ async function resolveCardElement(
     )
   }
 
-  const fromDom = findStudentCardElement(options?.sourceElement ?? null)
-  if (fromDom) {
-    return { card: fromDom, cleanup: () => {}, assets: resolved }
-  }
-
+  // Toujours remonter hors écran : le clone du DOM visible est recadré
+  // par overflow / transform du panneau d’aperçu.
   return { ...(await mountCardOffscreen(data, resolved)), assets: resolved }
 }
 
