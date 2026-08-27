@@ -216,6 +216,7 @@ export default function StudentsPage() {
                 <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
               ) : students.length > 0 ? (
                 <>
+                  <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-zinc-100">
@@ -351,6 +352,7 @@ export default function StudentsPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                   {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-zinc-100">
                       <button
@@ -405,6 +407,7 @@ export default function StudentsPage() {
               {loadingApps ? (
                 <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-16" />)}</div>
               ) : applicationItems.length ? (
+                <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-zinc-100">
@@ -452,6 +455,7 @@ export default function StudentsPage() {
                     })}
                   </tbody>
                 </table>
+                </div>
               ) : (
                 <div className="py-14 text-center">
                   <Clock size={28} className="mx-auto text-zinc-200 mb-2" />
@@ -467,6 +471,7 @@ export default function StudentsPage() {
             {loadingDebtors ? (
               <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
             ) : debtors.length > 0 ? (
+              <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-zinc-100">
@@ -500,6 +505,7 @@ export default function StudentsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             ) : (
               <div className="py-14 text-center">
                 <Wallet size={28} className="mx-auto text-zinc-200 mb-2" />

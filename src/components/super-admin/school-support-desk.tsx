@@ -33,6 +33,7 @@ import {
   type SchoolSupportAction,
   type SchoolSupportPrimaryAdmin,
 } from '@/lib/superAdmin/api/school-support.api'
+import { invitationsApi } from '@/lib/superAdmin/api/invitations.api'
 import { WhatsAppInviteAssist } from '@/components/super-admin/whatsapp-invite-assist'
 import { TempPasswordRevealModal } from '@/components/ui/temp-password-reveal-modal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'

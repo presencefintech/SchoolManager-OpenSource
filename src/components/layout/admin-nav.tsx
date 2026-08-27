@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
   Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3, Smartphone,
+  Menu, X,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -129,6 +130,17 @@ export function AdminNav() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [mobileOpen])
 
   const prefetch = useCallback((href: string) => {
     if (!getAuthToken()) return
@@ -167,26 +179,71 @@ export function AdminNav() {
   const badgeLabel = user?.role === 'IT' ? 'IT · Guichet' : 'Admin'
 
   return (
-    <aside
-      className="fixed left-0 w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]"
-      style={{
-        top: 'var(--impersonation-banner-h, 0px)',
-        height: 'calc(100vh - var(--impersonation-banner-h, 0px))',
-      }}
-    >
-      <Link href={homeHref} className="group flex items-center gap-3 px-4 py-3.5 flex-shrink-0">
-        <div className="w-8 h-8 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
-          <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-zinc-900 leading-tight truncate tracking-tight">SchoolManager</p>
-          <span className="inline-block text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none mt-0.5">
-            {badgeLabel}
-          </span>
-        </div>
-      </Link>
+    <>
+      {/* Barre mobile — hamburger + logo, masquée en desktop */}
+      <div
+        className="lg:hidden fixed left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-zinc-100"
+        style={{ top: 'var(--impersonation-banner-h, 0px)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="p-2 -ml-2 rounded-lg text-zinc-600 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
+          aria-label="Ouvrir le menu"
+        >
+          <Menu size={20} />
+        </button>
+        <Link href={homeHref} className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 flex-shrink-0">
+            <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={24} height={24} className="h-full w-full object-contain" />
+          </div>
+          <p className="text-sm font-bold text-zinc-900 truncate tracking-tight">SchoolManager</p>
+        </Link>
+      </div>
 
-      <nav className="flex-1 min-h-0 px-3 py-2 overflow-y-auto overscroll-contain space-y-3 [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
+      {/* Fond assombri derrière le tiroir mobile */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={cn(
+          'fixed left-0 w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]',
+          'transition-transform duration-200 ease-out lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+        style={{
+          top: 'var(--impersonation-banner-h, 0px)',
+          height: 'calc(100vh - var(--impersonation-banner-h, 0px))',
+        }}
+      >
+        <div className="flex items-center justify-between gap-2 px-4 py-3.5 flex-shrink-0">
+          <Link href={homeHref} className="group flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 flex-shrink-0 group-hover:scale-105 transition-transform duration-200">
+              <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-zinc-900 leading-tight truncate tracking-tight">SchoolManager</p>
+              <span className="inline-block text-[10px] font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none mt-0.5">
+                {badgeLabel}
+              </span>
+            </div>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            className="lg:hidden flex-shrink-0 p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700 transition-colors"
+            aria-label="Fermer le menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <nav className="flex-1 min-h-0 px-3 py-2 overflow-y-auto overscroll-contain space-y-3 [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
         {sections.map(({ title, links }) => (
           <div key={title ?? '__root__'}>
             {title && (
@@ -291,7 +348,8 @@ export function AdminNav() {
             <LogOut size={13} />
           </button>
         </Link>
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   )
 }

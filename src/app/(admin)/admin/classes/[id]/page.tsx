@@ -389,6 +389,7 @@ export default function ClassDetailPage() {
                 </button>
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-100 bg-zinc-50/50">
@@ -411,6 +412,7 @@ export default function ClassDetailPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}

@@ -420,7 +420,7 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
               {alerts.recent.length === 0 ? (
                 <p className="text-sm text-zinc-400">Aucune alerte récente</p>
               ) : (
-                <div className="border border-zinc-100 rounded-xl overflow-hidden">
+                <div className="border border-zinc-100 rounded-xl overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-zinc-50 text-zinc-400 text-left">
@@ -479,7 +479,7 @@ export function MonitoringView({ embedded = false }: { embedded?: boolean }) {
               {anomalies.data.length === 0 ? (
                 <p className="text-sm text-zinc-400">Aucun événement récent</p>
               ) : (
-                <div className="border border-zinc-100 rounded-xl overflow-hidden">
+                <div className="border border-zinc-100 rounded-xl overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-zinc-50 text-zinc-400 text-left">

@@ -561,6 +561,7 @@ export default function FacturesPage() {
         ) : feeCategories.length === 0 ? (
           <EmptyState icon={Tag} message="Aucune catégorie — créez-en une pour commencer" />
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
@@ -606,6 +607,7 @@ export default function FacturesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -852,6 +854,7 @@ export default function FacturesPage() {
         ) : feeStructures.length === 0 ? (
           <EmptyState icon={Layers} message="Aucun barème pour cette session" />
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/50">
@@ -910,6 +913,7 @@ export default function FacturesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -945,6 +949,7 @@ export default function FacturesPage() {
           ) : (invoices as { id: number; label?: string; description?: string; amount?: number; totalAmount?: number; status?: string; dueDate?: string }[]).length === 0 ? (
             <EmptyState icon={FileText} message="Aucune facture pour cet élève" />
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 bg-zinc-50/50">
@@ -976,6 +981,7 @@ export default function FacturesPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )
         ) : (
           <div className="px-5 py-10 text-center">

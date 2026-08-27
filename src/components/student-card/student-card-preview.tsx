@@ -432,7 +432,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             <div>
               <MicroLabel>Nom</MicroLabel>
               <CardText
-                lines={identity.nom.length > 14 ? 2 : 1}
+                lines={1}
                 fontSize={typography.nom}
                 title={identity.nom}
                 style={{
@@ -449,7 +449,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               <div style={{ marginTop: mm(0.45) }}>
                 <MicroLabel>Postnom</MicroLabel>
                 <CardText
-                  lines={identity.postnom.length > 14 ? 2 : 1}
+                  lines={1}
                   fontSize={typography.postnom}
                   title={identity.postnom}
                   style={{
@@ -474,7 +474,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                 }}
               >
                 <CardText
-                  lines={identity.prenom.length > 16 ? 2 : 1}
+                  lines={1}
                   fontSize={typography.prenom}
                   title={identity.prenom}
                   style={{ fontWeight: 700, color: '#334155', flex: 1, minWidth: 0 }}

@@ -222,7 +222,7 @@ export function MobileMoneyView({ embedded = false }: { embedded?: boolean }) {
               <p className="text-sm">Aucun paiement en attente</p>
             </div>
           ) : (
-            <div className="border border-zinc-100 rounded-xl overflow-hidden">
+            <div className="border border-zinc-100 rounded-xl overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-zinc-50 text-zinc-400 text-left">

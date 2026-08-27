@@ -126,6 +126,7 @@ export default function StaffPage() {
           {isLoading ? (
             <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
           ) : staff?.length ? (
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-zinc-100">
@@ -215,6 +216,7 @@ export default function StaffPage() {
                 })}
               </tbody>
             </table>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-zinc-400">
               <Users size={28} className="text-zinc-200" />
