@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, DollarSign, Users, Search, BookOpen, LogOut, Banknote,
   CalendarCheck, RotateCcw,   ClipboardCheck, BarChart3, Radio,
-  QrCode, LineChart, Bell, FileSpreadsheet, Sparkles, FileText, Wallet, Layers3,
+  QrCode, LineChart, Bell, FileSpreadsheet, Sparkles, FileText, Wallet, Layers3, Smartphone,
   Menu, X,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -23,6 +23,7 @@ const NAV_LINKS = [
   { label: 'Caisse', href: '/finances/caisse', icon: Banknote },
   { label: 'Paiements', href: '/finances/paiements', icon: DollarSign },
   { label: 'Vérifications', href: '/finances/verifications', icon: ClipboardCheck },
+  { label: 'Déclarations SMS', href: '/finances/declarations', icon: Smartphone },
   { label: 'Débiteurs', href: '/finances/debiteurs', icon: Users },
   { label: 'Relances', href: '/finances/relances', icon: Bell },
   { label: 'Suivi financier', href: '/finances/suivi-financier', icon: BarChart3 },

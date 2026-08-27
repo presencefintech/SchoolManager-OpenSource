@@ -862,3 +862,35 @@ export function useClassStudents(id: number) {
     enabled: id > 0,
   })
 }
+
+export function usePaymentDeclarations(status: 'PENDING' | 'APPROVED' | 'REJECTED' | undefined) {
+  return useQuery({
+    queryKey: ['finance', 'payment-declarations', status ?? 'ALL'],
+    queryFn: () =>
+      financeRoleApi.listPaymentDeclarations({
+        status,
+        limit: 50,
+      }),
+    staleTime: 10_000,
+    refetchInterval: 20_000,
+  })
+}
+
+export function useReviewPaymentDeclaration() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      decision,
+      rejectionReason,
+    }: {
+      id: number
+      decision: 'APPROVE' | 'REJECT'
+      rejectionReason?: string
+    }) => financeRoleApi.reviewPaymentDeclaration(id, { decision, rejectionReason }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['finance', 'payment-declarations'] })
+      void qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
+    },
+  })
+}

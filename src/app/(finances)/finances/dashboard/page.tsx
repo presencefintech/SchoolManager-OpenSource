@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
   DollarSign, ClipboardList, CheckCircle, Users,
   RotateCcw, Banknote, RefreshCw, CalendarCheck, ShieldCheck, TrendingUp,
-  Radio, ClipboardCheck, BarChart3, Brain, Search, Layers3,
+  Radio, ClipboardCheck, BarChart3, Brain, Search, Layers3, Smartphone,
 } from 'lucide-react'
 import {
   useGuichetDashboard, useDailyCashReport, useDebtors, useCollectionAnalytics,
@@ -39,6 +39,7 @@ const QUICK_LINKS = [
   { href: '/finances/paiements', label: 'Paiements', icon: DollarSign, tone: 'text-emerald-600 bg-emerald-50' },
   { href: '/finances/caisse', label: 'Caisse', icon: Banknote, tone: 'text-blue-600 bg-blue-50' },
   { href: '/finances/verifications', label: 'Vérifications', icon: ClipboardCheck, tone: 'text-amber-600 bg-amber-50' },
+  { href: '/finances/declarations', label: 'Déclarations SMS', icon: Smartphone, tone: 'text-sky-600 bg-sky-50' },
   { href: '/finances/suivi-financier', label: 'Suivi', icon: BarChart3, tone: 'text-violet-600 bg-violet-50' },
   { href: '/finances/frais-annuels-classes', label: 'Frais classes', icon: Layers3, tone: 'text-teal-600 bg-teal-50' },
   { href: '/finances/debiteurs', label: 'Débiteurs', icon: Users, tone: 'text-red-600 bg-red-50' },
