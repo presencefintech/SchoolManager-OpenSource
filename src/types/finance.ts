@@ -1216,3 +1216,46 @@ export type ClassYearFeeDashboard = {
   }>
   classes: ClassYearFeeClass[]
 }
+
+/** Déclaration parent (module isolé payment-declaration) — file caisse. */
+export type PaymentDeclarationReceiptDto = {
+  number: string | null
+  kind: 'PROVISIONAL' | 'OFFICIAL'
+  watermark: string | null
+  downloadable: boolean
+  label: string
+}
+
+export type PaymentDeclarationDto = {
+  id: number
+  uuid: string
+  studentId: number
+  parentId: number
+  provider: string
+  providerLabel: string
+  transactionRef: string
+  amount: number
+  currency: string
+  paidAt: string
+  payerPhone: string | null
+  payerName: string | null
+  note: string | null
+  proofImageUrl: string | null
+  studentName: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  validationMode: 'SEMI_AUTOMATIC' | 'INSTANT'
+  receipt: PaymentDeclarationReceiptDto
+  cashSessionId: number | null
+  journalPosted: boolean
+  rejectionReason: string | null
+  reviewedAt: string | null
+  approvedAt: string | null
+  createdAt: string
+}
+
+export type PaymentDeclarationPage = {
+  items: PaymentDeclarationDto[]
+  page: number
+  limit: number
+  total: number
+}

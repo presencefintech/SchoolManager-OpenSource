@@ -29,6 +29,8 @@ import type {
   GuichetDashboard,
   CollectionAnalyticsSummary,
   ClassYearFeeDashboard,
+  PaymentDeclarationDto,
+  PaymentDeclarationPage,
 } from '@/types/finance'
 import type { FeeCategoryItem, PaymentProfile, PendingVerificationItem } from '@/types/admin'
 
@@ -660,4 +662,23 @@ export const financeRoleApi = {
       id: number; firstName: string; lastName: string; matricule?: string; gender?: string
       enrollments?: { totalAmount: number; paidAmount: number; balance: number }[]
     }[]>,
+
+  // ── Déclarations multi-canaux (justificatifs SMS) ──────────────────────────
+  listPaymentDeclarations: (params?: {
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED'
+    studentId?: number
+    page?: number
+    limit?: number
+  }): Promise<PaymentDeclarationPage> =>
+    apiClient
+      .get('/finance/payment-declarations', { params })
+      .then((r) => r.data.data as PaymentDeclarationPage),
+
+  reviewPaymentDeclaration: (
+    id: number,
+    payload: { decision: 'APPROVE' | 'REJECT'; rejectionReason?: string },
+  ): Promise<PaymentDeclarationDto> =>
+    apiClient
+      .post(`/finance/payment-declarations/${id}/review`, payload)
+      .then((r) => r.data.data as PaymentDeclarationDto),
 }
