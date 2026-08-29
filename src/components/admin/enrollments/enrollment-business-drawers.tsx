@@ -124,7 +124,11 @@ export function EnrollSessionDrawer({
   const classId = watch('classId')
   const sessionId = watch('sessionId')
   const autoAssignExplicitFees = watch('autoAssignExplicitFees')
-  const explicitFeeStructureIds = watch('explicitFeeStructureIds') ?? []
+  const watchedExplicitFeeStructureIds = watch('explicitFeeStructureIds')
+  const explicitFeeStructureIds = useMemo(
+    () => watchedExplicitFeeStructureIds ?? [],
+    [watchedExplicitFeeStructureIds],
+  )
 
   const effectiveClassId =
     classId && classId > 0 ? classId : defaultClassId && defaultClassId > 0 ? defaultClassId : undefined
@@ -408,7 +412,11 @@ export function RentreePackDrawer({
   const feesPaid = watch('feesPaid')
   const collectDeposit = watch('collectDeposit')
   const autoAssignExplicitFees = watch('autoAssignExplicitFees')
-  const explicitFeeStructureIds = watch('explicitFeeStructureIds') ?? []
+  const watchedExplicitFeeStructureIds = watch('explicitFeeStructureIds')
+  const explicitFeeStructureIds = useMemo(
+    () => watchedExplicitFeeStructureIds ?? [],
+    [watchedExplicitFeeStructureIds],
+  )
 
   const effectiveClassId =
     classId && classId > 0 ? classId : defaultClassId && defaultClassId > 0 ? defaultClassId : undefined
