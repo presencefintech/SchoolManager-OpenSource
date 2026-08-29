@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import type { StudentCardProps } from '@/types/student-card'
 import { CARD_PREVIEW_HEIGHT_PX, CARD_PREVIEW_WIDTH_PX } from '@/lib/student-card/card-dimensions'
@@ -60,20 +60,25 @@ export function StudentCard({ data, preview = false, className, onReady, onCardE
     [data],
   )
 
+  const dataRef = useRef(data)
+  dataRef.current = data
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
+
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError(null)
     setAssets(null)
 
-    prepareStudentCardAssets(data)
+    prepareStudentCardAssets(dataRef.current)
       .then((resolved) => {
         if (cancelled) return
         setAssets(resolved)
         if (!resolved.qrScannable) {
           setError(resolved.qrValidationReason ?? 'QR code non scannable')
         }
-        onReady?.({
+        onReadyRef.current?.({
           canDownload: resolved.qrScannable,
           qrScannable: resolved.qrScannable,
           reason: resolved.qrValidationReason,
@@ -83,7 +88,7 @@ export function StudentCard({ data, preview = false, className, onReady, onCardE
       .catch(() => {
         if (cancelled) return
         setError('Impossible de préparer la carte')
-        onReady?.({ canDownload: false, qrScannable: false, reason: 'Erreur de préparation', assets: null })
+        onReadyRef.current?.({ canDownload: false, qrScannable: false, reason: 'Erreur de préparation', assets: null })
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -92,6 +97,7 @@ export function StudentCard({ data, preview = false, className, onReady, onCardE
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dataKey is the intentional stable dependency, not `data` itself
   }, [dataKey])
 
   return (
