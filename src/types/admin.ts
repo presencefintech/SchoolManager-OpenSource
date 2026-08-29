@@ -1189,6 +1189,27 @@ export interface CreateFeeStructurePayload {
   effectiveTo?: string | null
 }
 
+export interface FeeStructurePreviewDto {
+  enrolledCount: number
+  billingPeriod: FeeBillingPeriod
+  billingMonthCount: number
+  unitAmount: number
+  yearTotal: number
+  currency: string
+  scopeKey: string
+  scopeLabel: string
+  categoryName: string
+  className: string | null
+  sessionLabel: string
+  existing: {
+    id: number
+    amount: number
+    isActive: boolean
+    deletedAt: string | null
+  } | null
+  wouldRestore: boolean
+}
+
 export interface UpdateFeeStructurePayload {
   amount?: number
   currency?: string

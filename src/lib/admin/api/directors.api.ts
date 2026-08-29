@@ -81,6 +81,19 @@ export type DirectorHeatmapEntry = {
   count: number
 }
 
+export type DirectorTodaySheet = {
+  sheetId: number
+  classId: number
+  className: string
+  sessionDate: string
+  status: 'DRAFT' | 'SUBMITTED' | 'SEALED' | string
+  lineCount: number
+  presentCount: number
+  lateCount: number
+  absentCount: number
+  submittedAt: string | null
+}
+
 export const directorsApi = {
   summary: () =>
     apiClient
@@ -160,6 +173,13 @@ export const directorsApi = {
       .get<{ success: boolean; data: AttendanceHistoryResponse }>(
         '/admin/director/presence/history',
         { params }
+      )
+      .then((r) => r.data.data),
+
+  presenceSheets: () =>
+    apiClient
+      .get<{ success: boolean; data: DirectorTodaySheet[] }>(
+        '/admin/director/presence/sheets'
       )
       .then((r) => r.data.data),
 }

@@ -196,6 +196,8 @@ export function useEmpireRealtime() {
         socket.on('control_dashboard', onControlDashboard)
         socket.on('attendance.recorded', onActivityEvent)
         socket.on('attendance.activity', onActivityEvent)
+        socket.on('attendance.sheet.submitted', refreshAttendance)
+        socket.on('attendance.sheet.draft-updated', refreshAttendance)
         socket.on('payment.confirmed.admin', onPaymentConfirmed)
         socket.on('payment.failed.admin', onPaymentFailed)
         socket.on('enrollment_approved', onEnrollmentApproved)
@@ -225,6 +227,7 @@ export function useEmpireRealtime() {
     onPaymentConfirmed,
     onPaymentFailed,
     onStatisticsUpdated,
+    refreshAttendance,
     refreshFinance,
   ])
 

@@ -20,6 +20,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
+import { useDirectorPresenceRealtime } from '@/lib/director/use-director-presence-realtime'
 
 const NAV_LINKS = [
   { label: 'Dashboard', href: '/director/dashboard', icon: LayoutDashboard },
@@ -180,6 +181,7 @@ function DirectorNav() {
 }
 
 export default function DirectorLayout({ children }: { children: React.ReactNode }) {
+  useDirectorPresenceRealtime()
   return (
     <div className="flex min-h-screen">
       <DirectorNav />

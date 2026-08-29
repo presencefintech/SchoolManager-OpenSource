@@ -55,6 +55,9 @@ const FEED_INVALIDATION_KEYS = [
   ['admin', 'presences', 'sheets-pending'],
   ['admin', 'presences', 'scan-sessions'],
   ['admin', 'presences', 'sync-batches'],
+  ['director', 'presence'],
+  ['director', 'summary'],
+  ['director', 'sheets'],
 ] as const
 
 const PLATFORM_INVALIDATION_KEYS = [
