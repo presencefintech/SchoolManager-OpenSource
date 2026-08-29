@@ -8,17 +8,14 @@ import {
   useAttendanceNotificationDeliveries,
 } from '@/lib/hooks/use-admin'
 import { SHEET_STATUS_LABEL } from '@/lib/presence/attendance-sheet.utils'
-
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10)
-}
+import { todayDateInputValue } from '@/lib/presence/datetime-local.utils'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-lg bg-slate-100 animate-pulse', className)} />
 }
 
 export function DashboardActionWidgets() {
-  const sessionDate = todayIsoDate()
+  const sessionDate = todayDateInputValue()
   const { data: sheets, isLoading: sheetsLoading } = usePendingAttendanceSheets({ sessionDate })
   const { data: failedNotifs, isLoading: notifsLoading } = useAttendanceNotificationDeliveries({
     status: 'FAILED',

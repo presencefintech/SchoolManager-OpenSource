@@ -28,6 +28,7 @@ import { StudentSearchField } from '@/components/admin/shared/student-search-fie
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
+import { FeeStructureComposer } from '@/components/admin/finance/fee-structure-composer'
 import {
   isValidFeeCategoryCode,
   toFeeCategoryCode,
@@ -461,7 +462,7 @@ export default function FacturesPage() {
         setFeeError('Sélectionnez une catégorie de frais.')
         return
       }
-      await createFee({
+      const created = await createFee({
         sessionId: selectedSessionId,
         categoryId: feeForm.categoryId,
         amount: feeForm.amount,
@@ -470,7 +471,13 @@ export default function FacturesPage() {
         assignmentMode: feeForm.assignmentMode ?? 'AUTOMATIC',
         ...(feeForm.effectiveFrom ? { effectiveFrom: feeForm.effectiveFrom } : {}),
         ...(feeForm.effectiveTo ? { effectiveTo: feeForm.effectiveTo } : {}),
-      })
+      }) as { restored?: boolean; impact?: { enrolledCount?: number; yearTotal?: number } }
+      toast.success(
+        created?.restored ? 'Barème réactivé' : 'Barème créé',
+        created?.impact
+          ? `${created.impact.enrolledCount ?? 0} élève(s) · ${formatMoney(created.impact.yearTotal ?? feeForm.amount)} / élève / an`
+          : undefined,
+      )
       setFeeSuccess(true)
       setFeeForm({
         ...emptyFeeForm(),
@@ -611,185 +618,37 @@ export default function FacturesPage() {
         )}
       </div>
 
-      <div id="fee-structure-form" className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-semibold text-zinc-900">
-            {editingFeeId != null
-              ? `Modifier le barème #${editingFeeId}`
-              : 'Créer un barème (structure de frais)'}
-          </h3>
-          {editingFeeId != null && (
-            <button
-              type="button"
-              onClick={cancelEditFee}
-              className="text-xs font-medium text-zinc-500 hover:text-zinc-800"
-            >
-              Annuler l&apos;édition
-            </button>
-          )}
-        </div>
-        {feeSuccess && (
-          <div className="mb-4 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
-            <CheckCircle size={14} /> Barème enregistré — visible au guichet pour la session sélectionnée
-          </div>
-        )}
-        <form onSubmit={handleSaveFee} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Session académique *</label>
-            <select
-              required
-              value={selectedSessionId || ''}
-              onChange={(e) => setSelectedSessionId(Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            >
-              <option value="">— Choisir —</option>
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}{s.isCurrent ? ' (courante)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Catégorie *</label>
-            <div className="flex gap-2">
-              <select
-                required={editingFeeId == null}
-                disabled={editingFeeId != null}
-                value={feeForm.categoryId || ''}
-                onChange={(e) => setFeeForm((p) => ({ ...p, categoryId: Number(e.target.value) }))}
-                className="flex-1 px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-zinc-50 disabled:opacity-70"
-              >
-                <option value="">
-                  {editingFeeId != null ? '— Inchangée (édition) —' : '— Choisir —'}
-                </option>
-                {feeCategories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name} ({BILLING_PERIOD_LABELS[cat.billingPeriod]})
-                  </option>
-                ))}
-              </select>
-              {editingFeeId == null && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingCategory(null)
-                    setShowCategoryModal(true)
-                  }}
-                  className="shrink-0 rounded-lg border border-zinc-200 px-2.5 text-zinc-500 hover:bg-zinc-50"
-                  title="Nouvelle catégorie"
-                >
-                  <Plus size={14} />
-                </button>
-              )}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Montant (USD) *</label>
-            <input
-              type="number"
-              required
-              min={1}
-              step="0.01"
-              value={feeForm.amount || ''}
-              onChange={(e) => setFeeForm((p) => ({ ...p, amount: Number(e.target.value) }))}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Classe (optionnel)</label>
-            <select
-              disabled={editingFeeId != null}
-              value={feeForm.classId ?? ''}
-              onChange={(e) =>
-                setFeeForm((p) => ({
-                  ...p,
-                  classId: e.target.value ? Number(e.target.value) : null,
-                }))
-              }
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:bg-zinc-50 disabled:opacity-70"
-            >
-              <option value="">Toutes les classes</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            {editingFeeId != null && (
-              <p className="mt-1 text-[10px] text-zinc-400">Classe / catégorie non modifiables en édition.</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Attribution *</label>
-            <select
-              value={feeForm.assignmentMode ?? 'AUTOMATIC'}
-              onChange={(e) =>
-                setFeeForm((p) => ({
-                  ...p,
-                  assignmentMode: e.target.value as 'AUTOMATIC' | 'EXPLICIT',
-                }))
-              }
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            >
-              <option value="AUTOMATIC">Automatique (classe / école)</option>
-              <option value="EXPLICIT">Optionnel (à l&apos;inscription)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Valide du</label>
-            <input
-              type="date"
-              value={feeForm.effectiveFrom?.slice(0, 10) ?? ''}
-              onChange={(e) =>
-                setFeeForm((p) => ({
-                  ...p,
-                  effectiveFrom: e.target.value ? `${e.target.value}T00:00:00.000Z` : null,
-                }))
-              }
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Valide jusqu&apos;au</label>
-            <input
-              type="date"
-              value={feeForm.effectiveTo?.slice(0, 10) ?? ''}
-              onChange={(e) =>
-                setFeeForm((p) => ({
-                  ...p,
-                  effectiveTo: e.target.value ? `${e.target.value}T23:59:59.000Z` : null,
-                }))
-              }
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Description (optionnel)</label>
-            <input
-              value={feeForm.description ?? ''}
-              onChange={(e) => setFeeForm((p) => ({ ...p, description: e.target.value }))}
-              placeholder="Ex: Scolarité T1 2025-2026"
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-            />
-          </div>
-          <div>
-            <button
-              type="submit"
-              disabled={savingFee || (editingFeeId == null && feeCategories.length === 0)}
-              className="w-full px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
-            >
-              {editingFeeId != null ? <Pencil size={13} /> : <Plus size={13} />}
-              {savingFee
-                ? editingFeeId != null
-                  ? 'Mise à jour…'
-                  : 'Création...'
-                : editingFeeId != null
-                  ? 'Enregistrer les modifications'
-                  : 'Créer le barème'}
-            </button>
-          </div>
-        </form>
-        {feeError && <p className="mt-2 text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{feeError}</p>}
-      </div>
+      <FeeStructureComposer
+        sessions={sessions}
+        selectedSessionId={selectedSessionId}
+        onSessionChange={setSelectedSessionId}
+        categories={feeCategories}
+        classes={classes}
+        feeForm={feeForm}
+        onFeeFormChange={setFeeForm}
+        editingFeeId={editingFeeId}
+        saving={savingFee}
+        error={feeError}
+        success={feeSuccess}
+        onSubmit={handleSaveFee}
+        onCancelEdit={cancelEditFee}
+        onNewCategory={() => {
+          setEditingCategory(null)
+          setShowCategoryModal(true)
+        }}
+        onOpenExisting={async (id) => {
+          const row = feeStructures.find((fs) => fs.id === id)
+          if (row) {
+            await startEditFee(row)
+            return
+          }
+          await startEditFee({
+            id,
+            label: `Barème #${id}`,
+            amount: 0,
+          })
+        }}
+      />
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
         <h3 className="text-sm font-semibold text-zinc-900 mb-1">Cloner le catalogue d’une session</h3>

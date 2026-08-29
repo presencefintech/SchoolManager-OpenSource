@@ -863,16 +863,49 @@ export function useClassStudents(id: number) {
   })
 }
 
-export function usePaymentDeclarations(status: 'PENDING' | 'APPROVED' | 'REJECTED' | undefined) {
+export function usePaymentDeclarations(
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | undefined,
+  q?: string,
+  studentId?: number,
+) {
+  const search = q?.trim() || undefined
+  const sid = studentId && studentId > 0 ? studentId : undefined
   return useQuery({
-    queryKey: ['finance', 'payment-declarations', status ?? 'ALL'],
+    queryKey: ['finance', 'payment-declarations', status ?? 'ALL', search ?? '', sid ?? 0],
     queryFn: () =>
       financeRoleApi.listPaymentDeclarations({
         status,
+        q: sid ? undefined : search,
+        studentId: sid,
         limit: 50,
       }),
     staleTime: 10_000,
     refetchInterval: 20_000,
+  })
+}
+
+export function useLookupPaymentDeclarationStudent() {
+  return useMutation({
+    mutationFn: (code: string) => financeRoleApi.lookupPaymentDeclarationStudent(code),
+  })
+}
+
+export function usePaymentDeclarationSettings() {
+  return useQuery({
+    queryKey: ['finance', 'payment-declarations', 'settings'],
+    queryFn: financeRoleApi.getPaymentDeclarationSettings,
+    staleTime: 60_000,
+  })
+}
+
+export function useUpdatePaymentDeclarationSettings() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (paymentValidationMode: 'SEMI_AUTOMATIC' | 'INSTANT') =>
+      financeRoleApi.updatePaymentDeclarationSettings(paymentValidationMode),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['finance', 'payment-declarations'] })
+    },
   })
 }
 
@@ -883,14 +916,38 @@ export function useReviewPaymentDeclaration() {
       id,
       decision,
       rejectionReason,
+      surplusDestination,
+      surplusStudentId,
     }: {
       id: number
       decision: 'APPROVE' | 'REJECT'
       rejectionReason?: string
-    }) => financeRoleApi.reviewPaymentDeclaration(id, { decision, rejectionReason }),
+      surplusDestination?: 'RESERVE_ADVANCE' | 'WITHDRAWAL_FEE'
+      surplusStudentId?: number
+    }) =>
+      financeRoleApi.reviewPaymentDeclaration(id, {
+        decision,
+        rejectionReason,
+        surplusDestination,
+        surplusStudentId,
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['finance', 'payment-declarations'] })
       void qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
+    },
+  })
+}
+
+export function useReprintDeclarationReceipt() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, allocationId }: { id: number; allocationId: number }) => {
+      const data = await financeRoleApi.reprintPaymentDeclarationReceipt(id, allocationId)
+      await financeRoleApi.downloadPaymentDeclarationAllocationReceipt(id, allocationId)
+      return data
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['finance', 'payment-declarations'] })
     },
   })
 }

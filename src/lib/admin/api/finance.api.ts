@@ -470,6 +470,11 @@ export const financeApi = {
   createFeeStructure: (payload: CreateFeeStructurePayload) =>
     apiClient.post('/admin/finance/fee-structures', payload).then((r) => r.data.data),
 
+  previewFeeStructure: (payload: CreateFeeStructurePayload) =>
+    apiClient
+      .post('/admin/finance/fee-structures/preview', payload)
+      .then((r) => r.data.data as import('@/types/admin').FeeStructurePreviewDto),
+
   updateFeeStructure: (feeId: number, payload: UpdateFeeStructurePayload) =>
     apiClient
       .patch(`/admin/finance/fee-structures/${feeId}`, payload)

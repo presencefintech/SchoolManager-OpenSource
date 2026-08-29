@@ -1224,6 +1224,20 @@ export type PaymentDeclarationReceiptDto = {
   watermark: string | null
   downloadable: boolean
   label: string
+  qrPayload?: string | null
+}
+
+export type PaymentDeclarationAllocationDto = {
+  id: number
+  studentId: number
+  studentName: string | null
+  matricule: string | null
+  paymentCode: string | null
+  amount: number
+  currency: string
+  reprintCount?: number
+  lastReprintedAt?: string | null
+  receipt: PaymentDeclarationReceiptDto
 }
 
 export type PaymentDeclarationDto = {
@@ -1242,6 +1256,14 @@ export type PaymentDeclarationDto = {
   note: string | null
   proofImageUrl: string | null
   studentName: string | null
+  studentMatricule?: string | null
+  paymentCode?: string | null
+  splitMode?: 'EQUAL' | 'CUSTOM'
+  expectedFeesTotal?: number
+  surplusAmount?: number
+  surplusDestination?: 'RESERVE_ADVANCE' | 'WITHDRAWAL_FEE' | null
+  surplusStudentId?: number | null
+  allocations?: PaymentDeclarationAllocationDto[]
   status: 'PENDING' | 'APPROVED' | 'REJECTED'
   validationMode: 'SEMI_AUTOMATIC' | 'INSTANT'
   receipt: PaymentDeclarationReceiptDto
@@ -1251,6 +1273,11 @@ export type PaymentDeclarationDto = {
   reviewedAt: string | null
   approvedAt: string | null
   createdAt: string
+  fraudAlert?: {
+    label: string
+    declarationCount: number
+    expiresAt: string
+  } | null
 }
 
 export type PaymentDeclarationPage = {
@@ -1258,4 +1285,16 @@ export type PaymentDeclarationPage = {
   page: number
   limit: number
   total: number
+}
+
+export type PaymentDeclarationStudentLookup = {
+  student: {
+    studentId: number
+    studentName: string
+    matricule: string | null
+    paymentCode: string
+    className: string | null
+    feesBalance: number
+  }
+  pendingCount: number
 }

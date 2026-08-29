@@ -16,6 +16,7 @@ import {
   Send,
   UserX,
   History,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -75,6 +76,13 @@ export default function DirectorDashboardPage() {
     refetchInterval: 45_000,
   })
 
+  const sheetsQuery = useQuery({
+    queryKey: ['director', 'sheets', 'today'],
+    queryFn: () => directorsApi.presenceSheets(),
+    staleTime: 15_000,
+    refetchInterval: 45_000,
+  })
+
   const announcementsQuery = useQuery({
     queryKey: ['director', 'announcements', 'dash'],
     queryFn: () => announcementsApi.list({ page: 1, limit: 5 }),
@@ -97,6 +105,7 @@ export default function DirectorDashboardPage() {
   const live = liveQuery.data?.data ?? []
   const history = historyQuery.data?.data ?? []
   const announcements = announcementsQuery.data?.items ?? []
+  const sheets = sheetsQuery.data ?? []
   const noScope = !summaryQuery.isLoading && (summary?.sectionCount ?? 0) === 0
 
   return (
@@ -110,6 +119,7 @@ export default function DirectorDashboardPage() {
             onClick={() => {
               summaryQuery.refetch()
               liveQuery.refetch()
+              sheetsQuery.refetch()
               historyQuery.refetch()
               announcementsQuery.refetch()
             }}
@@ -253,6 +263,70 @@ export default function DirectorDashboardPage() {
           ))}
         </div>
 
+        <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+            <div className="flex items-center gap-2">
+              <ClipboardList size={16} className="text-emerald-600" />
+              <div>
+                <h2 className="text-sm font-semibold text-zinc-900">Cahiers d’appel du jour</h2>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Dès qu’un enseignant soumet, le résumé apparaît ici
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/director/presences"
+              className="text-xs font-medium text-emerald-700 hover:underline"
+            >
+              Voir les présences
+            </Link>
+          </div>
+          {sheetsQuery.isLoading ? (
+            <div className="p-5 space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12" />
+              ))}
+            </div>
+          ) : sheets.length === 0 ? (
+            <div className="px-5 py-6">
+              <p className="text-sm text-zinc-500">Aucun cahier soumis aujourd’hui dans vos classes.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-zinc-50">
+              {sheets.slice(0, 8).map((sheet) => (
+                <li
+                  key={sheet.sheetId}
+                  className="px-5 py-3 flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-zinc-900 truncate">{sheet.className}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                      {sheet.presentCount} présents · {sheet.lateCount} retards · {sheet.absentCount}{' '}
+                      absents
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'flex-shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full',
+                      sheet.status === 'SEALED'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : sheet.status === 'SUBMITTED'
+                          ? 'bg-amber-50 text-amber-800'
+                          : 'bg-zinc-100 text-zinc-600'
+                    )}
+                  >
+                    {sheet.status === 'SEALED'
+                      ? 'Scellé'
+                      : sheet.status === 'SUBMITTED'
+                        ? 'Soumis'
+                        : 'Brouillon'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="grid lg:grid-cols-5 gap-4">
           {/* Live presence */}
           <div className="lg:col-span-3 bg-white rounded-2xl border border-zinc-200 overflow-hidden">
@@ -278,7 +352,7 @@ export default function DirectorDashboardPage() {
               <DirectorEmptyState
                 icon={Clock}
                 title="Aucun pointage pour l’instant"
-                description="Dès que les enseignants scannent dans vos classes, les passages apparaîtront ici en temps réel."
+                description="Dès qu’un cahier est soumis ou qu’un élève est pointé dans vos classes, les passages apparaissent ici."
                 action={
                   <Link
                     href="/director/presences"

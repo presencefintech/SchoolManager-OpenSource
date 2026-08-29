@@ -1,3 +1,5 @@
+import { downloadBlob } from '@/lib/finance/download-blob'
+import { parseContentDispositionFilename } from '@/lib/download-blob'
 import { apiClient } from '@/lib/api/client'
 import { normalizeFinanceAiInsights } from '@/lib/admin/finance-ai.utils'
 import {
@@ -31,6 +33,7 @@ import type {
   ClassYearFeeDashboard,
   PaymentDeclarationDto,
   PaymentDeclarationPage,
+  PaymentDeclarationStudentLookup,
 } from '@/types/finance'
 import type { FeeCategoryItem, PaymentProfile, PendingVerificationItem } from '@/types/admin'
 
@@ -664,9 +667,27 @@ export const financeRoleApi = {
     }[]>,
 
   // ── Déclarations multi-canaux (justificatifs SMS) ──────────────────────────
+  getPaymentDeclarationSettings: (): Promise<{ paymentValidationMode: 'SEMI_AUTOMATIC' | 'INSTANT' }> =>
+    apiClient
+      .get('/finance/payment-declarations/settings')
+      .then((r) => r.data.data as { paymentValidationMode: 'SEMI_AUTOMATIC' | 'INSTANT' }),
+
+  updatePaymentDeclarationSettings: (
+    paymentValidationMode: 'SEMI_AUTOMATIC' | 'INSTANT',
+  ): Promise<{ paymentValidationMode: 'SEMI_AUTOMATIC' | 'INSTANT' }> =>
+    apiClient
+      .patch('/finance/payment-declarations/settings', { paymentValidationMode })
+      .then((r) => r.data.data as { paymentValidationMode: 'SEMI_AUTOMATIC' | 'INSTANT' }),
+
+  lookupPaymentDeclarationStudent: (code: string): Promise<PaymentDeclarationStudentLookup> =>
+    apiClient
+      .get('/finance/payment-declarations/lookup', { params: { code } })
+      .then((r) => r.data.data as PaymentDeclarationStudentLookup),
+
   listPaymentDeclarations: (params?: {
     status?: 'PENDING' | 'APPROVED' | 'REJECTED'
     studentId?: number
+    q?: string
     page?: number
     limit?: number
   }): Promise<PaymentDeclarationPage> =>
@@ -676,9 +697,31 @@ export const financeRoleApi = {
 
   reviewPaymentDeclaration: (
     id: number,
-    payload: { decision: 'APPROVE' | 'REJECT'; rejectionReason?: string },
+    payload: {
+      decision: 'APPROVE' | 'REJECT'
+      rejectionReason?: string
+      surplusDestination?: 'RESERVE_ADVANCE' | 'WITHDRAWAL_FEE'
+      surplusStudentId?: number
+    },
   ): Promise<PaymentDeclarationDto> =>
     apiClient
       .post(`/finance/payment-declarations/${id}/review`, payload)
       .then((r) => r.data.data as PaymentDeclarationDto),
+
+  reprintPaymentDeclarationReceipt: (id: number, allocationId: number): Promise<PaymentDeclarationDto> =>
+    apiClient
+      .post(`/finance/payment-declarations/${id}/allocations/${allocationId}/reprint`)
+      .then((r) => r.data.data as PaymentDeclarationDto),
+
+  downloadPaymentDeclarationAllocationReceipt: async (id: number, allocationId: number): Promise<void> => {
+    const res = await apiClient.get(
+      `/finance/payment-declarations/${id}/allocations/${allocationId}/receipt`,
+      { responseType: 'blob' },
+    )
+    const filename = parseContentDispositionFilename(
+      res.headers['content-disposition'] as string | undefined,
+      `recu-${allocationId}.pdf`,
+    )
+    downloadBlob(res.data as Blob, filename)
+  },
 }

@@ -1334,6 +1334,19 @@ export function useCreateFeeStructure() {
   })
 }
 
+export function usePreviewFeeStructure(payload: CreateFeeStructurePayload | null) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-structures', 'preview', payload],
+    queryFn: () => financeApi.previewFeeStructure(payload!),
+    enabled:
+      payload != null &&
+      payload.sessionId > 0 &&
+      payload.categoryId > 0 &&
+      payload.amount > 0,
+    staleTime: 15_000,
+  })
+}
+
 export function useUpdateFeeStructure() {
   const qc = useQueryClient()
   return useMutation({

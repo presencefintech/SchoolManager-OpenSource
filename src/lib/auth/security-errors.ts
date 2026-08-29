@@ -58,8 +58,16 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Invitation introuvable. Actualisez la page.',
   WEAK_PASSWORD:
     'Le mot de passe ne respecte pas la politique de sécurité.',
-  INVALID_RESET_TOKEN:
-    'Lien de réinitialisation invalide ou expiré.',
+  FEE_STRUCTURE_SCOPE_EXISTS:
+    'Un barème existe déjà pour cette catégorie et ce périmètre. Modifiez-le au lieu d’en créer un second.',
+  FEE_STRUCTURE_AMOUNT_LOCKED:
+    'Impossible de changer le montant : des paiements sont déjà liés. Créez un nouveau barème.',
+  FEE_STRUCTURE_IN_USE:
+    'Impossible de désactiver ce barème : des paiements y sont encore liés.',
+  FEE_CATEGORY_CODE_EXISTS:
+    'Une catégorie avec ce code existe déjà.',
+  FEE_CATEGORY_IN_USE:
+    'Impossible de désactiver cette catégorie : des barèmes actifs l’utilisent encore.',
 }
 
 export function mapSecurityErrorCode(code: string | undefined): string | null {
