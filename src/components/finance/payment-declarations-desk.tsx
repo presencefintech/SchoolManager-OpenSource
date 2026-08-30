@@ -74,7 +74,7 @@ function compactPaymentCode(raw: string): string {
 
 function isCompletePaymentCode(raw: string): boolean {
   const compact = compactPaymentCode(raw)
-  return compact.length === 6 && [...compact].every((c) => CODE_ALPHABET.includes(c))
+  return compact.length === 6 && compact.split('').every((c) => CODE_ALPHABET.includes(c))
 }
 
 function CashierPaymentCodeLookup({
