@@ -724,6 +724,7 @@ function KpiCard({
   countLabel?: string
   delta?: number | null
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   return (
     <div
       className={cn(
@@ -844,6 +845,7 @@ function MethodMixBar({
   methods: Array<{ method: string; amount: number; count: number }>
   total: number
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const denom = total > 0 ? total : methods.reduce((s, m) => s + m.amount, 0)
   const colors = ['bg-emerald-600', 'bg-sky-500', 'bg-amber-500', 'bg-violet-500', 'bg-zinc-400']
   return (
