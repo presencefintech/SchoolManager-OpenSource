@@ -23,7 +23,7 @@ import {
 } from '@/lib/hooks/use-finance'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { resolveBackendUploadHref } from '@/lib/finance/download-blob'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
@@ -90,6 +90,7 @@ function CashierPaymentCodeLookup({
   onIdentified: (hit: PaymentDeclarationStudentLookup) => void
   onClear: () => void
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { mutateAsync, isPending } = useLookupPaymentDeclarationStudent()
@@ -176,6 +177,7 @@ function CashierPaymentCodeLookup({
 }
 
 export function PaymentDeclarationsDesk({ variant }: { variant: 'finance' | 'admin' }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { user } = useAuth()
   const canEditSettings = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
   const [status, setStatus] = useState<FilterStatus>('PENDING')
@@ -474,6 +476,7 @@ function ApproveSurplusModal({
   onClose: () => void
   onError: (msg: string | null) => void
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { mutateAsync, isPending } = useReviewPaymentDeclaration()
   const allocations = row.allocations?.length ? row.allocations : []
   const [destination, setDestination] = useState<'RESERVE_ADVANCE' | 'WITHDRAWAL_FEE'>('RESERVE_ADVANCE')
@@ -663,6 +666,7 @@ function ReprintButton({
 }
 
 function ProofModal({ row, onClose }: { row: PaymentDeclarationDto; onClose: () => void }) {
+  const { format: formatMoney } = useSchoolMoney()
   const href = proofHref(row.proofImageUrl)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">

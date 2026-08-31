@@ -235,7 +235,7 @@ export function FinanceReportsDashboard() {
 
   const report = reportQuery.data
   const currency = currencyQuery.data
-  const displayCurrency = (report?.metrics.displayCurrency ?? currency?.displayCurrency ?? 'CDF') as 'USD' | 'CDF'
+  const displayCurrency = (report?.metrics.displayCurrency ?? currency?.displayCurrency ?? 'USD') as 'USD' | 'CDF'
 
   const methodRows = useMemo(() => {
     if (!report) return []

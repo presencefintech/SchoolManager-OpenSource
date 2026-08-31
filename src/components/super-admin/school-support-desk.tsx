@@ -42,6 +42,7 @@ import { PhoneInput } from '@/components/ui/phone-input'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { useToast } from '@/providers/toast-provider'
 import { cn } from '@/lib/utils'
+import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { auditActionLabel, subscriptionTierLabel } from '@/lib/i18n/display-labels'
 import type { SchoolDetail, SchoolLifecycleStatus } from '@/types/super-admin'
@@ -134,11 +135,7 @@ function fmtDateTime(iso: string) {
 }
 
 function fmtUsd(n: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  }).format(n)
+  return formatMoney(n, 'USD')
 }
 
 function schoolInitials(name: string) {

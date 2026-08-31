@@ -1,7 +1,7 @@
 'use client'
 
 import { Building2, Crown, GitBranch } from 'lucide-react'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import type { GuichetDashboard } from '@/types/finance'
 
 /** KPIs réseau — encaissements cross-site du jour sur le hub. */
@@ -10,6 +10,7 @@ export function GuichetNetworkOpsCard({
 }: {
   network: NonNullable<GuichetDashboard['network']>
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const cross = network.crossSiteToday
   const campuses = network.byEnrollmentCampusToday ?? []
 

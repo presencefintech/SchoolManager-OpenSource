@@ -31,6 +31,7 @@ import {
 } from '@/lib/hooks/use-admin'
 import type { CashFloatPolicy } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 import { formatDurationMinutes } from '@/lib/finance/cash-session.utils'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
@@ -76,6 +77,9 @@ function Kpi({
 }
 
 export default function AdminCashFloatPolicyPage() {
+  const { format: formatLedger } = useSchoolMoney()
+  const money = (amount: number, currency?: string) =>
+    currency === 'CDF' ? formatMoney(amount, 'CDF') : formatLedger(amount, currency)
   const [tab, setTab] = useState<Tab>('valeur')
   const [digestDate, setDigestDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [copied, setCopied] = useState(false)
@@ -312,7 +316,7 @@ export default function AdminCashFloatPolicyPage() {
                   <div className="grid gap-3 sm:grid-cols-3">
                     <Kpi
                       label="Recettes semaine"
-                      value={formatMoney(weekDigest.totals.collected)}
+                      value={money(weekDigest.totals.collected)}
                       hint={`${weekDigest.totals.paymentCount} paiements`}
                       tone="ok"
                     />
@@ -394,18 +398,18 @@ export default function AdminCashFloatPolicyPage() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Kpi
                   label="Recettes du jour"
-                  value={formatMoney(digest.totals.collected)}
+                  value={money(digest.totals.collected)}
                   hint={`${digest.totals.paymentCount} paiements`}
                   tone="ok"
                 />
                 <Kpi
                   label="Espèces"
-                  value={formatMoney(digest.totals.cash)}
-                  hint={`Digital ${formatMoney(digest.totals.digital)} · Banque ${formatMoney(digest.totals.bank)}`}
+                  value={money(digest.totals.cash)}
+                  hint={`Digital ${money(digest.totals.digital)} · Banque ${money(digest.totals.bank)}`}
                 />
                 <Kpi
                   label="Versements"
-                  value={formatMoney(digest.totals.versements)}
+                  value={money(digest.totals.versements)}
                   hint={`${digest.totals.sessionCount} guichet(s)`}
                 />
                 <Kpi
@@ -445,11 +449,11 @@ export default function AdminCashFloatPolicyPage() {
                           <td className="px-4 py-3 font-medium">#{s.id}</td>
                           <td className="px-4 py-3">{s.cashierName}</td>
                           <td className="px-4 py-3">{s.status}</td>
-                          <td className="px-4 py-3 tabular-nums">{formatMoney(s.collected)}</td>
+                          <td className="px-4 py-3 tabular-nums">{money(s.collected)}</td>
                           <td className="px-4 py-3 tabular-nums">
                             {s.variance == null
                               ? '—'
-                              : `${s.variance >= 0 ? '+' : ''}${formatMoney(s.variance)}`}
+                              : `${s.variance >= 0 ? '+' : ''}${money(s.variance)}`}
                           </td>
                           <td className="px-4 py-3">
                             {s.acknowledged ? 'Visé' : s.submitted ? 'Soumis' : '—'}
@@ -491,16 +495,16 @@ export default function AdminCashFloatPolicyPage() {
                 />
                 <Kpi
                   label="Fonds d’ouverture"
-                  value={formatMoney(kpis?.floatOutstandingUsd ?? 0)}
+                  value={money(kpis?.floatOutstandingUsd ?? 0)}
                   hint={
                     (kpis?.floatOutstandingCdf ?? 0) > 0
-                      ? `+ ${formatMoney(kpis!.floatOutstandingCdf, 'CDF')} FC`
+                      ? `+ ${money(kpis!.floatOutstandingCdf, 'CDF')} FC`
                       : 'USD en circulation'
                   }
                 />
                 <Kpi
                   label="Cash attendu en tiroirs"
-                  value={formatMoney(kpis?.cashInTillsUsd ?? 0)}
+                  value={money(kpis?.cashInTillsUsd ?? 0)}
                   hint="Fond + encaissements ± mouvements"
                 />
                 <Kpi
@@ -555,24 +559,24 @@ export default function AdminCashFloatPolicyPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 tabular-nums">
-                            {formatMoney(Number(s.openingFloat ?? 0))}
+                            {money(Number(s.openingFloat ?? 0))}
                             {s.openingFloatCdf ? (
                               <span className="block text-[10px] text-zinc-400">
-                                + {formatMoney(s.openingFloatCdf, 'CDF')}
+                                + {money(s.openingFloatCdf, 'CDF')}
                               </span>
                             ) : null}
                           </td>
                           <td className="px-4 py-3 tabular-nums">
-                            {formatMoney(Number(s.cashCollected ?? 0))}
+                            {money(Number(s.cashCollected ?? 0))}
                           </td>
                           <td className="px-4 py-3 font-semibold tabular-nums text-emerald-700">
-                            {formatMoney(Number(s.expectedCash ?? 0))}
+                            {money(Number(s.expectedCash ?? 0))}
                           </td>
                           <td className="px-4 py-3 text-[10px] text-zinc-500">
-                            V {formatMoney(s.ledgerTotals?.versements ?? 0)} · R{' '}
-                            {formatMoney(s.ledgerTotals?.renflouements ?? 0)}
+                            V {money(s.ledgerTotals?.versements ?? 0)} · R{' '}
+                            {money(s.ledgerTotals?.renflouements ?? 0)}
                             {(s.ledgerTotals?.retraits ?? 0) > 0 ? (
-                              <> · T {formatMoney(s.ledgerTotals!.retraits)}</>
+                              <> · T {money(s.ledgerTotals!.retraits)}</>
                             ) : null}
                           </td>
                           <td className="px-4 py-3">
@@ -620,11 +624,11 @@ export default function AdminCashFloatPolicyPage() {
                           {snap?.verdictTitle ?? 'Rapport soumis'}
                         </p>
                         <p className="mt-1 text-xs text-zinc-500">
-                          Recettes {formatMoney(snap?.totalSession ?? 0)} ·{' '}
+                          Recettes {money(snap?.totalSession ?? 0)} ·{' '}
                           {snap?.paymentCount ?? 0} paiements · écart{' '}
                           {snap?.variance == null
                             ? '—'
-                            : `${snap.variance >= 0 ? '+' : ''}${formatMoney(snap.variance)}`}
+                            : `${snap.variance >= 0 ? '+' : ''}${money(snap.variance)}`}
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -675,7 +679,7 @@ export default function AdminCashFloatPolicyPage() {
             />
             <Kpi
               label="|Écarts| cumulés"
-              value={formatMoney(kpis?.absVarianceSum ?? 0)}
+              value={money(kpis?.absVarianceSum ?? 0)}
               hint="Somme absolue des écarts de clôture"
             />
           </div>
@@ -716,10 +720,10 @@ export default function AdminCashFloatPolicyPage() {
                             : '—'}
                         </td>
                         <td className="px-4 py-3 tabular-nums">
-                          {formatMoney(Number(row.expectedCash ?? 0))}
+                          {money(Number(row.expectedCash ?? 0))}
                         </td>
                         <td className="px-4 py-3 tabular-nums">
-                          {formatMoney(Number(row.closingCounted ?? 0))}
+                          {money(Number(row.closingCounted ?? 0))}
                         </td>
                         <td
                           className={cn(
@@ -738,7 +742,7 @@ export default function AdminCashFloatPolicyPage() {
                               <TrendingDown size={12} />
                             )}
                             {v >= 0 ? '+' : ''}
-                            {formatMoney(v)}
+                            {money(v)}
                             {row.varianceStatus === 'SHORT' ? (
                               <AlertTriangle size={11} className="text-amber-500" />
                             ) : null}

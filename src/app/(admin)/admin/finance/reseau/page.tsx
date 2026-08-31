@@ -19,7 +19,7 @@ import { FinancePageHeader, FinancePageShell } from '@/components/finance/financ
 import { NetworkOpsBriefingPanel } from '@/components/finance/network-ops-briefing-panel'
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 
 function toIso(d: Date): string {
@@ -49,6 +49,7 @@ export default function AdminFinanceNetworkPage() {
   const [customFrom, setCustomFrom] = useState(month.from)
   const [customTo, setCustomTo] = useState(month.to)
   const { status: liveStatus, recentCashActivity } = useAdminRealtimeStatus()
+  const { format: formatMoney } = useSchoolMoney()
 
   const period = useMemo(() => {
     if (preset === '7d') return lastNDaysBounds(7)

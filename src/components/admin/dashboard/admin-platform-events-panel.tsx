@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { CreditCard, UserPlus, ArrowRight, Wallet, AlertCircle, CheckCircle2, Banknote } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 function fmtTime(iso: string) {
   try {
@@ -13,13 +14,14 @@ function fmtTime(iso: string) {
   }
 }
 
-function fmtAmount(amount?: number, currency?: string) {
+function fmtAmount(amount?: number, currency?: string, format?: (n: number, c?: string | null) => string) {
   if (amount == null || !Number.isFinite(amount)) return null
+  if (format) return format(amount, currency)
   try {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: currency && currency.length === 3 ? currency : 'CDF',
-      maximumFractionDigits: 0,
+      currency: currency && currency.length === 3 ? currency : 'USD',
+      maximumFractionDigits: currency === 'CDF' ? 0 : 2,
     }).format(amount)
   } catch {
     return `${amount} ${currency ?? ''}`.trim()
@@ -28,6 +30,7 @@ function fmtAmount(amount?: number, currency?: string) {
 
 export function AdminPlatformEventsPanel() {
   const { status, recentPayments, recentEnrollments, recentCashActivity } = useAdminRealtimeStatus()
+  const { format } = useSchoolMoney()
 
   return (
     <div className="rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
@@ -81,7 +84,7 @@ export function AdminPlatformEventsPanel() {
                       {m.kind === 'SMS_PENDING' ? 'SMS à valider · ' : ''}
                       {m.kind === 'MOBILE_PAYMENT' ? 'Mobile · ' : ''}
                       {m.kind === 'CASH_PAYMENT' ? 'Espèces · ' : ''}
-                      {fmtAmount(m.amount, m.currency) ?? '—'}
+                      {fmtAmount(m.amount, m.currency, format) ?? '—'}
                       {m.affectsCashDrawer === false && m.kind !== 'SESSION_OPEN' && m.kind !== 'SESSION_CLOSE'
                         ? ' · hors tiroir'
                         : ''}
@@ -119,7 +122,7 @@ export function AdminPlatformEventsPanel() {
                           {p.studentName ?? `Paiement #${p.paymentId}`}
                         </p>
                         <p className="text-slate-500">
-                          {fmtAmount(p.amount, p.currency) ?? '—'}{p.provider ? ` · ${p.provider}` : ''}
+                          {fmtAmount(p.amount, p.currency, format) ?? '—'}{p.provider ? ` · ${p.provider}` : ''}
                         </p>
                       </>
                     ) : (

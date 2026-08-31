@@ -10,7 +10,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import type { NetworkOpsBriefing, NetworkOpsSeverity } from '@/types/finance'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +24,7 @@ export function NetworkOpsBriefingPanel({
   linkable?: boolean
 }) {
   const [copied, setCopied] = useState(false)
+  const { format } = useSchoolMoney()
   const dark = variant === 'dark'
   const { summary } = briefing
   const queue = briefing.queue ?? []
@@ -189,7 +190,7 @@ export function NetworkOpsBriefingPanel({
           items={briefing.pendingSms.slice(0, 6).map((row) => ({
             key: String(row.id),
             title: `${row.studentName} · ${row.schoolName}`,
-            hint: `${formatMoney(row.amount)} · ${row.provider} · ${row.waitingMinutes} min`,
+            hint: `${format(row.amount, row.currency)} · ${row.provider} · ${row.waitingMinutes} min`,
           }))}
         />
       ) : null}
@@ -201,7 +202,7 @@ export function NetworkOpsBriefingPanel({
           items={briefing.presentUnpaid.slice(0, 6).map((row) => ({
             key: `${row.schoolId}-${row.studentId}`,
             title: `${row.studentName} · ${row.className ?? 'Classe'}`,
-            hint: `${row.schoolName} · reste ${formatMoney(row.feesBalance)}`,
+            hint: `${row.schoolName} · reste ${format(row.feesBalance)}`,
           }))}
         />
       ) : null}

@@ -21,7 +21,7 @@ import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
 import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -153,6 +153,7 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeVal
 
 export default function FinanceDashboardPage() {
   const { status: realtimeStatus, lastUpdate, recentCashActivity } = useFinanceRealtimeStatus()
+  const { format: formatMoney } = useSchoolMoney()
   const { data: guichet, isLoading, refetch, dataUpdatedAt, isSuccess: coreReady } = useGuichetDashboard()
   const secondary = { enabled: coreReady }
   const { data: dailyCash = [] } = useDailyCashReport(secondary)

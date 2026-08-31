@@ -10,7 +10,7 @@ import {
   Undo2,
   Wallet,
 } from 'lucide-react'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import type { CashActivityKind, CashActivityRealtimeItem } from '@/types/admin'
 import { cn } from '@/lib/utils'
 
@@ -60,6 +60,7 @@ export function CashLiveTape({
   hrefBase?: 'finance' | 'admin'
   emptyHint?: string
 }) {
+  const { format } = useSchoolMoney()
   const cashIn = items
     .filter((m) => m.kind === 'CASH_PAYMENT' && m.affectsCashDrawer !== false)
     .reduce((sum, m) => sum + (m.amount ?? 0), 0)
@@ -84,7 +85,7 @@ export function CashLiveTape({
           ) : null}
         </div>
         <p className="text-[11px] text-zinc-500">
-          Espèces reçues (session) {formatMoney(cashIn)}
+          Espèces reçues (session) {format(cashIn, 'USD')}
           {pendingSms > 0 ? ` · ${pendingSms} SMS à valider` : ''}
         </p>
       </div>
@@ -122,7 +123,7 @@ export function CashLiveTape({
                     )}
                   >
                     {m.amount != null
-                      ? `${out ? '−' : pending ? '' : '+'}${formatMoney(m.amount, m.currency ?? 'USD')}`
+                      ? `${out ? '−' : pending ? '' : '+'}${format(m.amount, m.currency)}`
                       : '—'}
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-400">{fmtTime(m.timestamp)}</p>

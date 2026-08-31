@@ -34,6 +34,7 @@ import type { CashLedgerMovementType } from '@/types/finance'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatDualMoney, usdToCdf, type TenderCurrency } from '@/lib/finance/congo-money.utils'
 import {
   METHOD_LABELS,
@@ -141,6 +142,9 @@ function KpiCard({
 }
 
 export default function CaissePage() {
+  const { format: formatLedger } = useSchoolMoney()
+  const money = (amount: number, currency?: string) =>
+    currency === 'CDF' ? formatMoney(amount, 'CDF') : formatLedger(amount, currency)
   const {
     session: currentSession,
     hasOpenSession,
@@ -546,7 +550,7 @@ export default function CaissePage() {
                 ? 'excédent'
                 : 'manquant'}{' '}
             ({closeResult.variance >= 0 ? '+' : ''}
-            {formatMoney(closeResult.variance)})
+            {money(closeResult.variance)})
           </div>
           <button
             type="button"
@@ -584,27 +588,27 @@ export default function CaissePage() {
         >
           <KpiCard
             label="Fond d’ouverture"
-            value={formatMoney(openingFloat)}
+            value={money(openingFloat)}
             hint={
               openingFloatCdfLive > 0
-                ? `+ ${formatMoney(openingFloatCdfLive, 'CDF')} FC`
+                ? `+ ${money(openingFloatCdfLive, 'CDF')} FC`
                 : fxRate
-                  ? `≈ ${formatMoney(usdToCdf(openingFloat, fxRate), 'CDF')}`
+                  ? `≈ ${money(usdToCdf(openingFloat, fxRate), 'CDF')}`
                   : cashierName || undefined
             }
           />
           <KpiCard
             label="Espèces encaissées"
-            value={formatMoney(cashCollected)}
+            value={money(cashCollected)}
             hint={`${txCount} paiement${txCount > 1 ? 's' : ''} cash`}
             tone="success"
           />
           <KpiCard
             label="Attendu en caisse"
-            value={formatMoney(expectedCashUsd)}
+            value={money(expectedCashUsd)}
             hint={
               ledgerTotals && ledgerTotals.netUsd !== 0
-                ? `Dont mvts ${ledgerTotals.netUsd >= 0 ? '+' : ''}${formatMoney(ledgerTotals.netUsd)}`
+                ? `Dont mvts ${ledgerTotals.netUsd >= 0 ? '+' : ''}${money(ledgerTotals.netUsd)}`
                 : expectedDual.secondary || expectedDual.rateLabel || undefined
             }
           />
@@ -673,7 +677,7 @@ export default function CaissePage() {
                   {METHOD_LABELS[m.method] ?? m.method}
                 </p>
                 <p className="text-sm font-bold tabular-nums text-zinc-900">
-                  {formatMoney(Number(m.amount))}
+                  {money(Number(m.amount))}
                 </p>
                 <p className="text-xs text-zinc-400">{m.count} tx</p>
               </div>
@@ -684,7 +688,7 @@ export default function CaissePage() {
                 <p className="text-xs text-emerald-600">Total session</p>
               </div>
               <p className="text-sm font-bold tabular-nums text-emerald-700">
-                {formatMoney(
+                {money(
                   byMethod.reduce((a, m) => a + Number(m.amount || 0), 0),
                 )}
               </p>
@@ -727,7 +731,7 @@ export default function CaissePage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold text-emerald-900">
-                        Fond d’ouverture obligatoire · {formatMoney(openingSuggestion.suggested, openingSuggestion.currency as 'USD' | 'CDF')}
+                        Fond d’ouverture obligatoire · {money(openingSuggestion.suggested, openingSuggestion.currency as 'USD' | 'CDF')}
                       </p>
                       <p className="text-[11px] text-emerald-800/80">
                         Auto-rempli : {openingSuggestion.label}
@@ -756,14 +760,14 @@ export default function CaissePage() {
                             : alt.source === 'BALANCED_AVERAGE'
                               ? 'Moyenne école'
                               : 'Défaut école'}{' '}
-                          · {formatMoney(alt.amount)}
+                          · {money(alt.amount)}
                         </button>
                       ))}
                     </div>
                   ) : null}
                   <p className="text-[10px] text-emerald-800/70">
-                    Politique école : min {formatMoney(floatPolicy?.minOpeningFloat ?? 0)} · max{' '}
-                    {formatMoney(floatPolicy?.maxOpeningFloat ?? 0)}
+                    Politique école : min {money(floatPolicy?.minOpeningFloat ?? 0)} · max{' '}
+                    {money(floatPolicy?.maxOpeningFloat ?? 0)}
                     {floatPolicy?.requireDenominationOnOpen ? ' · billetage obligatoire' : ''}
                     {dualEnabled ? ' · dual USD+FC' : ''}
                   </p>
@@ -772,7 +776,7 @@ export default function CaissePage() {
                       <p className="text-[11px] text-emerald-900">
                         Fond FC suggéré ·{' '}
                         <span className="font-semibold tabular-nums">
-                          {formatMoney(openingSuggestion.suggestedCdf, 'CDF')}
+                          {money(openingSuggestion.suggestedCdf, 'CDF')}
                         </span>
                       </p>
                       <button
@@ -806,7 +810,7 @@ export default function CaissePage() {
                     onChange={setOpenUsdCounts}
                     fxHint={
                       fxRate && openSheet.total > 0
-                        ? `≈ ${formatMoney(usdToCdf(openSheet.total, fxRate), 'CDF')}`
+                        ? `≈ ${money(usdToCdf(openSheet.total, fxRate), 'CDF')}`
                         : undefined
                     }
                   />
@@ -1001,10 +1005,10 @@ export default function CaissePage() {
                       <tr key={m.id} className="text-zinc-700">
                         <td className="px-3 py-2 font-medium">{m.type}</td>
                         <td className="px-3 py-2 tabular-nums">
-                          {formatMoney(m.amount)}
+                          {money(m.amount)}
                           {m.amountCdf ? (
                             <span className="ml-1 text-[10px] text-zinc-400">
-                              ({formatMoney(m.amountCdf, 'CDF')})
+                              ({money(m.amountCdf, 'CDF')})
                             </span>
                           ) : null}
                         </td>
@@ -1117,11 +1121,11 @@ export default function CaissePage() {
                 >
                   {varianceUsd >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                   Écart prévisionnel : {varianceUsd >= 0 ? '+' : ''}
-                  {formatMoney(varianceUsd)}
+                  {money(varianceUsd)}
                   {fxRate ? (
                     <span className="text-[10px] opacity-80">
                       ({varianceUsd >= 0 ? '+' : ''}
-                      {formatMoney(usdToCdf(varianceUsd, fxRate), 'CDF')})
+                      {money(usdToCdf(varianceUsd, fxRate), 'CDF')})
                     </span>
                   ) : null}
                 </div>
@@ -1194,7 +1198,7 @@ export default function CaissePage() {
                       </p>
                     </div>
                     <span className="shrink-0 text-xs font-semibold tabular-nums text-emerald-700">
-                      {formatMoney(Number(p.amount), (p.currency || 'USD') as 'USD' | 'CDF')}
+                      {money(Number(p.amount), (p.currency || 'USD') as 'USD' | 'CDF')}
                     </span>
                   </div>
                 ))}
@@ -1255,7 +1259,7 @@ export default function CaissePage() {
                         </span>
                       </td>
                       <td className="py-2.5 pr-3 tabular-nums">
-                        {formatMoney(Number(row.cashCollected ?? row.totalCollected ?? 0))}
+                        {money(Number(row.cashCollected ?? row.totalCollected ?? 0))}
                       </td>
                       <td
                         className={cn(
@@ -1271,7 +1275,7 @@ export default function CaissePage() {
                       >
                         {variance == null
                           ? '—'
-                          : `${variance >= 0 ? '+' : ''}${formatMoney(variance)}`}
+                          : `${variance >= 0 ? '+' : ''}${money(variance)}`}
                       </td>
                       <td className="py-2.5 pr-3">
                         <span

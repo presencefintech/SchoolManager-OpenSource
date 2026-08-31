@@ -28,9 +28,7 @@ import { NetworkOpsBriefingPanel } from '@/components/finance/network-ops-briefi
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
-function money(amount: number, currency = 'USD') {
-  return `${amount.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ${currency}`
-}
+import { formatMoney } from '@/lib/finance/currency'
 
 export default function SchoolNetworksPage() {
   const qc = useQueryClient()
@@ -179,7 +177,7 @@ export default function SchoolNetworksPage() {
           <StatChip label="Élèves" value={String(totals.students)} />
           <StatChip
             label="Cross 30j"
-            value={money(totals.cross30)}
+            value={formatMoney(totals.cross30)}
             hint={`${totals.crossCount} paiements`}
             tone="amber"
           />
@@ -466,7 +464,7 @@ function OwnerOverviewPanel({
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
             <MiniKpiDark
               label="Encaissé jour"
-              value={money(treasury.totals.collectedToday, currency)}
+              value={formatMoney(treasury.totals.collectedToday, currency)}
               hint={
                 treasury.totals.vsYesterdayPct != null
                   ? `${treasury.totals.vsYesterdayPct >= 0 ? '+' : ''}${treasury.totals.vsYesterdayPct}% vs hier · ${treasury.totals.paymentCountToday} px`
@@ -475,7 +473,7 @@ function OwnerOverviewPanel({
             />
             <MiniKpiDark
               label="Reste à payer"
-              value={money(treasury.totals.feesBalance, currency)}
+              value={formatMoney(treasury.totals.feesBalance, currency)}
               hint={`${treasury.totals.debtorCount} débiteur(s)`}
             />
             <MiniKpiDark
@@ -485,7 +483,7 @@ function OwnerOverviewPanel({
             />
             <MiniKpiDark
               label="7 jours / SMS"
-              value={money(treasury.totals.collected7d ?? 0, currency)}
+              value={formatMoney(treasury.totals.collected7d ?? 0, currency)}
               hint={`${treasury.totals.sitesOpen}/${treasury.totals.siteCount} caisses · ${treasury.totals.pendingSms} SMS${treasury.totals.oldestPendingSmsMinutes != null && treasury.totals.pendingSms > 0 ? ` · ${treasury.totals.oldestPendingSmsMinutes} min` : ''}`}
             />
           </div>
@@ -528,7 +526,7 @@ function OwnerOverviewPanel({
                   </div>
                   <div className="text-right">
                     <p className="tabular-nums font-semibold">
-                      {money(site.collectedToday, currency)}
+                      {formatMoney(site.collectedToday, currency)}
                       {site.vsYesterdayPct != null ? (
                         <span
                           className={cn(
@@ -542,7 +540,7 @@ function OwnerOverviewPanel({
                       ) : null}
                     </p>
                     <p className="text-[11px] text-slate-400 tabular-nums">
-                      reste {money(site.feesBalance, currency)} · {site.collectionRate}%
+                      reste {formatMoney(site.feesBalance, currency)} · {site.collectionRate}%
                     </p>
                   </div>
                 </li>
@@ -574,12 +572,12 @@ function OwnerOverviewPanel({
           <div className="grid gap-3 sm:grid-cols-3">
             <MiniKpi
               label="Local (hub)"
-              value={money(clearing?.localCollected.amount ?? 0, currency)}
+              value={formatMoney(clearing?.localCollected.amount ?? 0, currency)}
               hint={`${clearing?.localCollected.count ?? 0} paiements`}
             />
             <MiniKpi
               label="Cross-site"
-              value={money(clearing?.crossSiteTotal.amount ?? 0, currency)}
+              value={formatMoney(clearing?.crossSiteTotal.amount ?? 0, currency)}
               hint={`${clearing?.crossSiteTotal.count ?? 0} paiements`}
               tone="amber"
             />
@@ -607,7 +605,7 @@ function OwnerOverviewPanel({
                   >
                     <span className="font-medium text-slate-800">{p.enrollmentSchoolName}</span>
                     <span className="tabular-nums text-slate-700">
-                      {money(p.amountDueToCampus, currency)}
+                      {formatMoney(p.amountDueToCampus, currency)}
                       <span className="text-xs text-slate-400 ml-2">
                         {p.paymentCount} paiement(s)
                       </span>
@@ -836,7 +834,7 @@ function GroupCard({
             </span>
           )}
           <span className="text-[11px] tabular-nums text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full">
-            Cross 30j : {money(group.crossSiteLast30d.amount, group.crossSiteLast30d.currency)}
+            Cross 30j : {formatMoney(group.crossSiteLast30d.amount, group.crossSiteLast30d.currency)}
           </span>
           <button
             type="button"

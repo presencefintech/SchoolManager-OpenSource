@@ -1902,6 +1902,7 @@ export function useCreateExchangeRate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'exchange-rates'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'currency-config'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'currency-config'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
       toast.success('Taux enregistré', 'Historique immuable mis à jour.')
     },
@@ -1916,6 +1917,7 @@ export function useUpdateCurrencyConfig() {
     mutationFn: financeApi.updateCurrencyConfig,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'currency-config'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'currency-config'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
       toast.success('Devise mise à jour', 'Paramètres d\'affichage enregistrés.')
     },

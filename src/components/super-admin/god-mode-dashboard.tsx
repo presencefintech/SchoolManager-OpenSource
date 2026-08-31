@@ -21,13 +21,7 @@ import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { GodModeDashboardStats } from '@/types/super-admin'
 
-function fmtUsd(n: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
+import { formatMoney } from '@/lib/finance/currency'
 
 function DeltaBadge({ pct }: { pct: number }) {
   const flat = Math.abs(pct) < 0.05
@@ -98,7 +92,7 @@ export function GodModeKpiCards({
           </div>
         </div>
         <p className="text-3xl font-bold tracking-tight text-zinc-900 tabular-nums">
-          {fmtUsd(data.mrr.amount)}
+          {formatMoney(data.mrr.amount)}
         </p>
         <div className="mt-2">
           <DeltaBadge pct={data.mrr.deltaPct} />
