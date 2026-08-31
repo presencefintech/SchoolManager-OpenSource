@@ -451,7 +451,7 @@ function OwnerOverviewPanel({
         </select>
       </div>
 
-      {briefing ? <NetworkOpsBriefingPanel briefing={briefing} /> : null}
+      {briefing ? <NetworkOpsBriefingPanel briefing={briefing} linkable={false} /> : null}
 
       {treasury ? (
         <div className="rounded-xl border border-slate-200 bg-slate-900 text-white px-4 py-3 space-y-3">
@@ -486,9 +486,14 @@ function OwnerOverviewPanel({
             <MiniKpiDark
               label="7 jours / SMS"
               value={money(treasury.totals.collected7d ?? 0, currency)}
-              hint={`${treasury.totals.sitesOpen}/${treasury.totals.siteCount} caisses · ${treasury.totals.pendingSms} SMS`}
+              hint={`${treasury.totals.sitesOpen}/${treasury.totals.siteCount} caisses · ${treasury.totals.pendingSms} SMS${treasury.totals.oldestPendingSmsMinutes != null && treasury.totals.pendingSms > 0 ? ` · ${treasury.totals.oldestPendingSmsMinutes} min` : ''}`}
             />
           </div>
+          {treasury.totals.focusSchoolName ? (
+            <p className="text-[11px] text-amber-200">
+              Campus à suivre : {treasury.totals.focusSchoolName}
+            </p>
+          ) : null}
           {treasury.leaders?.topCollector || treasury.leaders?.weakestRate ? (
             <p className="text-[11px] text-slate-300">
               Meilleur encaissement : {treasury.leaders.topCollector?.schoolName ?? '—'}

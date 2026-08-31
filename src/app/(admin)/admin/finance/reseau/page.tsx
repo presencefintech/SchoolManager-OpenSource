@@ -241,6 +241,16 @@ export default function AdminFinanceNetworkPage() {
                 />
               </div>
 
+              {treasury.totals.focusSchoolName ? (
+                <p className="text-xs text-zinc-600 rounded-xl border border-zinc-200 bg-white px-4 py-2">
+                  Campus à suivre :{' '}
+                  <span className="font-semibold text-zinc-900">{treasury.totals.focusSchoolName}</span>
+                  {treasury.totals.oldestPendingSmsMinutes != null && treasury.totals.pendingSms > 0
+                    ? ` · SMS le plus ancien ${treasury.totals.oldestPendingSmsMinutes} min`
+                    : ''}
+                </p>
+              ) : null}
+
               {treasury.methodsToday.length > 0 ? (
                 <MethodMixBar methods={treasury.methodsToday} total={treasury.totals.collectedToday} />
               ) : null}
@@ -315,6 +325,12 @@ export default function AdminFinanceNetworkPage() {
                       <p className="text-[11px] text-zinc-400">
                         {site.city ?? 'Campus'}
                         {site.cashierName ? ` · ${site.cashierName}` : ''}
+                        {site.sessionOpen && site.sessionOpenMinutes != null
+                          ? ` · ouverte ${site.sessionOpenMinutes} min`
+                          : ''}
+                        {site.minutesSinceLastPayment != null
+                          ? ` · dernier paiement ${site.minutesSinceLastPayment} min`
+                          : ''}
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1">
@@ -417,14 +433,21 @@ export default function AdminFinanceNetworkPage() {
                       <th className="text-right font-semibold px-3 py-2">Taux</th>
                       <th className="text-right font-semibold px-3 py-2">Présence</th>
                       <th className="text-right font-semibold px-3 py-2">Santé</th>
-                      <th className="text-right font-semibold px-4 py-2">SMS</th>
+                      <th className="text-right font-semibold px-3 py-2">SMS</th>
+                      <th className="text-right font-semibold px-4 py-2">Dernier px</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50">
                     {[...treasury.sites]
                       .sort((a, b) => b.collectedToday - a.collectedToday)
                       .map((site) => (
-                        <tr key={site.id} className="text-zinc-800">
+                        <tr
+                          key={site.id}
+                          className={cn(
+                            'text-zinc-800',
+                            treasury.totals.focusSchoolId === site.id && 'bg-amber-50/70',
+                          )}
+                        >
                           <td className="px-4 py-2.5 font-medium">
                             {site.name}
                             {site.sessionOpen ? (
@@ -455,7 +478,12 @@ export default function AdminFinanceNetworkPage() {
                             {site.attendanceRate ?? '—'}%
                           </td>
                           <td className="px-3 py-2.5 text-right tabular-nums">{site.healthScore ?? '—'}</td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">{site.pendingSms}</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{site.pendingSms}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums text-zinc-500">
+                            {site.minutesSinceLastPayment != null
+                              ? `${site.minutesSinceLastPayment} min`
+                              : '—'}
+                          </td>
                         </tr>
                       ))}
                   </tbody>

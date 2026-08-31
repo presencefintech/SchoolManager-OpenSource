@@ -506,6 +506,9 @@ export interface NetworkTreasurySite extends NetworkSite {
   attendanceRate?: number
   lastClosedAt?: string | null
   healthScore?: number
+  minutesSinceLastPayment?: number | null
+  sessionOpenMinutes?: number | null
+  oldestPendingSmsMinutes?: number | null
 }
 
 export interface NetworkTreasuryAlert {
@@ -556,6 +559,9 @@ export interface NetworkTreasuryLive {
     digitalSharePct?: number
     attendanceRate?: number
     healthScore?: number
+    oldestPendingSmsMinutes?: number | null
+    focusSchoolId?: number | null
+    focusSchoolName?: string | null
   }
   methodsToday: NetworkTreasuryMethodSplit[]
   alerts: NetworkTreasuryAlert[]
@@ -566,17 +572,26 @@ export interface NetworkTreasuryLive {
   }
 }
 
-export interface NetworkOpsBriefingSchool {
-  schoolId: number
-  schoolName: string
-}
+export type NetworkOpsSeverity = 'critical' | 'warn' | 'info'
+
+export type NetworkOpsQueueKind =
+  | 'SMS_PENDING'
+  | 'SMS_REJECTED'
+  | 'ROLL_MISSING'
+  | 'ROLL_DRAFT'
+  | 'TILL_CLOSED'
+  | 'SILENT_SITE'
+  | 'OPEN_NO_CASH'
+  | 'PRESENT_UNPAID'
 
 export interface NetworkOpsRollMissing {
   schoolId: number
   schoolName: string
   classId: number
   className: string
-  status: string
+  status: 'MISSING' | 'DRAFT' | string
+  teacherName?: string | null
+  waitingMinutes?: number | null
 }
 
 export interface NetworkOpsSmsPending {
@@ -585,8 +600,10 @@ export interface NetworkOpsSmsPending {
   schoolName: string
   studentName: string
   amount: number
+  currency?: string
   provider: string
   waitingMinutes: number
+  severity?: NetworkOpsSeverity
 }
 
 export interface NetworkOpsPresentUnpaid {
@@ -594,32 +611,83 @@ export interface NetworkOpsPresentUnpaid {
   schoolName: string
   studentId: number
   studentName: string
-  className: string
+  matricule?: string
+  className: string | null
   feesBalance: number
 }
 
 export interface NetworkOpsTillClosed {
   schoolId: number
   schoolName: string
-  hadPresenceToday: boolean
+}
+
+export interface NetworkOpsQueueItem {
+  id: string
+  kind: NetworkOpsQueueKind
+  severity: NetworkOpsSeverity
+  schoolId: number
+  schoolName: string
+  title: string
+  detail: string
+  ageMinutes: number | null
+  href: string
+}
+
+export interface NetworkOpsSiteDigest {
+  schoolId: number
+  schoolName: string
+  isPaymentHub: boolean
+  actionCount: number
+  rollsMissing: number
+  pendingSms: number
+  presentUnpaid: number
+  tillClosed: boolean
+  silent: boolean
+  openNoCash: boolean
+  oldestSmsMinutes: number | null
+}
+
+export interface NetworkOpsNextAction {
+  title: string
+  detail: string
+  severity: NetworkOpsSeverity
+  href: string
 }
 
 export interface NetworkOpsBriefing {
-  groupId: number
-  groupName: string
+  groupId: number | null
+  groupName: string | null
   generatedAt: string
-  schools: NetworkOpsBriefingSchool[]
-  rollsNotSubmitted: NetworkOpsRollMissing[]
-  smsPending: NetworkOpsSmsPending[]
-  presentUnpaid: NetworkOpsPresentUnpaid[]
-  tillsClosedWithActivity: NetworkOpsTillClosed[]
+  date?: string
   summary: {
-    rollsNotSubmitted: number
-    smsPending: number
+    classesWithoutSheet: number
+    pendingSms: number
     presentUnpaid: number
-    tillsClosedWithActivity: number
+    tillsClosed: number
+    silentSites?: number
+    rejectedSmsToday?: number
+    openNoCash?: number
     actionCount: number
+    criticalCount?: number
+    oldestSmsMinutes?: number | null
   }
+  nextAction?: NetworkOpsNextAction | null
+  queue?: NetworkOpsQueueItem[]
+  sites?: NetworkOpsSiteDigest[]
+  classesWithoutSheet: NetworkOpsRollMissing[]
+  pendingSms: NetworkOpsSmsPending[]
+  presentUnpaid: NetworkOpsPresentUnpaid[]
+  tillsClosed: NetworkOpsTillClosed[]
+  silentSites?: NetworkOpsTillClosed[]
+  rejectedSmsToday?: Array<{
+    id: number
+    schoolId: number
+    schoolName: string
+    studentName: string
+    amount: number
+    currency: string
+    reason: string | null
+  }>
   whatsappText: string
 }
 
