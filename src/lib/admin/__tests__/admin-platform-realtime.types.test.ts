@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
 import {
+  parseCashActivity,
   parseEnrollmentApproved,
   parseNewEnrollmentRequest,
   parsePaymentConfirmedAdmin,
@@ -55,5 +56,22 @@ describe('admin platform realtime parsers', () => {
     })
     expect(item?.type).toBe('request')
     expect(item?.fullName).toBe('Marie Kabila')
+  })
+
+  it('parses cash activity with school name (console groupe)', () => {
+    const item = parseCashActivity({
+      kind: 'CASH_PAYMENT',
+      schoolId: 2,
+      schoolName: 'Excellence 2',
+      schoolGroupId: 10,
+      label: 'Encaissement guichet',
+      amount: 80,
+      currency: 'USD',
+      paymentId: 12,
+      timestamp: '2026-08-31T08:00:00.000Z',
+    })
+    expect(item?.schoolName).toBe('Excellence 2')
+    expect(item?.schoolId).toBe(2)
+    expect(item?.id).toContain('2')
   })
 })

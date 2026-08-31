@@ -132,6 +132,28 @@ export interface AdminPaymentRealtimeItem {
   timestamp: string
 }
 
+export type CashActivityKind =
+  | 'SESSION_OPEN'
+  | 'SESSION_CLOSE'
+  | 'CASH_PAYMENT'
+  | 'LEDGER_MOVEMENT'
+  | 'SMS_DECLARATION'
+
+export interface CashActivityRealtimeItem {
+  id: string
+  kind: CashActivityKind
+  label: string
+  amount?: number
+  currency?: string
+  cashSessionId?: number
+  paymentId?: number
+  movementType?: string
+  timestamp: string
+  schoolId?: number
+  schoolName?: string
+  schoolGroupId?: number | null
+}
+
 export interface AdminEnrollmentRealtimeItem {
   id: string
   type: 'approved' | 'request'

@@ -33,6 +33,7 @@ import type { CashFloatPolicy } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 import { formatDurationMinutes } from '@/lib/finance/cash-session.utils'
+import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 
 type Tab = 'valeur' | 'journee' | 'suivi' | 'promoteur' | 'ecarts' | 'politique'
 
@@ -111,6 +112,7 @@ export default function AdminCashFloatPolicyPage() {
   }
 
   const kpis = trace?.kpis
+  const { status: liveStatus, lastUpdate, recentCashActivity } = useAdminRealtimeStatus()
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -123,7 +125,15 @@ export default function AdminCashFloatPolicyPage() {
             <h1 className="text-lg font-semibold text-zinc-900">Caisse &amp; fonds</h1>
             <p className="mt-1 text-sm text-zinc-500">
               Synthèse journalière, suivi des fonds et rapports pour la direction.
+              {liveStatus === 'live'
+                ? ' Les mouvements du guichet apparaissent ici tout de suite.'
+                : ' Connexion temps réel en cours — les totaux se rafraîchissent aussi à l’intervalle.'}
             </p>
+            {lastUpdate ? (
+              <p className="mt-1 text-[11px] text-zinc-400">
+                Dernier mouvement : {lastUpdate.toLocaleTimeString('fr-FR')}
+              </p>
+            ) : null}
           </div>
         </div>
         <button
@@ -137,6 +147,34 @@ export default function AdminCashFloatPolicyPage() {
           <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} /> Actualiser
         </button>
       </div>
+
+      {recentCashActivity.length > 0 ? (
+        <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+            Mouvements en direct
+          </p>
+          <ul className="mt-3 space-y-2">
+            {recentCashActivity.map((m) => (
+              <li key={m.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium text-zinc-800">
+                  {m.schoolName ? `${m.schoolName} · ` : ''}
+                  {m.label}
+                </span>
+                <span className="flex-shrink-0 tabular-nums text-zinc-600">
+                  {m.amount != null ? formatMoney(m.amount, m.currency ?? 'USD') : '—'}
+                </span>
+                <span className="flex-shrink-0 text-[11px] tabular-nums text-zinc-400">
+                  {new Date(m.timestamp).toLocaleTimeString('fr-FR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="flex gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1">
         {(

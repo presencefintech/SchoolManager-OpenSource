@@ -476,6 +476,153 @@ export interface NetworkContext {
   }
 }
 
+export interface NetworkTreasurySite extends NetworkSite {
+  sessionOpen: boolean
+  cashSessionId: number | null
+  cashInDrawer: number
+  drawerCurrency: string
+  sessionOpenedAt: string | null
+  cashierName: string | null
+  collectedToday: number
+  paymentCountToday: number
+  collectedMonth: number
+  paymentCountMonth: number
+  cashToday: number
+  mobileToday: number
+  lastPaymentAt: string | null
+  studentCount: number
+  debtorCount: number
+  feesPaid: number
+  feesBalance: number
+  collectionRate: number
+  pendingSms: number
+  presentToday: number
+  shareOfGroupPct: number
+  collectedYesterday?: number
+  vsYesterdayPct?: number | null
+  collected7d?: number
+  avgTicketToday?: number
+  digitalSharePct?: number
+  attendanceRate?: number
+  lastClosedAt?: string | null
+  healthScore?: number
+}
+
+export interface NetworkTreasuryAlert {
+  code: string
+  severity: 'info' | 'warn' | 'critical'
+  message: string
+  schoolId?: number
+  schoolName?: string
+}
+
+export interface NetworkTreasuryMethodSplit {
+  method: string
+  amount: number
+  count: number
+}
+
+export interface NetworkTreasuryLeader {
+  schoolId: number
+  schoolName: string
+  value: number
+}
+
+export interface NetworkTreasuryLive {
+  groupId: number | null
+  groupName: string | null
+  generatedAt: string
+  sites: NetworkTreasurySite[]
+  totals: {
+    collectedToday: number
+    paymentCountToday: number
+    collectedMonth: number
+    paymentCountMonth: number
+    cashToday: number
+    mobileToday: number
+    sitesOpen: number
+    siteCount: number
+    studentCount: number
+    debtorCount: number
+    feesPaid: number
+    feesBalance: number
+    collectionRate: number
+    pendingSms: number
+    presentToday: number
+    collectedYesterday?: number
+    vsYesterdayPct?: number | null
+    collected7d?: number
+    avgTicketToday?: number
+    digitalSharePct?: number
+    attendanceRate?: number
+    healthScore?: number
+  }
+  methodsToday: NetworkTreasuryMethodSplit[]
+  alerts: NetworkTreasuryAlert[]
+  leaders?: {
+    topCollector: NetworkTreasuryLeader | null
+    weakestRate: NetworkTreasuryLeader | null
+    bestHealth: NetworkTreasuryLeader | null
+  }
+}
+
+export interface NetworkOpsBriefingSchool {
+  schoolId: number
+  schoolName: string
+}
+
+export interface NetworkOpsRollMissing {
+  schoolId: number
+  schoolName: string
+  classId: number
+  className: string
+  status: string
+}
+
+export interface NetworkOpsSmsPending {
+  id: number
+  schoolId: number
+  schoolName: string
+  studentName: string
+  amount: number
+  provider: string
+  waitingMinutes: number
+}
+
+export interface NetworkOpsPresentUnpaid {
+  schoolId: number
+  schoolName: string
+  studentId: number
+  studentName: string
+  className: string
+  feesBalance: number
+}
+
+export interface NetworkOpsTillClosed {
+  schoolId: number
+  schoolName: string
+  hadPresenceToday: boolean
+}
+
+export interface NetworkOpsBriefing {
+  groupId: number
+  groupName: string
+  generatedAt: string
+  schools: NetworkOpsBriefingSchool[]
+  rollsNotSubmitted: NetworkOpsRollMissing[]
+  smsPending: NetworkOpsSmsPending[]
+  presentUnpaid: NetworkOpsPresentUnpaid[]
+  tillsClosedWithActivity: NetworkOpsTillClosed[]
+  summary: {
+    rollsNotSubmitted: number
+    smsPending: number
+    presentUnpaid: number
+    tillsClosedWithActivity: number
+    actionCount: number
+  }
+  whatsappText: string
+}
+
 export interface NetworkClearingPosition {
   enrollmentSchoolId: number
   enrollmentSchoolName: string

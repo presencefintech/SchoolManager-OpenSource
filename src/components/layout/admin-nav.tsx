@@ -64,7 +64,7 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Moratoires', href: '/admin/finance/moratoriums', icon: Clock },
           { label: 'Lots scellés', href: '/admin/finance/scelles', icon: Fingerprint },
           { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
-          { label: 'Réseau multi-sites', href: '/admin/finance/reseau', icon: Network },
+          { label: 'Console groupe', href: '/admin/finance/reseau', icon: Network },
           { label: 'Caisse & fonds', href: '/admin/finance/caisse', icon: Wallet },
           { label: 'Audit & Fraude', href: '/admin/finance/audit', icon: Shield },
           { label: 'Vérifier document', href: '/verify', icon: QrCode },

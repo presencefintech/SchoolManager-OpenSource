@@ -92,3 +92,39 @@ export function parseNewEnrollmentRequest(raw: unknown): AdminEnrollmentRealtime
     timestamp,
   }
 }
+
+const CASH_KINDS = new Set([
+  'SESSION_OPEN',
+  'SESSION_CLOSE',
+  'CASH_PAYMENT',
+  'LEDGER_MOVEMENT',
+  'SMS_DECLARATION',
+])
+
+export function parseCashActivity(raw: unknown): import('@/types/admin').CashActivityRealtimeItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const p = raw as Record<string, unknown>
+  const kind = typeof p.kind === 'string' ? p.kind : ''
+  if (!CASH_KINDS.has(kind)) return null
+  const timestamp = typeof p.timestamp === 'string' ? p.timestamp : new Date().toISOString()
+  const label = typeof p.label === 'string' && p.label.trim() ? p.label : 'Mouvement de caisse'
+  const schoolId = p.schoolId != null ? Number(p.schoolId) : undefined
+  const paymentId = p.paymentId != null ? Number(p.paymentId) : undefined
+  const cashSessionId = p.cashSessionId != null ? Number(p.cashSessionId) : undefined
+  return {
+    id: `cash-${kind}-${schoolId ?? 'x'}-${paymentId ?? cashSessionId ?? timestamp}`,
+    kind: kind as import('@/types/admin').CashActivityKind,
+    label,
+    amount: p.amount != null ? Number(p.amount) : undefined,
+    currency: typeof p.currency === 'string' ? p.currency : undefined,
+    cashSessionId: Number.isFinite(cashSessionId) ? cashSessionId : undefined,
+    paymentId: Number.isFinite(paymentId) ? paymentId : undefined,
+    movementType: typeof p.movementType === 'string' ? p.movementType : undefined,
+    timestamp,
+    schoolId: Number.isFinite(schoolId) ? schoolId : undefined,
+    schoolName: typeof p.schoolName === 'string' && p.schoolName.trim() ? p.schoolName : undefined,
+    schoolGroupId: p.schoolGroupId != null && Number.isFinite(Number(p.schoolGroupId))
+      ? Number(p.schoolGroupId)
+      : undefined,
+  }
+}

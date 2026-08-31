@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { CreditCard, UserPlus, ArrowRight, Wallet, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { CreditCard, UserPlus, ArrowRight, Wallet, AlertCircle, CheckCircle2, Banknote } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 
@@ -27,7 +27,7 @@ function fmtAmount(amount?: number, currency?: string) {
 }
 
 export function AdminPlatformEventsPanel() {
-  const { status, recentPayments, recentEnrollments } = useAdminRealtimeStatus()
+  const { status, recentPayments, recentEnrollments, recentCashActivity } = useAdminRealtimeStatus()
 
   return (
     <div className="rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
@@ -45,6 +45,9 @@ export function AdminPlatformEventsPanel() {
           </span>
         </div>
         <div className="flex gap-3 text-[11px]">
+          <Link href="/admin/finance/caisse" className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-0.5">
+            Caisse <ArrowRight size={11} />
+          </Link>
           <Link href="/admin/finance/paiements" className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-0.5">
             Paiements <ArrowRight size={11} />
           </Link>
@@ -54,7 +57,35 @@ export function AdminPlatformEventsPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+        <div className="p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Banknote size={14} className="text-emerald-700" />
+            <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wide">Caisse</h4>
+          </div>
+          {recentCashActivity.length === 0 ? (
+            <p className="text-xs text-slate-400 py-6 text-center">
+              Aucun mouvement de caisse en direct pour l’instant.
+            </p>
+          ) : (
+            <ul className="space-y-2 max-h-48 overflow-y-auto">
+              {recentCashActivity.map((m) => (
+                <li key={m.id} className="flex items-start gap-2 text-xs rounded-lg border border-slate-100 px-3 py-2">
+                  <Banknote size={14} className="text-emerald-600 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-slate-800 truncate">{m.label}</p>
+                    <p className="text-slate-500">
+                      {m.schoolName ? `${m.schoolName} · ` : ''}
+                      {fmtAmount(m.amount, m.currency) ?? '—'}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-slate-400 tabular-nums flex-shrink-0">{fmtTime(m.timestamp)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="p-4">
           <div className="flex items-center gap-1.5 mb-3">
             <CreditCard size={14} className="text-emerald-600" />

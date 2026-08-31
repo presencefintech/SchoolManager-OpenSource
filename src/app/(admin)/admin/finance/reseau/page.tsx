@@ -1,10 +1,23 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Building2, Crown, Network } from 'lucide-react'
+import { useMemo, useState, type ElementType } from 'react'
+import Link from 'next/link'
+import {
+  AlertTriangle,
+  Building2,
+  Crown,
+  Network,
+  Radio,
+  ShieldCheck,
+  Smartphone,
+  Users,
+  Wallet,
+} from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { adminNetworkApi } from '@/lib/superAdmin/api/school-network.api'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
+import { NetworkOpsBriefingPanel } from '@/components/finance/network-ops-briefing-panel'
+import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +40,18 @@ function lastNDaysBounds(days: number): { from: string; to: string } {
   return { from: toIso(from), to: toIso(to) }
 }
 
+function fmtTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  } catch {
+    return '—'
+  }
+}
+
 type PeriodPreset = 'month' | '7d' | '30d' | 'custom'
 
 export default function AdminFinanceNetworkPage() {
@@ -34,6 +59,7 @@ export default function AdminFinanceNetworkPage() {
   const [preset, setPreset] = useState<PeriodPreset>('month')
   const [customFrom, setCustomFrom] = useState(month.from)
   const [customTo, setCustomTo] = useState(month.to)
+  const { status: liveStatus, recentCashActivity } = useAdminRealtimeStatus()
 
   const period = useMemo(() => {
     if (preset === '7d') return lastNDaysBounds(7)
@@ -46,6 +72,22 @@ export default function AdminFinanceNetworkPage() {
     queryKey: ['admin', 'finance', 'network'],
     queryFn: adminNetworkApi.getContext,
     staleTime: 60_000,
+  })
+
+  const { data: treasury } = useQuery({
+    queryKey: ['admin', 'finance', 'network', 'treasury'],
+    queryFn: adminNetworkApi.getTreasury,
+    enabled: Boolean(network?.groupId),
+    staleTime: 15_000,
+    refetchInterval: liveStatus === 'live' ? 60_000 : 20_000,
+  })
+
+  const { data: briefing } = useQuery({
+    queryKey: ['admin', 'finance', 'network', 'ops-briefing'],
+    queryFn: adminNetworkApi.getOpsBriefing,
+    enabled: Boolean(network?.groupId),
+    staleTime: 20_000,
+    refetchInterval: liveStatus === 'live' ? 60_000 : 20_000,
   })
 
   const {
@@ -69,12 +111,21 @@ export default function AdminFinanceNetworkPage() {
     : 0
   const hub = network?.sites.find((s) => s.isPaymentHub)
   const satellites = network?.sites.filter((s) => !s.isPaymentHub) ?? []
+  const treasuryById = new Map((treasury?.sites ?? []).map((s) => [s.id, s]))
 
   return (
     <FinancePageShell>
       <FinancePageHeader
-        title="Réseau & caisse hub"
-        subtitle="Vue multi-sites — collecte locale vs cross-site et clearing inter-campus"
+        title="Console groupe"
+        subtitle="Un logiciel, plusieurs écoles — le promoteur voit le réseau ; chaque caissier reste sur son site"
+        accent="slate"
+        badge={
+          liveStatus === 'live' ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+              <Radio size={10} className="text-emerald-600" /> Direct
+            </span>
+          ) : null
+        }
       />
 
       {isLoading ? (
@@ -89,52 +140,363 @@ export default function AdminFinanceNetworkPage() {
       ) : !network?.groupId ? (
         <div className="rounded-2xl border border-dashed border-zinc-200 bg-white px-6 py-12 text-center space-y-2">
           <Network size={32} className="mx-auto text-zinc-300" />
-          <p className="text-sm font-medium text-zinc-600">Aucun réseau configuré</p>
-          <p className="text-xs text-zinc-400 max-w-md mx-auto">
-            Votre établissement n&apos;appartient pas encore à un groupe multi-sites.
-            Contactez le Super Admin.
+          <p className="text-sm font-medium text-zinc-600">Aucun groupe multi-écoles</p>
+          <p className="text-xs text-zinc-400 max-w-lg mx-auto leading-relaxed">
+            Pour superviser plusieurs établissements comme une entreprise (une console, des caisses
+            isolées par site), le Super Admin rattache vos écoles à un même groupe.
           </p>
         </div>
       ) : (
         <div className="space-y-5">
-          <div className="rounded-2xl border border-sky-100 bg-sky-50/60 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-800">Réseau</p>
-            <p className="text-lg font-bold text-sky-950 mt-0.5">{network.groupName}</p>
-            <p className="text-sm text-sky-800/80 mt-1">
-              Connecté sur{' '}
-              <span className="font-medium">{network.collectionSiteName}</span>
-              {network.isPaymentHub ? ' (caisse hub)' : ''}
-              {network.canCollectCrossSite
-                ? ' — encaissement multi-sites autorisé'
-                : ' — encaissement local uniquement'}
+          <div className="rounded-2xl border border-slate-200 bg-slate-900 px-5 py-4 text-white">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Groupe scolaire
             </p>
+            <p className="text-lg font-bold mt-0.5">{network.groupName}</p>
+            <p className="text-sm text-slate-300 mt-1">
+              Connecté sur{' '}
+              <span className="font-medium text-white">{network.collectionSiteName}</span>
+              {network.isPaymentHub ? ' · caisse hub' : ''}
+              {network.canCollectCrossSite
+                ? ' · encaissement multi-sites autorisé'
+                : ' · encaissement local uniquement'}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-slate-200">
+                <ShieldCheck size={12} className="text-emerald-400" />
+                Caissier = son école uniquement
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-[11px] text-slate-200">
+                <Building2 size={12} className="text-sky-300" />
+                Promoteur = toutes les écoles du groupe
+              </span>
+            </div>
           </div>
 
+          {briefing ? <NetworkOpsBriefingPanel briefing={briefing} /> : null}
+
+          {treasury ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <KpiCard
+                  label="Encaissé groupe (jour)"
+                  amount={treasury.totals.collectedToday}
+                  count={treasury.totals.paymentCountToday}
+                  delta={treasury.totals.vsYesterdayPct}
+                />
+                <KpiCard
+                  label="Reste à payer (groupe)"
+                  amount={treasury.totals.feesBalance}
+                  count={treasury.totals.debtorCount}
+                  tone="amber"
+                  countLabel="élève(s) débiteur(s)"
+                />
+                <KpiCard
+                  label="Encaissé mois"
+                  amount={treasury.totals.collectedMonth}
+                  count={treasury.totals.paymentCountMonth}
+                  tone="violet"
+                />
+                <div className="rounded-2xl border border-zinc-200 bg-white p-4">
+                  <p className="text-[10px] uppercase tracking-wide font-semibold text-zinc-400">
+                    Recouvrement groupe
+                  </p>
+                  <p className="text-lg font-bold tabular-nums text-zinc-900 mt-1">
+                    {treasury.totals.collectionRate}%
+                  </p>
+                  <RateBar value={treasury.totals.collectionRate} />
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Payé {formatMoney(treasury.totals.feesPaid)} · {treasury.totals.studentCount}{' '}
+                    élèves
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <StatChip
+                  icon={Wallet}
+                  label="Caisses ouvertes"
+                  value={`${treasury.totals.sitesOpen} / ${treasury.totals.siteCount}`}
+                  hint="sites du groupe"
+                />
+                <StatChip
+                  icon={Users}
+                  label="Présents aujourd’hui"
+                  value={`${treasury.totals.presentToday}${treasury.totals.attendanceRate != null ? ` · ${treasury.totals.attendanceRate}%` : ''}`}
+                  hint={`sur ${treasury.totals.studentCount} élèves`}
+                />
+                <StatChip
+                  icon={Smartphone}
+                  label="SMS en attente"
+                  value={String(treasury.totals.pendingSms)}
+                  hint="déclarations à valider"
+                  tone={treasury.totals.pendingSms > 0 ? 'warn' : 'ok'}
+                  href={treasury.totals.pendingSms > 0 ? '/admin/finance/declarations' : undefined}
+                />
+                <StatChip
+                  icon={ShieldCheck}
+                  label="Santé / mix"
+                  value={`${treasury.totals.healthScore ?? '—'} / 100`}
+                  hint={`Mobile ${treasury.totals.digitalSharePct ?? 0}% · ticket ${formatMoney(treasury.totals.avgTicketToday ?? 0)}`}
+                />
+              </div>
+
+              {treasury.methodsToday.length > 0 ? (
+                <MethodMixBar methods={treasury.methodsToday} total={treasury.totals.collectedToday} />
+              ) : null}
+
+              {treasury.alerts.length > 0 ? (
+                <ul className="space-y-2">
+                  {treasury.alerts.map((alert, i) => (
+                    <li
+                      key={`${alert.code}-${alert.schoolId ?? 'g'}-${i}`}
+                      className={cn(
+                        'rounded-xl border px-4 py-2.5 text-sm flex items-start gap-2',
+                        alert.severity === 'critical' && 'border-red-200 bg-red-50 text-red-900',
+                        alert.severity === 'warn' && 'border-amber-200 bg-amber-50 text-amber-950',
+                        alert.severity === 'info' && 'border-sky-100 bg-sky-50 text-sky-950',
+                      )}
+                    >
+                      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+                      <span>{alert.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : null}
+
           {ops ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <KpiCard
-                label="Collecté aujourd'hui"
-                amount={ops.collectedToday.amount}
-                count={ops.collectedToday.count}
-              />
-              <KpiCard
-                label="Local (jour)"
-                amount={localTodayAmount}
-                count={localTodayCount}
-                tone="neutral"
-              />
-              <KpiCard
-                label="Cross-site (jour)"
-                amount={ops.crossSiteToday.amount}
-                count={ops.crossSiteToday.count}
-                tone="amber"
-              />
-              <KpiCard
-                label="Cross-site (mois)"
-                amount={ops.crossSiteMonth.amount}
-                count={ops.crossSiteMonth.count}
-                tone="violet"
-              />
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 px-0.5">
+                Site connecté ({network.collectionSiteName})
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <KpiCard
+                  label="Collecté aujourd'hui"
+                  amount={ops.collectedToday.amount}
+                  count={ops.collectedToday.count}
+                />
+                <KpiCard
+                  label="Local (jour)"
+                  amount={localTodayAmount}
+                  count={localTodayCount}
+                  tone="neutral"
+                />
+                <KpiCard
+                  label="Cross-site (jour)"
+                  amount={ops.crossSiteToday.amount}
+                  count={ops.crossSiteToday.count}
+                  tone="amber"
+                />
+                <KpiCard
+                  label="Cross-site (mois)"
+                  amount={ops.crossSiteMonth.amount}
+                  count={ops.crossSiteMonth.count}
+                  tone="violet"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {treasury && treasury.sites.length > 0 ? (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {treasury.sites.map((site) => (
+                <article
+                  key={site.id}
+                  className={cn(
+                    'rounded-2xl border bg-white px-4 py-4',
+                    site.sessionOpen ? 'border-emerald-200' : 'border-zinc-200',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-zinc-900 truncate">{site.name}</p>
+                      <p className="text-[11px] text-zinc-400">
+                        {site.city ?? 'Campus'}
+                        {site.cashierName ? ` · ${site.cashierName}` : ''}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {site.healthScore != null ? (
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                            site.healthScore >= 70
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : site.healthScore >= 40
+                                ? 'bg-amber-100 text-amber-900'
+                                : 'bg-red-100 text-red-800',
+                          )}
+                        >
+                          Santé {site.healthScore}
+                        </span>
+                      ) : null}
+                      {site.isPaymentHub ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900">
+                          <Crown size={10} /> Hub
+                        </span>
+                      ) : null}
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                          site.sessionOpen
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-zinc-100 text-zinc-500',
+                        )}
+                      >
+                        {site.sessionOpen ? 'Caisse ouverte' : 'Fermée'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="text-[10px] uppercase tracking-wide text-zinc-400 font-semibold">
+                        Recouvrement
+                      </p>
+                      <p className="text-xs font-semibold tabular-nums text-zinc-700">
+                        {site.collectionRate}%
+                      </p>
+                    </div>
+                    <RateBar value={site.collectionRate} />
+                  </div>
+
+                  <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <MiniStat
+                      label="Encaissé jour"
+                      value={formatMoney(site.collectedToday)}
+                      hint={`${site.paymentCountToday} px · ${site.shareOfGroupPct}% du groupe${site.vsYesterdayPct != null ? ` · ${site.vsYesterdayPct >= 0 ? '+' : ''}${site.vsYesterdayPct}% vs hier` : ''}`}
+                    />
+                    <MiniStat label="Reste à payer" value={formatMoney(site.feesBalance)} hint={`${site.debtorCount} débiteur(s)`} />
+                    <MiniStat
+                      label="Espèces / mobile"
+                      value={`${formatMoney(site.cashToday)} / ${formatMoney(site.mobileToday)}`}
+                      hint={site.digitalSharePct != null ? `${site.digitalSharePct}% mobile · 7j ${formatMoney(site.collected7d ?? 0)}` : undefined}
+                    />
+                    <MiniStat
+                      label="Présents"
+                      value={`${site.presentToday} / ${site.studentCount}`}
+                      hint={
+                        site.attendanceRate != null
+                          ? `${site.attendanceRate}%${site.pendingSms ? ` · ${site.pendingSms} SMS` : ''}`
+                          : site.pendingSms > 0
+                            ? `${site.pendingSms} SMS en attente`
+                            : 'SMS à jour'
+                      }
+                    />
+                  </dl>
+
+                  {site.pendingSms > 0 ? (
+                    <Link
+                      href="/admin/finance/declarations"
+                      className="mt-3 inline-flex text-[11px] font-medium text-amber-800 hover:underline"
+                    >
+                      Valider les déclarations SMS →
+                    </Link>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          ) : null}
+
+          {treasury && treasury.sites.length > 1 ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+              <div className="px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wide border-b border-zinc-100">
+                Classement des campus — jour
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 text-[10px] uppercase tracking-wide text-zinc-400">
+                    <tr>
+                      <th className="text-left font-semibold px-4 py-2">Campus</th>
+                      <th className="text-right font-semibold px-3 py-2">Jour</th>
+                      <th className="text-right font-semibold px-3 py-2">Vs hier</th>
+                      <th className="text-right font-semibold px-3 py-2">7 j</th>
+                      <th className="text-right font-semibold px-3 py-2">Reste</th>
+                      <th className="text-right font-semibold px-3 py-2">Taux</th>
+                      <th className="text-right font-semibold px-3 py-2">Présence</th>
+                      <th className="text-right font-semibold px-3 py-2">Santé</th>
+                      <th className="text-right font-semibold px-4 py-2">SMS</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50">
+                    {[...treasury.sites]
+                      .sort((a, b) => b.collectedToday - a.collectedToday)
+                      .map((site) => (
+                        <tr key={site.id} className="text-zinc-800">
+                          <td className="px-4 py-2.5 font-medium">
+                            {site.name}
+                            {site.sessionOpen ? (
+                              <span className="ml-2 text-[10px] text-emerald-700">ouverte</span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            {formatMoney(site.collectedToday)}
+                          </td>
+                          <td
+                            className={cn(
+                              'px-3 py-2.5 text-right tabular-nums',
+                              (site.vsYesterdayPct ?? 0) < 0 ? 'text-red-600' : 'text-emerald-700',
+                            )}
+                          >
+                            {site.vsYesterdayPct == null
+                              ? '—'
+                              : `${site.vsYesterdayPct >= 0 ? '+' : ''}${site.vsYesterdayPct}%`}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            {formatMoney(site.collected7d ?? 0)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            {formatMoney(site.feesBalance)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{site.collectionRate}%</td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            {site.attendanceRate ?? '—'}%
+                          </td>
+                          <td className="px-3 py-2.5 text-right tabular-nums">{site.healthScore ?? '—'}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{site.pendingSms}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {recentCashActivity.length > 0 ? (
+            <div className="rounded-2xl border border-emerald-100 bg-white overflow-hidden">
+              <div className="px-5 py-3 border-b border-emerald-50 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
+                  Mouvements en direct
+                </p>
+                <span className="text-[10px] text-zinc-400">
+                  Toutes les écoles du groupe · le caissier ne voit que les siennes
+                </span>
+              </div>
+              <ul className="divide-y divide-zinc-50">
+                {recentCashActivity.slice(0, 10).map((m) => (
+                  <li
+                    key={m.id}
+                    className="px-5 py-2.5 flex items-center justify-between gap-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-zinc-800 truncate">{m.label}</p>
+                      <p className="text-[11px] text-zinc-400 truncate">
+                        {m.schoolName ?? 'Site local'}
+                        {m.kind === 'SMS_DECLARATION' ? ' · SMS' : ''}
+                        {m.kind === 'CASH_PAYMENT' ? ' · espèces' : ''}
+                      </p>
+                    </div>
+                    <span className="flex-shrink-0 tabular-nums text-zinc-700">
+                      {m.amount != null ? formatMoney(m.amount, m.currency ?? 'USD') : '—'}
+                    </span>
+                    <span className="flex-shrink-0 text-[11px] tabular-nums text-zinc-400">
+                      {fmtTime(m.timestamp)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
 
@@ -146,10 +508,15 @@ export default function AdminFinanceNetworkPage() {
               {hub ? (
                 <MapNode
                   title={hub.name}
-                  subtitle={hub.city ?? 'Caisse hub'}
+                  subtitle={
+                    treasuryById.get(hub.id)
+                      ? `${formatMoney(treasuryById.get(hub.id)!.collectedToday)} aujourd’hui`
+                      : (hub.city ?? 'Caisse hub')
+                  }
                   badge="Hub"
                   tone="hub"
                   current={hub.isCurrentSite}
+                  sessionOpen={treasuryById.get(hub.id)?.sessionOpen}
                 />
               ) : (
                 <MapNode title="Hub non défini" subtitle="Configurer via Super Admin" tone="warn" />
@@ -162,14 +529,24 @@ export default function AdminFinanceNetworkPage() {
                       <MapNode
                         key={site.id}
                         title={site.name}
-                        subtitle={site.city ?? 'Campus'}
+                        subtitle={
+                          treasuryById.get(site.id)
+                            ? `${formatMoney(treasuryById.get(site.id)!.collectedToday)} aujourd’hui`
+                            : (site.city ?? 'Campus')
+                        }
                         tone="site"
                         current={site.isCurrentSite}
+                        sessionOpen={treasuryById.get(site.id)?.sessionOpen}
                       />
                     ))}
                   </div>
                 </>
-              ) : null}
+              ) : (
+                <p className="text-xs text-zinc-500 text-center max-w-sm">
+                  Un seul site dans le groupe. Ajoutez un campus pour vendre et piloter plusieurs
+                  écoles sur le même logiciel.
+                </p>
+              )}
             </div>
           </div>
 
@@ -330,40 +707,6 @@ export default function AdminFinanceNetworkPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/70 bg-white divide-y divide-zinc-100">
-            <div className="px-5 py-3 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-              Sites du réseau ({network.sites.length})
-            </div>
-            {network.sites.map((site) => (
-              <div
-                key={site.id}
-                className="px-5 py-4 flex flex-wrap items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="rounded-lg bg-zinc-100 p-2">
-                    <Building2 size={16} className="text-zinc-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-900">{site.name}</p>
-                    <p className="text-xs text-zinc-400">{site.city ?? 'Ville non renseignée'}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {site.isCurrentSite ? (
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-800">
-                      Session actuelle
-                    </span>
-                  ) : null}
-                  {site.isPaymentHub ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-semibold text-amber-900">
-                      <Crown size={10} /> Caisse hub
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-
           <p className="text-xs text-zinc-500 leading-relaxed">
             Au guichet, seule la caisse hub peut rechercher et encaisser pour les élèves inscrits
             sur un autre site. Le solde est crédité sur le site d&apos;inscription ; le rapport Z
@@ -381,11 +724,15 @@ function KpiCard({
   amount,
   count,
   tone = 'default',
+  countLabel = 'paiement(s)',
+  delta,
 }: {
   label: string
   amount: number
   count: number
   tone?: 'default' | 'neutral' | 'amber' | 'violet'
+  countLabel?: string
+  delta?: number | null
 }) {
   return (
     <div
@@ -406,7 +753,132 @@ function KpiCard({
         {label}
       </p>
       <p className="text-lg font-bold tabular-nums text-zinc-900 mt-1">{formatMoney(amount)}</p>
-      <p className="text-xs text-zinc-500">{count} paiement(s)</p>
+      <p className="text-xs text-zinc-500">
+        {count} {countLabel}
+      </p>
+      {delta != null ? (
+        <p className={cn('text-xs mt-0.5 font-medium', delta >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+          {delta >= 0 ? '+' : ''}
+          {delta}% vs hier
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function RateBar({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, value))
+  return (
+    <div className="mt-1.5 h-1.5 rounded-full bg-zinc-100 overflow-hidden">
+      <div
+        className={cn(
+          'h-full rounded-full',
+          pct < 40 ? 'bg-red-500' : pct < 70 ? 'bg-amber-500' : 'bg-emerald-600',
+        )}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  )
+}
+
+function MiniStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint?: string
+}) {
+  return (
+    <div className="rounded-xl bg-zinc-50 px-2.5 py-2">
+      <dt className="text-[10px] uppercase tracking-wide text-zinc-400 font-semibold">{label}</dt>
+      <dd className="mt-0.5 font-semibold tabular-nums text-zinc-900">{value}</dd>
+      {hint ? <p className="text-[10px] text-zinc-400 mt-0.5">{hint}</p> : null}
+    </div>
+  )
+}
+
+function StatChip({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = 'ok',
+  href,
+}: {
+  icon: ElementType
+  label: string
+  value: string
+  hint: string
+  tone?: 'ok' | 'warn'
+  href?: string
+}) {
+  const body = (
+    <div
+      className={cn(
+        'rounded-2xl border bg-white p-4 h-full',
+        tone === 'warn' ? 'border-amber-200' : 'border-zinc-200',
+      )}
+    >
+      <p className="text-[10px] uppercase tracking-wide font-semibold text-zinc-400 flex items-center gap-1.5">
+        <Icon size={12} /> {label}
+      </p>
+      <p className="text-lg font-bold tabular-nums text-zinc-900 mt-1">{value}</p>
+      <p className="text-xs text-zinc-500">{hint}</p>
+    </div>
+  )
+  if (href) {
+    return (
+      <Link href={href} className="block hover:opacity-90">
+        {body}
+      </Link>
+    )
+  }
+  return body
+}
+
+const METHOD_LABELS: Record<string, string> = {
+  CASH: 'Espèces',
+  MPESA: 'M-Pesa',
+  ORANGE_MONEY: 'Orange Money',
+  AIRTEL_MONEY: 'Airtel Money',
+  BANK: 'Banque',
+  CARD: 'Carte',
+}
+
+function MethodMixBar({
+  methods,
+  total,
+}: {
+  methods: Array<{ method: string; amount: number; count: number }>
+  total: number
+}) {
+  const denom = total > 0 ? total : methods.reduce((s, m) => s + m.amount, 0)
+  const colors = ['bg-emerald-600', 'bg-sky-500', 'bg-amber-500', 'bg-violet-500', 'bg-zinc-400']
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-2">
+        Canaux du jour (groupe)
+      </p>
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-zinc-100">
+        {methods.map((m, i) => (
+          <div
+            key={m.method}
+            className={colors[i % colors.length]}
+            style={{ width: `${denom > 0 ? (m.amount / denom) * 100 : 0}%` }}
+            title={`${METHOD_LABELS[m.method] ?? m.method} ${m.amount}`}
+          />
+        ))}
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-600">
+        {methods.map((m, i) => (
+          <li key={m.method} className="inline-flex items-center gap-1.5">
+            <span className={cn('h-1.5 w-1.5 rounded-full', colors[i % colors.length])} />
+            {METHOD_LABELS[m.method] ?? m.method} · {formatMoney(m.amount)} ({m.count})
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -417,12 +889,14 @@ function MapNode({
   badge,
   tone,
   current,
+  sessionOpen,
 }: {
   title: string
   subtitle: string
   badge?: string
   tone: 'hub' | 'site' | 'warn'
   current?: boolean
+  sessionOpen?: boolean
 }) {
   return (
     <div
@@ -447,6 +921,11 @@ function MapNode({
         {current ? (
           <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold uppercase text-emerald-800">
             Session
+          </span>
+        ) : null}
+        {sessionOpen ? (
+          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-bold uppercase text-white">
+            Ouverte
           </span>
         ) : null}
       </div>
