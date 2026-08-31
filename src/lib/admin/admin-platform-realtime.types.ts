@@ -97,8 +97,12 @@ const CASH_KINDS = new Set([
   'SESSION_OPEN',
   'SESSION_CLOSE',
   'CASH_PAYMENT',
+  'MOBILE_PAYMENT',
   'LEDGER_MOVEMENT',
+  'SMS_PENDING',
   'SMS_DECLARATION',
+  'SMS_REJECTED',
+  'REFUND',
 ])
 
 export function parseCashActivity(raw: unknown): import('@/types/admin').CashActivityRealtimeItem | null {
@@ -111,6 +115,9 @@ export function parseCashActivity(raw: unknown): import('@/types/admin').CashAct
   const schoolId = p.schoolId != null ? Number(p.schoolId) : undefined
   const paymentId = p.paymentId != null ? Number(p.paymentId) : undefined
   const cashSessionId = p.cashSessionId != null ? Number(p.cashSessionId) : undefined
+  const studentId = p.studentId != null ? Number(p.studentId) : undefined
+  const direction =
+    p.direction === 'IN' || p.direction === 'OUT' || p.direction === 'INFO' ? p.direction : undefined
   return {
     id: `cash-${kind}-${schoolId ?? 'x'}-${paymentId ?? cashSessionId ?? timestamp}`,
     kind: kind as import('@/types/admin').CashActivityKind,
@@ -119,6 +126,12 @@ export function parseCashActivity(raw: unknown): import('@/types/admin').CashAct
     currency: typeof p.currency === 'string' ? p.currency : undefined,
     cashSessionId: Number.isFinite(cashSessionId) ? cashSessionId : undefined,
     paymentId: Number.isFinite(paymentId) ? paymentId : undefined,
+    studentId: Number.isFinite(studentId) ? studentId : undefined,
+    studentName: typeof p.studentName === 'string' && p.studentName.trim() ? p.studentName : undefined,
+    method: typeof p.method === 'string' ? p.method : undefined,
+    reference: typeof p.reference === 'string' ? p.reference : undefined,
+    direction,
+    affectsCashDrawer: typeof p.affectsCashDrawer === 'boolean' ? p.affectsCashDrawer : undefined,
     movementType: typeof p.movementType === 'string' ? p.movementType : undefined,
     timestamp,
     schoolId: Number.isFinite(schoolId) ? schoolId : undefined,

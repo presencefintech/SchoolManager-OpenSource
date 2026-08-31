@@ -43,6 +43,8 @@ import {
   formatDurationMinutes,
 } from '@/lib/finance/cash-session.utils'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
+import { CashLiveTape } from '@/components/finance/cash-live-tape'
+import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import type { CashSessionSummary } from '@/types/finance'
 import axios from 'axios'
 import { cn } from '@/lib/utils'
@@ -161,6 +163,7 @@ export default function CaissePage() {
   const exportReport = useExportCashSessionReport()
   const { mutateAsync: submitToPromoter, isPending: submitting } =
     useSubmitCashSessionToPromoter()
+  const { status: liveStatus, recentCashActivity } = useFinanceRealtimeStatus()
   const [submitOk, setSubmitOk] = useState<string | null>(null)
 
   const [openForm, setOpenForm] = useState({ openingFloat: '', openingFloatCdf: '', openNotes: '' })
@@ -502,6 +505,12 @@ export default function CaissePage() {
             )}
           </>
         }
+      />
+
+      <CashLiveTape
+        items={recentCashActivity}
+        live={liveStatus === 'live'}
+        emptyHint="Espèces, mobile money, SMS à valider et mouvements de tiroir apparaissent ici en direct."
       />
 
       {exportError ? (

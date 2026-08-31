@@ -35,6 +35,7 @@ export type EmpireRealtimeStatus = 'connecting' | 'live' | 'polling' | 'offline'
 
 const MAX_ACTIVITY_ITEMS = 25
 const MAX_PLATFORM_ITEMS = 12
+const MAX_CASH_ITEMS = 40
 
 const FINANCE_SOCKET_EVENTS = [
   'payment.confirmed.finance',
@@ -149,7 +150,7 @@ export function useEmpireRealtime() {
   const onCashActivity = useCallback(
     (raw: unknown) => {
       const item = parseCashActivity(raw)
-      if (item) setRecentCashActivity((prev) => pushUnique(prev, item, MAX_PLATFORM_ITEMS))
+      if (item) setRecentCashActivity((prev) => pushUnique(prev, item, MAX_CASH_ITEMS))
       refreshFinance()
     },
     [refreshFinance],

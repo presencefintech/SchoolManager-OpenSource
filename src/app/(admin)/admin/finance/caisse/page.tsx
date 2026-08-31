@@ -34,6 +34,7 @@ import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
 import { formatDurationMinutes } from '@/lib/finance/cash-session.utils'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
+import { CashLiveTape } from '@/components/finance/cash-live-tape'
 
 type Tab = 'valeur' | 'journee' | 'suivi' | 'promoteur' | 'ecarts' | 'politique'
 
@@ -148,33 +149,13 @@ export default function AdminCashFloatPolicyPage() {
         </button>
       </div>
 
-      {recentCashActivity.length > 0 ? (
-        <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-            Mouvements en direct
-          </p>
-          <ul className="mt-3 space-y-2">
-            {recentCashActivity.map((m) => (
-              <li key={m.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate font-medium text-zinc-800">
-                  {m.schoolName ? `${m.schoolName} · ` : ''}
-                  {m.label}
-                </span>
-                <span className="flex-shrink-0 tabular-nums text-zinc-600">
-                  {m.amount != null ? formatMoney(m.amount, m.currency ?? 'USD') : '—'}
-                </span>
-                <span className="flex-shrink-0 text-[11px] tabular-nums text-zinc-400">
-                  {new Date(m.timestamp).toLocaleTimeString('fr-FR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  })}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      <CashLiveTape
+        items={recentCashActivity}
+        live={liveStatus === 'live'}
+        showSchool
+        hrefBase="admin"
+        emptyHint="Espèces, mobile money, SMS et clôtures du guichet apparaissent ici en direct."
+      />
 
       <div className="flex gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1">
         {(

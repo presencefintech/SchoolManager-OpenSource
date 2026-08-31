@@ -17,6 +17,7 @@ import { useQuery } from '@tanstack/react-query'
 import { adminNetworkApi } from '@/lib/superAdmin/api/school-network.api'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { NetworkOpsBriefingPanel } from '@/components/finance/network-ops-briefing-panel'
+import { CashLiveTape } from '@/components/finance/cash-live-tape'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { cn } from '@/lib/utils'
@@ -38,18 +39,6 @@ function lastNDaysBounds(days: number): { from: string; to: string } {
   const from = new Date()
   from.setDate(to.getDate() - (days - 1))
   return { from: toIso(from), to: toIso(to) }
-}
-
-function fmtTime(iso: string) {
-  try {
-    return new Date(iso).toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return '—'
-  }
 }
 
 type PeriodPreset = 'month' | '7d' | '30d' | 'custom'
@@ -492,41 +481,13 @@ export default function AdminFinanceNetworkPage() {
             </div>
           ) : null}
 
-          {recentCashActivity.length > 0 ? (
-            <div className="rounded-2xl border border-emerald-100 bg-white overflow-hidden">
-              <div className="px-5 py-3 border-b border-emerald-50 flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
-                  Mouvements en direct
-                </p>
-                <span className="text-[10px] text-zinc-400">
-                  Toutes les écoles du groupe · le caissier ne voit que les siennes
-                </span>
-              </div>
-              <ul className="divide-y divide-zinc-50">
-                {recentCashActivity.slice(0, 10).map((m) => (
-                  <li
-                    key={m.id}
-                    className="px-5 py-2.5 flex items-center justify-between gap-3 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-zinc-800 truncate">{m.label}</p>
-                      <p className="text-[11px] text-zinc-400 truncate">
-                        {m.schoolName ?? 'Site local'}
-                        {m.kind === 'SMS_DECLARATION' ? ' · SMS' : ''}
-                        {m.kind === 'CASH_PAYMENT' ? ' · espèces' : ''}
-                      </p>
-                    </div>
-                    <span className="flex-shrink-0 tabular-nums text-zinc-700">
-                      {m.amount != null ? formatMoney(m.amount, m.currency ?? 'USD') : '—'}
-                    </span>
-                    <span className="flex-shrink-0 text-[11px] tabular-nums text-zinc-400">
-                      {fmtTime(m.timestamp)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <CashLiveTape
+            items={recentCashActivity}
+            live={liveStatus === 'live'}
+            showSchool
+            hrefBase="admin"
+            emptyHint="Tous les paiements du groupe (espèces, mobile, SMS) — le caissier ne voit que son site."
+          />
 
           <div className="rounded-2xl border border-zinc-200 bg-white px-5 py-4">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-3">

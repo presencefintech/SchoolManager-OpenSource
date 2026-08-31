@@ -12,6 +12,7 @@ type FinanceRealtimeContextValue = {
   status: EmpireRealtimeStatus
   lastUpdate: Date | null
   refreshFinance: () => void
+  recentCashActivity: import('@/types/admin').CashActivityRealtimeItem[]
 }
 
 const FinanceRealtimeContext = createContext<FinanceRealtimeContextValue | null>(null)
@@ -20,6 +21,7 @@ const OFFLINE_FINANCE: FinanceRealtimeContextValue = {
   status: 'offline',
   lastUpdate: null,
   refreshFinance: () => {},
+  recentCashActivity: [],
 }
 
 function FinanceRealtimeBridge({ children }: { children: ReactNode }) {
@@ -28,6 +30,7 @@ function FinanceRealtimeBridge({ children }: { children: ReactNode }) {
     status: empire.status,
     lastUpdate: empire.lastUpdate,
     refreshFinance: empire.refreshFinance,
+    recentCashActivity: empire.recentCashActivity,
   }
   return (
     <FinanceRealtimeContext.Provider value={value}>{children}</FinanceRealtimeContext.Provider>
@@ -56,6 +59,7 @@ export function useFinanceRealtimeStatus() {
       status: empire.status,
       lastUpdate: empire.lastUpdate,
       refreshFinance: empire.refreshFinance,
+      recentCashActivity: empire.recentCashActivity,
     }
   }
   return OFFLINE_FINANCE
