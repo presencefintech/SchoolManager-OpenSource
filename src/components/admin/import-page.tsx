@@ -5,14 +5,17 @@ import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload, CheckCircle2, XCircle, AlertCircle,
-  FileSpreadsheet, RefreshCw, RotateCcw, Building2,
+  FileSpreadsheet, RefreshCw, RotateCcw, Building2, Download,
 } from 'lucide-react'
 import { useImportUpload, useImportStatus } from '@/lib/hooks/use-admin'
+import { importApi } from '@/lib/admin/api'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { queryKeys } from '@/lib/query/keys'
 import type { ImportType } from '@/lib/admin/api'
 import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { triggerBlobDownload } from '@/lib/download-blob'
 
 const IMPORT_TYPES: {
   id: ImportType
@@ -24,30 +27,30 @@ const IMPORT_TYPES: {
   {
     id: 'students',
     label: 'Élèves',
-    desc: 'Importer des élèves avec leurs inscriptions financières',
-    required: ['firstName', 'lastName', 'className', 'totalAmount'],
-    optional: ['gender', 'dateOfBirth', 'paidAmount', 'matricule', 'scholarshipPercent'],
+    desc: 'Liste d’inscription : nom, postnom, prénom, classe',
+    required: ['nom', 'postnom', 'prenom', 'classe'],
+    optional: ['matricule', 'genre', 'dateNaissance', 'montantTotal', 'montantPaye', 'telephoneParent'],
   },
   {
     id: 'parents',
     label: 'Parents',
     desc: 'Associer des parents à des élèves existants',
-    required: ['firstName', 'lastName', 'phone', 'studentMatricule'],
-    optional: ['email', 'relationship', 'isPrimary'],
+    required: ['prenom', 'nom', 'telephone', 'matriculeEleve'],
+    optional: ['email', 'lien'],
   },
   {
     id: 'structure',
     label: 'Structure',
-    desc: 'Créer sections, options et classes',
-    required: ['sectionName', 'optionName', 'className', 'level', 'academicYear'],
-    optional: [],
+    desc: 'Sections, options et classes — à importer en premier',
+    required: ['section', 'classe', 'niveau'],
+    optional: ['option (défaut : Général)', 'anneeScolaire (défaut : année en cours)'],
   },
   {
     id: 'fees',
     label: 'Frais',
-    desc: 'Importer le catalogue de frais scolaires',
-    required: ['categoryName', 'className', 'amount'],
-    optional: ['description'],
+    desc: 'Catalogue des frais scolaires',
+    required: ['categorie', 'montant'],
+    optional: ['classe', 'periodicite', 'description'],
   },
 ]
 
@@ -108,8 +111,7 @@ export function ImportPage() {
         })
         setJobId(res.jobId)
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : 'Erreur lors de l\'envoi'
-        setFileError(msg)
+        setFileError(getApiErrorMessage(err))
       }
     },
     [type, upload, isSuperAdmin, selectedSchoolId],
@@ -138,7 +140,7 @@ export function ImportPage() {
       <div>
         <h1 className="text-2xl font-bold text-zinc-900">Import de données</h1>
         <p className="text-sm text-zinc-500 mt-0.5">
-          Importez des données via fichier Excel (.xlsx) ou CSV — 10 Mo max
+          Préférez le modèle Excel (.xlsx). Un CSV Excel français (point-virgule) est aussi accepté.
         </p>
       </div>
 
@@ -229,6 +231,21 @@ export function ImportPage() {
             </span>
           </p>
         )}
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              const { blob, filename } = await importApi.downloadTemplate(type)
+              triggerBlobDownload(blob, filename)
+            } catch (err) {
+              setFileError(getApiErrorMessage(err))
+            }
+          }}
+          className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 hover:text-emerald-800"
+        >
+          <Download size={13} />
+          Télécharger le modèle Excel ({typeInfo.label})
+        </button>
       </div>
 
       <div

@@ -438,6 +438,28 @@ export function useAcademicSessions() {
   })
 }
 
+export function inferSchoolYearLabel(now = new Date()) {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  return m >= 9 ? `${y}-${y + 1}` : `${y - 1}-${y}`
+}
+
+export function useOpenAcademicSession() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (label?: string) => enrollmentsApi.openSession(label),
+    onSuccess: (session) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments', 'sessions'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'classes'] })
+      toast.success('Année scolaire', `${session.label} est maintenant l’année courante.`)
+    },
+    onError: (err) => {
+      toast.error('Année scolaire', getApiErrorMessage(err))
+    },
+  })
+}
+
 export function useEnrollmentFeePreview(
   classId?: number,
   options?: {
