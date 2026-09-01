@@ -18,7 +18,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { getApiErrorMessage } from '@/lib/api/client'
 import {
   useClasses, useCreateClass, useToggleClassStatus, useRollover,
-  useSections, useOptions, useAcademicSessions,
+  useSections, useOptions, useAcademicSessions, useStaff,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
@@ -60,6 +60,8 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useCreateClass()
   const { data: sections = [] } = useSections()
   const { data: sessions = [] } = useAcademicSessions()
+  const { data: staff = [] } = useStaff()
+  const teachers = staff.filter((m) => m.role === 'TEACHER')
   const [form, setForm] = useState<CreateClassPayload>({
     name: '',
     academicYear: '',
@@ -186,17 +188,19 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 mb-1">ID Professeur</label>
-              <input
-                type="number"
-                min={1}
+              <label className="block text-xs font-medium text-zinc-500 mb-1">Enseignant</label>
+              <select
                 value={form.teacherId ?? ''}
                 onChange={(e) =>
                   setForm((p) => ({ ...p, teacherId: e.target.value ? Number(e.target.value) : undefined }))
                 }
-                placeholder="Optionnel"
                 className={inputCls}
-              />
+              >
+                <option value="">Aucun</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
+                ))}
+              </select>
             </div>
           </div>
           {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
