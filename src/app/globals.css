@@ -3,12 +3,70 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --pf-canvas: 232 236 244;
+    --pf-surface: 255 255 255;
+    --pf-surface-2: 244 244 245;
+    --pf-fg: 24 24 27;
+    --pf-muted: 113 113 122;
+    --pf-border: 228 228 231;
+    --pf-accent: 5 150 105;
+    --pf-accent-soft: 209 250 229;
+    --pf-radius: 0.75rem;
+    color-scheme: light;
+  }
+
+  html.dark {
+    --pf-canvas: 9 9 11;
+    --pf-surface: 24 24 27;
+    --pf-surface-2: 39 39 42;
+    --pf-fg: 244 244 245;
+    --pf-muted: 161 161 170;
+    --pf-border: 63 63 70;
+    --pf-accent-soft: 6 78 59;
+    color-scheme: dark;
+  }
+
+  html[data-accent='emerald'] { --pf-accent: 5 150 105; --pf-accent-soft: 209 250 229; }
+  html.dark[data-accent='emerald'] { --pf-accent-soft: 6 78 59; }
+  html[data-accent='teal'] { --pf-accent: 15 118 110; --pf-accent-soft: 204 251 241; }
+  html.dark[data-accent='teal'] { --pf-accent-soft: 17 94 89; }
+  html[data-accent='navy'] { --pf-accent: 29 78 216; --pf-accent-soft: 219 234 254; }
+  html.dark[data-accent='navy'] { --pf-accent-soft: 30 58 138; }
+  html[data-accent='indigo'] { --pf-accent: 79 70 229; --pf-accent-soft: 224 231 255; }
+  html.dark[data-accent='indigo'] { --pf-accent-soft: 49 46 129; }
+  html[data-accent='violet'] { --pf-accent: 124 58 237; --pf-accent-soft: 237 233 254; }
+  html.dark[data-accent='violet'] { --pf-accent-soft: 76 29 149; }
+  html[data-accent='amber'] { --pf-accent: 217 119 6; --pf-accent-soft: 254 243 199; }
+  html.dark[data-accent='amber'] { --pf-accent-soft: 120 53 15; }
+  html[data-accent='copper'] { --pf-accent: 194 65 12; --pf-accent-soft: 255 237 213; }
+  html.dark[data-accent='copper'] { --pf-accent-soft: 124 45 18; }
+  html[data-accent='rose'] { --pf-accent: 225 29 72; --pf-accent-soft: 255 228 230; }
+  html.dark[data-accent='rose'] { --pf-accent-soft: 136 19 55; }
+  html[data-accent='slate'] { --pf-accent: 71 85 105; --pf-accent-soft: 226 232 240; }
+  html.dark[data-accent='slate'] { --pf-accent-soft: 51 65 85; }
+
+  html[data-radius='soft'] { --pf-radius: 1.15rem; }
+  html[data-radius='rounded'] { --pf-radius: 0.75rem; }
+  html[data-radius='sharp'] { --pf-radius: 0.3rem; }
+
+  html[data-contrast='high'] {
+    --pf-fg: 9 9 11;
+    --pf-muted: 63 63 70;
+    --pf-border: 161 161 170;
+  }
+  html.dark[data-contrast='high'] {
+    --pf-fg: 250 250 250;
+    --pf-muted: 212 212 216;
+    --pf-border: 113 113 122;
+  }
+
   *, *::before, *::after {
     box-sizing: border-box;
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply antialiased bg-canvas text-ink;
   }
 
   ::-webkit-scrollbar {
@@ -20,7 +78,134 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-200 rounded-full;
+    background: rgb(var(--pf-border));
+    border-radius: 9999px;
+  }
+}
+
+/* Pages encore en zinc/slate : le sombre reste cohérent sans tout réécrire. */
+html.dark .bg-white {
+  background-color: rgb(var(--pf-surface)) !important;
+}
+html.dark .bg-zinc-50,
+html.dark .bg-slate-50,
+html.dark .bg-\[\#e8ecf4\],
+html.dark .bg-\[\#f5f7fb\],
+html.dark .bg-\[\#f4f6fa\] {
+  background-color: rgb(var(--pf-canvas)) !important;
+}
+html.dark .bg-zinc-100,
+html.dark .bg-slate-100,
+html.dark .bg-zinc-50\/70,
+html.dark .bg-slate-50\/80 {
+  background-color: rgb(var(--pf-surface-2)) !important;
+}
+html.dark .text-zinc-900,
+html.dark .text-slate-900,
+html.dark .text-zinc-800,
+html.dark .text-zinc-700,
+html.dark .text-slate-800 {
+  color: rgb(var(--pf-fg)) !important;
+}
+html.dark .text-zinc-600,
+html.dark .text-zinc-500,
+html.dark .text-zinc-400,
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: rgb(var(--pf-muted)) !important;
+}
+html.dark .border-zinc-200,
+html.dark .border-zinc-100,
+html.dark .border-zinc-200\/80,
+html.dark .border-zinc-100\/80,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/90,
+html.dark .border-slate-100,
+html.dark .border-slate-200\/70 {
+  border-color: rgb(var(--pf-border)) !important;
+}
+html.dark .ring-zinc-200,
+html.dark .ring-zinc-100,
+html.dark .ring-slate-200 {
+  --tw-ring-color: rgb(var(--pf-border));
+}
+html.dark .shadow-sm,
+html.dark .shadow-xl,
+html.dark .shadow-lg {
+  --tw-shadow-color: rgb(0 0 0 / 0.45);
+}
+html.dark input:not([type='checkbox']):not([type='radio']),
+html.dark select,
+html.dark textarea {
+  background-color: rgb(var(--pf-surface));
+  color: rgb(var(--pf-fg));
+  border-color: rgb(var(--pf-border));
+}
+
+.bg-brand-soft {
+  background-color: rgb(var(--pf-accent-soft));
+}
+
+::selection {
+  background: rgb(var(--pf-accent) / 0.28);
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--pf-accent));
+  outline-offset: 2px;
+}
+
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-density='compact'] aside nav a,
+html[data-density='compact'] aside nav button {
+  padding-top: 0.28rem !important;
+  padding-bottom: 0.28rem !important;
+}
+
+html[data-sidebar='tinted'] aside {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--pf-accent-soft) / 0.65) 0%,
+    rgb(var(--pf-surface)) 42%
+  ) !important;
+}
+
+.rounded-xl,
+.rounded-2xl,
+.rounded-3xl,
+.rounded-lg {
+  border-radius: var(--pf-radius) !important;
+}
+
+aside .bg-emerald-50,
+aside .bg-indigo-50 {
+  background-color: rgb(var(--pf-accent-soft)) !important;
+}
+aside .text-emerald-700,
+aside .text-emerald-600,
+aside .text-indigo-700,
+aside .text-indigo-600 {
+  color: rgb(var(--pf-accent)) !important;
+}
+
+html.dark .hover\:bg-zinc-50:hover,
+html.dark .hover\:bg-slate-50:hover {
+  background-color: rgb(var(--pf-surface-2)) !important;
+}
+
+@media print {
+  html.dark body {
+    background: white !important;
+    color: black !important;
   }
 }
 

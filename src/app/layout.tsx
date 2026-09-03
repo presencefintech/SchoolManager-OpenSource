@@ -4,10 +4,12 @@ import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/providers/query-provider'
 import { AuthProvider } from '@/providers/auth-provider'
 import { ToastProvider } from '@/providers/toast-provider'
+import { ThemeProvider } from '@/providers/theme-provider'
 import { SecurityEventListener } from '@/components/auth/security-event-listener'
 import { OfflineBanner } from '@/components/layout/offline-banner'
 import { SentryClientInit } from '@/components/observability/sentry-client-init'
 import { ForcePasswordChangeGate } from '@/components/auth/force-password-change-gate'
+import { THEME_BOOT_SCRIPT } from '@/lib/theme/preferences'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -28,19 +30,24 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className={inter.className}>
-        <QueryProvider>
-          <AuthProvider>
-            <ToastProvider>
-              <SentryClientInit />
-              <ForcePasswordChangeGate />
-              <OfflineBanner />
-              <SecurityEventListener />
-              {children}
-            </ToastProvider>
-          </AuthProvider>
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <ToastProvider>
+                <SentryClientInit />
+                <ForcePasswordChangeGate />
+                <OfflineBanner />
+                <SecurityEventListener />
+                {children}
+              </ToastProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
         <Analytics />
       </body>
     </html>

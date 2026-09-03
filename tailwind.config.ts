@@ -9,7 +9,16 @@ const config: Config = {
     './src/providers/**/*.{ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        canvas: 'rgb(var(--pf-canvas) / <alpha-value>)',
+        surface: 'rgb(var(--pf-surface) / <alpha-value>)',
+        ink: 'rgb(var(--pf-fg) / <alpha-value>)',
+        muted: 'rgb(var(--pf-muted) / <alpha-value>)',
+        line: 'rgb(var(--pf-border) / <alpha-value>)',
+        brand: 'rgb(var(--pf-accent) / <alpha-value>)',
+      },
+    },
   },
   plugins: [],
 }

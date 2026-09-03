@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
 import type { UserRole } from '@/types/auth'
@@ -321,7 +322,11 @@ export function AdminNav() {
         ))}
       </nav>
 
-      <div className="px-3 pb-3 flex-shrink-0 border-t border-zinc-100 pt-2.5">
+      <div className="px-3 pb-3 flex-shrink-0 border-t border-zinc-100 pt-2.5 space-y-1">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 px-1">Thème</span>
+          <ThemePicker compact />
+        </div>
         <Link
           href="/admin/profil-securite"
           className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-zinc-50 transition-colors group"

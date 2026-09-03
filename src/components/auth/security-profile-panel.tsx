@@ -23,6 +23,7 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { evaluateStaffPassword, staffPasswordField } from '@/lib/auth/password-policy'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/toast-provider'
+import { ThemeStudio } from '@/components/theme/theme-studio'
 
 const changePasswordSchema = z
   .object({
@@ -105,9 +106,11 @@ export function SecurityProfilePanel() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Profil &amp; sécurité</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Gérez votre identité, la vérification email et votre mot de passe.
+          Gérez l&apos;apparence, votre identité, la vérification email et votre mot de passe.
         </p>
       </motion.div>
+
+      <ThemeStudio />
 
       {/* Identité */}
       <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
