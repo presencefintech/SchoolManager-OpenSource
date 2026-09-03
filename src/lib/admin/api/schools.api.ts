@@ -49,4 +49,50 @@ export const schoolsApi = {
     >,
   ) =>
     apiClient.put('/admin/schools/branding', payload).then(r => r.data.data as SchoolBranding),
+
+  getStaffAccess: () =>
+    apiClient.get('/admin/schools/staff-access').then(
+      (r) =>
+        r.data.data as {
+          policy: StaffAccessPolicy
+          defaults: StaffAccessPolicy
+          configurableRoles: Array<keyof StaffAccessPolicy>
+          catalog: StaffAccessCatalogItem[]
+        },
+    ),
+
+  updateStaffAccess: (payload: Partial<StaffAccessPolicy>) =>
+    apiClient
+      .put('/admin/schools/staff-access', payload)
+      .then((r) => r.data.data as { policy: StaffAccessPolicy }),
+
+  getMyStaffAccess: () =>
+    apiClient.get('/admin/schools/staff-access/me').then(
+      (r) =>
+        r.data.data as {
+          role: string
+          caps: StaffRoleCapabilities & { locked: boolean }
+        },
+    ),
+}
+
+export type StaffRoleCapabilities = {
+  seeFinanceAmounts: boolean
+  seePaymentHistory: boolean
+  seeParentContacts: boolean
+  exportLists: boolean
+  accessFinanceRead: boolean
+  manageEnrollments: boolean
+}
+
+export type StaffAccessPolicy = {
+  IT: StaffRoleCapabilities
+  DIRECTOR: StaffRoleCapabilities
+  TEACHER: StaffRoleCapabilities
+}
+
+export type StaffAccessCatalogItem = {
+  key: keyof StaffRoleCapabilities
+  label: string
+  hint: string
 }

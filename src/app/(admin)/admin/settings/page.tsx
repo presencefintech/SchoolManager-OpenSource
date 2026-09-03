@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Save, RefreshCw } from 'lucide-react'
 import { SchoolBrandingSettings } from '@/components/admin/settings/SchoolBrandingSettings'
 import { FinanceCurrencySettings } from '@/components/admin/settings/FinanceCurrencySettings'
+import { StaffAccessSettings } from '@/components/admin/settings/StaffAccessSettings'
 import { useAttendanceSettings, useUpdateAttendanceSettings } from '@/lib/hooks/use-admin'
 import {
   buildPatch,
@@ -181,7 +182,9 @@ export default function SettingsPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Paramètres école</h1>
-        <p className="text-sm text-zinc-500 mt-0.5">Identité, pointage, horaires et notifications présence</p>
+        <p className="text-sm text-zinc-500 mt-0.5">
+          Identité, accès staff, pointage, horaires et notifications présence
+        </p>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -202,6 +205,14 @@ export default function SettingsPage() {
           <FinanceCurrencySettings />
         </motion.div>
       </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.07 }}
+      >
+        <StaffAccessSettings />
+      </motion.div>
 
       {isLoading || !form ? (
         <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
