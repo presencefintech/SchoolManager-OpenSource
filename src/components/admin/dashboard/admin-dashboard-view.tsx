@@ -228,7 +228,7 @@ export function AdminDashboardView() {
   const loadingClasses = authLoading || classesPending
 
   const attendanceRate = stats?.attendanceRate ?? 0
-  const weeklyTrend = stats?.weeklyTrend ?? []
+  const weeklyTrend = useMemo(() => stats?.weeklyTrend ?? [], [stats])
 
   const rateDelta = useMemo(() => {
     if (weeklyTrend.length < 2) return undefined

@@ -224,7 +224,7 @@ export default function SecurityPage() {
           {!contextReady && (
             <p className="text-xs text-zinc-400 mt-3 flex items-center gap-1.5">
               <AlertCircle size={12} />
-              Sélectionnez un établissement et saisissez l'ID de l'élève pour activer les actions
+              Sélectionnez un établissement et saisissez l&apos;ID de l&apos;élève pour activer les actions
             </p>
           )}
           {contextReady && (
@@ -262,7 +262,7 @@ export default function SecurityPage() {
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-40 transition-colors"
               >
                 {suspendLoading ? <Loader2 size={14} className="animate-spin" /> : <ShieldOff size={14} />}
-                Suspendre l'élève
+                Suspendre l&apos;élève
               </button>
               <Feedback state={suspendFeedback} />
             </div>
@@ -278,7 +278,7 @@ export default function SecurityPage() {
               )}>
                 <p className="text-sm text-zinc-600">
                   {contextReady
-                    ? <>Réactivation de l'élève <span className="font-semibold">#{studentId}</span></>
+                    ? <>Réactivation de l&apos;élève <span className="font-semibold">#{studentId}</span></>
                     : 'Sélectionnez un élève cible ci-dessus'
                   }
                 </p>
@@ -388,7 +388,7 @@ export default function SecurityPage() {
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-40 transition-colors"
               >
                 {piiLoading ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />}
-                Enregistrer l'accès PII
+                Enregistrer l&apos;accès PII
               </button>
               <Feedback state={piiFeedback} />
             </div>
@@ -466,7 +466,7 @@ export default function SecurityPage() {
                 />
               </div>
               <div>
-                <label className={LABEL_CLS}>Taux d'absence maximum (0–1)</label>
+                <label className={LABEL_CLS}>Taux d&apos;absence maximum (0–1)</label>
                 <input
                   type="number" min={0} max={1} step={0.01}
                   value={thresholdForm.absenceRateMax}
