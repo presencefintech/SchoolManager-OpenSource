@@ -1,4 +1,5 @@
 export type PaymentFeeLine = {
+  id?: number
   feeStructureId?: number
   feeLabel: string
   categoryName: string
@@ -7,6 +8,8 @@ export type PaymentFeeLine = {
   monthYear: string | null
   amount: number
   isMonthly: boolean
+  reversedAt?: string | null
+  reversalReason?: string | null
 }
 
 export type StudentPaymentDetail = {
@@ -41,6 +44,7 @@ function normalizeFeeLine(row: unknown): PaymentFeeLine | null {
   if (!row || typeof row !== 'object') return null
   const r = row as Record<string, unknown>
   return {
+    id: r.id != null ? Number(r.id) : undefined,
     feeStructureId: r.feeStructureId != null ? Number(r.feeStructureId) : undefined,
     feeLabel: String(r.feeLabel ?? 'Frais scolaires'),
     categoryName: String(r.categoryName ?? ''),
@@ -49,6 +53,8 @@ function normalizeFeeLine(row: unknown): PaymentFeeLine | null {
     monthYear: (r.monthYear as string | null) ?? null,
     amount: Number(r.amount ?? 0),
     isMonthly: Boolean(r.isMonthly),
+    reversedAt: (r.reversedAt as string | null) ?? null,
+    reversalReason: (r.reversalReason as string | null) ?? null,
   }
 }
 

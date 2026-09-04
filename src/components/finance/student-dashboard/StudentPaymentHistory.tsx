@@ -10,6 +10,7 @@ import {
 import { useAdminStudentPaymentsDetailed } from '@/lib/hooks/use-admin'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { PrintReceiptButton } from '@/components/finance/student-dashboard/receipts/PrintReceiptButton'
+import { CorrectLastMonthButton } from '@/components/finance/student-dashboard/CorrectLastMonthButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { StudentPaymentDetail } from '@/lib/finance/payment-history.utils'
@@ -198,10 +199,21 @@ export function StudentPaymentHistory({
                     ) : null}
                   </div>
                   <p className="mt-1 truncate text-xs text-zinc-600">{p.feeSummary}</p>
-                  {p.fees.length > 1 ? (
-                    <p className="mt-0.5 text-[10px] text-zinc-400">
-                      {p.fees.length} lignes ventilées
-                    </p>
+                  {p.fees.length > 0 ? (
+                    <ul className="mt-1 space-y-0.5">
+                      {p.fees.map((f, idx) => (
+                        <li
+                          key={f.id ?? `${f.feeStructureId}-${f.monthYear}-${idx}`}
+                          className={cn(
+                            'text-[10px] text-zinc-400',
+                            f.reversedAt && 'line-through text-zinc-300',
+                          )}
+                        >
+                          {f.feeLabel}
+                          {f.reversedAt ? ' (annulé)' : ''}
+                        </li>
+                      ))}
+                    </ul>
                   ) : null}
                   {dateLabel ? (
                     <p className="mt-1 text-[10px] text-zinc-400">
@@ -219,7 +231,12 @@ export function StudentPaymentHistory({
                   <span className="text-sm font-semibold text-emerald-700 tabular-nums">
                     {formatMoney(Number(p.amount), currency)}
                   </span>
-                  {p.status === 'CONFIRMED' ? <PrintReceiptButton paymentId={p.id} /> : null}
+                  <div className="flex items-center gap-2">
+                    {api === 'finance' && p.status === 'CONFIRMED' ? (
+                      <CorrectLastMonthButton payment={p} onDone={() => void refetch()} />
+                    ) : null}
+                    {p.status === 'CONFIRMED' ? <PrintReceiptButton paymentId={p.id} /> : null}
+                  </div>
                 </div>
               </div>
             )
