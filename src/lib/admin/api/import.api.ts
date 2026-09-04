@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client'
-import { getAuthSchoolId } from '@/lib/api/auth-storage'
+import { parseContentDispositionFilename, readBlobErrorMessage } from '@/lib/download-blob'
 
 export type ImportType = 'students' | 'parents' | 'structure' | 'fees'
 
@@ -17,9 +17,6 @@ export interface ImportJobResult {
   fileName: string
 }
 
-/**
- * Upload via fetch natif — cookies HttpOnly (credentials) ; pas de Bearer factice.
- */
 export const importApi = {
   upload: async (
     type: ImportType,
@@ -28,35 +25,24 @@ export const importApi = {
   ): Promise<{ jobId: string; type: ImportType; totalRows: number; fileName: string }> => {
     const fd = new FormData()
     fd.append('file', file)
-
-    const headers: Record<string, string> = {}
-    const storageSchoolId = getAuthSchoolId()
-    if (storageSchoolId) headers['x-school-id'] = storageSchoolId
-
-    const url = schoolId
-      ? `/api/v1/admin/import/${type}?schoolId=${schoolId}`
-      : `/api/v1/admin/import/${type}`
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: fd,
-      credentials: 'include',
+    const r = await apiClient.post(`/admin/import/${type}`, fd, {
+      params: schoolId ? { schoolId } : undefined,
+      timeout: 120_000,
     })
+    return r.data.data
+  },
 
-    if (!res.ok) {
-      let msg = `Erreur ${res.status}`
-      try {
-        const json = await res.json()
-        msg = json?.message ?? json?.error ?? msg
-      } catch {
-        /* ignore */
-      }
-      throw new Error(msg)
+  downloadTemplate: async (type: ImportType): Promise<{ blob: Blob; filename: string }> => {
+    const res = await apiClient.get(`/admin/import/templates/${type}`, { responseType: 'blob' })
+    const ct = String(res.headers['content-type'] ?? '')
+    if (ct.includes('application/json') || ct.includes('text/plain')) {
+      throw new Error(await readBlobErrorMessage(res.data as Blob))
     }
-
-    const json = await res.json()
-    return json.data
+    const filename = parseContentDispositionFilename(
+      res.headers['content-disposition'] as string | undefined,
+      `modele-${type}.xlsx`,
+    )
+    return { blob: res.data as Blob, filename }
   },
 
   getStatus: (jobId: string): Promise<ImportJobResult> =>

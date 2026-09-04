@@ -7,17 +7,15 @@ export function exportRowsToCsv(
   const headers = Object.keys(rows[0])
   const escape = (v: string | number | null | undefined) => {
     const s = String(v ?? '')
-    return s.includes(',') || s.includes('"') || s.includes('\n')
-      ? `"${s.replace(/"/g, '""')}"`
-      : s
+    return /[";,\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
 
   const lines = [
-    headers.join(','),
-    ...rows.map((row) => headers.map((h) => escape(row[h])).join(',')),
+    headers.join(';'),
+    ...rows.map((row) => headers.map((h) => escape(row[h])).join(';')),
   ]
 
-  const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+  const blob = new Blob([`\uFEFF${lines.join('\r\n')}\r\n`], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url

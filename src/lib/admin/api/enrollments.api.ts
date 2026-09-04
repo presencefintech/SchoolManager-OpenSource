@@ -151,6 +151,11 @@ export const enrollmentsApi = {
     apiClient.get<{ success: boolean; data: Array<{ id: number; label: string; isCurrent: boolean; status: string }> }>('/admin/enrollments/sessions')
       .then((r) => r.data.data ?? []),
 
+  openSession: (label?: string) =>
+    apiClient
+      .post<{ success: boolean; data: { id: number; label: string } }>('/admin/enrollments/sessions', label ? { label } : {})
+      .then((r) => r.data.data),
+
   getFeePreview: (params: {
     classId: number
     sessionId?: number

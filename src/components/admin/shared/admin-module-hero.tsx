@@ -24,8 +24,8 @@ function HeroMetricCell({ label, value, loading, valueClassName, icon: Icon }: A
   return (
     <div className="flex flex-col justify-center gap-2 px-5 sm:px-6 py-5 min-w-0 border-t sm:border-t-0 sm:border-l border-white/10 sm:first:border-l-0">
       <div className="flex items-center gap-2">
-        {Icon ? <Icon size={14} className="text-emerald-300/80 flex-shrink-0" /> : null}
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-100/70 truncate">{label}</p>
+        {Icon ? <Icon size={14} className="text-white/70 flex-shrink-0" /> : null}
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-white/55 truncate">{label}</p>
       </div>
       <p className={cn('text-3xl sm:text-4xl font-bold tabular-nums leading-none', valueClassName ?? 'text-white')}>
         {loading ? (
@@ -48,14 +48,20 @@ export function AdminModuleHero({
   quickLinks,
 }: AdminModuleHeroProps) {
   return (
-    <div className="relative w-full overflow-hidden bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(16,185,129,0.22),_transparent_55%)]" />
+    <div className="relative w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white shadow-[0_4px_24px_rgba(0,0,0,0.15)]">
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at top right, rgb(var(--pf-accent) / 0.28), transparent 55%)',
+        }}
+      />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(15,23,42,0.4),_transparent_50%)]" />
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-6 pb-0">
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5 pb-5">
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-emerald-300/90">{eyebrow}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/70">{eyebrow}</p>
             <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight mt-1.5">{title}</h1>
             {subtitle && <p className="text-sm text-emerald-100/60 mt-1">{subtitle}</p>}
           </div>

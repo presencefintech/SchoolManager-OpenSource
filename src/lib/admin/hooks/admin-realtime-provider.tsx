@@ -19,6 +19,7 @@ export function useAdminRealtimeStatus() {
     recentActivity: empire.recentActivity,
     recentPayments: empire.recentPayments,
     recentEnrollments: empire.recentEnrollments,
+    recentCashActivity: empire.recentCashActivity,
     refreshAttendance: empire.refreshAttendance,
   }
 }

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, ChevronRight,
-  GraduationCap, LayoutGrid, ArrowRight, Download,
+  GraduationCap, LayoutGrid, ArrowRight, Download, CalendarPlus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
@@ -18,7 +18,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { getApiErrorMessage } from '@/lib/api/client'
 import {
   useClasses, useCreateClass, useToggleClassStatus, useRollover,
-  useSections, useOptions, useAcademicSessions, useStaff,
+  useSections, useOptions, useAcademicSessions, useOpenAcademicSession, inferSchoolYearLabel,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
@@ -319,6 +319,9 @@ export default function ClassesPage() {
   const sectionIdForOptions = filterDraft.sectionId ? Number(filterDraft.sectionId) : undefined
   const { data: options = [] } = useOptions(sectionIdForOptions)
   const { data: sessions = [] } = useAcademicSessions()
+  const { mutateAsync: openYear, isPending: openingYear } = useOpenAcademicSession()
+  const nextYearLabel = inferSchoolYearLabel()
+  const currentSession = sessions.find((s) => s.isCurrent)
 
   const apiParams = useMemo(
     () => ({
@@ -394,7 +397,7 @@ export default function ClassesPage() {
       <AdminModuleHero
         eyebrow="Structure scolaire"
         title="Classes"
-        subtitle={`${classes.length} classe${classes.length !== 1 ? 's' : ''} · ${active} active${active !== 1 ? 's' : ''}`}
+        subtitle={`${classes.length} classe${classes.length !== 1 ? 's' : ''} · ${active} active${active !== 1 ? 's' : ''}${currentSession ? ` · ${currentSession.label}` : ' · aucune année ouverte'}`}
         actions={
           <>
             <button
@@ -407,6 +410,17 @@ export default function ClassesPage() {
             </button>
             {!deskOnly && (
               <>
+            {currentSession?.label !== nextYearLabel && (
+            <button
+              type="button"
+              disabled={openingYear}
+              onClick={() => openYear(nextYearLabel)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/30 hover:bg-sky-500/30 transition-colors disabled:opacity-50"
+            >
+              <CalendarPlus size={14} />
+              {openingYear ? 'Ouverture…' : `Ouvrir ${nextYearLabel}`}
+            </button>
+            )}
             <button
               type="button"
               onClick={() => setShowRollover(true)}

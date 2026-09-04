@@ -77,7 +77,11 @@ export function isItDesk(role?: UserRole | null): boolean {
   return role === 'IT'
 }
 
-/** Field-level security : montants ledger = ADMIN / FINANCE / SUPER_ADMIN uniquement. */
-export function canSeeFinanceAmounts(role?: UserRole | null): boolean {
-  return role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE'
+/** Field-level security : montants ledger = ADMIN / FINANCE / SUPER_ADMIN, ou capacité école. */
+export function canSeeFinanceAmounts(
+  role?: UserRole | null,
+  schoolAllow?: boolean | null,
+): boolean {
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE') return true
+  return schoolAllow === true
 }

@@ -23,12 +23,12 @@ import {
   type SchoolNetworkMember,
   type SchoolNetworkOverview,
 } from '@/lib/superAdmin/api/school-network.api'
+import type { NetworkOpsBriefing, NetworkTreasuryLive } from '@/types/finance'
+import { NetworkOpsBriefingPanel } from '@/components/finance/network-ops-briefing-panel'
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
-function money(amount: number, currency = 'USD') {
-  return `${amount.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} ${currency}`
-}
+import { formatMoney } from '@/lib/finance/currency'
 
 export default function SchoolNetworksPage() {
   const qc = useQueryClient()
@@ -44,6 +44,8 @@ export default function SchoolNetworksPage() {
     void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks'] })
     void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks', 'schools'] })
     void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks', 'overview'] })
+    void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks', 'treasury'] })
+    void qc.invalidateQueries({ queryKey: ['superadmin', 'school-networks', 'ops-briefing'] })
   }
 
   const { data: groups = [], isLoading, isError, refetch } = useQuery({
@@ -61,6 +63,22 @@ export default function SchoolNetworksPage() {
     queryKey: ['superadmin', 'school-networks', 'overview', overviewGroupId],
     queryFn: () => schoolNetworkApi.getOverview(overviewGroupId!),
     enabled: overviewGroupId != null,
+  })
+
+  const { data: treasury } = useQuery({
+    queryKey: ['superadmin', 'school-networks', 'treasury', overviewGroupId],
+    queryFn: () => schoolNetworkApi.getTreasury(overviewGroupId!),
+    enabled: overviewGroupId != null,
+    staleTime: 15_000,
+    refetchInterval: 20_000,
+  })
+
+  const { data: briefing } = useQuery({
+    queryKey: ['superadmin', 'school-networks', 'ops-briefing', overviewGroupId],
+    queryFn: () => schoolNetworkApi.getOpsBriefing(overviewGroupId!),
+    enabled: overviewGroupId != null,
+    staleTime: 20_000,
+    refetchInterval: 30_000,
   })
 
   const createGroup = useMutation({
@@ -146,8 +164,9 @@ export default function SchoolNetworksPage() {
           </p>
           <h1 className="text-2xl font-bold text-slate-900 mt-1">Cockpit réseaux</h1>
           <p className="text-sm text-slate-500 mt-1 max-w-2xl">
-            Santé des groupes multi-sites, caisses hub, comptes FINANCE et clearing cross-site
-            (30 jours).
+            Rattachez plusieurs écoles à un groupe pour vendre un logiciel unique. Le promoteur
+            (ADMIN) voit la trésorerie du réseau en direct dans Admin → Console groupe ; chaque
+            caissier reste isolé sur son établissement.
           </p>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 min-w-[280px]">
@@ -158,7 +177,7 @@ export default function SchoolNetworksPage() {
           <StatChip label="Élèves" value={String(totals.students)} />
           <StatChip
             label="Cross 30j"
-            value={money(totals.cross30)}
+            value={formatMoney(totals.cross30)}
             hint={`${totals.crossCount} paiements`}
             tone="amber"
           />
@@ -266,6 +285,8 @@ export default function SchoolNetworksPage() {
           groups={groups}
           selectedId={overviewGroupId}
           onSelect={setSelectedGroupId}
+          treasury={treasury}
+          briefing={briefing}
         />
       ) : null}
 
@@ -390,12 +411,16 @@ function OwnerOverviewPanel({
   groups,
   selectedId,
   onSelect,
+  treasury,
+  briefing,
 }: {
   overview?: SchoolNetworkOverview
   loading: boolean
   groups: SchoolNetworkGroup[]
   selectedId: number
   onSelect: (id: number) => void
+  treasury?: NetworkTreasuryLive
+  briefing?: NetworkOpsBriefing
 }) {
   const clearing = overview?.clearing30d
   const currency = clearing?.currency ?? overview?.group.crossSiteLast30d.currency ?? 'USD'
@@ -405,10 +430,10 @@ function OwnerOverviewPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold text-indigo-950 flex items-center gap-2">
-            <Wallet size={16} /> Vue propriétaire — 30 jours
+            <Wallet size={16} /> Vue propriétaire
           </h2>
           <p className="text-xs text-indigo-800/70 mt-0.5">
-            Clearing hub et comptes FINANCE du réseau sélectionné
+            Trésorerie du jour (groupe sélectionné uniquement) · clearing 30 jours · caissiers hub
           </p>
         </div>
         <select
@@ -424,6 +449,122 @@ function OwnerOverviewPanel({
         </select>
       </div>
 
+      {briefing ? <NetworkOpsBriefingPanel briefing={briefing} linkable={false} /> : null}
+
+      {treasury ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-900 text-white px-4 py-3 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Direct · {treasury.groupName ?? 'Groupe'}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              Isolation : ce groupe seulement, jamais les autres clients
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <MiniKpiDark
+              label="Encaissé jour"
+              value={formatMoney(treasury.totals.collectedToday, currency)}
+              hint={
+                treasury.totals.vsYesterdayPct != null
+                  ? `${treasury.totals.vsYesterdayPct >= 0 ? '+' : ''}${treasury.totals.vsYesterdayPct}% vs hier · ${treasury.totals.paymentCountToday} px`
+                  : `${treasury.totals.paymentCountToday} paiement(s)`
+              }
+            />
+            <MiniKpiDark
+              label="Reste à payer"
+              value={formatMoney(treasury.totals.feesBalance, currency)}
+              hint={`${treasury.totals.debtorCount} débiteur(s)`}
+            />
+            <MiniKpiDark
+              label="Santé / recouvrement"
+              value={`${treasury.totals.healthScore ?? '—'} · ${treasury.totals.collectionRate}%`}
+              hint={`Présence ${treasury.totals.attendanceRate ?? 0}% · mobile ${treasury.totals.digitalSharePct ?? 0}%`}
+            />
+            <MiniKpiDark
+              label="7 jours / SMS"
+              value={formatMoney(treasury.totals.collected7d ?? 0, currency)}
+              hint={`${treasury.totals.sitesOpen}/${treasury.totals.siteCount} caisses · ${treasury.totals.pendingSms} SMS${treasury.totals.oldestPendingSmsMinutes != null && treasury.totals.pendingSms > 0 ? ` · ${treasury.totals.oldestPendingSmsMinutes} min` : ''}`}
+            />
+          </div>
+          {treasury.totals.focusSchoolName ? (
+            <p className="text-[11px] text-amber-200">
+              Campus à suivre : {treasury.totals.focusSchoolName}
+            </p>
+          ) : null}
+          {treasury.leaders?.topCollector || treasury.leaders?.weakestRate ? (
+            <p className="text-[11px] text-slate-300">
+              Meilleur encaissement : {treasury.leaders.topCollector?.schoolName ?? '—'}
+              {treasury.leaders.weakestRate
+                ? ` · Recouvrement le plus faible : ${treasury.leaders.weakestRate.schoolName} (${treasury.leaders.weakestRate.value}%)`
+                : ''}
+            </p>
+          ) : null}
+          {treasury.sites.length > 0 ? (
+            <ul className="divide-y divide-white/10 rounded-lg border border-white/10 overflow-hidden">
+              {treasury.sites.map((site) => (
+                <li
+                  key={site.id}
+                  className="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">
+                      {site.name}
+                      {site.isPaymentHub ? (
+                        <span className="ml-2 text-[10px] uppercase text-amber-300">Hub</span>
+                      ) : null}
+                      {site.healthScore != null ? (
+                        <span className="ml-2 text-[10px] text-slate-400">santé {site.healthScore}</span>
+                      ) : null}
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      {site.sessionOpen ? 'Caisse ouverte' : 'Fermée'}
+                      {site.cashierName ? ` · ${site.cashierName}` : ''}
+                      {site.attendanceRate != null ? ` · présence ${site.attendanceRate}%` : ''}
+                      {site.pendingSms ? ` · ${site.pendingSms} SMS` : ''}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="tabular-nums font-semibold">
+                      {formatMoney(site.collectedToday, currency)}
+                      {site.vsYesterdayPct != null ? (
+                        <span
+                          className={cn(
+                            'ml-2 text-[10px] font-medium',
+                            site.vsYesterdayPct >= 0 ? 'text-emerald-300' : 'text-red-300',
+                          )}
+                        >
+                          {site.vsYesterdayPct >= 0 ? '+' : ''}
+                          {site.vsYesterdayPct}%
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="text-[11px] text-slate-400 tabular-nums">
+                      reste {formatMoney(site.feesBalance, currency)} · {site.collectionRate}%
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-slate-400">Aucun campus actif dans ce groupe.</p>
+          )}
+          {treasury.alerts.slice(0, 5).map((alert, i) => (
+            <p
+              key={`${alert.code}-${alert.schoolId ?? 'g'}-${i}`}
+              className={cn(
+                'text-[11px] rounded-lg px-3 py-1.5',
+                alert.severity === 'critical' && 'bg-red-500/20 text-red-100',
+                alert.severity === 'warn' && 'bg-amber-500/20 text-amber-100',
+                alert.severity === 'info' && 'bg-white/10 text-slate-200',
+              )}
+            >
+              {alert.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
       {loading || !overview ? (
         <p className="text-sm text-indigo-400 animate-pulse">Chargement overview…</p>
       ) : (
@@ -431,12 +572,12 @@ function OwnerOverviewPanel({
           <div className="grid gap-3 sm:grid-cols-3">
             <MiniKpi
               label="Local (hub)"
-              value={money(clearing?.localCollected.amount ?? 0, currency)}
+              value={formatMoney(clearing?.localCollected.amount ?? 0, currency)}
               hint={`${clearing?.localCollected.count ?? 0} paiements`}
             />
             <MiniKpi
               label="Cross-site"
-              value={money(clearing?.crossSiteTotal.amount ?? 0, currency)}
+              value={formatMoney(clearing?.crossSiteTotal.amount ?? 0, currency)}
               hint={`${clearing?.crossSiteTotal.count ?? 0} paiements`}
               tone="amber"
             />
@@ -464,7 +605,7 @@ function OwnerOverviewPanel({
                   >
                     <span className="font-medium text-slate-800">{p.enrollmentSchoolName}</span>
                     <span className="tabular-nums text-slate-700">
-                      {money(p.amountDueToCampus, currency)}
+                      {formatMoney(p.amountDueToCampus, currency)}
                       <span className="text-xs text-slate-400 ml-2">
                         {p.paymentCount} paiement(s)
                       </span>
@@ -507,6 +648,24 @@ function OwnerOverviewPanel({
         </>
       )}
     </section>
+  )
+}
+
+function MiniKpiDark({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint?: string
+}) {
+  return (
+    <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">{label}</p>
+      <p className="text-sm font-bold tabular-nums mt-0.5">{value}</p>
+      {hint ? <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{hint}</p> : null}
+    </div>
   )
 }
 
@@ -675,7 +834,7 @@ function GroupCard({
             </span>
           )}
           <span className="text-[11px] tabular-nums text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full">
-            Cross 30j : {money(group.crossSiteLast30d.amount, group.crossSiteLast30d.currency)}
+            Cross 30j : {formatMoney(group.crossSiteLast30d.amount, group.crossSiteLast30d.currency)}
           </span>
           <button
             type="button"

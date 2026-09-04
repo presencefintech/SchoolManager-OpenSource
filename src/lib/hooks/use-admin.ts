@@ -438,6 +438,28 @@ export function useAcademicSessions() {
   })
 }
 
+export function inferSchoolYearLabel(now = new Date()) {
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  return m >= 9 ? `${y}-${y + 1}` : `${y - 1}-${y}`
+}
+
+export function useOpenAcademicSession() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (label?: string) => enrollmentsApi.openSession(label),
+    onSuccess: (session) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'enrollments', 'sessions'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'classes'] })
+      toast.success('Année scolaire', `${session.label} est maintenant l’année courante.`)
+    },
+    onError: (err) => {
+      toast.error('Année scolaire', getApiErrorMessage(err))
+    },
+  })
+}
+
 export function useEnrollmentFeePreview(
   classId?: number,
   options?: {
@@ -1902,6 +1924,7 @@ export function useCreateExchangeRate() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'exchange-rates'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'currency-config'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'currency-config'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
       toast.success('Taux enregistré', 'Historique immuable mis à jour.')
     },
@@ -1916,6 +1939,7 @@ export function useUpdateCurrencyConfig() {
     mutationFn: financeApi.updateCurrencyConfig,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'currency-config'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'currency-config'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'aggregate-report'] })
       toast.success('Devise mise à jour', 'Paramètres d\'affichage enregistrés.')
     },

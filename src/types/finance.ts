@@ -476,6 +476,221 @@ export interface NetworkContext {
   }
 }
 
+export interface NetworkTreasurySite extends NetworkSite {
+  sessionOpen: boolean
+  cashSessionId: number | null
+  cashInDrawer: number
+  drawerCurrency: string
+  sessionOpenedAt: string | null
+  cashierName: string | null
+  collectedToday: number
+  paymentCountToday: number
+  collectedMonth: number
+  paymentCountMonth: number
+  cashToday: number
+  mobileToday: number
+  lastPaymentAt: string | null
+  studentCount: number
+  debtorCount: number
+  feesPaid: number
+  feesBalance: number
+  collectionRate: number
+  pendingSms: number
+  presentToday: number
+  shareOfGroupPct: number
+  collectedYesterday?: number
+  vsYesterdayPct?: number | null
+  collected7d?: number
+  avgTicketToday?: number
+  digitalSharePct?: number
+  attendanceRate?: number
+  lastClosedAt?: string | null
+  healthScore?: number
+  minutesSinceLastPayment?: number | null
+  sessionOpenMinutes?: number | null
+  oldestPendingSmsMinutes?: number | null
+}
+
+export interface NetworkTreasuryAlert {
+  code: string
+  severity: 'info' | 'warn' | 'critical'
+  message: string
+  schoolId?: number
+  schoolName?: string
+}
+
+export interface NetworkTreasuryMethodSplit {
+  method: string
+  amount: number
+  count: number
+}
+
+export interface NetworkTreasuryLeader {
+  schoolId: number
+  schoolName: string
+  value: number
+}
+
+export interface NetworkTreasuryLive {
+  groupId: number | null
+  groupName: string | null
+  generatedAt: string
+  sites: NetworkTreasurySite[]
+  totals: {
+    collectedToday: number
+    paymentCountToday: number
+    collectedMonth: number
+    paymentCountMonth: number
+    cashToday: number
+    mobileToday: number
+    sitesOpen: number
+    siteCount: number
+    studentCount: number
+    debtorCount: number
+    feesPaid: number
+    feesBalance: number
+    collectionRate: number
+    pendingSms: number
+    presentToday: number
+    collectedYesterday?: number
+    vsYesterdayPct?: number | null
+    collected7d?: number
+    avgTicketToday?: number
+    digitalSharePct?: number
+    attendanceRate?: number
+    healthScore?: number
+    oldestPendingSmsMinutes?: number | null
+    focusSchoolId?: number | null
+    focusSchoolName?: string | null
+  }
+  methodsToday: NetworkTreasuryMethodSplit[]
+  alerts: NetworkTreasuryAlert[]
+  leaders?: {
+    topCollector: NetworkTreasuryLeader | null
+    weakestRate: NetworkTreasuryLeader | null
+    bestHealth: NetworkTreasuryLeader | null
+  }
+}
+
+export type NetworkOpsSeverity = 'critical' | 'warn' | 'info'
+
+export type NetworkOpsQueueKind =
+  | 'SMS_PENDING'
+  | 'SMS_REJECTED'
+  | 'ROLL_MISSING'
+  | 'ROLL_DRAFT'
+  | 'TILL_CLOSED'
+  | 'SILENT_SITE'
+  | 'OPEN_NO_CASH'
+  | 'PRESENT_UNPAID'
+
+export interface NetworkOpsRollMissing {
+  schoolId: number
+  schoolName: string
+  classId: number
+  className: string
+  status: 'MISSING' | 'DRAFT' | string
+  teacherName?: string | null
+  waitingMinutes?: number | null
+}
+
+export interface NetworkOpsSmsPending {
+  id: number
+  schoolId: number
+  schoolName: string
+  studentName: string
+  amount: number
+  currency?: string
+  provider: string
+  waitingMinutes: number
+  severity?: NetworkOpsSeverity
+}
+
+export interface NetworkOpsPresentUnpaid {
+  schoolId: number
+  schoolName: string
+  studentId: number
+  studentName: string
+  matricule?: string
+  className: string | null
+  feesBalance: number
+}
+
+export interface NetworkOpsTillClosed {
+  schoolId: number
+  schoolName: string
+}
+
+export interface NetworkOpsQueueItem {
+  id: string
+  kind: NetworkOpsQueueKind
+  severity: NetworkOpsSeverity
+  schoolId: number
+  schoolName: string
+  title: string
+  detail: string
+  ageMinutes: number | null
+  href: string
+}
+
+export interface NetworkOpsSiteDigest {
+  schoolId: number
+  schoolName: string
+  isPaymentHub: boolean
+  actionCount: number
+  rollsMissing: number
+  pendingSms: number
+  presentUnpaid: number
+  tillClosed: boolean
+  silent: boolean
+  openNoCash: boolean
+  oldestSmsMinutes: number | null
+}
+
+export interface NetworkOpsNextAction {
+  title: string
+  detail: string
+  severity: NetworkOpsSeverity
+  href: string
+}
+
+export interface NetworkOpsBriefing {
+  groupId: number | null
+  groupName: string | null
+  generatedAt: string
+  date?: string
+  summary: {
+    classesWithoutSheet: number
+    pendingSms: number
+    presentUnpaid: number
+    tillsClosed: number
+    silentSites?: number
+    rejectedSmsToday?: number
+    openNoCash?: number
+    actionCount: number
+    criticalCount?: number
+    oldestSmsMinutes?: number | null
+  }
+  nextAction?: NetworkOpsNextAction | null
+  queue?: NetworkOpsQueueItem[]
+  sites?: NetworkOpsSiteDigest[]
+  classesWithoutSheet: NetworkOpsRollMissing[]
+  pendingSms: NetworkOpsSmsPending[]
+  presentUnpaid: NetworkOpsPresentUnpaid[]
+  tillsClosed: NetworkOpsTillClosed[]
+  silentSites?: NetworkOpsTillClosed[]
+  rejectedSmsToday?: Array<{
+    id: number
+    schoolId: number
+    schoolName: string
+    studentName: string
+    amount: number
+    currency: string
+    reason: string | null
+  }>
+  whatsappText: string
+}
+
 export interface NetworkClearingPosition {
   enrollmentSchoolId: number
   enrollmentSchoolName: string

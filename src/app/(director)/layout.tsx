@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 import { useDirectorPresenceRealtime } from '@/lib/director/use-director-presence-realtime'
@@ -152,6 +153,10 @@ function DirectorNav() {
         <div className="mx-5 h-px bg-zinc-100" />
 
         <div className="px-4 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between px-1 mb-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Thème</span>
+            <ThemePicker compact />
+          </div>
           <Link
             href="/director/profil-securite"
             className="flex items-center gap-3 mb-3 rounded-xl px-1 py-1 hover:bg-zinc-50 transition-colors group"
@@ -185,7 +190,7 @@ export default function DirectorLayout({ children }: { children: React.ReactNode
   return (
     <div className="flex min-h-screen">
       <DirectorNav />
-      <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-zinc-50">
+      <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-canvas">
         <EmailVerificationBanner />
         <ErrorBoundary>{children}</ErrorBoundary>
       </main>

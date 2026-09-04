@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals'
 import {
+  parseCashActivity,
   parseEnrollmentApproved,
   parseNewEnrollmentRequest,
   parsePaymentConfirmedAdmin,
@@ -55,5 +56,53 @@ describe('admin platform realtime parsers', () => {
     })
     expect(item?.type).toBe('request')
     expect(item?.fullName).toBe('Marie Kabila')
+  })
+
+  it('parses cash activity with school name (console groupe)', () => {
+    const item = parseCashActivity({
+      kind: 'CASH_PAYMENT',
+      schoolId: 2,
+      schoolName: 'Excellence 2',
+      schoolGroupId: 10,
+      label: 'Encaissement guichet',
+      amount: 80,
+      currency: 'USD',
+      paymentId: 12,
+      timestamp: '2026-08-31T08:00:00.000Z',
+    })
+    expect(item?.schoolName).toBe('Excellence 2')
+    expect(item?.schoolId).toBe(2)
+    expect(item?.id).toContain('2')
+  })
+
+  it('parses SMS pending and mobile payment on the cash tape', () => {
+    const sms = parseCashActivity({
+      kind: 'SMS_PENDING',
+      schoolId: 1,
+      studentName: 'Kabila Marie',
+      label: 'SMS en attente · Kabila Marie',
+      amount: 50,
+      currency: 'USD',
+      method: 'AIRTEL_MONEY',
+      direction: 'INFO',
+      affectsCashDrawer: false,
+      timestamp: '2026-08-31T08:10:00.000Z',
+    })
+    expect(sms?.kind).toBe('SMS_PENDING')
+    expect(sms?.studentName).toBe('Kabila Marie')
+    expect(sms?.affectsCashDrawer).toBe(false)
+
+    const mobile = parseCashActivity({
+      kind: 'MOBILE_PAYMENT',
+      schoolId: 1,
+      label: 'Paiement MPESA confirmé',
+      amount: 30,
+      method: 'MPESA',
+      direction: 'IN',
+      affectsCashDrawer: false,
+      timestamp: '2026-08-31T08:11:00.000Z',
+    })
+    expect(mobile?.kind).toBe('MOBILE_PAYMENT')
+    expect(mobile?.method).toBe('MPESA')
   })
 })

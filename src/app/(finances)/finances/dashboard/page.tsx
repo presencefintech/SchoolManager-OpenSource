@@ -18,9 +18,10 @@ import {
   isFinanceIntegritySecure,
 } from '@/lib/admin/finance-dashboard.utils'
 import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online-payments-banner'
+import { CashLiveTape } from '@/components/finance/cash-live-tape'
 import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -151,7 +152,8 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeVal
 }
 
 export default function FinanceDashboardPage() {
-  const { status: realtimeStatus, lastUpdate } = useFinanceRealtimeStatus()
+  const { status: realtimeStatus, lastUpdate, recentCashActivity } = useFinanceRealtimeStatus()
+  const { format: formatMoney } = useSchoolMoney()
   const { data: guichet, isLoading, refetch, dataUpdatedAt, isSuccess: coreReady } = useGuichetDashboard()
   const secondary = { enabled: coreReady }
   const { data: dailyCash = [] } = useDailyCashReport(secondary)
@@ -280,6 +282,12 @@ export default function FinanceDashboardPage() {
       </motion.div>
 
       <GuichetOnlinePaymentsBanner profile={paymentProfile} />
+
+      <CashLiveTape
+        items={recentCashActivity}
+        live={realtimeStatus === 'live'}
+        emptyHint="Chaque paiement du guichet (espèces, mobile, SMS) s’affiche ici dès qu’il arrive."
+      />
 
       {health && (
         <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 shadow-[0_1px_4px_rgba(0,0,0,0.06)] flex flex-wrap items-center gap-4">

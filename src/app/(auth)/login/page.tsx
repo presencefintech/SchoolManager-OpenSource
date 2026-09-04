@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/providers/auth-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
+import { ThemePicker } from '@/components/theme/theme-picker'
 
 const loginSchema = z.object({
   identifier: z.string().min(3, 'Email ou téléphone requis'),
@@ -62,7 +63,10 @@ function LoginPageContent() {
   }
 
   return (
-    <div className="relative h-screen flex items-center justify-center px-4 py-6 bg-[#f4f6fa] overflow-hidden">
+    <div className="relative h-screen flex items-center justify-center px-4 py-6 bg-canvas overflow-hidden">
+      <div className="absolute top-4 right-4 z-10">
+        <ThemePicker compact />
+      </div>
 
       {/* Ambient mesh background */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -99,7 +103,7 @@ function LoginPageContent() {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-slate-200/90 bg-white/90 backdrop-blur-sm shadow-xl shadow-slate-200/60 ring-1 ring-slate-100 p-6">
+        <div className="rounded-3xl border border-line bg-surface/90 backdrop-blur-sm shadow-xl shadow-slate-200/60 dark:shadow-black/40 ring-1 ring-line p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-zinc-900">Connexion</h2>
             <p className="text-sm text-zinc-400 mt-1">Accédez à votre espace administrateur</p>

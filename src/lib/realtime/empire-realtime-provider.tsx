@@ -6,6 +6,7 @@ import type {
   AdminEnrollmentRealtimeItem,
   AdminPaymentRealtimeItem,
   AttendanceActivityItem,
+  CashActivityRealtimeItem,
 } from '@/types/admin'
 
 export type EmpireRealtimeContextValue = {
@@ -14,6 +15,7 @@ export type EmpireRealtimeContextValue = {
   recentActivity: AttendanceActivityItem[]
   recentPayments: AdminPaymentRealtimeItem[]
   recentEnrollments: AdminEnrollmentRealtimeItem[]
+  recentCashActivity: CashActivityRealtimeItem[]
   refreshAttendance: () => void
   refreshFinance: () => void
 }
@@ -35,6 +37,7 @@ const OFFLINE: EmpireRealtimeContextValue = {
   recentActivity: [],
   recentPayments: [],
   recentEnrollments: [],
+  recentCashActivity: [],
   refreshAttendance: () => {},
   refreshFinance: () => {},
 }

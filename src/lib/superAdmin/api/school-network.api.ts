@@ -1,5 +1,10 @@
 import { apiClient } from '@/lib/api/client'
-import type { NetworkClearing, NetworkContext } from '@/types/finance'
+import type {
+  NetworkClearing,
+  NetworkContext,
+  NetworkOpsBriefing,
+  NetworkTreasuryLive,
+} from '@/types/finance'
 
 export type SchoolNetworkMember = {
   id: number
@@ -88,6 +93,20 @@ export const schoolNetworkApi = {
       )
       .then((r) => r.data.data),
 
+  getTreasury: (groupId: number) =>
+    apiClient
+      .get<{ success: boolean; data: NetworkTreasuryLive }>(
+        `/superadmin/school-networks/${groupId}/treasury`,
+      )
+      .then((r) => r.data.data),
+
+  getOpsBriefing: (groupId: number) =>
+    apiClient
+      .get<{ success: boolean; data: NetworkOpsBriefing }>(
+        `/superadmin/school-networks/${groupId}/ops-briefing`,
+      )
+      .then((r) => r.data.data),
+
   createGroup: (body: { name: string; slug?: string }) =>
     apiClient
       .post<{ success: boolean; data: SchoolNetworkGroup }>('/superadmin/school-networks', body)
@@ -131,5 +150,15 @@ export const adminNetworkApi = {
       .get<{ success: boolean; data: NetworkClearing }>('/admin/finance/network/clearing', {
         params,
       })
+      .then((r) => r.data.data),
+
+  getTreasury: () =>
+    apiClient
+      .get<{ success: boolean; data: NetworkTreasuryLive }>('/admin/finance/network/treasury')
+      .then((r) => r.data.data),
+
+  getOpsBriefing: () =>
+    apiClient
+      .get<{ success: boolean; data: NetworkOpsBriefing }>('/admin/finance/network/ops-briefing')
       .then((r) => r.data.data),
 }

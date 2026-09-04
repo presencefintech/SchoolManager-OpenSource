@@ -489,6 +489,29 @@ export const financeRoleApi = {
   syncRefundGateway: (id: number) =>
     apiClient.post(`/finance/refunds/${id}/sync-gateway`).then(r => r.data.data),
 
+  /**
+   * Correction immédiate guichet (espèces, session caisse ouverte) —
+   * soft-reverse de lignes mois sans suppression ni validation admin.
+   */
+  correctPaymentLines: (paymentId: number, payload: { paymentFeeIds: number[]; reason: string }) =>
+    apiClient
+      .post(`/finance/payments/${paymentId}/correct-lines`, payload)
+      .then((r) => r.data.data as {
+        paymentId: number
+        correctionKey: string
+        amountReversed: number
+        remainingActiveLines: number
+        status: string
+        feeLines: Array<{
+          id: number
+          feeStructureId: number
+          monthYear: string | null
+          amount: number
+          reversedAt: string | null
+          reversalReason: string | null
+        }>
+      }),
+
   // ── Exports CSV ────────────────────────────────────────────────────────────
   exportPayments: async (): Promise<Blob> => {
     const res = await apiClient.get('/finance/exports/payments', { responseType: 'blob' })

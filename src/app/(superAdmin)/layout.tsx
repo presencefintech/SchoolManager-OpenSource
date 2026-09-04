@@ -7,7 +7,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   return (
     <div className="flex min-h-screen">
       <SuperAdminNav />
-      <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-zinc-50">
+      <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-canvas">
         <EmailVerificationBanner />
         <ErrorBoundary>
           <PageTransition>{children}</PageTransition>

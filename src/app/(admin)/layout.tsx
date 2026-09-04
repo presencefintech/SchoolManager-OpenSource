@@ -17,8 +17,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <ImpersonationBannerSpacer />
       <div className="flex min-h-screen">
         <AdminNav />
-        <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-[#e8ecf4]">
-          <div className="sticky top-0 z-20 bg-[#e8ecf4]/90 backdrop-blur border-b border-slate-200/70 px-6 py-3">
+        <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-canvas">
+          <div className="sticky top-0 z-20 bg-canvas/90 backdrop-blur border-b border-line px-6 py-3">
             <AdminGlobalSearch />
           </div>
           <EmailVerificationBanner />

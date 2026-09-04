@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 import { FinanceRealtimeProvider, useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
@@ -174,6 +175,10 @@ function FinanceNav() {
 
         <div className="flex-shrink-0 border-t border-zinc-100 bg-white lg:bg-white/95">
           <div className="px-4 py-3">
+            <div className="flex items-center justify-between px-1 mb-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Thème</span>
+              <ThemePicker compact />
+            </div>
             <Link
               href="/finances/profil-securite"
               className="flex items-center gap-3 mb-2 rounded-xl px-1 py-1 hover:bg-zinc-50 transition-colors group"
@@ -208,7 +213,7 @@ export default function FinancesLayout({ children }: { children: React.ReactNode
     <FinanceRealtimeProvider>
       <div className="flex min-h-screen">
         <FinanceNav />
-        <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-[#f5f7fb]">
+        <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-canvas">
           <EmailVerificationBanner />
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>

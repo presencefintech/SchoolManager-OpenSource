@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { queryKeys } from '@/lib/query/keys'
@@ -250,6 +251,10 @@ export function SuperAdminNav() {
       <div className="mx-5 h-px bg-zinc-100" />
 
       <div className="px-4 py-4 flex-shrink-0">
+        <div className="flex items-center justify-between px-1 mb-2">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Thème</span>
+          <ThemePicker compact />
+        </div>
         <Link
           href="/super-admin/profil-securite"
           className="flex items-center gap-3 mb-3 rounded-xl px-1 py-1 hover:bg-zinc-50 transition-colors"

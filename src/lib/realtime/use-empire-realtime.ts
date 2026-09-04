@@ -14,6 +14,7 @@ import {
   parseNewEnrollmentRequest,
   parsePaymentConfirmedAdmin,
   parsePaymentFailedAdmin,
+  parseCashActivity,
 } from '@/lib/admin/admin-platform-realtime.types'
 import {
   applyAttendanceStatisticsPatch,
@@ -27,12 +28,14 @@ import type {
   AttendanceActivityItem,
   AdminEnrollmentRealtimeItem,
   AdminPaymentRealtimeItem,
+  CashActivityRealtimeItem,
 } from '@/types/admin'
 
 export type EmpireRealtimeStatus = 'connecting' | 'live' | 'polling' | 'offline'
 
 const MAX_ACTIVITY_ITEMS = 25
 const MAX_PLATFORM_ITEMS = 12
+const MAX_CASH_ITEMS = 40
 
 const FINANCE_SOCKET_EVENTS = [
   'payment.confirmed.finance',
@@ -49,9 +52,15 @@ const FINANCE_REFRESH_KEYS = [
   ['finance', 'payments', 'pending'],
   ['finance', 'cash-session'],
   ['finance', 'dashboard'],
+  ['finance', 'payment-declarations'],
   ['admin', 'finance', 'dashboard'],
   ['admin', 'finance', 'pending'],
   ['admin', 'finance', 'end-of-day'],
+  ['admin', 'finance', 'cash-fund-traceability'],
+  ['admin', 'finance', 'day-digest'],
+  ['admin', 'finance', 'demo-value-panel'],
+  ['admin', 'finance', 'class-year-fees'],
+  ['admin', 'finance', 'network'],
 ] as const
 
 function pushUnique<T extends { id: string }>(prev: T[], item: T, max: number): T[] {
@@ -67,6 +76,7 @@ export function useEmpireRealtime() {
   const [recentActivity, setRecentActivity] = useState<AttendanceActivityItem[]>([])
   const [recentPayments, setRecentPayments] = useState<AdminPaymentRealtimeItem[]>([])
   const [recentEnrollments, setRecentEnrollments] = useState<AdminEnrollmentRealtimeItem[]>([])
+  const [recentCashActivity, setRecentCashActivity] = useState<CashActivityRealtimeItem[]>([])
 
   const touch = useCallback(() => setLastUpdate(new Date()), [])
 
@@ -137,6 +147,15 @@ export function useEmpireRealtime() {
     [qc, refreshFinance, touch],
   )
 
+  const onCashActivity = useCallback(
+    (raw: unknown) => {
+      const item = parseCashActivity(raw)
+      if (item) setRecentCashActivity((prev) => pushUnique(prev, item, MAX_CASH_ITEMS))
+      refreshFinance()
+    },
+    [refreshFinance],
+  )
+
   const onEnrollmentApproved = useCallback(
     (raw: unknown) => {
       const item = parseEnrollmentApproved(raw)
@@ -200,6 +219,7 @@ export function useEmpireRealtime() {
         socket.on('attendance.sheet.draft-updated', refreshAttendance)
         socket.on('payment.confirmed.admin', onPaymentConfirmed)
         socket.on('payment.failed.admin', onPaymentFailed)
+        socket.on('cash.activity', onCashActivity)
         socket.on('enrollment_approved', onEnrollmentApproved)
         socket.on('new_enrollment_request', onNewEnrollmentRequest)
 
@@ -226,6 +246,7 @@ export function useEmpireRealtime() {
     onNewEnrollmentRequest,
     onPaymentConfirmed,
     onPaymentFailed,
+    onCashActivity,
     onStatisticsUpdated,
     refreshAttendance,
     refreshFinance,
@@ -237,6 +258,7 @@ export function useEmpireRealtime() {
     recentActivity,
     recentPayments,
     recentEnrollments,
+    recentCashActivity,
     refreshAttendance,
     refreshFinance,
   }

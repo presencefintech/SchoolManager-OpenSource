@@ -7,12 +7,12 @@ import { useFinanceCurrencyConfig, useUpdateCurrencyConfig } from '@/lib/hooks/u
 export function FinanceCurrencySettings() {
   const { data, isLoading } = useFinanceCurrencyConfig()
   const update = useUpdateCurrencyConfig()
-  const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'CDF'>('CDF')
+  const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'CDF'>('USD')
   const [toleranceBps, setToleranceBps] = useState('50')
 
   useEffect(() => {
     if (data) {
-      setDisplayCurrency((data.displayCurrency as 'USD' | 'CDF') || 'CDF')
+      setDisplayCurrency((data.displayCurrency as 'USD' | 'CDF') || 'USD')
       setToleranceBps(String(data.exchangeToleranceBps ?? 50))
     }
   }, [data])
@@ -30,7 +30,9 @@ export function FinanceCurrencySettings() {
       <div>
         <h3 className="text-sm font-semibold text-zinc-900">Devise & change (rapports)</h3>
         <p className="mt-1 text-xs text-zinc-500">
-          Base comptable interne : USD. La devise d&apos;affichage s&apos;applique aux rapports et reçus.
+          Base comptable interne : USD. Tous les écrans (caisse, réseau, live, rapports) utilisent
+          cette devise d&apos;affichage. Le franc n&apos;apparaît que si vous le choisissez ici, avec
+          le taux de change.
         </p>
       </div>
 
