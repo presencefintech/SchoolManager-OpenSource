@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Undo2, Loader2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { financeApi } from '@/lib/finance/api/finance.api'
+import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import type { PaymentFeeLine, StudentPaymentDetail } from '@/lib/finance/payment-history.utils'
 import { cn } from '@/lib/utils'
@@ -41,7 +41,7 @@ export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
 
   const mutation = useMutation({
     mutationFn: () =>
-      financeApi.correctPaymentLines(payment.id, {
+      financeRoleApi.correctPaymentLines(payment.id, {
         paymentFeeIds: [target!.id!],
         reason: reason.trim() || 'Mois coché par erreur',
       }),
