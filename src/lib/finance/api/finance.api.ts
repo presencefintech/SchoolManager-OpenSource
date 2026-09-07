@@ -37,6 +37,66 @@ import type {
 } from '@/types/finance'
 import type { FeeCategoryItem, PaymentProfile, PendingVerificationItem } from '@/types/admin'
 
+async function throwIfJsonErrorBlob(blob: Blob, fallback: string): Promise<void> {
+  const type = blob.type || ''
+  if (type.includes('json') || type.includes('text/plain')) {
+    const text = await blob.text()
+    let message = fallback
+    try {
+      const json = JSON.parse(text) as { message?: string }
+      if (typeof json.message === 'string' && json.message) message = json.message
+    } catch {
+      if (text.trim()) message = text.slice(0, 200)
+    }
+    throw new Error(message)
+  }
+  const head = await blob.slice(0, 5).text()
+  if (head.startsWith('{') || head.startsWith('[')) {
+    const text = await blob.text()
+    let message = fallback
+    try {
+      const json = JSON.parse(text) as { message?: string }
+      if (typeof json.message === 'string' && json.message) message = json.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message)
+  }
+}
+
+async function fetchMonthlySituationExport(
+  url: string,
+  params: { from: string; to: string; reportMonth?: string },
+  kind: 'pdf' | 'xlsx',
+  fallbackFilename?: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const { normalizeBlobError } = await import('@/lib/finance/download-receipt-pdf')
+  const fallback =
+    fallbackFilename ??
+    (kind === 'pdf' ? 'situation-financiere.pdf' : 'situation-financiere.xlsx')
+  try {
+    const res = await apiClient.get(url, {
+      params,
+      responseType: 'blob',
+      timeout: 90_000,
+    })
+    const blob = res.data as Blob
+    await throwIfJsonErrorBlob(
+      blob,
+      kind === 'pdf' ? 'Impossible de générer le PDF' : 'Impossible de générer l’Excel',
+    )
+    return {
+      blob,
+      filename: parseContentDispositionFilename(
+        res.headers['content-disposition'] as string | undefined,
+        fallback,
+      ),
+    }
+  } catch (err) {
+    throw await normalizeBlobError(err)
+  }
+}
+
 export const financeRoleApi = {
   // ── Dashboard & Analytics ──────────────────────────────────────────────────
   getExecutiveDashboard: () =>
@@ -546,42 +606,22 @@ export const financeRoleApi = {
     to: string
     reportMonth?: string
   }): Promise<Blob> => {
-    const { normalizeBlobError } = await import('@/lib/finance/download-receipt-pdf')
-    try {
-      const res = await apiClient.get('/finance/reports/monthly-situation/pdf', {
-        params,
-        responseType: 'blob',
-        timeout: 90_000,
-      })
-      const blob = res.data as Blob
-      const type = blob.type || ''
-      if (type.includes('json') || type.includes('text')) {
-        const text = await blob.text()
-        let message = 'Impossible de générer le PDF'
-        try {
-          const json = JSON.parse(text) as { message?: string }
-          if (typeof json.message === 'string' && json.message) message = json.message
-        } catch {
-          if (text.trim()) message = text.slice(0, 200)
-        }
-        throw new Error(message)
-      }
-      const head = await blob.slice(0, 5).text()
-      if (head.startsWith('{') || head.startsWith('[')) {
-        const text = await blob.text()
-        let message = 'Impossible de générer le PDF'
-        try {
-          const json = JSON.parse(text) as { message?: string }
-          if (typeof json.message === 'string' && json.message) message = json.message
-        } catch {
-          /* ignore */
-        }
-        throw new Error(message)
-      }
-      return blob
-    } catch (err) {
-      throw await normalizeBlobError(err)
-    }
+    const { blob } = await fetchMonthlySituationExport('/finance/reports/monthly-situation/pdf', params, 'pdf')
+    return blob
+  },
+
+  exportMonthlySituationXlsx: async (params: {
+    from: string
+    to: string
+    reportMonth?: string
+  }): Promise<{ blob: Blob; filename: string }> => {
+    const month = (params.reportMonth ?? '').replace('-', '')
+    return fetchMonthlySituationExport(
+      '/finance/reports/monthly-situation/xlsx',
+      params,
+      'xlsx',
+      `situation-financiere-${month || 'periode'}.xlsx`,
+    )
   },
 
   listExpenses: (params?: {
