@@ -392,8 +392,8 @@ export default function SituationMensuellePage() {
   const [applied, setApplied] = useState(defaults)
 
   const { data, isLoading, isFetching, isError, refetch, error } = useMonthlySituationReport(applied)
-  const [pdfBusy, setPdfBusy] = useState<'download' | 'print' | null>(null)
-  const [pdfError, setPdfError] = useState<string | null>(null)
+  const [exportBusy, setExportBusy] = useState<'pdf' | 'print' | 'xlsx' | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   const currency = data?.school.currency ?? 'USD'
   const editedAt = data
@@ -412,29 +412,43 @@ export default function SituationMensuellePage() {
 
   async function handleDownloadPdf() {
     if (!data) return
-    setPdfError(null)
-    setPdfBusy('download')
+    setExportError(null)
+    setExportBusy('pdf')
     try {
       const { blob, filename } = await fetchPdfBlob()
       downloadBlob(blob, filename)
     } catch (err) {
-      setPdfError(getApiErrorMessage(err))
+      setExportError(getApiErrorMessage(err))
     } finally {
-      setPdfBusy(null)
+      setExportBusy(null)
+    }
+  }
+
+  async function handleDownloadXlsx() {
+    if (!data) return
+    setExportError(null)
+    setExportBusy('xlsx')
+    try {
+      const { blob, filename } = await financeRoleApi.exportMonthlySituationXlsx(applied)
+      downloadBlob(blob, filename)
+    } catch (err) {
+      setExportError(getApiErrorMessage(err))
+    } finally {
+      setExportBusy(null)
     }
   }
 
   async function handlePrintPdf() {
     if (!data) return
-    setPdfError(null)
-    setPdfBusy('print')
+    setExportError(null)
+    setExportBusy('print')
     try {
       const { blob } = await fetchPdfBlob()
       await printPdfBlob(blob)
     } catch (err) {
-      setPdfError(getApiErrorMessage(err))
+      setExportError(getApiErrorMessage(err))
     } finally {
-      setPdfBusy(null)
+      setExportBusy(null)
     }
   }
 
@@ -469,20 +483,29 @@ export default function SituationMensuellePage() {
               <button
                 type="button"
                 onClick={() => void handleDownloadPdf()}
-                disabled={!data || pdfBusy != null}
+                disabled={!data || exportBusy != null}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
               >
-                <Download size={14} className={pdfBusy === 'download' ? 'animate-pulse' : ''} />
-                {pdfBusy === 'download' ? 'PDF…' : 'Télécharger PDF'}
+                <Download size={14} className={exportBusy === 'pdf' ? 'animate-pulse' : ''} />
+                {exportBusy === 'pdf' ? 'PDF…' : 'PDF'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDownloadXlsx()}
+                disabled={!data || exportBusy != null}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-40"
+              >
+                <Download size={14} className={exportBusy === 'xlsx' ? 'animate-pulse' : ''} />
+                {exportBusy === 'xlsx' ? 'Excel…' : 'Excel'}
               </button>
               <button
                 type="button"
                 onClick={() => void handlePrintPdf()}
-                disabled={!data || pdfBusy != null}
+                disabled={!data || exportBusy != null}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
               >
-                <Printer size={14} className={pdfBusy === 'print' ? 'animate-pulse' : ''} />
-                {pdfBusy === 'print' ? 'Préparation…' : 'Imprimer'}
+                <Printer size={14} className={exportBusy === 'print' ? 'animate-pulse' : ''} />
+                {exportBusy === 'print' ? 'Préparation…' : 'Imprimer'}
               </button>
             </>
           }
@@ -534,9 +557,9 @@ export default function SituationMensuellePage() {
           <p className="w-full text-[11px] text-zinc-400">
             Période habituelle RDC : du 26 du mois précédent au 25 du mois en cours.
           </p>
-          {pdfError ? (
+          {exportError ? (
             <p className="w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {pdfError}
+              {exportError}
             </p>
           ) : null}
         </div>
