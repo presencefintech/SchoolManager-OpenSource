@@ -93,6 +93,35 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
         })}
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {(
+          [
+            ['enableWhatsapp', 'WhatsApp', Boolean(school.enableWhatsapp)] as const,
+            ['enableSms', 'SMS', school.enableSms !== false] as const,
+            ['enablePush', 'Push', school.enablePush !== false] as const,
+          ]
+        ).map(([key, label, on]) => (
+          <button
+            key={key}
+            type="button"
+            disabled={mutation.isPending}
+            onClick={() =>
+              void mutation
+                .mutateAsync({ [key]: !on })
+                .then(() => toast.success(`${label} mis à jour`))
+            }
+            className={cn(
+              'rounded-xl border px-3 py-2 text-left text-xs font-medium',
+              on
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                : 'border-zinc-200 bg-zinc-50 text-zinc-500',
+            )}
+          >
+            {label}: {on ? 'ON' : 'OFF'}
+          </button>
+        ))}
+      </div>
+
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2 flex items-center gap-1.5">
           <Printer size={12} /> Journal impressions

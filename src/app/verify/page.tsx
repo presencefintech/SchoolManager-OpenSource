@@ -38,13 +38,8 @@ export default async function VerifyPage({ searchParams }: PageProps) {
     null
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center px-4 py-10 bg-[#f4f6fa]">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 right-[-10%] h-[420px] w-[420px] rounded-full bg-emerald-200/40 blur-3xl" />
-        <div className="absolute top-[30%] -left-24 h-[360px] w-[360px] rounded-full bg-teal-200/30 blur-3xl" />
-      </div>
-
-      <div className="w-full max-w-md space-y-4">
+    <div className="relative min-h-screen flex items-center justify-center px-4 py-8 bg-[#f4f6fa]">
+      <div className="w-full max-w-xl space-y-4">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-emerald-700">
             {schoolName ?? 'Vérification SchoolManager'}
@@ -59,7 +54,16 @@ export default async function VerifyPage({ searchParams }: PageProps) {
         </div>
 
         {hasLookup && documentResult ? <DocumentVerifyCard result={documentResult} /> : null}
-        {hasLookup && receiptResult ? <ReceiptVerifyCard result={receiptResult} /> : null}
+        {hasLookup && receiptResult ? (
+          <ReceiptVerifyCard
+            result={receiptResult}
+            proofQuery={
+              receiptNumber && code
+                ? `code=${encodeURIComponent(code)}`
+                : ''
+            }
+          />
+        ) : null}
 
         <VerifyManualForm
           initialReceiptNumber={receiptNumber}

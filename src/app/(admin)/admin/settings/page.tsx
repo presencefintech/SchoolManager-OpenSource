@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Save, RefreshCw } from 'lucide-react'
 import { SchoolBrandingSettings } from '@/components/admin/settings/SchoolBrandingSettings'
 import { FinanceCurrencySettings } from '@/components/admin/settings/FinanceCurrencySettings'
+import { SchoolMessagingSettings } from '@/components/admin/settings/SchoolMessagingSettings'
 import { StaffAccessSettings } from '@/components/admin/settings/StaffAccessSettings'
 import { useAttendanceSettings, useUpdateAttendanceSettings } from '@/lib/hooks/use-admin'
 import {
@@ -212,6 +213,14 @@ export default function SettingsPage() {
         transition={{ duration: 0.3, delay: 0.07 }}
       >
         <StaffAccessSettings />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.075 }}
+      >
+        <SchoolMessagingSettings />
       </motion.div>
 
       {isLoading || !form ? (

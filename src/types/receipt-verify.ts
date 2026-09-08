@@ -15,6 +15,17 @@ export type ReceiptVerifyFeeLine = {
   periodLabel: string | null
 }
 
+export type ReceiptMarketingLinks = {
+  brand: string
+  certifiedBadge: string
+  websiteUrl: string
+  salesEmail: string
+  whatsappUrl: string | null
+  ctaTitle: string
+  ctaText: string
+  ctaWhatsAppLabel: string
+}
+
 export type ReceiptVerifySuccess = {
   valid: true
   algorithm: string
@@ -32,6 +43,9 @@ export type ReceiptVerifySuccess = {
   verifiedAt: string
   studentName: string
   studentMatricule: string
+  parentName: string
+  balanceDue: string
+  poweredBy: string
   className: string | null
   sessionLabel: string
   schoolId: number
@@ -41,6 +55,8 @@ export type ReceiptVerifySuccess = {
   schoolPhone: string | null
   schoolEmail: string | null
   schoolLogoUrl: string | null
+  schoolAccentColor: string
+  marketing: ReceiptMarketingLinks
   motiveSummary: string
   feeLines: ReceiptVerifyFeeLine[]
   method: string
@@ -50,6 +66,9 @@ export type ReceiptVerifySuccess = {
   documentHashDisplay: string
   signatureDisplay: string
   verifyUrl: string
+  ogTitle?: string
+  ogDescription?: string
+  ogImageUrl?: string
 }
 
 export type ReceiptVerifyResult =

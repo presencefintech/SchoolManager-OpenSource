@@ -2314,6 +2314,35 @@ export function useUpdateSchoolBranding() {
   })
 }
 
+export function useSchoolMessaging() {
+  return useQuery({
+    queryKey: ['admin', 'schools', 'messaging'],
+    queryFn: schoolsApi.getMessaging,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useUpdateSchoolMessaging() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: {
+      enableWhatsapp?: boolean
+      enableSms?: boolean
+      enablePush?: boolean
+    }) => schoolsApi.updateMessaging(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'schools', 'messaging'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'school-entitlements'] })
+      toast.success('Canaux enregistrés', 'Les interrupteurs SMS / WhatsApp / Push sont à jour.')
+    },
+    onError: (err) => {
+      toast.error('Enregistrement impossible', getApiErrorMessage(err))
+    },
+  })
+}
+
 // ── Import ──────────────────────────────────────────────────────────
 
 export function useImportUpload() {
