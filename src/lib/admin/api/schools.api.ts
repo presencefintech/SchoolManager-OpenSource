@@ -37,6 +37,39 @@ export const schoolsApi = {
           contractExpiry: string | null
           subscriptionTier: string
           studentCapacity: number | null
+          enableWhatsapp: boolean
+          enableSms: boolean
+          enablePush: boolean
+          smsBalance: number | null
+          allowSmsOverdraft: boolean
+        },
+    ),
+
+  getMessaging: () =>
+    apiClient.get('/admin/schools/messaging').then(
+      (r) =>
+        r.data.data as {
+          enableWhatsapp: boolean
+          enableSms: boolean
+          enablePush: boolean
+          smsBalance: number | null
+          allowSmsOverdraft: boolean
+        },
+    ),
+
+  updateMessaging: (payload: {
+    enableWhatsapp?: boolean
+    enableSms?: boolean
+    enablePush?: boolean
+  }) =>
+    apiClient.put('/admin/schools/messaging', payload).then(
+      (r) =>
+        r.data.data as {
+          enableWhatsapp: boolean
+          enableSms: boolean
+          enablePush: boolean
+          smsBalance: number | null
+          allowSmsOverdraft: boolean
         },
     ),
 

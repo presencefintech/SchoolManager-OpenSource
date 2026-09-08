@@ -76,6 +76,11 @@ export function SchoolSaasDrawer({
     finance_reports: true,
   })
   const [cardPrinting, setCardPrinting] = useState(false)
+  const [enableWhatsapp, setEnableWhatsapp] = useState(false)
+  const [enableSms, setEnableSms] = useState(true)
+  const [enablePush, setEnablePush] = useState(true)
+  const [smsBalance, setSmsBalance] = useState('')
+  const [allowSmsOverdraft, setAllowSmsOverdraft] = useState(false)
 
   useEffect(() => {
     if (!school) return
@@ -89,6 +94,11 @@ export function SchoolSaasDrawer({
       finance_reports: school.features?.finance_reports ?? true,
     })
     setCardPrinting(Boolean(school.cardPrintingAllowed ?? school.features?.printing))
+    setEnableWhatsapp(Boolean(school.enableWhatsapp))
+    setEnableSms(school.enableSms !== false)
+    setEnablePush(school.enablePush !== false)
+    setSmsBalance(school.smsBalance != null ? String(school.smsBalance) : '')
+    setAllowSmsOverdraft(Boolean(school.allowSmsOverdraft))
   }, [school])
 
   if (!open || !school) return null
@@ -244,6 +254,89 @@ export function SchoolSaasDrawer({
                 onBlur={() =>
                   void persist({
                     studentCapacity: capacity.trim() ? Number(capacity) : null,
+                  })
+                }
+                className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"
+              />
+            </label>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Canaux de notification (coûts API)</h3>
+            <p className="text-[11px] text-zinc-500">
+              Un canal désactivé n’appelle jamais le provider — aucun frais WhatsApp/SMS.
+            </p>
+            {(
+              [
+                {
+                  key: 'enableWhatsapp' as const,
+                  label: 'WhatsApp',
+                  hint: 'Off par défaut — canal le plus coûteux',
+                  checked: enableWhatsapp,
+                  set: setEnableWhatsapp,
+                },
+                {
+                  key: 'enableSms' as const,
+                  label: 'SMS',
+                  hint: 'Repli si WhatsApp indisponible',
+                  checked: enableSms,
+                  set: setEnableSms,
+                },
+                {
+                  key: 'enablePush' as const,
+                  label: 'Push',
+                  hint: 'Notifications application',
+                  checked: enablePush,
+                  set: setEnablePush,
+                },
+              ] as const
+            ).map((row) => (
+              <label
+                key={row.key}
+                className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5"
+              >
+                <div>
+                  <p className="text-sm font-medium">{row.label}</p>
+                  <p className="text-[11px] text-zinc-500">{row.hint}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="h-5 w-9 accent-indigo-600"
+                  checked={row.checked}
+                  disabled={mutation.isPending}
+                  onChange={(e) => {
+                    row.set(e.target.checked)
+                    void persist({ [row.key]: e.target.checked })
+                  }}
+                />
+              </label>
+            ))}
+            <label className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium">Découvert SMS</p>
+                <p className="text-[11px] text-zinc-500">Autoriser l’envoi si le crédit est à 0</p>
+              </div>
+              <input
+                type="checkbox"
+                className="h-5 w-9 accent-indigo-600"
+                checked={allowSmsOverdraft}
+                disabled={mutation.isPending}
+                onChange={(e) => {
+                  setAllowSmsOverdraft(e.target.checked)
+                  void persist({ allowSmsOverdraft: e.target.checked })
+                }}
+              />
+            </label>
+            <label className="block text-xs text-zinc-500">
+              Crédit SMS (vide = illimité)
+              <input
+                type="number"
+                min={0}
+                value={smsBalance}
+                onChange={(e) => setSmsBalance(e.target.value)}
+                onBlur={() =>
+                  void persist({
+                    smsBalance: smsBalance.trim() ? Number(smsBalance) : null,
                   })
                 }
                 className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm"

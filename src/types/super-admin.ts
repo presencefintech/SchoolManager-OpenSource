@@ -84,6 +84,11 @@ export interface School {
   studentCapacity?: number | null
   studentCount?: number
   capacityPct?: number | null
+  enableWhatsapp?: boolean
+  enableSms?: boolean
+  enablePush?: boolean
+  smsBalance?: number | null
+  allowSmsOverdraft?: boolean
   deletedAt: null | string
   operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
@@ -126,6 +131,11 @@ export interface SchoolDetail {
   studentCapacity?: number | null
   studentCount?: number
   capacityPct?: number | null
+  enableWhatsapp?: boolean
+  enableSms?: boolean
+  enablePush?: boolean
+  smsBalance?: number | null
+  allowSmsOverdraft?: boolean
   deletedAt: null | string
   operationalSuspension?: SchoolOperationalSuspension | null
   _count: {
@@ -152,6 +162,11 @@ export interface SchoolSaasUpdatePayload {
   cardPrintingAllowed?: boolean
   subscriptionTier?: 'BASIC' | 'PREMIUM' | 'ENTERPRISE'
   studentCapacity?: number | null
+  enableWhatsapp?: boolean
+  enableSms?: boolean
+  enablePush?: boolean
+  smsBalance?: number | null
+  allowSmsOverdraft?: boolean
 }
 
 export interface SchoolPerformance {
