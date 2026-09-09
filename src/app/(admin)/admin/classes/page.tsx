@@ -19,6 +19,7 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import {
   useClasses, useCreateClass, useToggleClassStatus, useRollover,
   useSections, useOptions, useAcademicSessions, useOpenAcademicSession, inferSchoolYearLabel,
+  useStaff,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
