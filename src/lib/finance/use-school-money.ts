@@ -24,7 +24,7 @@ export function useSchoolMoney() {
   return {
     format,
     displayCurrency,
-    rate: Number(data?.legacyRate) > 0 ? Number(data.legacyRate) : null,
+    rate: Number(data?.legacyRate) > 0 ? Number(data?.legacyRate) : null,
     config: data ?? null,
   }
 }
