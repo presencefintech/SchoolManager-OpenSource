@@ -16,6 +16,7 @@ import {
   Shield,
   ShieldAlert,
   User,
+  Phone,
 } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { authApi } from '@/lib/api/auth'
@@ -36,7 +37,24 @@ const changePasswordSchema = z
     path: ['confirmPassword'],
   })
 
+const changeEmailSchema = z.object({
+  email: z.string().email('Email invalide').toLowerCase(),
+  currentPassword: z.string().min(1, 'Mot de passe actuel requis'),
+})
+
+const changePhoneSchema = z.object({
+  phone: z.string().min(8, 'Numéro invalide'),
+  currentPassword: z.string().min(1, 'Mot de passe actuel requis'),
+})
+
+const verifyPhoneSchema = z.object({
+  otp: z.string().length(6, '6 chiffres'),
+})
+
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>
+type ChangeEmailForm = z.infer<typeof changeEmailSchema>
+type ChangePhoneForm = z.infer<typeof changePhoneSchema>
+type VerifyPhoneForm = z.infer<typeof verifyPhoneSchema>
 
 const STAFF_ROLES = new Set(['ADMIN', 'FINANCE', 'SUPER_ADMIN', 'DIRECTOR', 'IT'])
 
@@ -52,6 +70,8 @@ export function SecurityProfilePanel() {
   const [showPasswords, setShowPasswords] = useState(false)
   const [resending, setResending] = useState(false)
 
+  const [waLink, setWaLink] = useState<string | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -59,6 +79,10 @@ export function SecurityProfilePanel() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<ChangePasswordForm>({ resolver: zodResolver(changePasswordSchema), mode: 'onChange' })
+
+  const emailForm = useForm<ChangeEmailForm>({ resolver: zodResolver(changeEmailSchema), mode: 'onChange' })
+  const phoneForm = useForm<ChangePhoneForm>({ resolver: zodResolver(changePhoneSchema), mode: 'onChange' })
+  const otpForm = useForm<VerifyPhoneForm>({ resolver: zodResolver(verifyPhoneSchema), mode: 'onChange' })
 
   const newPassword = watch('newPassword') ?? ''
   const requirements = evaluateStaffPassword(newPassword)
@@ -74,6 +98,41 @@ export function SecurityProfilePanel() {
       success('Mot de passe modifié', 'Reconnectez-vous avec votre nouveau mot de passe.')
       reset()
       setTimeout(() => void logout(), 1500)
+    } catch (err) {
+      toastError('Échec', getApiErrorMessage(err))
+    }
+  }
+
+  async function onChangeEmail(values: ChangeEmailForm) {
+    try {
+      await authApi.changeEmail(values)
+      success('Email mis à jour', 'Confirmez le lien reçu puis reconnectez-vous.')
+      emailForm.reset()
+      setTimeout(() => void logout(), 1500)
+    } catch (err) {
+      toastError('Échec', getApiErrorMessage(err))
+    }
+  }
+
+  async function onRequestPhone(values: ChangePhoneForm) {
+    try {
+      const data = await authApi.changePhone(values)
+      setWaLink(data.whatsappDeepLink)
+      success('Code envoyé', 'Saisissez l’OTP reçu sur le nouveau numéro.')
+      phoneForm.reset()
+      await refreshUser()
+    } catch (err) {
+      toastError('Échec', getApiErrorMessage(err))
+    }
+  }
+
+  async function onVerifyPhone(values: VerifyPhoneForm) {
+    try {
+      await authApi.verifyChangePhone(values)
+      success('Numéro mis à jour', 'Le téléphone de connexion a été modifié.')
+      otpForm.reset()
+      setWaLink(null)
+      await refreshUser()
     } catch (err) {
       toastError('Échec', getApiErrorMessage(err))
     }
@@ -106,7 +165,7 @@ export function SecurityProfilePanel() {
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Profil &amp; sécurité</h1>
         <p className="text-sm text-zinc-500 mt-1">
-          Gérez l&apos;apparence, votre identité, la vérification email et votre mot de passe.
+          Gérez l&apos;apparence, vos identifiants de connexion (email, WhatsApp) et votre mot de passe.
         </p>
       </motion.div>
 
@@ -138,12 +197,169 @@ export function SecurityProfilePanel() {
               <dd className="text-zinc-900 mt-0.5 break-all">{user.email ?? '—'}</dd>
             </div>
             <div>
+              <dt className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Téléphone / WhatsApp</dt>
+              <dd className="text-zinc-900 mt-0.5 break-all">{user.phone ?? '—'}</dd>
+            </div>
+            <div>
               <dt className="text-xs font-medium text-zinc-400 uppercase tracking-wide">École</dt>
               <dd className="text-zinc-900 mt-0.5">
                 {user.schoolId != null ? `#${user.schoolId}` : 'Plateforme'}
               </dd>
             </div>
           </dl>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <Mail size={18} className="text-emerald-600" />
+          <h2 className="text-sm font-semibold text-zinc-900">E-mail de connexion</h2>
+        </div>
+        <form onSubmit={emailForm.handleSubmit(onChangeEmail)} className="p-6 space-y-4 max-w-lg" noValidate>
+          <p className="text-xs text-zinc-500 -mt-1">
+            Un lien de confirmation est envoyé à la nouvelle adresse. Les sessions sont fermées. Les opérations finance
+            restent bloquées jusqu&apos;à confirmation.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="loginEmail" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              Nouvel e-mail
+            </label>
+            <input
+              {...emailForm.register('email')}
+              id="loginEmail"
+              type="email"
+              autoComplete="email"
+              defaultValue={user.email ?? ''}
+              className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-400 outline-none"
+            />
+            {emailForm.formState.errors.email && (
+              <p className="text-xs text-red-500">{emailForm.formState.errors.email.message}</p>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="emailCurrentPassword" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+              Mot de passe actuel
+            </label>
+            <input
+              {...emailForm.register('currentPassword')}
+              id="emailCurrentPassword"
+              type="password"
+              autoComplete="current-password"
+              className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-400 outline-none"
+            />
+            {emailForm.formState.errors.currentPassword && (
+              <p className="text-xs text-red-500">{emailForm.formState.errors.currentPassword.message}</p>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={emailForm.formState.isSubmitting}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white',
+              'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60',
+            )}
+          >
+            {emailForm.formState.isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+            Changer l&apos;e-mail
+          </button>
+        </form>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <Phone size={18} className="text-emerald-600" />
+          <h2 className="text-sm font-semibold text-zinc-900">Téléphone / WhatsApp de connexion</h2>
+        </div>
+        <div className="p-6 space-y-6 max-w-lg">
+          <form onSubmit={phoneForm.handleSubmit(onRequestPhone)} className="space-y-4" noValidate>
+            <p className="text-xs text-zinc-500 -mt-1">
+              Un OTP est envoyé vers le nouveau numéro (SMS et/ou WhatsApp). Il n&apos;est appliqué qu&apos;après
+              confirmation.
+            </p>
+            <div className="space-y-1.5">
+              <label htmlFor="loginPhone" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                Nouveau numéro (E.164)
+              </label>
+              <input
+                {...phoneForm.register('phone')}
+                id="loginPhone"
+                type="tel"
+                placeholder="+243…"
+                autoComplete="tel"
+                className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-400 outline-none"
+              />
+              {phoneForm.formState.errors.phone && (
+                <p className="text-xs text-red-500">{phoneForm.formState.errors.phone.message}</p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="phoneCurrentPassword" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                Mot de passe actuel
+              </label>
+              <input
+                {...phoneForm.register('currentPassword')}
+                id="phoneCurrentPassword"
+                type="password"
+                autoComplete="current-password"
+                className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-400 outline-none"
+              />
+              {phoneForm.formState.errors.currentPassword && (
+                <p className="text-xs text-red-500">{phoneForm.formState.errors.currentPassword.message}</p>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={phoneForm.formState.isSubmitting}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-white',
+                'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60',
+              )}
+            >
+              {phoneForm.formState.isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Phone size={16} />}
+              Envoyer le code
+            </button>
+          </form>
+
+          {(user.pendingPhone || waLink) && (
+            <form onSubmit={otpForm.handleSubmit(onVerifyPhone)} className="space-y-4 border-t border-slate-100 pt-4" noValidate>
+              <p className="text-xs text-zinc-500">
+                Code envoyé vers {user.pendingPhone ?? 'le nouveau numéro'} (15 min).
+              </p>
+              {waLink && (
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-medium text-emerald-700 hover:underline"
+                >
+                  Ouvrir WhatsApp pour transmettre / lire le code
+                </a>
+              )}
+              <div className="space-y-1.5">
+                <label htmlFor="phoneOtp" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  Code OTP
+                </label>
+                <input
+                  {...otpForm.register('otp')}
+                  id="phoneOtp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  className="w-full px-3 py-2.5 rounded-xl border border-zinc-200 text-sm tracking-widest focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-400 outline-none"
+                />
+                {otpForm.formState.errors.otp && (
+                  <p className="text-xs text-red-500">{otpForm.formState.errors.otp.message}</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={otpForm.formState.isSubmitting}
+                className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 disabled:opacity-60"
+              >
+                {otpForm.formState.isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+                Confirmer le numéro
+              </button>
+            </form>
+          )}
         </div>
       </section>
 
