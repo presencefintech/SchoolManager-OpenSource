@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, ChevronRight,
@@ -20,7 +20,6 @@ import {
   useClasses, useCreateClass, useToggleClassStatus, useRollover,
   useSections, useOptions, useAcademicSessions, useOpenAcademicSession, inferSchoolYearLabel,
   useStaff,
-  useCreateOption,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
@@ -61,7 +60,6 @@ function OccupancyBar({ pct }: { pct: number }) {
 
 function CreateClassModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useCreateClass()
-  const createOption = useCreateOption()
   const { data: sections = [] } = useSections()
   const { data: sessions = [] } = useAcademicSessions()
   const { data: staff = [] } = useStaff()
@@ -79,39 +77,32 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null)
   const selectedSection = sections.find((s) => s.id === form.sectionId)
   const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+  const currentYearLabel = sessions.find((s) => s.isCurrent)?.label ?? ''
 
-  async function resolveOptionId(): Promise<number | null> {
-    if (form.optionId) return form.optionId
-    if (options[0]) return options[0].id
-    if (!cycleWithoutOption || !form.sectionId) return null
-    const created = await createOption.mutateAsync({
-      sectionId: form.sectionId,
-      name: 'Générale',
-      code: 'GEN',
-    })
-    return created.id
-  }
+  useEffect(() => {
+    if (!currentYearLabel) return
+    setForm((p) => (p.academicYear ? p : { ...p, academicYear: currentYearLabel }))
+  }, [currentYearLabel])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!form.sectionId || !form.academicYear) {
-      setError('Section et année scolaire sont requis')
+    if (!form.sectionId) {
+      setError('La section est requise')
+      return
+    }
+    if (!currentYearLabel && !form.academicYear) {
+      setError('Ouvrez d’abord l’année scolaire (bouton « Ouvrir … » en haut de la page).')
       return
     }
     try {
-      const optionId = await resolveOptionId()
-      if (!optionId) {
-        setError(
-          cycleWithoutOption
-            ? 'Impossible de créer l’option technique « Générale ». Réessayez.'
-            : 'Choisissez une option (filière), ou créez « Générale » pour un cycle sans filière.',
-        )
+      if (!cycleWithoutOption && !form.optionId) {
+        setError('Choisissez une option (filière) pour ce cycle.')
         return
       }
       await mutateAsync({
         ...form,
-        optionId,
+        optionId: cycleWithoutOption ? undefined : form.optionId,
         capacity: form.capacity ? Number(form.capacity) : undefined,
       })
       onClose()
@@ -166,7 +157,11 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Année scolaire *</label>
-            {sessions.length > 0 ? (
+            {sessions.length === 0 ? (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Aucune année ouverte. Fermez cette fenêtre et cliquez sur « Ouvrir … » en haut de la page.
+              </p>
+            ) : (
               <select
                 required
                 value={form.academicYear}
@@ -180,15 +175,6 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
                   </option>
                 ))}
               </select>
-            ) : (
-              <input
-                required
-                value={form.academicYear}
-                onChange={(e) => setForm((p) => ({ ...p, academicYear: e.target.value }))}
-                placeholder="2025-2026"
-                pattern="\d{4}-\d{4}"
-                className={inputCls}
-              />
             )}
           </div>
           <div>
@@ -251,7 +237,7 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || sessions.length === 0}
               className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
               {isPending ? 'Création...' : 'Créer'}

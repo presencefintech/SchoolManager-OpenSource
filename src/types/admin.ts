@@ -770,7 +770,7 @@ export interface CreateClassPayload {
   name: string
   academicYear: string
   sectionId: number
-  optionId: number
+  optionId?: number
   level?: string
   capacity?: number
   teacherId?: number
