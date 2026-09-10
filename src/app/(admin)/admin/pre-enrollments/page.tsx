@@ -26,7 +26,7 @@ import {
   PRE_ENROLLMENT_STATUS_LABELS,
 } from '@/types/pre-enrollment'
 import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
-import { isRdcCycleWithoutOption, sectionRequiresOption } from '@/lib/academic/rdc-section-cycle'
+import { findSectionById, sectionRequiresOption } from '@/lib/academic/rdc-section-cycle'
 
 const STATUS_FILTERS: { value: '' | PreEnrollmentStatus; label: string }[] = [
   { value: '', label: 'Tous' },
@@ -68,9 +68,8 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
   const [classroomId, setClassroomId] = useState(0)
   const [academicYear, setAcademicYear] = useState(currentAcademicYear())
   const { data: options = [] } = useSchoolOptions(sectionId)
-  const selectedSection = sections.find((s) => s.id === sectionId) ?? null
-  const requiresOption = sectionRequiresOption(selectedSection, options.length)
-  const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+  const selectedSection = findSectionById(sections, sectionId)
+  const requiresOption = sectionRequiresOption(selectedSection)
   const { data: classes = [] } = useSchoolClasses(
     sectionId,
     requiresOption ? optionId : undefined,
@@ -202,24 +201,21 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
                 {sections.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
+            {requiresOption && (
             <div>
-              <label className="text-xs font-medium text-zinc-500">
-                {requiresOption ? 'Option *' : 'Option'}
-              </label>
+              <label className="text-xs font-medium text-zinc-500">Option *</label>
               <select
-                required={requiresOption}
+                required
                 className={inputCls}
                 value={optionId || ''}
                 onChange={(e) => setOptionId(Number(e.target.value))}
-                disabled={!sectionId || cycleWithoutOption}
+                disabled={!sectionId}
               >
-                <option value="">
-                  {cycleWithoutOption ? 'N/A (mat./prim.)' : '—'}
-                </option>
-                {!cycleWithoutOption &&
-                  options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                <option value="">— Choisir une filière —</option>
+                {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
             </div>
+            )}
             <div>
               <label className="text-xs font-medium text-zinc-500">Classe *</label>
               <select

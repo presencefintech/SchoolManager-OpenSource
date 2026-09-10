@@ -16,7 +16,7 @@ import {
   type EnrollmentCreateForm,
   type StructureRef,
 } from '@/lib/schemas/enrollment-create'
-import { sectionRequiresOption, isRdcCycleWithoutOption } from '@/lib/academic/rdc-section-cycle'
+import { findSectionById, sectionRequiresOption } from '@/lib/academic/rdc-section-cycle'
 import {
   useClasses,
   useCreateEnrollment,
@@ -240,12 +240,12 @@ export function EnrollmentCreateModal({
   )
 
   const selectedSection = useMemo(
-    () => sections.find((s) => s.id === sectionId) ?? apiSections.find((s) => s.id === sectionId) ?? null,
+    () =>
+      findSectionById(sections, sectionId) ?? findSectionById(apiSections, sectionId),
     [sections, apiSections, sectionId],
   )
 
-  const requiresOption = sectionRequiresOption(selectedSection, options.length)
-  const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+  const requiresOption = sectionRequiresOption(selectedSection)
 
   const currentSession = useMemo(() => sessions.find((s) => s.isCurrent), [sessions])
   const { data: feeStructures = [] } = useFeeStructures({
@@ -406,7 +406,7 @@ export function EnrollmentCreateModal({
   async function handleCreateClass() {
     const name = inlineName.trim()
     if (!sectionId || !academicYear || name.length < 2) return
-    if (!cycleWithoutOption && !(optionId && optionId > 0) && !options[0]) {
+    if (requiresOption && !(optionId && optionId > 0) && !options[0]) {
       toast.error('Option requise', 'Choisissez une filière avant de créer la classe.')
       return
     }
@@ -415,14 +415,14 @@ export function EnrollmentCreateModal({
         name,
         sectionId,
         academicYear,
-        ...(cycleWithoutOption
-          ? {}
-          : {
+        ...(requiresOption
+          ? {
               optionId:
                 optionId && optionId > 0
                   ? optionId
                   : options[0]?.id,
-            }),
+            }
+          : {}),
       })
       setValue('classId', created.id)
       toast.success('Classe créée', `"${created.name}" est disponible.`)
@@ -602,9 +602,9 @@ export function EnrollmentCreateModal({
               icon={GraduationCap}
               title="Scolarité"
               hint={
-                cycleWithoutOption
-                  ? 'Maternelle / primaire : pas de filière — choisissez directement la classe.'
-                  : 'Section → Option (filière) → Année → Classe. Utilisez + pour créer une entrée manquante.'
+                requiresOption
+                  ? 'Section → Option (filière) → Année → Classe. Utilisez + pour créer une entrée manquante.'
+                  : 'Maternelle / primaire : pas de filière — choisissez directement la classe.'
               }
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -643,49 +643,42 @@ export function EnrollmentCreateModal({
                   )}
                 </Field>
 
+                {requiresOption && (
                 <Field
-                  label={requiresOption ? 'Option / filière' : 'Option (non requise)'}
-                  required={requiresOption}
+                  label="Option / filière"
+                  required
                   error={errors.optionId?.message}
                 >
                   <div className="flex gap-2">
                     <select
                       {...register('optionId', { valueAsNumber: true })}
-                      disabled={!sectionId || loadingOptions || cycleWithoutOption}
-                      className={cn(inputCls, 'flex-1 pr-8', cycleWithoutOption && 'bg-zinc-50 text-zinc-500')}
+                      disabled={!sectionId || loadingOptions}
+                      className={cn(inputCls, 'flex-1 pr-8')}
                     >
                       <option value={0}>
                         {!sectionId
                           ? 'Sélectionnez d\'abord une section'
-                          : cycleWithoutOption
-                            ? 'Non applicable (maternelle / primaire)'
-                            : loadingOptions
-                              ? 'Chargement…'
-                              : options.length === 0
-                                ? 'Aucune option — créez-en une'
-                                : 'Choisir une option…'}
+                          : loadingOptions
+                            ? 'Chargement…'
+                            : options.length === 0
+                              ? 'Aucune option — créez-en une'
+                              : 'Choisir une option…'}
                       </option>
-                      {!cycleWithoutOption &&
-                        options.map((o) => (
-                          <option key={o.id} value={o.id}>{o.name}</option>
-                        ))}
+                      {options.map((o) => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))}
                     </select>
                     <button
                       type="button"
                       title="Créer une option"
-                      disabled={!sectionId || cycleWithoutOption}
+                      disabled={!sectionId}
                       className={addBtnCls}
                       onClick={() => { setInlineCreate('option'); setInlineName('') }}
                     >
                       <Plus size={16} />
                     </button>
                   </div>
-                  {cycleWithoutOption && (
-                    <p className={hintCls}>
-                      En RDC, maternelle et primaire n&apos;ont pas de filière — l&apos;option est ignorée.
-                    </p>
-                  )}
-                  {inlineCreate === 'option' && !cycleWithoutOption && (
+                  {inlineCreate === 'option' && (
                     <InlineCreateRow
                       placeholder="Nom de l'option (ex. Scientifique)"
                       value={inlineName}
@@ -696,6 +689,7 @@ export function EnrollmentCreateModal({
                     />
                   )}
                 </Field>
+                )}
 
                 <Field label="Année scolaire" error={errors.academicYear?.message}>
                   {loadingSessions ? (
