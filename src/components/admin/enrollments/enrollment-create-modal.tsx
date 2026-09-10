@@ -583,7 +583,7 @@ export function EnrollmentCreateModal({
                 <Field label="Prénom administratif" error={errors.prenom?.message}>
                   <input {...register('prenom')} placeholder="Optionnel — si différent du prénom ci-dessus" className={inputCls} />
                 </Field>
-                <Field label="Date de naissance" required error={errors.birthDate?.message}>
+                <Field label="Date de naissance" error={errors.birthDate?.message}>
                   <input type="date" {...register('birthDate')} className={inputCls} />
                 </Field>
                 <Field label="Genre" required error={errors.gender?.message}>

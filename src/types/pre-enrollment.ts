@@ -11,7 +11,7 @@ export interface PreEnrollmentStudentInfo {
   firstName: string
   prenom?: string
   gender: string
-  dateOfBirth: string
+  dateOfBirth?: string
   placeOfBirth: string
   nationality: string
   parentFirstName?: string
@@ -80,7 +80,7 @@ export interface CreatePreEnrollmentPayload {
     firstName: string
     prenom?: string
     gender: 'M' | 'F'
-    dateOfBirth: string
+    dateOfBirth?: string
     placeOfBirth: string
     nationality?: string
     parentPhone: string

@@ -20,9 +20,11 @@ import {
   useClasses, useCreateClass, useToggleClassStatus, useRollover,
   useSections, useOptions, useAcademicSessions, useOpenAcademicSession, inferSchoolYearLabel,
   useStaff,
+  useCreateOption,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
+import { isRdcCycleWithoutOption } from '@/lib/academic/rdc-section-cycle'
 
 const CLASS_FILTER_DEFAULTS = {
   search: '',
@@ -59,6 +61,7 @@ function OccupancyBar({ pct }: { pct: number }) {
 
 function CreateClassModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useCreateClass()
+  const createOption = useCreateOption()
   const { data: sections = [] } = useSections()
   const { data: sessions = [] } = useAcademicSessions()
   const { data: staff = [] } = useStaff()
@@ -74,17 +77,41 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
   })
   const { data: options = [] } = useOptions(form.sectionId || undefined)
   const [error, setError] = useState<string | null>(null)
+  const selectedSection = sections.find((s) => s.id === form.sectionId)
+  const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+
+  async function resolveOptionId(): Promise<number | null> {
+    if (form.optionId) return form.optionId
+    if (options[0]) return options[0].id
+    if (!cycleWithoutOption || !form.sectionId) return null
+    const created = await createOption.mutateAsync({
+      sectionId: form.sectionId,
+      name: 'Générale',
+      code: 'GEN',
+    })
+    return created.id
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!form.sectionId || !form.optionId || !form.academicYear) {
-      setError('Section, option et année scolaire sont requis')
+    if (!form.sectionId || !form.academicYear) {
+      setError('Section et année scolaire sont requis')
       return
     }
     try {
+      const optionId = await resolveOptionId()
+      if (!optionId) {
+        setError(
+          cycleWithoutOption
+            ? 'Impossible de créer l’option technique « Générale ». Réessayez.'
+            : 'Choisissez une option (filière), ou créez « Générale » pour un cycle sans filière.',
+        )
+        return
+      }
       await mutateAsync({
         ...form,
+        optionId,
         capacity: form.capacity ? Number(form.capacity) : undefined,
       })
       onClose()
@@ -114,19 +141,28 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Option *</label>
-            <select
-              required
-              value={form.optionId || ''}
-              disabled={!form.sectionId}
-              onChange={(e) => setForm((p) => ({ ...p, optionId: Number(e.target.value) }))}
-              className={inputCls}
-            >
-              <option value="">— Choisir —</option>
-              {options.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              {cycleWithoutOption ? 'Option' : 'Option *'}
+            </label>
+            {cycleWithoutOption ? (
+              <p className="text-xs text-zinc-500 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2">
+                Crèche, maternelle et primaire n’ont pas de filière. Le système utilisera
+                automatiquement l’option technique « Générale ».
+              </p>
+            ) : (
+              <select
+                required={!cycleWithoutOption}
+                value={form.optionId || ''}
+                disabled={!form.sectionId}
+                onChange={(e) => setForm((p) => ({ ...p, optionId: Number(e.target.value) }))}
+                className={inputCls}
+              >
+                <option value="">— Choisir —</option>
+                {options.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Année scolaire *</label>

@@ -68,6 +68,8 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Une catégorie avec ce code existe déjà.',
   FEE_CATEGORY_IN_USE:
     'Impossible de désactiver cette catégorie : des barèmes actifs l’utilisent encore.',
+  NO_ACTIVE_SESSION:
+    'Aucune année scolaire ouverte. Ouvrez l’année dans Classes avant d’encaisser ou d’émettre un reçu.',
 }
 
 export function mapSecurityErrorCode(code: string | undefined): string | null {

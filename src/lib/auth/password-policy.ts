@@ -37,11 +37,20 @@ export function staffPasswordStrength(password: string): number {
 export function mapActivateErrorMessage(raw: string | undefined): string {
   if (!raw) return 'Activation impossible. Réessayez ou contactez votre administrateur.'
   const code = raw.toUpperCase()
-  if (code.includes('TOKEN_EXPIRED') || code.includes('INVALID')) {
+  if (code.includes('OTP_EXPIRED')) {
+    return 'Ce code a expiré (15 minutes). Demandez au super-admin de renvoyer l’invitation (nouveau lien + nouveau code).'
+  }
+  if (code.includes('INVALID_OTP')) {
+    return 'Code incorrect. Utilisez le code à 6 chiffres du message WhatsApp (ou de l’email), pas un SMS.'
+  }
+  if (code.includes('TOKEN_EXPIRED') || code.includes('TOKEN_EXPIRED_OR_INVALID') || code.includes('INVALID')) {
     return 'Ce lien d\'invitation est invalide ou a expiré. Demandez une nouvelle invitation à votre administrateur.'
   }
   if (code.includes('WEAK_PASSWORD')) {
     return 'Le mot de passe ne respecte pas la politique de sécurité.'
+  }
+  if (code.includes('ACCOUNT_NOT_VERIFIED')) {
+    return 'Le mot de passe est défini, mais le compte n’est pas encore validé. Reprenez le lien d’activation et saisissez le code OTP.'
   }
   return raw
 }

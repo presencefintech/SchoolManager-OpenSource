@@ -15,6 +15,10 @@ describe('security-errors', () => {
     ).toMatch(/verrouillé/)
   })
 
+  it('mappe NO_ACTIVE_SESSION pour le guichet', () => {
+    expect(mapSecurityErrorCode('NO_ACTIVE_SESSION')).toMatch(/année scolaire ouverte/)
+  })
+
   it('préfère le message lisible au code brut', () => {
     expect(
       resolveApiErrorMessage({ message: 'Solde insuffisant pour cette opération.' }),
