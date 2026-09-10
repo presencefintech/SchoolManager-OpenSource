@@ -19,7 +19,7 @@ const CYCLE_WITHOUT_OPTION_CODES = new Set([
 ]);
 
 const CYCLE_WITHOUT_OPTION_NAME_RE =
-  /maternel|primaire|elementaire|élémentaire|garderie|creche|crèche|prescolaire|préscolaire|jardin\s*d['']enfants/i;
+  /maternel|primaire|elementaire|élémentaire|garderie|creche|crèche|préscolaire|prescolaire|jardin\s*d['']enfants/i;
 
 const CYCLE_WITH_OPTION_NAME_RE =
   /secondaire|humanit[eé]s|technique|humanit[eé]|lyc[eé]e|coll[eè]ge/i;

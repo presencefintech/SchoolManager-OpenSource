@@ -406,26 +406,23 @@ export function EnrollmentCreateModal({
   async function handleCreateClass() {
     const name = inlineName.trim()
     if (!sectionId || !academicYear || name.length < 2) return
+    if (!cycleWithoutOption && !(optionId && optionId > 0) && !options[0]) {
+      toast.error('Option requise', 'Choisissez une filière avant de créer la classe.')
+      return
+    }
     try {
-      let resolvedOptionId = optionId && optionId > 0 ? optionId : undefined
-      if (!resolvedOptionId) {
-        if (options[0]) {
-          resolvedOptionId = options[0].id
-        } else {
-          const createdOpt = await createOptionMutation.mutateAsync({
-            sectionId,
-            name: cycleWithoutOption ? 'Générale' : 'Tronc commun',
-            code: cycleWithoutOption ? 'GEN' : 'TC',
-          })
-          resolvedOptionId = createdOpt.id
-          setValue('optionId', createdOpt.id)
-        }
-      }
       const created = await createClassMutation.mutateAsync({
         name,
         sectionId,
-        optionId: resolvedOptionId,
         academicYear,
+        ...(cycleWithoutOption
+          ? {}
+          : {
+              optionId:
+                optionId && optionId > 0
+                  ? optionId
+                  : options[0]?.id,
+            }),
       })
       setValue('classId', created.id)
       toast.success('Classe créée', `"${created.name}" est disponible.`)
@@ -583,7 +580,7 @@ export function EnrollmentCreateModal({
                 <Field label="Prénom administratif" error={errors.prenom?.message}>
                   <input {...register('prenom')} placeholder="Optionnel — si différent du prénom ci-dessus" className={inputCls} />
                 </Field>
-                <Field label="Date de naissance" required error={errors.birthDate?.message}>
+                <Field label="Date de naissance" error={errors.birthDate?.message}>
                   <input type="date" {...register('birthDate')} className={inputCls} />
                 </Field>
                 <Field label="Genre" required error={errors.gender?.message}>
@@ -703,7 +700,7 @@ export function EnrollmentCreateModal({
                 <Field label="Année scolaire" error={errors.academicYear?.message}>
                   {loadingSessions ? (
                     <div className={cn(inputCls, 'h-[38px] bg-zinc-100 animate-pulse')} />
-                  ) : sessions.length > 0 ? (
+                  ) : currentSession ? (
                     <select
                       {...register('academicYear')}
                       className={cn(inputCls, 'pr-8')}
@@ -716,14 +713,13 @@ export function EnrollmentCreateModal({
                       ))}
                     </select>
                   ) : (
-                    <>
-                      <input
-                        {...register('academicYear')}
-                        placeholder="2025-2026"
-                        className={inputCls}
-                      />
-                      <p className={hintCls}>Aucune session configurée — format attendu : 2025-2026</p>
-                    </>
+                    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                      Aucune année scolaire ouverte.{' '}
+                      <a href="/admin/classes" className="font-medium underline underline-offset-2">
+                        Ouvrir l’année dans Classes
+                      </a>
+                      {' '}avant d’inscrire.
+                    </p>
                   )}
                 </Field>
 

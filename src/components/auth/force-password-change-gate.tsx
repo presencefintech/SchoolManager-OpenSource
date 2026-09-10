@@ -83,7 +83,7 @@ export function ForcePasswordChangeGate() {
                 Changement de mot de passe obligatoire
               </h2>
               <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-                Votre compte a reçu un mot de passe temporaire (reset support ou bootstrap d’urgence).
+                Votre compte vient d’être activé (invitation) ou a reçu un mot de passe temporaire.
                 Définissez un mot de passe personnel avant d’accéder à la plateforme.
               </p>
             </div>

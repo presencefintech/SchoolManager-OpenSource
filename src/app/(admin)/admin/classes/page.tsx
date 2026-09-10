@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, ChevronRight,
@@ -23,6 +23,7 @@ import {
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
+import { isRdcCycleWithoutOption } from '@/lib/academic/rdc-section-cycle'
 
 const CLASS_FILTER_DEFAULTS = {
   search: '',
@@ -74,17 +75,34 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
   })
   const { data: options = [] } = useOptions(form.sectionId || undefined)
   const [error, setError] = useState<string | null>(null)
+  const selectedSection = sections.find((s) => s.id === form.sectionId)
+  const cycleWithoutOption = isRdcCycleWithoutOption(selectedSection)
+  const currentYearLabel = sessions.find((s) => s.isCurrent)?.label ?? ''
+
+  useEffect(() => {
+    if (!currentYearLabel) return
+    setForm((p) => (p.academicYear ? p : { ...p, academicYear: currentYearLabel }))
+  }, [currentYearLabel])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!form.sectionId || !form.optionId || !form.academicYear) {
-      setError('Section, option et année scolaire sont requis')
+    if (!form.sectionId) {
+      setError('La section est requise')
+      return
+    }
+    if (!currentYearLabel && !form.academicYear) {
+      setError('Ouvrez d’abord l’année scolaire (bouton « Ouvrir … » en haut de la page).')
       return
     }
     try {
+      if (!cycleWithoutOption && !form.optionId) {
+        setError('Choisissez une option (filière) pour ce cycle.')
+        return
+      }
       await mutateAsync({
         ...form,
+        optionId: cycleWithoutOption ? undefined : form.optionId,
         capacity: form.capacity ? Number(form.capacity) : undefined,
       })
       onClose()
@@ -114,23 +132,36 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1">Option *</label>
-            <select
-              required
-              value={form.optionId || ''}
-              disabled={!form.sectionId}
-              onChange={(e) => setForm((p) => ({ ...p, optionId: Number(e.target.value) }))}
-              className={inputCls}
-            >
-              <option value="">— Choisir —</option>
-              {options.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">
+              {cycleWithoutOption ? 'Option' : 'Option *'}
+            </label>
+            {cycleWithoutOption ? (
+              <p className="text-xs text-zinc-500 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2">
+                Crèche, maternelle et primaire n’ont pas de filière. Le système utilisera
+                automatiquement l’option technique « Générale ».
+              </p>
+            ) : (
+              <select
+                required={!cycleWithoutOption}
+                value={form.optionId || ''}
+                disabled={!form.sectionId}
+                onChange={(e) => setForm((p) => ({ ...p, optionId: Number(e.target.value) }))}
+                className={inputCls}
+              >
+                <option value="">— Choisir —</option>
+                {options.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Année scolaire *</label>
-            {sessions.length > 0 ? (
+            {sessions.length === 0 ? (
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Aucune année ouverte. Fermez cette fenêtre et cliquez sur « Ouvrir … » en haut de la page.
+              </p>
+            ) : (
               <select
                 required
                 value={form.academicYear}
@@ -144,15 +175,6 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
                   </option>
                 ))}
               </select>
-            ) : (
-              <input
-                required
-                value={form.academicYear}
-                onChange={(e) => setForm((p) => ({ ...p, academicYear: e.target.value }))}
-                placeholder="2025-2026"
-                pattern="\d{4}-\d{4}"
-                className={inputCls}
-              />
             )}
           </div>
           <div>
@@ -215,7 +237,7 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isPending || sessions.length === 0}
               className="flex-1 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white font-medium hover:bg-emerald-700 disabled:opacity-50"
             >
               {isPending ? 'Création...' : 'Créer'}

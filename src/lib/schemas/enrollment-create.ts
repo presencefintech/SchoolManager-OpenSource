@@ -22,7 +22,7 @@ export const enrollmentCreateSchema = z
     /** Prénom administratif RDC — optionnel (repli backend sur firstName) */
     prenom: z.string().min(2).max(80).optional().or(z.literal('')),
     gender: z.enum(['M', 'F', 'MALE', 'FEMALE'], { required_error: 'Genre requis' }),
-    birthDate: z.string().min(1, 'Date de naissance requise'),
+    birthDate: z.string().optional().or(z.literal('')),
     sectionId: idField('Section requise'),
     /** Optionnel en maternelle / primaire — validé dynamiquement via context */
     optionId: optionalIdField,
@@ -138,7 +138,7 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     postnom: data.postnom.trim(),
     ...(trimOptional(data.prenom) ? { prenom: trimOptional(data.prenom) } : {}),
     gender: data.gender,
-    birthDate: data.birthDate,
+    ...(trimOptional(data.birthDate) ? { birthDate: trimOptional(data.birthDate) } : {}),
     classId: data.classId,
     sectionId: data.sectionId,
     ...(data.optionId != null && data.optionId > 0 ? { optionId: data.optionId } : {}),

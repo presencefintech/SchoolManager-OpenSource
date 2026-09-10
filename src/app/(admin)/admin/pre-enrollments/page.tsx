@@ -122,7 +122,7 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
         firstName: form.firstName.trim(),
         ...(form.prenom.trim() ? { prenom: form.prenom.trim() } : {}),
         gender: form.gender,
-        dateOfBirth: form.dateOfBirth,
+        ...(form.dateOfBirth.trim() ? { dateOfBirth: form.dateOfBirth } : {}),
         placeOfBirth: form.placeOfBirth.trim(),
         nationality: form.nationality.trim() || 'Congolaise',
         parentPhone: form.parentPhone.trim(),
@@ -185,8 +185,8 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-500">Date de naissance *</label>
-              <input required type="date" className={inputCls} value={form.dateOfBirth} onChange={(e) => setForm((p) => ({ ...p, dateOfBirth: e.target.value }))} />
+              <label className="text-xs font-medium text-zinc-500">Date de naissance</label>
+              <input type="date" className={inputCls} value={form.dateOfBirth} onChange={(e) => setForm((p) => ({ ...p, dateOfBirth: e.target.value }))} />
             </div>
             <div className="col-span-2">
               <label className="text-xs font-medium text-zinc-500">Lieu de naissance *</label>

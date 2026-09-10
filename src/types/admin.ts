@@ -432,7 +432,7 @@ export interface CreateEnrollmentPayload {
   postnom: string
   prenom?: string
   gender: 'M' | 'F' | 'MALE' | 'FEMALE'
-  birthDate: string
+  birthDate?: string
   classId: number
   sectionId?: number
   optionId?: number
@@ -770,7 +770,7 @@ export interface CreateClassPayload {
   name: string
   academicYear: string
   sectionId: number
-  optionId: number
+  optionId?: number
   level?: string
   capacity?: number
   teacherId?: number

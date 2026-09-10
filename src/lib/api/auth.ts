@@ -50,6 +50,52 @@ export const authApi = {
     return data
   },
 
+  changeEmail: async (payload: { email: string; currentPassword: string }) => {
+    const res = await fetch('/api/auth/change-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw Object.assign(new Error(data.message ?? 'Modification impossible'), { response: { data } })
+    }
+    return data
+  },
+
+  changePhone: async (payload: { phone: string; currentPassword: string }) => {
+    const res = await fetch('/api/auth/change-phone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw Object.assign(new Error(data.message ?? 'Modification impossible'), { response: { data } })
+    }
+    return data as {
+      pendingPhone: string
+      whatsappDeepLink: string | null
+      smsSent: boolean
+    }
+  },
+
+  verifyChangePhone: async (payload: { otp: string }) => {
+    const res = await fetch('/api/auth/verify-change-phone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw Object.assign(new Error(data.message ?? 'Validation impossible'), { response: { data } })
+    }
+    return data
+  },
+
   resendVerificationEmail: () =>
     fetch('/api/auth/resend-verification-email', { method: 'POST', credentials: 'include' }).then(
       async (r) => {

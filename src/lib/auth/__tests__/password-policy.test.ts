@@ -20,4 +20,8 @@ describe('password-policy', () => {
   it('mappe les erreurs token invitation', () => {
     expect(mapActivateErrorMessage('TOKEN_EXPIRED_OR_INVALID')).toMatch(/invalide ou a expiré/i)
   })
+
+  it('mappe un OTP WhatsApp incorrect sans le confondre avec un token invalide', () => {
+    expect(mapActivateErrorMessage('INVALID_OTP')).toMatch(/WhatsApp/i)
+  })
 })

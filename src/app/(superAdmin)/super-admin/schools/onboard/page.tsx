@@ -222,7 +222,8 @@ export default function SchoolOnboardPage() {
             <p className="mt-2 text-sm text-zinc-500">
               <span className="font-medium text-zinc-800">{done.schoolName}</span> a été créée.
               L’admin <span className="font-medium text-zinc-800">{done.adminEmail}</span> doit
-              activer son compte via le lien email + OTP (WhatsApp ou SMS plus tard).
+              ouvrir le lien <code className="rounded bg-zinc-100 px-1">/activate</code> puis
+              saisir le code OTP du message WhatsApp (l’email ne part que si SMTP est configuré).
             </p>
             <p className="mt-3 text-xs text-zinc-400">{done.message}</p>
             <div className="mt-3 flex justify-center gap-3 text-[11px] text-zinc-500">

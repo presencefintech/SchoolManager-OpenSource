@@ -36,6 +36,24 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Ce lien d\'invitation est invalide ou a expiré.',
   EMAIL_ALREADY_USED:
     'Cet email est déjà utilisé par un compte existant. Utilisez une autre adresse ou révoquez l\'invitation en cours.',
+  EMAIL_UNCHANGED:
+    'Cette adresse est déjà celle du compte.',
+  INVALID_MOBILE_PHONE:
+    'Numéro invalide. Utilisez un mobile au format international (ex. +243… ou +33…).',
+  PHONE_UNCHANGED:
+    'Ce numéro est déjà celui du compte.',
+  PHONE_OTP_DELIVERY_FAILED:
+    'Impossible d’envoyer l’OTP (SMS / WhatsApp). Vérifiez le numéro et réessayez.',
+  NO_PENDING_PHONE_CHANGE:
+    'Aucun changement de numéro en attente. Relancez la demande.',
+  OTP_EXPIRED:
+    'Code OTP expiré. Demandez un nouveau code.',
+  INVALID_OTP:
+    'Code OTP incorrect.',
+  OTP_COOLDOWN_BLOCKED:
+    'Patientez une minute avant de redemander un code.',
+  IMPERSONATION_ACTIVE:
+    'Quittez l’impersonation avant de modifier les identifiants.',
   PENDING_INVITATION_EXISTS:
     'Une invitation est déjà en cours pour cet email. Utilisez « Renvoyer » dans la liste ci-dessous.',
   PHONE_ALREADY_USED:
@@ -68,6 +86,8 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Une catégorie avec ce code existe déjà.',
   FEE_CATEGORY_IN_USE:
     'Impossible de désactiver cette catégorie : des barèmes actifs l’utilisent encore.',
+  NO_ACTIVE_SESSION:
+    'Aucune année scolaire ouverte. Ouvrez l’année dans Classes avant d’inscrire, d’encaisser ou d’émettre un reçu.',
 }
 
 export function mapSecurityErrorCode(code: string | undefined): string | null {
