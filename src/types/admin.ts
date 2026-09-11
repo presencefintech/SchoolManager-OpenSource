@@ -733,6 +733,7 @@ export interface SectionRef {
   name: string
   code?: string | null
   schoolId?: number
+  requiresOption?: boolean
 }
 
 export interface OptionRef {

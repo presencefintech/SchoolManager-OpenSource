@@ -13,6 +13,8 @@ describe('rdc-section-cycle', () => {
     expect(sectionRequiresOption({ name: 'Maternelle' }, 2)).toBe(false)
     expect(sectionRequiresOption({ name: 'Cycle A' }, 3)).toBe(false)
     expect(sectionRequiresOption(undefined, 2)).toBe(false)
+    expect(sectionRequiresOption({ name: 'Cycle 1', requiresOption: false })).toBe(false)
+    expect(sectionRequiresOption({ name: 'Cycle 1', requiresOption: true })).toBe(true)
   })
 
   it('retrouve une section même si l’id arrive en string', () => {

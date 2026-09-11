@@ -33,6 +33,7 @@ const CYCLE_WITH_OPTION_NAME_RE =
 export type SectionCycleRef = {
   name?: string | null
   code?: string | null
+  requiresOption?: boolean
 }
 
 /** NFD + strip combining marks without unicode regex flags (TS target-safe). */
@@ -74,6 +75,7 @@ export function sectionRequiresOption(
   section: SectionCycleRef | null | undefined,
   _optionsCount = 0,
 ): boolean {
+  if (typeof section?.requiresOption === 'boolean') return section.requiresOption
   if (isRdcCycleWithoutOption(section)) return false
   return isRdcCycleWithOption(section)
 }

@@ -107,8 +107,7 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
       })
       onClose()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setError(msg ?? 'Erreur lors de la création')
+      setError(getApiErrorMessage(err) || 'Erreur lors de la création')
     }
   }
 
