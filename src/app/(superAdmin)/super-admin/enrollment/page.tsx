@@ -320,7 +320,7 @@ function EnrollmentPageContent() {
   const selectedAuditSchool = schools?.find((s) => s.id === schoolId)
   const overrideReasonValid = createOverrideReason.trim().length >= 10
   const createFormValid =
-    Boolean(createFirstName.trim() && createLastName.trim() && createPostnom.trim() && createSchoolId && createClassId && createBirthDate && createGender)
+    Boolean(createFirstName.trim() && createLastName.trim() && createPostnom.trim() && createSchoolId && createClassId && createGender)
     && overrideReasonValid
 
   /* purge */
@@ -491,7 +491,7 @@ function EnrollmentPageContent() {
           ...(createPrenom.trim() ? { prenom: createPrenom.trim() } : {}),
           schoolId: Number(createSchoolId),
           classId: Number(createClassId),
-          birthDate: createBirthDate,
+          ...(createBirthDate.trim() ? { birthDate: createBirthDate } : {}),
           gender: createGender as 'MALE' | 'FEMALE',
           overrideReason: createOverrideReason.trim(),
           ...(createPlaceOfBirth.trim() ? { placeOfBirth: createPlaceOfBirth.trim() } : {}),
@@ -760,8 +760,9 @@ function EnrollmentPageContent() {
                       <input type="text" placeholder="Optionnel — si différent du prénom ci-dessus" value={createPrenom} onChange={(e) => sf({ prenom: e.target.value })} className={inputCls} autoComplete="off" />
                     </div>
                     <div>
-                      <label className={labelCls}>Date de naissance <span className="text-red-500">*</span></label>
+                      <label className={labelCls}>Date de naissance</label>
                       <input type="date" value={createBirthDate} onChange={(e) => sf({ birthDate: e.target.value })} className={inputCls} />
+                      <p className={hintCls}>Optionnel — à compléter plus tard si l’acte n’est pas disponible.</p>
                     </div>
                     <div>
                       <label className={labelCls}>Genre <span className="text-red-500">*</span></label>

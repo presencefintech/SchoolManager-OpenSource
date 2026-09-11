@@ -18,10 +18,13 @@ const baseStudentSchema = {
   firstName: z.string().min(2).max(50),
   prenom: z.string().min(2).max(50).optional(),
   gender: genderInputSchema,
-  dateOfBirth: z.coerce
-    .date({ errorMap: () => ({ message: 'Date de naissance invalide' }) })
-    .optional(),
-  birthDate: z.string().min(1).optional(),
+  dateOfBirth: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : v),
+    z.coerce
+      .date({ errorMap: () => ({ message: 'Date de naissance invalide' }) })
+      .optional(),
+  ),
+  birthDate: z.string().optional(),
   placeOfBirth: z.string().min(2).optional(),
   nationality: z.string().min(2).optional(),
   classId: z.coerce.number().int().positive(),
@@ -52,20 +55,13 @@ const adminEnrollmentExtensions = {
   feesPaid: z.coerce.number().min(0).default(0),
 };
 
-const requireBirthDate = <T extends z.ZodTypeAny>(schema: T) =>
-  schema.refine(
-    (data: { dateOfBirth?: Date; birthDate?: string }) =>
-      Boolean(data.dateOfBirth || data.birthDate),
-    { message: 'La date de naissance est requise', path: ['birthDate'] }
-  );
-
 export const AdminEnrollmentBaseSchema = z.object({
   ...baseStudentSchema,
   ...adminEnrollmentExtensions,
 });
 
-/** Inscription admin école — schoolId imposé par JWT côté API */
-export const AdminEnrollmentSchema = requireBirthDate(AdminEnrollmentBaseSchema);
+/** Inscription : la date de naissance n’est pas un bloqueur. */
+export const AdminEnrollmentSchema = AdminEnrollmentBaseSchema;
 
 export const AdminEnrollmentUpdateSchema = AdminEnrollmentBaseSchema.partial();
 
@@ -73,18 +69,16 @@ export const AdminEnrollmentUpdateSchema = AdminEnrollmentBaseSchema.partial();
  * Corps POST /superadmin/enrollment
  * multipart/form-data : champs ci-dessous + fichier `photo` (optionnel, max 5 Mo)
  */
-export const SuperAdminCreateStudentBodySchema = requireBirthDate(
-  z.object({
-    ...baseStudentSchema,
-    ...adminEnrollmentExtensions,
-    schoolId: z.coerce.number().int().positive('schoolId est requis'),
-    email: z.string().email('Email invalide').optional().nullable(),
-    overrideReason: z
-      .string()
-      .min(10, 'Motif recommandé (min. 10 caractères)')
-      .optional(),
-  })
-);
+export const SuperAdminCreateStudentBodySchema = z.object({
+  ...baseStudentSchema,
+  ...adminEnrollmentExtensions,
+  schoolId: z.coerce.number().int().positive('schoolId est requis'),
+  email: z.string().email('Email invalide').optional().nullable(),
+  overrideReason: z
+    .string()
+    .min(10, 'Motif recommandé (min. 10 caractères)')
+    .optional(),
+});
 
 export type AdminEnrollmentInput = z.infer<typeof AdminEnrollmentSchema>;
 export type SuperAdminEnrollmentInput = z.infer<typeof SuperAdminCreateStudentBodySchema>;

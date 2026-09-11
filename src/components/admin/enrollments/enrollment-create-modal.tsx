@@ -593,6 +593,7 @@ export function EnrollmentCreateModal({
                 </Field>
                 <Field label="Date de naissance" error={errors.birthDate?.message}>
                   <input type="date" {...register('birthDate')} className={inputCls} />
+                  <p className="text-[11px] text-zinc-400 mt-1">Optionnel</p>
                 </Field>
                 <Field label="Genre" required error={errors.gender?.message}>
                   <select {...register('gender')} className={cn(inputCls, 'pr-8')}>

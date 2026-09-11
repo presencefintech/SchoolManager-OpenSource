@@ -764,7 +764,7 @@ export interface SuperAdminCreateStudentInput {
   prenom?: string
   schoolId: number
   classId: number
-  birthDate: string
+  birthDate?: string
   gender: 'MALE' | 'FEMALE' | 'M' | 'F'
   overrideReason: string
   placeOfBirth?: string

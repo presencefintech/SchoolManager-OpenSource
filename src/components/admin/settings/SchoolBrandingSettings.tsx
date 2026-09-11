@@ -51,7 +51,7 @@ export function SchoolBrandingSettings() {
   async function handleLogoChange(file: File | null) {
     if (!file) return
     if (!file.type.startsWith('image/')) {
-      setUploadError('Format non supporté — utilisez PNG ou JPG.')
+      setUploadError('Format non supporté — utilisez PNG, JPG ou WebP.')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -156,11 +156,11 @@ export function SchoolBrandingSettings() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/jpg"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               className="hidden"
               onChange={(e) => void handleLogoChange(e.target.files?.[0] ?? null)}
             />
-            <p className="mt-2 text-[10px] text-zinc-400 max-w-[7rem]">PNG ou JPG, max 5 Mo</p>
+            <p className="mt-2 text-[10px] text-zinc-400 max-w-[7rem]">PNG, JPG ou WebP, max 5 Mo</p>
             {uploadError ? (
               <p className="mt-1 text-[10px] text-red-600 max-w-[9rem]">{uploadError}</p>
             ) : null}
