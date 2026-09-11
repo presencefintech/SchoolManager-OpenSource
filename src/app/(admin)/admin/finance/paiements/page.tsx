@@ -29,6 +29,8 @@ import { formatMoney } from '@/lib/finance/currency'
 import { exportRowsToCsv } from '@/lib/finance/export-csv'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { triggerBlobDownload } from '@/lib/download-blob'
 import {
   ManualCatalogFeePanel,
   validateManualCatalogPeriod,
@@ -90,13 +92,16 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 
 function ManualPaymentModal({ onClose }: { onClose: () => void }) {
   const { mutateAsync, isPending } = useProcessManualPayment()
+  const toast = useToast()
   const [form, setForm] = useState<ManualPaymentPayload>({ studentId: 0, amount: 0, method: 'CASH' })
   const [attribution, setAttribution] = useState<FeeAttributionValue | null>(null)
   const [useCatalogFallback, setUseCatalogFallback] = useState(false)
   const [proofType, setProofType] = useState<PaymentProofType>('CASH_VOUCHER')
   const [manualJustification, setManualJustification] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+  const [paid, setPaid] = useState(false)
+  const [successPaymentId, setSuccessPaymentId] = useState<number | null>(null)
+  const [downloadingReceipt, setDownloadingReceipt] = useState(false)
 
   useEffect(() => {
     setProofType(defaultProofTypeForMethod(form.method))
@@ -165,12 +170,14 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
     }
     setError(null)
     try {
-      await mutateAsync({
+      const payment = await mutateAsync({
         ...form,
         proofType,
         manualJustification: manualJustification.trim() || undefined,
-      })
-      setSuccess(true)
+      }) as { id?: number } | undefined
+      const id = Number(payment?.id)
+      setSuccessPaymentId(Number.isFinite(id) && id > 0 ? id : null)
+      setPaid(true)
     }
     catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
@@ -178,19 +185,57 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Paiement manuel</h2>
-        {success ? (
+  async function handleDownloadSuccessReceipt() {
+    if (!successPaymentId) return
+    setDownloadingReceipt(true)
+    try {
+      const blob = await adminPdfApi.getReceipt(successPaymentId)
+      triggerBlobDownload(blob, `recu-${successPaymentId}.pdf`)
+      toast.success('Reçu PDF', 'Le fichier a été téléchargé.')
+    } catch (err) {
+      toast.error('Téléchargement impossible', getApiErrorMessage(err))
+    } finally {
+      setDownloadingReceipt(false)
+    }
+  }
+
+  if (paid) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+          <h2 className="text-lg font-semibold text-zinc-900 mb-5">Paiement manuel</h2>
           <div className="text-center py-6">
             <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
               <CheckCircle size={20} className="text-emerald-600" />
             </div>
             <p className="text-sm font-medium text-zinc-800">Paiement enregistré</p>
-            <button onClick={onClose} className="mt-4 px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white">Fermer</button>
+            {successPaymentId ? (
+              <button
+                type="button"
+                onClick={() => void handleDownloadSuccessReceipt()}
+                disabled={downloadingReceipt}
+                className="mt-4 w-full px-4 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                {downloadingReceipt ? 'Préparation du reçu...' : 'Télécharger le reçu PDF'}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-3 w-full px-4 py-2 rounded-xl bg-emerald-600 text-sm text-white"
+            >
+              Fermer
+            </button>
           </div>
-        ) : (
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Paiement manuel</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <StudentSearchField
               studentId={form.studentId}
@@ -310,7 +355,6 @@ function ManualPaymentModal({ onClose }: { onClose: () => void }) {
               </button>
             </div>
           </form>
-        )}
       </div>
     </div>
   )
@@ -655,6 +699,16 @@ export default function PaiementsPage() {
     if (!p.financeCheck) return 'FINANCE'
     if (!p.adminCheck) return 'ADMIN'
     return null
+  }
+
+  async function handleDownloadReceipt(paymentId: number) {
+    try {
+      const blob = await adminPdfApi.getReceipt(paymentId)
+      triggerBlobDownload(blob, `recu-${paymentId}.pdf`)
+      toast.success('Reçu PDF', 'Le fichier a été téléchargé.')
+    } catch (err) {
+      toast.error('Téléchargement impossible', getApiErrorMessage(err))
+    }
   }
 
   async function handleExportReport() {
@@ -1331,17 +1385,7 @@ export default function PaiementsPage() {
                           <Send size={14} />
                         </button>
                         <button
-                          onClick={async () => {
-                            try {
-                              const blob = await adminPdfApi.getReceipt(p.paymentId)
-                              const url = URL.createObjectURL(blob)
-                              const a = document.createElement('a')
-                              a.href = url
-                              a.download = `recu-${p.paymentId}.pdf`
-                              a.click()
-                              URL.revokeObjectURL(url)
-                            } catch {}
-                          }}
+                          onClick={() => void handleDownloadReceipt(p.paymentId)}
                           className="p-1.5 rounded-lg text-zinc-400 hover:bg-emerald-50 hover:text-emerald-600 transition-colors" title="Télécharger reçu PDF">
                           <FileDown size={14} />
                         </button>

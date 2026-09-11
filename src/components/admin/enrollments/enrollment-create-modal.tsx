@@ -36,6 +36,7 @@ import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { newIdempotencyKey } from '@/lib/idempotency'
 import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
+import { adminPdfApi } from '@/lib/admin/api/pdf.api'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { isValidInternationalPhone } from '@/lib/phone/validation'
@@ -488,8 +489,18 @@ export function EnrollmentCreateModal({
       } else if (result.deposit) {
         toast.success(
           'Inscription + acompte',
-          `Paiement #${result.deposit.paymentId} · ${result.deposit.amount} ${result.deposit.currency} — reçu en cours.`,
+          `Paiement #${result.deposit.paymentId} · ${result.deposit.amount} ${result.deposit.currency}`,
         )
+        try {
+          const blob = await adminPdfApi.getReceipt(result.deposit.paymentId)
+          triggerBlobDownload(blob, `recu-${result.deposit.paymentId}.pdf`)
+          toast.success('Reçu de paiement', 'PDF téléchargé — remettez-le au parent.')
+        } catch (receiptErr) {
+          toast.error(
+            'Reçu non téléchargé',
+            `${getApiErrorMessage(receiptErr)} — ouvrez Finance → Paiements pour le récupérer.`,
+          )
+        }
       } else {
         toast.success(
           'Inscription créée',

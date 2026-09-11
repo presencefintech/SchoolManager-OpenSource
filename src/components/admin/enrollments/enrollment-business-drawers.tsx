@@ -28,6 +28,8 @@ import {
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { newIdempotencyKey } from '@/lib/idempotency'
+import { adminPdfApi } from '@/lib/admin/api/pdf.api'
+import { triggerBlobDownload } from '@/lib/download-blob'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
 
 function DrawerShell({
@@ -496,6 +498,16 @@ export function RentreePackDrawer({
           'Pack rentrée + acompte',
           `Paiement #${result.deposit.paymentId} · ${result.deposit.amount} ${result.deposit.currency}`,
         )
+        try {
+          const blob = await adminPdfApi.getReceipt(result.deposit.paymentId)
+          triggerBlobDownload(blob, `recu-${result.deposit.paymentId}.pdf`)
+          toast.success('Reçu de paiement', 'PDF téléchargé — remettez-le au parent.')
+        } catch (receiptErr) {
+          toast.error(
+            'Reçu non téléchargé',
+            `${getApiErrorMessage(receiptErr)} — ouvrez Finance → Paiements pour le récupérer.`,
+          )
+        }
       } else {
         toast.success('Pack rentrée', result.serverMessage || `${studentName} réinscrit(e) avec barème.`)
       }

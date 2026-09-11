@@ -64,12 +64,12 @@ async function assertPdfBlob(blob: Blob): Promise<Blob> {
   return blob
 }
 
-export async function downloadFinanceReceiptPdf(
-  paymentId: number,
+export async function downloadReceiptPdf(
+  path: string,
   format: 'A4' | 'Thermal' = 'Thermal',
 ): Promise<Blob> {
   try {
-    const res = await apiClient.get(`/finance/payments/receipts/${paymentId}/download`, {
+    const res = await apiClient.get(path, {
       params: { format },
       responseType: 'blob',
       timeout: 90_000,
@@ -78,4 +78,11 @@ export async function downloadFinanceReceiptPdf(
   } catch (err) {
     throw await normalizeBlobError(err)
   }
+}
+
+export async function downloadFinanceReceiptPdf(
+  paymentId: number,
+  format: 'A4' | 'Thermal' = 'Thermal',
+): Promise<Blob> {
+  return downloadReceiptPdf(`/finance/payments/receipts/${paymentId}/download`, format)
 }
