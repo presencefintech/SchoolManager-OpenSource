@@ -3,7 +3,14 @@ import type { NextRequest } from 'next/server'
 import type { UserRole } from '@/types/auth'
 import { ROLE_HOME, isWebRole, pathAllowedForRole } from '@/types/auth'
 import { decodeAccessToken } from '@/lib/auth/verify-access-token'
-import { AUTH_COOKIE, decodeImpersonationCookie } from '@/lib/auth/session-cookies'
+import {
+  ACCESS_MAX_AGE,
+  AUTH_COOKIE,
+  REFRESH_MAX_AGE,
+  buildAuthCookie,
+  decodeImpersonationCookie,
+  getBackendUrl,
+} from '@/lib/auth/session-cookies'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite']
 
@@ -15,29 +22,65 @@ const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   IT: '/admin',
 }
 
-export function middleware(request: NextRequest) {
+async function refreshAccessFromCookie(refreshToken: string): Promise<{
+  token: string
+  refreshToken?: string
+} | null> {
+  try {
+    const upstream = await fetch(`${getBackendUrl()}/api/v1/auth/refresh-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+    if (!upstream.ok) return null
+    const data = (await upstream.json().catch(() => ({}))) as {
+      token?: string
+      refreshToken?: string
+    }
+    if (!data.token) return null
+    return { token: data.token, refreshToken: data.refreshToken }
+  } catch {
+    return null
+  }
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (pathname.startsWith('/.well-known/')) {
     return NextResponse.next()
   }
 
-  const token = request.cookies.get('auth_token')?.value
+  let token = request.cookies.get(AUTH_COOKIE.access)?.value
+  const refreshToken = request.cookies.get(AUTH_COOKIE.refresh)?.value
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
 
-  if (!token && !isPublic) {
+  if (!token && !refreshToken && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (!token) {
+  if (!token && !refreshToken) {
     return NextResponse.next()
   }
 
-  const session = decodeAccessToken(token)
+  let session = token ? decodeAccessToken(token) : null
+  let refreshed: { token: string; refreshToken?: string } | null = null
+
+  if (!session && refreshToken) {
+    refreshed = await refreshAccessFromCookie(refreshToken)
+    if (refreshed?.token) {
+      token = refreshed.token
+      session = decodeAccessToken(token)
+    }
+  }
+
   if (!session) {
-    const res = NextResponse.redirect(new URL('/login', request.url))
-    res.cookies.delete('auth_token')
-    res.cookies.delete('auth_refresh')
+    const res = isPublic
+      ? NextResponse.next()
+      : NextResponse.redirect(new URL('/login', request.url))
+    res.cookies.delete(AUTH_COOKIE.access)
+    // Refresh déjà tenté et mort : le garder provoquerait une boucle /login.
+    if (refreshToken) res.cookies.delete(AUTH_COOKIE.refresh)
     return res
   }
 
@@ -54,29 +97,53 @@ export function middleware(request: NextRequest) {
       : null)
 
   if (impersonation && pathname.startsWith('/super-admin')) {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    return attachRefreshedCookies(
+      NextResponse.redirect(new URL('/admin/dashboard', request.url)),
+      refreshed,
+    )
   }
 
   if (!isWebRole(role)) {
     const res = NextResponse.redirect(new URL('/login?error=role_not_supported', request.url))
-    res.cookies.delete('auth_token')
-    res.cookies.delete('auth_refresh')
+    res.cookies.delete(AUTH_COOKIE.access)
+    res.cookies.delete(AUTH_COOKIE.refresh)
     return res
   }
 
   if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && !pathname.startsWith('/verify')) {
-    return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
+    return attachRefreshedCookies(
+      NextResponse.redirect(new URL(ROLE_HOME[role], request.url)),
+      refreshed,
+    )
   }
 
   const inAppSection = Object.values(EXCLUSIVE_PREFIXES).some((prefix) => pathname.startsWith(prefix))
   if (inAppSection && !pathAllowedForRole(role, pathname)) {
-    return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
+    return attachRefreshedCookies(
+      NextResponse.redirect(new URL(ROLE_HOME[role], request.url)),
+      refreshed,
+    )
   }
   if (pathname === '/' || pathname === EXCLUSIVE_PREFIXES[role]) {
-    return NextResponse.redirect(new URL(ROLE_HOME[role], request.url))
+    return attachRefreshedCookies(
+      NextResponse.redirect(new URL(ROLE_HOME[role], request.url)),
+      refreshed,
+    )
   }
 
-  return NextResponse.next()
+  return attachRefreshedCookies(NextResponse.next(), refreshed)
+}
+
+function attachRefreshedCookies(
+  res: NextResponse,
+  refreshed: { token: string; refreshToken?: string } | null,
+): NextResponse {
+  if (!refreshed?.token) return res
+  res.cookies.set(buildAuthCookie(AUTH_COOKIE.access, refreshed.token, ACCESS_MAX_AGE, true))
+  if (refreshed.refreshToken) {
+    res.cookies.set(buildAuthCookie(AUTH_COOKIE.refresh, refreshed.refreshToken, REFRESH_MAX_AGE, true))
+  }
+  return res
 }
 
 export const config = {

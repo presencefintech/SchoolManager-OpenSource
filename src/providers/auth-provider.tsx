@@ -8,7 +8,6 @@ import {
   persistAuthSession,
   persistUserProfile,
   markAuthHydrated,
-  AUTH_SCHOOL_ID_KEY,
 } from '@/lib/api/auth-storage'
 import { ROLE_HOME, isWebRole, type AuthUser, type LoginPayload } from '@/types/auth'
 
@@ -31,23 +30,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function bootstrap() {
+      const applyUser = (data: { user?: AuthUser }) => {
+        if (!data.user) return
+        persistUserProfile(data.user)
+        setUser(data.user)
+        setToken('http-only')
+      }
+
       try {
         const res = await fetch('/api/auth/session', { credentials: 'include' })
         if (res.ok) {
-          const data = await res.json().catch(() => ({}))
-          if (data.user) {
-            persistUserProfile(data.user)
-            setUser(data.user)
-            setToken('http-only')
-            if (data.user.schoolId != null) {
-              localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(data.user.schoolId))
+          applyUser(await res.json().catch(() => ({})))
+          return
+        }
+
+        if (res.status === 401) {
+          const refreshed = await fetch('/api/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+          })
+          if (refreshed.ok) {
+            const retry = await fetch('/api/auth/session', { credentials: 'include' })
+            if (retry.ok) {
+              applyUser(await retry.json().catch(() => ({})))
+              return
             }
           }
-        } else {
           clearAuthStorage()
         }
       } catch {
-        clearAuthStorage()
+        /* réseau / 5xx : ne pas détruire une session encore valide */
       } finally {
         setIsLoading(false)
         markAuthHydrated()

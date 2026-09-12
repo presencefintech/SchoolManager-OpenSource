@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthSchoolId, redirectToLogin } from '@/lib/api/auth-storage'
 import { extractApiErrorPayload, mapSecurityErrorCode, resolveApiErrorMessage } from '@/lib/auth/security-errors'
+import { isAuthSessionFailure } from '@/lib/auth/session-failure'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -89,8 +90,15 @@ apiClient.interceptors.response.use(
       url.includes('/auth/refresh') ||
       url.includes('/auth/logout')
 
-    if (isAuthEndpoint || originalRequest._retry) {
-      redirectToLogin()
+    const sessionDead = isAuthSessionFailure(error.response.data, error.response.status)
+
+    if (isAuthEndpoint) {
+      if (sessionDead) redirectToLogin()
+      return Promise.reject(error)
+    }
+
+    if (originalRequest._retry) {
+      if (sessionDead) redirectToLogin()
       return Promise.reject(error)
     }
 
@@ -100,7 +108,7 @@ apiClient.interceptors.response.use(
       await getOrRefreshToken()
       return apiClient(originalRequest)
     } catch {
-      redirectToLogin()
+      if (sessionDead) redirectToLogin()
       return Promise.reject(error)
     }
   },
