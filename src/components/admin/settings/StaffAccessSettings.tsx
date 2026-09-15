@@ -118,9 +118,20 @@ export function StaffAccessSettings() {
     return map
   }, [data])
 
-  const capKeys = useMemo(() => {
-    const fromApi = (data?.catalog ?? []).map((c) => c.key)
-    return fromApi.length > 0 ? fromApi : FALLBACK_KEYS
+  const capGroups = useMemo(() => {
+    const items = data?.catalog ?? []
+    if (items.length === 0) return [{ group: 'Accès', keys: FALLBACK_KEYS }]
+    const order: string[] = []
+    const map = new Map<string, Array<keyof StaffRoleCapabilities>>()
+    for (const item of items) {
+      const group = item.group ?? 'Accès'
+      if (!map.has(group)) {
+        order.push(group)
+        map.set(group, [])
+      }
+      map.get(group)!.push(item.key)
+    }
+    return order.map((group) => ({ group, keys: map.get(group)! }))
   }, [data])
 
   const save = useMutation({
@@ -185,10 +196,13 @@ export function StaffAccessSettings() {
         <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-zinc-100">
           {roles.map((role) => (
             <div key={role} className="p-5">
-              <p className="text-sm font-semibold text-zinc-900">{ROLE_LABELS[role]}</p>
-              <p className="text-[11px] text-zinc-400 mb-3">{ROLE_HINTS[role]}</p>
+              <p className="text-sm font-semibold text-zinc-900">{ROLE_LABELS[role] ?? role}</p>
+              <p className="text-[11px] text-zinc-400 mb-3">{ROLE_HINTS[role] ?? ''}</p>
               <div className="divide-y divide-zinc-50">
-                {capKeys.map((key) => {
+                {capGroups.map(({ group, keys }) => (
+                  <div key={group} className="pt-2 first:pt-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 mb-1">{group}</p>
+                    {keys.map((key) => {
                   const meta = catalog.get(key)
                   const blocked = capDisabled(key, draft[role])
                   return (
@@ -215,7 +229,9 @@ export function StaffAccessSettings() {
                       }}
                     />
                   )
-                })}
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
