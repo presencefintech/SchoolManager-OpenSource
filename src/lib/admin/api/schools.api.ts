@@ -84,7 +84,7 @@ export const schoolsApi = {
     apiClient.put('/admin/schools/branding', payload).then(r => r.data.data as SchoolBranding),
 
   getStaffAccess: () =>
-    apiClient.get('/admin/schools/staff-access').then(
+    apiClient.get('/admin/staff-access').then(
       (r) =>
         r.data.data as {
           policy: StaffAccessPolicy
@@ -95,20 +95,23 @@ export const schoolsApi = {
     ),
 
   getStaffAccessOverview: () =>
-    apiClient.get('/admin/schools/staff-access/overview').then((r) => r.data.data as StaffAccessOverview),
+    apiClient.get('/admin/staff-access/overview').then((r) => r.data.data as StaffAccessOverview),
 
   updateStaffAccess: (payload: Partial<StaffAccessPolicy>) =>
     apiClient
-      .put('/admin/schools/staff-access', payload)
+      .put('/admin/staff-access', payload)
       .then((r) => r.data.data as { policy: StaffAccessPolicy }),
 
+  getMemberStaffAccess: (userId: number) =>
+    apiClient.get(`/admin/staff/${userId}/access`).then((r) => r.data.data),
+
   updateMemberStaffAccess: (userId: number, payload: Partial<StaffRoleCapabilities> | { reset: true }) =>
-    apiClient
-      .patch(`/admin/schools/staff-access/users/${userId}`, payload)
-      .then((r) => r.data.data),
+    'reset' in payload && payload.reset
+      ? apiClient.delete(`/admin/staff/${userId}/access`).then((r) => r.data.data)
+      : apiClient.patch(`/admin/staff/${userId}/access`, payload).then((r) => r.data.data),
 
   getMyStaffAccess: () =>
-    apiClient.get('/admin/schools/staff-access/me').then(
+    apiClient.get('/admin/staff-access/me').then(
       (r) =>
         r.data.data as {
           role: string

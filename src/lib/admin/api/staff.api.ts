@@ -32,6 +32,9 @@ export const staffApi = {
       .post<{ success: boolean; data: StaffMember }>(`/admin/staff/${id}/activate`, { note })
       .then((r) => r.data.data),
 
+  getAccount: (id: number) =>
+    apiClient.get(`/admin/staff/${id}/account`).then((r) => r.data.data),
+
   resetPassword: (id: number) =>
     apiClient.post<{ success: boolean; data: RegeneratePasswordResult }>(`/admin/staff/${id}/reset-password`)
       .then(r => r.data.data),
