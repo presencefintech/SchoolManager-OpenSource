@@ -106,9 +106,9 @@ export function SecurityProfilePanel() {
   async function onChangeEmail(values: ChangeEmailForm) {
     try {
       await authApi.changeEmail(values)
-      success('Email mis à jour', 'Confirmez le lien reçu puis reconnectez-vous.')
+      success('Email mis à jour', 'Confirmez le lien reçu. Votre session reste ouverte.')
       emailForm.reset()
-      setTimeout(() => void logout(), 1500)
+      await refreshUser()
     } catch (err) {
       toastError('Échec', getApiErrorMessage(err))
     }
