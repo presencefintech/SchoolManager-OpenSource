@@ -177,6 +177,8 @@ export interface AdminEnrollmentRealtimeItem {
 }
 
 // Staff
+import type { StaffAccountView } from '@/lib/admin/api/schools.api'
+
 export interface StaffMember {
   id: number
   firstName: string | null
@@ -185,8 +187,10 @@ export interface StaffMember {
   phone: string | null
   role: string
   status: string
+  isActive?: boolean
   createdAt: string
   lastLogin: string | null
+  account?: StaffAccountView
 }
 
 export interface CreateStaffPayload {

@@ -5,6 +5,7 @@ export const queryKeys = {
 
     schools: (params?: Record<string, unknown>) => ['superadmin', 'schools', params ?? 'all'] as const,
     school: (id: number) => ['superadmin', 'schools', id] as const,
+    schoolModules: (id: number) => ['superadmin', 'schools', id, 'modules'] as const,
     schoolPaymentDashboard: (id: number) => ['superadmin', 'schools', id, 'payment-dashboard'] as const,
 
     core: {

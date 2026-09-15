@@ -7,6 +7,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { useSchool, useSchoolPrintLogs, useUpdateSchoolSaas } from '@/lib/hooks/use-super-admin'
 import { useToast } from '@/providers/toast-provider'
 import { CapacityBar, StatusBadge } from '@/components/super-admin/school-saas-drawer'
+import { SchoolModulesConsole } from '@/components/super-admin/school-modules-console'
 import { cn } from '@/lib/utils'
 import { subscriptionTierLabel } from '@/lib/i18n/display-labels'
 
@@ -60,38 +61,7 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
 
       <CapacityBar count={studentCount} capacity={school.studentCapacity} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {(
-          [
-            ['printing', 'Impression'],
-            ['mobile_app', 'Mobile'],
-            ['finance_reports', 'Finance'],
-          ] as const
-        ).map(([key, label]) => {
-          const on = Boolean(school.features?.[key] ?? (key === 'printing' && school.cardPrintingAllowed))
-          return (
-            <button
-              key={key}
-              type="button"
-              disabled={mutation.isPending}
-              onClick={() =>
-                void mutation.mutateAsync({
-                  features: { [key]: !on },
-                  ...(key === 'printing' ? { cardPrintingAllowed: !on } : {}),
-                }).then(() => toast.success(`${label} mis à jour`))
-              }
-              className={cn(
-                'rounded-xl border px-3 py-2 text-left text-xs font-medium',
-                on
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                  : 'border-zinc-200 bg-zinc-50 text-zinc-500',
-              )}
-            >
-              {label}: {on ? 'ON' : 'OFF'}
-            </button>
-          )
-        })}
-      </div>
+      <SchoolModulesConsole schoolId={schoolId} compact />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {(

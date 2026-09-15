@@ -14,6 +14,24 @@ export const staffApi = {
     apiClient.delete<{ success: boolean }>(`/admin/staff/${id}`)
       .then(r => r.data),
 
+  deactivate: (id: number, reason: string) =>
+    apiClient
+      .post<{ success: boolean; data: StaffMember }>(`/admin/staff/${id}/deactivate`, { reason })
+      .then((r) => r.data.data),
+
+  block: (id: number, reason: string) =>
+    apiClient
+      .post<{ success: boolean; data: StaffMember }>(`/admin/staff/${id}/block`, {
+        reason,
+        confirm: true,
+      })
+      .then((r) => r.data.data),
+
+  activate: (id: number, note?: string) =>
+    apiClient
+      .post<{ success: boolean; data: StaffMember }>(`/admin/staff/${id}/activate`, { note })
+      .then((r) => r.data.data),
+
   resetPassword: (id: number) =>
     apiClient.post<{ success: boolean; data: RegeneratePasswordResult }>(`/admin/staff/${id}/reset-password`)
       .then(r => r.data.data),

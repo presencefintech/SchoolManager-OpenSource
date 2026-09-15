@@ -117,6 +117,39 @@ export function useDisableStaff() {
   })
 }
 
+export function useDeactivateStaff() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => staffApi.deactivate(id, reason),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'staff'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'schools', 'staff-access'] })
+    },
+  })
+}
+
+export function useBlockStaff() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => staffApi.block(id, reason),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'staff'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'schools', 'staff-access'] })
+    },
+  })
+}
+
+export function useActivateStaff() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, note }: { id: number; note?: string }) => staffApi.activate(id, note),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'staff'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'schools', 'staff-access'] })
+    },
+  })
+}
+
 export function useResetStaffPassword() {
   return useMutation({
     mutationFn: (id: number) => staffApi.resetPassword(id),

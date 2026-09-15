@@ -6,14 +6,9 @@ import { ExternalLink, Loader2, Moon, Sun, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUpdateSchoolSaas } from '@/lib/hooks/use-super-admin'
 import { useToast } from '@/providers/toast-provider'
-import type { School, SchoolFeaturesMap, SchoolLifecycleStatus } from '@/types/super-admin'
+import type { School, SchoolLifecycleStatus } from '@/types/super-admin'
 import { lifecycleStatusLabel, subscriptionTierLabel } from '@/lib/i18n/display-labels'
-
-const FEATURE_LABELS: { key: keyof SchoolFeaturesMap; label: string; hint: string }[] = [
-  { key: 'printing', label: 'Impression cartes PVC', hint: 'PDF / lot de cartes élèves' },
-  { key: 'mobile_app', label: 'Application mobile', hint: 'Parents & enseignants' },
-  { key: 'finance_reports', label: 'Rapports finance', hint: 'Exports & tableaux de bord' },
-]
+import { SchoolModulesConsole } from '@/components/super-admin/school-modules-console'
 
 export function StatusBadge({ status }: { status?: SchoolLifecycleStatus | string }) {
   const s = status ?? 'ACTIVE'
@@ -70,12 +65,6 @@ export function SchoolSaasDrawer({
   const [tier, setTier] = useState<'BASIC' | 'PREMIUM' | 'ENTERPRISE'>('BASIC')
   const [contractExpiry, setContractExpiry] = useState('')
   const [capacity, setCapacity] = useState('')
-  const [features, setFeatures] = useState<SchoolFeaturesMap>({
-    printing: false,
-    mobile_app: true,
-    finance_reports: true,
-  })
-  const [cardPrinting, setCardPrinting] = useState(false)
   const [enableWhatsapp, setEnableWhatsapp] = useState(false)
   const [enableSms, setEnableSms] = useState(true)
   const [enablePush, setEnablePush] = useState(true)
@@ -88,12 +77,6 @@ export function SchoolSaasDrawer({
     setTier((school.subscriptionTier as 'BASIC' | 'PREMIUM' | 'ENTERPRISE') || 'BASIC')
     setContractExpiry(school.contractExpiry ? school.contractExpiry.slice(0, 10) : '')
     setCapacity(school.studentCapacity != null ? String(school.studentCapacity) : '')
-    setFeatures({
-      printing: school.features?.printing ?? school.cardPrintingAllowed ?? false,
-      mobile_app: school.features?.mobile_app ?? true,
-      finance_reports: school.features?.finance_reports ?? true,
-    })
-    setCardPrinting(Boolean(school.cardPrintingAllowed ?? school.features?.printing))
     setEnableWhatsapp(Boolean(school.enableWhatsapp))
     setEnableSms(school.enableSms !== false)
     setEnablePush(school.enablePush !== false)
@@ -145,52 +128,7 @@ export function SchoolSaasDrawer({
         <div className="space-y-6 px-5 py-5">
           <CapacityBar count={studentCount} capacity={school.studentCapacity} />
 
-          <section className="space-y-3">
-            <h3 className="text-sm font-semibold">Modules</h3>
-            {FEATURE_LABELS.map(({ key, label, hint }) => (
-              <label
-                key={key}
-                className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 dark:border-zinc-800 px-3 py-2.5"
-              >
-                <div>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-[11px] text-zinc-500">{hint}</p>
-                </div>
-                <input
-                  type="checkbox"
-                  className="h-5 w-9 accent-indigo-600"
-                  checked={Boolean(features[key])}
-                  disabled={mutation.isPending}
-                  onChange={(e) => {
-                    const next = { ...features, [key]: e.target.checked }
-                    setFeatures(next)
-                    if (key === 'printing') setCardPrinting(e.target.checked)
-                    void persist({
-                      features: { [key]: e.target.checked },
-                      ...(key === 'printing' ? { cardPrintingAllowed: e.target.checked } : {}),
-                    })
-                  }}
-                />
-              </label>
-            ))}
-            <label className="flex items-center justify-between gap-3 rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/50 dark:bg-indigo-950/30 px-3 py-2.5">
-              <div>
-                <p className="text-sm font-medium">cardPrintingAllowed</p>
-                <p className="text-[11px] text-zinc-500">Flag dédié impression PVC</p>
-              </div>
-              <input
-                type="checkbox"
-                className="h-5 w-9 accent-indigo-600"
-                checked={cardPrinting}
-                disabled={mutation.isPending}
-                onChange={(e) => {
-                  setCardPrinting(e.target.checked)
-                  setFeatures((f) => ({ ...f, printing: e.target.checked }))
-                  void persist({ cardPrintingAllowed: e.target.checked })
-                }}
-              />
-            </label>
-          </section>
+          <SchoolModulesConsole schoolId={school.id} />
 
           <section className="space-y-3">
             <h3 className="text-sm font-semibold">Contrat</h3>

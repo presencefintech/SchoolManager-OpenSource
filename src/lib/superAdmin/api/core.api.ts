@@ -7,6 +7,8 @@ import type {
   SchoolDetail,
   SchoolPrintLog,
   SchoolSaasUpdatePayload,
+  SchoolModulesBoard,
+  SchoolModulesUpdatePayload,
   CoreUser,
   CoreStudent,
   CorePresence,
@@ -51,6 +53,19 @@ export const coreApi = {
   updateSchoolSaas: (id: number, body: SchoolSaasUpdatePayload) =>
     apiClient
       .patch<{ success: boolean; school: SchoolDetail }>(`/superadmin/core/schools/${id}/saas`, body)
+      .then((r) => r.data.school),
+
+  getSchoolModules: (id: number) =>
+    apiClient
+      .get<{ success: boolean; modules: SchoolModulesBoard }>(`/superadmin/core/schools/${id}/modules`)
+      .then((r) => r.data.modules),
+
+  updateSchoolModules: (id: number, body: SchoolModulesUpdatePayload) =>
+    apiClient
+      .patch<{ success: boolean; school: SchoolDetail; message: string }>(
+        `/superadmin/core/schools/${id}/modules`,
+        body,
+      )
       .then((r) => r.data.school),
 
   getSchoolPrintLogs: (id: number, take = 20) =>

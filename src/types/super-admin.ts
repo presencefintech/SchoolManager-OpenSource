@@ -56,11 +56,79 @@ export interface SchoolHealth {
 
 export type SchoolLifecycleStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING' | 'EXPIRED'
 
-export type SchoolFeaturesMap = {
-  printing: boolean
-  mobile_app: boolean
-  finance_reports: boolean
-  [key: string]: boolean
+export type SchoolFeatureKey =
+  | 'mobile_app'
+  | 'enrollments'
+  | 'imports'
+  | 'exports'
+  | 'announcements'
+  | 'online_payments'
+  | 'finance_reports'
+  | 'ai_tutor'
+  | 'printing'
+
+export type SchoolFeaturesMap = Partial<Record<SchoolFeatureKey, boolean>> & {
+  [key: string]: boolean | undefined
+}
+
+export type SchoolModuleItem = {
+  key: SchoolFeatureKey | string
+  group: string
+  label: string
+  hint: string
+  impactOff: string
+  sensitive: boolean
+  critical: boolean
+  default: boolean
+  dependsOn?: string
+  enabled: boolean
+  clamped: boolean
+  source: 'saas'
+}
+
+export type SchoolModuleChange = {
+  key: string
+  label: string
+  from: boolean
+  to: boolean
+  critical: boolean
+}
+
+export type SchoolModuleLastChange = {
+  action: string
+  reason: string | null
+  at: string
+  actorId: number | null
+  actorName: string | null
+  changes: SchoolModuleChange[]
+}
+
+export type SchoolModulesBoard = {
+  catalog: Array<Omit<SchoolModuleItem, 'enabled' | 'clamped' | 'source'>>
+  groups: Array<{ id: string; label: string }>
+  features: SchoolFeaturesMap
+  items: SchoolModuleItem[]
+  disabledCount: number
+  channels: { whatsapp: boolean; sms: boolean; push: boolean }
+  lifecycle: {
+    active: boolean
+    status: string
+    contractExpiry: string | null
+    cardPrintingAllowed: boolean
+    subscriptionTier: string
+  }
+  lastChange: SchoolModuleLastChange | null
+  history: SchoolModuleLastChange[]
+  readonly: boolean
+}
+
+export type SchoolModulesUpdatePayload = {
+  features?: Partial<SchoolFeaturesMap>
+  reason?: string
+  confirm?: true
+  enableWhatsapp?: boolean
+  enableSms?: boolean
+  enablePush?: boolean
 }
 
 export interface SchoolOperationalSuspension {
