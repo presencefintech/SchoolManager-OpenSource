@@ -147,6 +147,29 @@ export function useUpdateSchoolSaas(schoolId: number) {
       superAdminApi.updateSchoolSaas(schoolId, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.superadmin.school(schoolId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.superadmin.schoolModules(schoolId) })
+      void qc.invalidateQueries({ queryKey: ['superadmin', 'schools'] })
+    },
+  })
+}
+
+export function useSchoolModules(schoolId: number) {
+  return useQuery({
+    queryKey: queryKeys.superadmin.schoolModules(schoolId),
+    queryFn: () => superAdminApi.getSchoolModules(schoolId),
+    staleTime: 15_000,
+    enabled: !!getAuthToken() && !!schoolId,
+  })
+}
+
+export function useUpdateSchoolModules(schoolId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: import('@/types/super-admin').SchoolModulesUpdatePayload) =>
+      superAdminApi.updateSchoolModules(schoolId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.superadmin.school(schoolId) })
+      void qc.invalidateQueries({ queryKey: queryKeys.superadmin.schoolModules(schoolId) })
       void qc.invalidateQueries({ queryKey: ['superadmin', 'schools'] })
     },
   })

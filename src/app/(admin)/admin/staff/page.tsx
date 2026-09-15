@@ -3,11 +3,14 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Users, Plus, Trash2, Loader2, X, Mail, Phone, BookOpen,
+  Users, Plus, Loader2, X, Mail, Phone, BookOpen,
   CheckCircle, TrendingUp, Layers, Settings2, Monitor, KeyRound,
+  Ban, UserCheck, UserMinus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useStaff, useCreateStaff, useDisableStaff, useResetStaffPassword } from '@/lib/hooks/use-admin'
+import {
+  useStaff, useCreateStaff, useDeactivateStaff, useBlockStaff, useActivateStaff, useResetStaffPassword,
+} from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { CreateStaffPayload, RegeneratePasswordResult } from '@/types/admin'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -28,7 +31,9 @@ type StaffRoleOption = CreateStaffPayload['role']
 export default function StaffPage() {
   const { data: staff, isLoading } = useStaff()
   const createMutation = useCreateStaff()
-  const disableMutation = useDisableStaff()
+  const deactivateMutation = useDeactivateStaff()
+  const blockMutation = useBlockStaff()
+  const activateMutation = useActivateStaff()
   const resetPasswordMutation = useResetStaffPassword()
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState('')
@@ -39,6 +44,13 @@ export default function StaffPage() {
   const [resetTarget, setResetTarget] = useState<{ id: number; name: string } | null>(null)
   const [resetError, setResetError] = useState('')
   const [resetResult, setResetResult] = useState<RegeneratePasswordResult | null>(null)
+  const [accountTarget, setAccountTarget] = useState<{
+    id: number
+    name: string
+    action: 'deactivate' | 'block' | 'activate'
+  } | null>(null)
+  const [accountReason, setAccountReason] = useState('')
+  const [accountError, setAccountError] = useState('')
   const [form, setForm] = useState<CreateStaffPayload>({
     firstName: '', lastName: '', email: '', password: '', role: 'TEACHER',
   })
@@ -61,9 +73,30 @@ export default function StaffPage() {
     }
   }
 
-  async function handleDisable(id: number) {
-    if (!confirm('Désactiver ce membre du personnel ?')) return
-    await disableMutation.mutateAsync(id)
+  async function confirmAccountAction() {
+    if (!accountTarget) return
+    setAccountError('')
+    try {
+      if (accountTarget.action === 'deactivate') {
+        if (accountReason.trim().length < 10) {
+          setAccountError('Motif requis (10 caractères minimum).')
+          return
+        }
+        await deactivateMutation.mutateAsync({ id: accountTarget.id, reason: accountReason.trim() })
+      } else if (accountTarget.action === 'block') {
+        if (accountReason.trim().length < 10) {
+          setAccountError('Motif requis (10 caractères minimum).')
+          return
+        }
+        await blockMutation.mutateAsync({ id: accountTarget.id, reason: accountReason.trim() })
+      } else {
+        await activateMutation.mutateAsync({ id: accountTarget.id, note: accountReason.trim() || undefined })
+      }
+      setAccountTarget(null)
+      setAccountReason('')
+    } catch (err) {
+      setAccountError(getApiErrorMessage(err))
+    }
   }
 
   async function confirmResetPassword() {
@@ -163,9 +196,21 @@ export default function StaffPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={cn('text-xs font-medium px-2 py-1 rounded-full',
-                          member.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-500'
+                          member.account?.state === 'blocked'
+                            ? 'bg-red-50 text-red-700'
+                            : member.account?.state === 'deactivated' || member.status === 'SUSPENDED'
+                              ? 'bg-zinc-100 text-zinc-600'
+                              : member.account?.state === 'pending' || member.status === 'PENDING_VERIFICATION'
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-emerald-50 text-emerald-700'
                         )}>
-                          {member.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
+                          {member.account?.state === 'blocked'
+                            ? 'Bloqué'
+                            : member.account?.state === 'deactivated' || member.status === 'SUSPENDED'
+                              ? 'Désactivé'
+                              : member.account?.state === 'pending' || member.status === 'PENDING_VERIFICATION'
+                                ? 'En attente'
+                                : 'Actif'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -201,13 +246,56 @@ export default function StaffPage() {
                             </button>
                           )}
                           {member.role !== 'ADMIN' && (
-                            <button
-                              onClick={() => handleDisable(member.id)}
-                              disabled={disableMutation.isPending}
-                              className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <>
+                              {member.account?.canActivate && (
+                                <button
+                                  type="button"
+                                  title="Réactiver le compte"
+                                  onClick={() =>
+                                    setAccountTarget({
+                                      id: member.id,
+                                      name: `${member.firstName} ${member.lastName}`.trim(),
+                                      action: 'activate',
+                                    })
+                                  }
+                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                                >
+                                  <UserCheck size={14} />
+                                </button>
+                              )}
+                              {(member.account?.canDeactivate ?? member.status === 'ACTIVE') && (
+                                <button
+                                  type="button"
+                                  title="Désactiver le compte"
+                                  onClick={() =>
+                                    setAccountTarget({
+                                      id: member.id,
+                                      name: `${member.firstName} ${member.lastName}`.trim(),
+                                      action: 'deactivate',
+                                    })
+                                  }
+                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+                                >
+                                  <UserMinus size={14} />
+                                </button>
+                              )}
+                              {(member.account?.canBlock ?? member.status === 'ACTIVE') && (
+                                <button
+                                  type="button"
+                                  title="Bloquer le compte"
+                                  onClick={() =>
+                                    setAccountTarget({
+                                      id: member.id,
+                                      name: `${member.firstName} ${member.lastName}`.trim(),
+                                      action: 'block',
+                                    })
+                                  }
+                                  className="p-1.5 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                  <Ban size={14} />
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -313,6 +401,55 @@ export default function StaffPage() {
           onClose={() => setAssignTarget(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={accountTarget != null}
+        title={
+          accountTarget?.action === 'block'
+            ? 'Bloquer ce compte ?'
+            : accountTarget?.action === 'activate'
+              ? 'Réactiver ce compte ?'
+              : 'Désactiver ce compte ?'
+        }
+        description={
+          accountTarget
+            ? accountTarget.action === 'block'
+              ? `${accountTarget.name} ne pourra plus se connecter. Toutes les sessions seront révoquées.`
+              : accountTarget.action === 'activate'
+                ? `${accountTarget.name} pourra de nouveau se connecter.`
+                : `${accountTarget.name} n’aura plus accès à l’établissement. Les sessions actives seront coupées.`
+            : ''
+        }
+        impact={accountError ? [accountError] : []}
+        variant={accountTarget?.action === 'activate' ? 'default' : 'danger'}
+        confirmLabel={
+          accountTarget?.action === 'block'
+            ? 'Bloquer'
+            : accountTarget?.action === 'activate'
+              ? 'Réactiver'
+              : 'Désactiver'
+        }
+        reasonLabel={accountTarget?.action === 'activate' ? 'Note (optionnel)' : 'Motif'}
+        reasonPlaceholder={
+          accountTarget?.action === 'block'
+            ? 'Ex. tentative de fraude, partage de compte…'
+            : accountTarget?.action === 'deactivate'
+              ? 'Ex. fin de contrat, départ…'
+              : 'Optionnel'
+        }
+        reason={accountReason}
+        onReasonChange={setAccountReason}
+        confirmDisabled={
+          accountTarget?.action !== 'activate' && accountReason.trim().length < 10
+        }
+        loading={deactivateMutation.isPending || blockMutation.isPending || activateMutation.isPending}
+        onConfirm={confirmAccountAction}
+        onCancel={() => {
+          setAccountTarget(null)
+          setAccountReason('')
+          setAccountError('')
+        }}
+      />
 
       <ConfirmDialog
         open={resetTarget != null}

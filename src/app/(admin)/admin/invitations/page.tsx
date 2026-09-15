@@ -143,8 +143,20 @@ function StaffInvitationsTab() {
   const resendInvitation = useResendStaffInvitation()
   const qc = useQueryClient()
   const suspendStaff = useMutation({
-    mutationFn: (userId: number) => staffApi.disable(userId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'invitations'] }),
+    mutationFn: (userId: number) =>
+      staffApi.deactivate(userId, 'Suspension depuis les invitations staff.'),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'invitations'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'staff'] })
+    },
+  })
+  const activateStaff = useMutation({
+    mutationFn: (userId: number) =>
+      staffApi.activate(userId, 'Réactivation depuis les invitations staff.'),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'invitations'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'staff'] })
+    },
   })
 
   const [form, setForm] = useState<InviteStaffPayload>({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '' })
@@ -162,6 +174,16 @@ function StaffInvitationsTab() {
     if (!confirm(`Suspendre le compte de ${inv.firstName} ${inv.lastName} ?`)) return
     setRevokeError('')
     suspendStaff.mutate(inv.userId, {
+      onSuccess: () => refetch(),
+      onError: (err) => setRevokeError(getApiErrorMessage(err)),
+    })
+  }
+
+  const handleActivate = (inv: StaffInvitation) => {
+    if (!inv.userId) return
+    if (!confirm(`Réactiver le compte de ${inv.firstName} ${inv.lastName} ?`)) return
+    setRevokeError('')
+    activateStaff.mutate(inv.userId, {
       onSuccess: () => refetch(),
       onError: (err) => setRevokeError(getApiErrorMessage(err)),
     })
@@ -317,6 +339,7 @@ function StaffInvitationsTab() {
                       resendPending={resendInvitation.isPending}
                       revokePending={revokeInvitation.isPending}
                       suspendPending={suspendStaff.isPending}
+                      reactivatePending={activateStaff.isPending}
                       onResend={() =>
                         resendInvitation.mutate(inv.userId!, {
                           onSuccess: (res) => {
@@ -333,6 +356,7 @@ function StaffInvitationsTab() {
                       }
                       onDelete={() => handleRevoke(inv)}
                       onSuspend={() => handleSuspend(inv)}
+                      onReactivate={() => handleActivate(inv)}
                     />
                   </td>
                 </tr>
