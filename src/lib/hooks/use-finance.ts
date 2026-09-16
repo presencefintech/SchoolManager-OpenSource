@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { financeQueryKeys } from '@/lib/finance/query-keys'
 import { resolveAcademicSessionId } from '@/lib/finance/collection-analytics.utils'
-import type { CashSession, GuichetDashboard, CollectionAnalyticsSummary } from '@/types/finance'
+import type { CashDesk, CashSession, GuichetDashboard, CollectionAnalyticsSummary, SchoolCashOps } from '@/types/finance'
 import type { FinanceFraudAlert, FinanceIntegrityScan } from '@/types/admin'
 
 // ── Dashboard & Analytics ──────────────────────────────────────────────────
@@ -256,6 +256,24 @@ export function useOpeningFloatSuggestion(enabled = true) {
   })
 }
 
+export function useCashOps(enabled = true) {
+  return useQuery<SchoolCashOps>({
+    queryKey: financeQueryKeys.cashOps(),
+    queryFn: financeRoleApi.getCashOps,
+    staleTime: 30_000,
+    enabled,
+  })
+}
+
+export function useCashDesks(enabled = true) {
+  return useQuery<CashDesk[]>({
+    queryKey: financeQueryKeys.cashDesks(),
+    queryFn: financeRoleApi.listCashDesks,
+    staleTime: 60_000,
+    enabled,
+  })
+}
+
 export function useOpenSession() {
   const qc = useQueryClient()
   return useMutation({
@@ -263,6 +281,8 @@ export function useOpenSession() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
       qc.invalidateQueries({ queryKey: ['finance', 'guichet-dashboard'] })
+      qc.invalidateQueries({ queryKey: financeQueryKeys.cashDesks() })
+      qc.invalidateQueries({ queryKey: financeQueryKeys.cashOps() })
     },
   })
 }

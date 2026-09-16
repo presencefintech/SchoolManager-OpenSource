@@ -29,6 +29,7 @@ import {
   useOpeningFloatSuggestion,
   useAddCashSessionMovement,
   useSubmitCashSessionToPromoter,
+  useCashOps,
 } from '@/lib/hooks/use-finance'
 import type { CashLedgerMovementType } from '@/types/finance'
 import { fadeUp } from '@/lib/animations'
@@ -112,6 +113,13 @@ function DenomPad({
   )
 }
 
+const DESK_SPECIALTY_LABEL: Record<string, string> = {
+  ENROLLMENT: 'Inscriptions',
+  TUITION: 'Scolarité',
+  MOBILE_MONEY: 'Mobile money / banque',
+  GENERAL: 'Général',
+}
+
 function KpiCard({
   label,
   value,
@@ -161,6 +169,9 @@ export default function CaissePage() {
   const { data: history } = useCashSessionHistory({ limit: 8 })
   const { data: openingSuggestion } = useOpeningFloatSuggestion(!hasOpenSession)
   const { mutateAsync: openSession, isPending: opening } = useOpenSession()
+  const { data: cashOps, isLoading: desksLoading } = useCashOps()
+  const cashDesks = cashOps?.desks ?? []
+  const multiCounterEnabled = Boolean(cashOps?.multiCounterEnabled)
   const { mutateAsync: closeSession, isPending: closing } = useCloseSession()
   const { mutateAsync: addMovement, isPending: moving } = useAddCashSessionMovement()
   const exportSession = useExportCashSession()
@@ -171,6 +182,9 @@ export default function CaissePage() {
   const [submitOk, setSubmitOk] = useState<string | null>(null)
 
   const [openForm, setOpenForm] = useState({ openingFloat: '', openingFloatCdf: '', openNotes: '' })
+  const [cashDeskId, setCashDeskId] = useState<number | null>(null)
+  const selectedDesk = cashDesks.find((d) => d.id === cashDeskId) ?? null
+  const selectedDeskBlocked = Boolean(selectedDesk && selectedDesk.canOpen === false)
   const [openUsdCounts, setOpenUsdCounts] = useState(() => emptyDenomCounts('USD'))
   const [openCdfCounts, setOpenCdfCounts] = useState(() => emptyDenomCounts('CDF'))
   const [closeForm, setCloseForm] = useState({ closingCounted: '', closeNotes: '' })
@@ -239,6 +253,14 @@ export default function CaissePage() {
   )
 
   useEffect(() => {
+    if (hasOpenSession || !multiCounterEnabled || cashDesks.length === 0) return
+    const stillValid = cashDesks.some((d) => d.id === cashDeskId && d.canOpen !== false)
+    if (stillValid) return
+    const firstOpenable = cashDesks.find((d) => d.canOpen !== false)
+    setCashDeskId(firstOpenable?.id ?? null)
+  }, [hasOpenSession, multiCounterEnabled, cashDesks, cashDeskId])
+
+  useEffect(() => {
     if (hasOpenSession || !openingSuggestion || suggestionApplied) return
     setSuggestionApplied(true)
     setOpenForm((p) => ({
@@ -279,6 +301,18 @@ export default function CaissePage() {
     e.preventDefault()
     setOpenError(null)
     setOpenSuccess(false)
+    if (multiCounterEnabled && !cashDeskId) {
+      setOpenError('Choisissez le guichet avant d’ouvrir la caisse.')
+      return
+    }
+    if (multiCounterEnabled && selectedDeskBlocked) {
+      setOpenError(
+        selectedDesk?.occupiedBy
+          ? `Le guichet « ${selectedDesk.name} » est déjà occupé.`
+          : `Vous n’êtes pas habilité à ouvrir ce guichet.`,
+      )
+      return
+    }
     const suggested = openingSuggestion?.suggested
     const fromBilletage = mustBilletage && openSheet.total > 0 ? openSheet.total : null
     const fromField =
@@ -301,6 +335,7 @@ export default function CaissePage() {
     if (dualEnabled && mustBilletage && openCdfSheet.lines.length > 0) sheets.push(openCdfSheet)
     try {
       await openSession({
+        ...(multiCounterEnabled && cashDeskId ? { cashDeskId } : {}),
         openingFloat: float,
         openingFloatCdf: floatCdf,
         openNotes: openForm.openNotes || undefined,
@@ -315,7 +350,9 @@ export default function CaissePage() {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
         await refetch()
-        setOpenError('Une session est déjà ouverte — affichage mis à jour.')
+        setOpenError(
+          getApiErrorMessage(err) || 'Ce guichet ou cette session est déjà ouvert.',
+        )
         return
       }
       setOpenError(getApiErrorMessage(err))
@@ -456,7 +493,9 @@ export default function CaissePage() {
         badge={
           hasOpenSession ? (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
-              SESSION OUVERTE
+              {currentSession?.cashDesk?.name
+                ? `OUVERT · ${currentSession.cashDesk.name}`
+                : 'SESSION OUVERTE'}
             </span>
           ) : (
             <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500">
@@ -584,8 +623,21 @@ export default function CaissePage() {
           variants={fadeUp}
           initial="hidden"
           animate="show"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
         >
+          <KpiCard
+            label="Guichet"
+            value={currentSession?.cashDesk?.name ?? currentSession?.cashDesk?.code ?? 'Caisse unique'}
+            hint={
+              currentSession?.cashDesk?.locationHint ||
+              (currentSession?.cashDesk?.code && currentSession?.cashDesk?.name
+                ? currentSession.cashDesk.code
+                : currentSession?.cashDesk?.specialty
+                  ? DESK_SPECIALTY_LABEL[currentSession.cashDesk.specialty]
+                  : cashierName || 'Liée à votre compte')
+            }
+            tone="success"
+          />
           <KpiCard
             label="Fond d’ouverture"
             value={money(openingFloat)}
@@ -726,6 +778,76 @@ export default function CaissePage() {
               </div>
             ) : null}
             <form onSubmit={handleOpen} className="space-y-4">
+              {multiCounterEnabled ? (
+              <div>
+                <p className="mb-2 text-xs font-medium text-zinc-500">Guichet</p>
+                {desksLoading ? (
+                  <p className="text-xs text-zinc-400">Chargement des guichets…</p>
+                ) : cashDesks.length === 0 ? (
+                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Aucun guichet actif. L’administration doit créer et nommer les guichets de l’école.
+                  </p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {cashDesks.map((desk) => {
+                      const selected = cashDeskId === desk.id
+                      const blocked = desk.canOpen === false
+                      const channelKeys = desk.resolvedChannels ?? desk.allowedChannels ?? []
+                      const channelLabels = (cashOps?.catalog ?? [])
+                        .filter((c) => channelKeys.includes(c.key) && c.enabled)
+                        .map((c) => c.label)
+                      return (
+                        <button
+                          key={desk.id}
+                          type="button"
+                          disabled={blocked}
+                          onClick={() => setCashDeskId(desk.id)}
+                          className={cn(
+                            'rounded-xl border px-3 py-2.5 text-left transition',
+                            selected
+                              ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-200'
+                              : blocked
+                                ? 'cursor-not-allowed border-zinc-100 bg-zinc-50 opacity-60'
+                                : 'border-zinc-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/40',
+                          )}
+                        >
+                          <p className="text-sm font-semibold text-zinc-900">{desk.name}</p>
+                          <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">
+                            {desk.locationHint || desk.code}
+                          </p>
+                          <p className="mt-1 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
+                            {DESK_SPECIALTY_LABEL[desk.specialty] ?? desk.specialty}
+                          </p>
+                          {channelLabels.length > 0 ? (
+                            <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-zinc-500">
+                              {channelLabels.join(' · ')}
+                            </p>
+                          ) : null}
+                          {desk.occupiedBy ? (
+                            <p className="mt-1 text-[10px] text-amber-700">
+                              Occupé · {desk.occupiedBy.cashierName}
+                            </p>
+                          ) : null}
+                          {blocked && !desk.occupiedBy ? (
+                            <p className="mt-1 text-[10px] text-zinc-500">Non habilité</p>
+                          ) : null}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                {cashDesks.length > 0 && cashDesks.every((d) => d.canOpen === false) ? (
+                  <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Aucun guichet n’est disponible pour vous : bureau occupé ou affectation restreinte.
+                    Contactez l’administration.
+                  </p>
+                ) : null}
+              </div>
+              ) : (
+                <p className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                  Caisse unique : l’ouverture est liée à votre compte caissier.
+                </p>
+              )}
               {openingSuggestion ? (
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-3 space-y-2">
                   <div className="flex items-start justify-between gap-2">
@@ -880,11 +1002,20 @@ export default function CaissePage() {
               ) : null}
               <button
                 type="submit"
-                disabled={opening}
+                disabled={
+                  opening ||
+                  (multiCounterEnabled && (!cashDeskId || selectedDeskBlocked))
+                }
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
                 <Unlock size={14} />
-                {opening ? 'Ouverture…' : 'Ouvrir la session'}
+                {opening
+                  ? 'Ouverture…'
+                  : multiCounterEnabled && cashDeskId
+                    ? `Ouvrir ${cashDesks.find((d) => d.id === cashDeskId)?.name ?? 'la session'}`
+                    : multiCounterEnabled
+                      ? 'Choisir un guichet'
+                      : 'Ouvrir la caisse'}
               </button>
             </form>
           </motion.div>

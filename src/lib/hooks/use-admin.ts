@@ -1896,6 +1896,150 @@ export function useSchoolDayDigest(date?: string) {
   })
 }
 
+export function useCashDesksLive(date?: string) {
+  const refetchInterval = useEmpirePollingInterval(15_000)
+  return useQuery({
+    queryKey: ['admin', 'finance', 'cash-desks-live', date ?? 'today'],
+    queryFn: () => financeApi.getCashDesksLive(date),
+    staleTime: 8_000,
+    refetchInterval,
+    enabled: !!getAuthToken(),
+  })
+}
+
+export function useForceCloseCashSession() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      reason,
+      closingCounted,
+      closeNotes,
+    }: {
+      sessionId: number
+      reason: string
+      closingCounted?: number
+      closeNotes?: string
+    }) => financeApi.forceCloseCashSession(sessionId, { reason, closingCounted, closeNotes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'day-digest'] })
+      toast.success('Guichet clôturé', 'La session a été forcée à la clôture par l’administration.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useUnlockCashSessionCorrections() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      hours,
+      notes,
+    }: {
+      sessionId: number
+      hours?: number
+      notes?: string
+    }) => financeApi.unlockCashSessionCorrections(sessionId, { hours, notes }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
+      toast.success('Correction ouverte', 'Le caissier peut corriger les lignes pendant la fenêtre déverrouillée.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useReviewCashSession() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({ sessionId, notes }: { sessionId: number; notes?: string }) =>
+      financeApi.reviewCashSession(sessionId, notes),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-fund-traceability'] })
+      toast.success('Session visée', 'Le visa de l’administration a été enregistré.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useAdminCashOps() {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'cash-ops'],
+    queryFn: () => financeApi.getCashOps(),
+    staleTime: 20_000,
+    enabled: !!getAuthToken(),
+  })
+}
+
+export function useUpdateCashOps() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: {
+      multiCounterEnabled?: boolean
+      channels?: Partial<import('@/types/finance').SchoolCashOps['channels']>
+    }) => financeApi.updateCashOps(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-ops'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
+      toast.success('Caisse', 'Paramètres de guichet et de paiement enregistrés.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useCreateCashDesk() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: {
+      name: string
+      code?: string
+      specialty?: import('@/types/finance').CashDeskSpecialty
+      locationHint?: string
+    }) => financeApi.createCashDesk(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-ops'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
+      toast.success('Guichet créé', 'Le guichet est disponible pour l’ouverture de caisse.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useUpdateCashDesk() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...payload
+    }: {
+      id: number
+      name?: string
+      code?: string
+      isActive?: boolean
+      specialty?: import('@/types/finance').CashDeskSpecialty
+      locationHint?: string | null
+      notes?: string | null
+      allowedChannels?: import('@/types/finance').SchoolPaymentChannelKey[] | null
+      assignedUserIds?: number[]
+    }) => financeApi.updateCashDesk(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-ops'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
+      toast.success('Guichet', 'Configuration du guichet mise à jour.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
 export function useDownloadSchoolDayDigestPdf() {
   return useMutation({
     mutationFn: (date?: string) => financeApi.downloadSchoolDayDigestPdf(date),
