@@ -212,7 +212,22 @@ export type CashDeskLiveSnapshot = {
   multiCounterEnabled?: boolean
   openDesks: number
   deskCount: number
-  schoolTotals: CashDeskLiveMethods
+  schoolTotals: CashDeskLiveMethods & {
+    unassignedCount?: number
+    unassignedUsd?: number
+  }
+  recentPayments?: {
+    id: number
+    amount: number
+    method: string
+    reference: string
+    paidAt: string
+    studentId: number | null
+    studentName: string | null
+    cashierId: number | null
+    cashierName: string | null
+    cashDesk: { id: number; name: string } | null
+  }[]
   varianceAlertCount: number
   desks: CashDeskLiveRow[]
 }

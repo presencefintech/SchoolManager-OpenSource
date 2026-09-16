@@ -187,6 +187,10 @@ function DeskEditor({
           <p className="mb-1 text-[11px] font-medium text-zinc-500">
             Caissiers habilités (vide = tous)
           </p>
+          <p className="mb-1.5 text-[10px] leading-snug text-zinc-400">
+            Plusieurs caissiers peuvent partager le même bureau (rotation). À un instant T, une
+            seule session ouverte par guichet.
+          </p>
           <div className="flex flex-wrap gap-2">
             {cashiers.map((c) => (
               <label
@@ -476,6 +480,35 @@ export default function AdminCashFloatPolicyPage() {
                 label="Banque / carte"
                 value={money(liveDesks.schoolTotals.bank + liveDesks.schoolTotals.card)}
               />
+            </div>
+          ) : null}
+
+          {(liveDesks?.recentPayments?.length ?? 0) > 0 ? (
+            <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-zinc-900">Derniers paiements (école)</p>
+              <p className="mb-3 text-[11px] text-zinc-500">
+                Tous les guichets · y compris mobile / hors caisse
+              </p>
+              <ul className="divide-y divide-zinc-50">
+                {liveDesks!.recentPayments!.slice(0, 12).map((p) => (
+                  <li key={p.id} className="flex items-start justify-between gap-3 py-2 text-xs">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-zinc-800">
+                        {p.studentName ?? `Élève #${p.studentId ?? p.id}`}
+                      </p>
+                      <p className="text-[11px] text-zinc-500">
+                        {p.cashDesk?.name ?? 'Hors guichet'}
+                        {p.cashierName ? ` · ${p.cashierName}` : ''}
+                        {p.reference ? ` · ${p.reference}` : ''}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold tabular-nums text-zinc-900">{money(p.amount)}</p>
+                      <p className="text-[10px] text-zinc-400">{p.method}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
 

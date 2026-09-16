@@ -2,6 +2,10 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthSchoolId, redirectToLogin } from '@/lib/api/auth-storage'
 import { extractApiErrorPayload, mapSecurityErrorCode, resolveApiErrorMessage } from '@/lib/auth/security-errors'
 import { isAuthSessionFailure } from '@/lib/auth/session-failure'
+import {
+  extractFeeAlreadyPaidDetails,
+  formatFeeAlreadyPaidMessage,
+} from '@/lib/finance/fee-already-paid'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
 
@@ -142,6 +146,8 @@ export function getApiErrorMessage(error: unknown): string {
     const msg = data?.message
     const code = data?.code ?? data?.error
     if (Array.isArray(msg)) return msg.join(' · ')
+    const alreadyPaid = extractFeeAlreadyPaidDetails(error)
+    if (alreadyPaid) return formatFeeAlreadyPaidMessage(alreadyPaid)
     const resolved = resolveApiErrorMessage(data)
     if (resolved !== 'Une erreur inattendue est survenue') return resolved
     if (typeof msg === 'string' && msg) return msg

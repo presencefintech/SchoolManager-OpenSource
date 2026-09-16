@@ -351,6 +351,9 @@ export function useProcessPayment() {
       qc.invalidateQueries({ queryKey: ['fee-schedule', variables.studentId] })
       qc.invalidateQueries({ queryKey: financeQueryKeys.feeSchedule(variables.studentId) })
       qc.invalidateQueries({ queryKey: ['student-wallet', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-periods', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student-payments', variables.studentId] })
     },
   })
 }

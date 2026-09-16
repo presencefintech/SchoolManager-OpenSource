@@ -28,6 +28,13 @@ import {
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { useQueryClient } from '@tanstack/react-query'
+import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
+import {
+  extractFeeAlreadyPaidDetails,
+  formatFeeAlreadyPaidMessage,
+  isFeeAlreadyPaidError,
+} from '@/lib/finance/fee-already-paid'
 import { parseGuichetStudentIdentity } from '@/lib/finance/guichet-student.utils'
 import {
   normalizeCongoPhone,
@@ -142,6 +149,8 @@ export function PaymentModal({
     isCatalogMode ? catalog?.feeStructureId : undefined,
   )
   const { data: cashOps } = useCashOps(open)
+  const queryClient = useQueryClient()
+  const { recentCashActivity } = useFinanceRealtimeStatus()
 
   const exchangeRate =
     currencyConfig?.legacyRate != null && Number(currencyConfig.legacyRate) > 0
@@ -161,6 +170,7 @@ export function PaymentModal({
   const [tendered, setTendered] = useState('')
   const [tenderCurrency, setTenderCurrency] = useState<TenderCurrency>('USD')
   const [errorMsg, setErrorMsg] = useState('')
+  const [alreadyPaid, setAlreadyPaid] = useState<ReturnType<typeof extractFeeAlreadyPaidDetails>>(null)
   const [idempotencyKey, setIdempotencyKey] = useState(() => newIdempotencyKey())
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [ackDuplicate, setAckDuplicate] = useState(false)
@@ -235,6 +245,7 @@ export function PaymentModal({
     setProofType(defaultProofTypeForMethod(first))
     setManualJustification('')
     setErrorMsg('')
+    setAlreadyPaid(null)
     setTendered('')
     setTenderCurrency(
       allowedTenderCurrencies.includes(
@@ -283,6 +294,18 @@ export function PaymentModal({
       setDraftRestored(true)
     }
   }, [open, selection, catalog, identity.parentName, currencyConfig?.displayCurrency, studentId])
+
+  useEffect(() => {
+    if (!open || studentId <= 0) return
+    const hit = recentCashActivity.some(
+      (item) => item.studentId === studentId && (item.kind === 'CASH_PAYMENT' || item.kind === 'MOBILE_PAYMENT'),
+    )
+    if (!hit) return
+    void queryClient.invalidateQueries({ queryKey: ['fee-schedule', studentId] })
+    void queryClient.invalidateQueries({ queryKey: ['finance', 'student', studentId] })
+    void queryClient.invalidateQueries({ queryKey: ['finance', 'fee-periods', studentId] })
+    void queryClient.invalidateQueries({ queryKey: ['finance', 'student-payments', studentId] })
+  }, [open, studentId, recentCashActivity, queryClient])
 
   useEffect(() => {
     if (!open) return
@@ -665,15 +688,25 @@ export function PaymentModal({
         }
       }
     } catch (err) {
-      const msg = getApiErrorMessage(err)
-      const retriable = isRetriablePaymentError(err)
+      const paid = extractFeeAlreadyPaidDetails(err)
+      setAlreadyPaid(paid)
+      const msg = paid
+        ? formatFeeAlreadyPaidMessage(paid)
+        : getApiErrorMessage(err)
+      const retriable = !paid && isRetriablePaymentError(err)
       setErrorMsg(
         retriable
           ? `${msg} — réseau instable : réessayez avec la même clé (anti-doublon).`
           : msg,
       )
-      toast.error('Échec encaissement', msg)
+      toast.error(paid || isFeeAlreadyPaidError(err) ? 'Déjà réglé' : 'Échec encaissement', msg)
       setCanRetryNetwork(retriable)
+      if (paid || isFeeAlreadyPaidError(err)) {
+        void queryClient.invalidateQueries({ queryKey: ['fee-schedule', studentId] })
+        void queryClient.invalidateQueries({ queryKey: ['finance', 'student', studentId] })
+        void queryClient.invalidateQueries({ queryKey: ['finance', 'fee-periods', studentId] })
+        void queryClient.invalidateQueries({ queryKey: ['finance', 'student-payments', studentId] })
+      }
       // Garder la clé sur erreur réseau ; nouvelle clé seulement sur erreur métier (4xx)
       if (!retriable) {
         setIdempotencyKey(newIdempotencyKey())
@@ -1314,6 +1347,15 @@ export function PaymentModal({
             {errorMsg && (
               <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 space-y-2">
                 <p className="text-xs text-red-600">{errorMsg}</p>
+                {alreadyPaid?.cashDesk || alreadyPaid?.cashier ? (
+                  <p className="text-[11px] text-red-700/80">
+                    {alreadyPaid.cashDesk
+                      ? `Bureau : ${alreadyPaid.cashDesk.name}`
+                      : 'Caisse de l’école'}
+                    {alreadyPaid.cashier ? ` · Agent : ${alreadyPaid.cashier.name}` : ''}
+                    {alreadyPaid.paidAt ? ` · ${alreadyPaid.paidAt}` : ''}
+                  </p>
+                ) : null}
                 {canRetryNetwork ? (
                   <button
                     type="button"
