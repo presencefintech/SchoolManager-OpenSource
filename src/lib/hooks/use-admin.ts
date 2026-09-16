@@ -1998,8 +1998,12 @@ export function useCreateCashDesk() {
   const qc = useQueryClient()
   const toast = useToast()
   return useMutation({
-    mutationFn: (payload: { name: string; code?: string; specialty?: import('@/types/finance').CashDeskSpecialty }) =>
-      financeApi.createCashDesk(payload),
+    mutationFn: (payload: {
+      name: string
+      code?: string
+      specialty?: import('@/types/finance').CashDeskSpecialty
+      locationHint?: string
+    }) => financeApi.createCashDesk(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-ops'] })
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-desks-live'] })
@@ -2022,6 +2026,10 @@ export function useUpdateCashDesk() {
       code?: string
       isActive?: boolean
       specialty?: import('@/types/finance').CashDeskSpecialty
+      locationHint?: string | null
+      notes?: string | null
+      allowedChannels?: import('@/types/finance').SchoolPaymentChannelKey[] | null
+      assignedUserIds?: number[]
     }) => financeApi.updateCashDesk(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'finance', 'cash-ops'] })

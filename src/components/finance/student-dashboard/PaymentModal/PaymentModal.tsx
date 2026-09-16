@@ -184,21 +184,45 @@ export function PaymentModal({
   )
 
   const allowedMethods = useMemo(() => {
-    const enabled = cashOps?.enabledMethods
+    const deskKeys =
+      session?.cashDesk?.resolvedChannels ?? session?.cashDesk?.allowedChannels
+    const catalog = cashOps?.catalog
+    let enabled = cashOps?.enabledMethods
+    if (deskKeys?.length && catalog?.length) {
+      const set = new Set(deskKeys)
+      enabled = Array.from(
+        new Set(catalog.filter((c) => c.enabled && set.has(c.key)).map((c) => c.method)),
+      )
+    }
     if (!enabled?.length) return [...METHODS]
     const set = new Set(enabled)
     const filtered = METHODS.filter((m) => set.has(m.value))
     return filtered.length ? filtered : [...METHODS]
-  }, [cashOps?.enabledMethods])
+  }, [
+    cashOps?.enabledMethods,
+    cashOps?.catalog,
+    session?.cashDesk?.allowedChannels,
+    session?.cashDesk?.resolvedChannels,
+  ])
 
   const allowedTenderCurrencies = useMemo<TenderCurrency[]>(() => {
-    const usd = cashOps?.channels?.CASH_USD !== false
-    const cdf = cashOps?.channels?.CASH_CDF !== false
+    const deskKeys =
+      session?.cashDesk?.resolvedChannels ?? session?.cashDesk?.allowedChannels
+    const usd =
+      cashOps?.channels?.CASH_USD !== false &&
+      (!deskKeys?.length || deskKeys.includes('CASH_USD'))
+    const cdf =
+      cashOps?.channels?.CASH_CDF !== false &&
+      (!deskKeys?.length || deskKeys.includes('CASH_CDF'))
     const out: TenderCurrency[] = []
     if (usd) out.push('USD')
     if (cdf) out.push('CDF')
     return out.length ? out : ['USD']
-  }, [cashOps?.channels])
+  }, [
+    cashOps?.channels,
+    session?.cashDesk?.allowedChannels,
+    session?.cashDesk?.resolvedChannels,
+  ])
 
   useEffect(() => {
     if (!open) return

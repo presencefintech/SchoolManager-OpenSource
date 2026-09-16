@@ -704,6 +704,10 @@ export const financeApi = {
     sortOrder?: number
     isActive?: boolean
     printerHint?: string | null
+    locationHint?: string | null
+    notes?: string | null
+    allowedChannels?: import('@/types/finance').SchoolPaymentChannelKey[] | null
+    assignedUserIds?: number[]
   }) =>
     apiClient
       .post('/admin/finance/cash-desks', payload)
@@ -718,6 +722,10 @@ export const financeApi = {
       sortOrder?: number
       isActive?: boolean
       printerHint?: string | null
+      locationHint?: string | null
+      notes?: string | null
+      allowedChannels?: import('@/types/finance').SchoolPaymentChannelKey[] | null
+      assignedUserIds?: number[]
     },
   ) =>
     apiClient

@@ -37,7 +37,7 @@ import {
   useCreateCashDesk,
   useUpdateCashDesk,
 } from '@/lib/hooks/use-admin'
-import type { CashFloatPolicy } from '@/types/finance'
+import type { CashDesk, CashDeskSpecialty, CashFloatPolicy, SchoolCashOps, SchoolPaymentChannelKey } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
@@ -52,6 +52,190 @@ const DESK_SPECIALTY_LABEL: Record<string, string> = {
   TUITION: 'Scolarité',
   MOBILE_MONEY: 'Mobile money / banque',
   GENERAL: 'Général',
+}
+
+const SPECIALTY_CHANNEL_PRESETS: Record<CashDeskSpecialty, SchoolPaymentChannelKey[]> = {
+  ENROLLMENT: ['CASH_USD', 'CASH_CDF'],
+  TUITION: ['CASH_USD', 'CASH_CDF', 'BANK'],
+  MOBILE_MONEY: ['ORANGE_MONEY', 'MPESA', 'AIRTEL_MONEY', 'BANK', 'CARD'],
+  GENERAL: [],
+}
+
+function DeskEditor({
+  desk,
+  catalog,
+  cashiers,
+  saving,
+  onSave,
+  onToggleActive,
+}: {
+  desk: CashDesk
+  catalog: SchoolCashOps['catalog']
+  cashiers: NonNullable<SchoolCashOps['cashiers']>
+  saving: boolean
+  onSave: (patch: {
+    name: string
+    specialty: CashDeskSpecialty
+    locationHint: string | null
+    notes: string | null
+    allowedChannels: SchoolPaymentChannelKey[] | null
+    assignedUserIds: number[]
+  }) => void
+  onToggleActive: () => void
+}) {
+  const [name, setName] = useState(desk.name)
+  const [specialty, setSpecialty] = useState<CashDeskSpecialty>(desk.specialty)
+  const [locationHint, setLocationHint] = useState(desk.locationHint ?? '')
+  const [notes, setNotes] = useState(desk.notes ?? '')
+  const inherit = desk.allowedChannels == null || desk.allowedChannels.length === 0
+  const [inheritSchool, setInheritSchool] = useState(inherit)
+  const [channels, setChannels] = useState<SchoolPaymentChannelKey[]>(desk.allowedChannels ?? [])
+  const [assigned, setAssigned] = useState<number[]>(desk.assignedUserIds ?? [])
+
+  useEffect(() => {
+    setName(desk.name)
+    setSpecialty(desk.specialty)
+    setLocationHint(desk.locationHint ?? '')
+    setNotes(desk.notes ?? '')
+    setInheritSchool(desk.allowedChannels == null || desk.allowedChannels.length === 0)
+    setChannels(desk.allowedChannels ?? [])
+    setAssigned(desk.assignedUserIds ?? [])
+  }, [desk])
+
+  return (
+    <li className="space-y-3 px-3 py-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-[180px] flex-1 space-y-2">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-sm font-medium text-zinc-900"
+          />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select
+              value={specialty}
+              onChange={(e) => {
+                const next = e.target.value as CashDeskSpecialty
+                setSpecialty(next)
+                const preset = SPECIALTY_CHANNEL_PRESETS[next] ?? []
+                if (preset.length) {
+                  setInheritSchool(false)
+                  setChannels(preset)
+                } else {
+                  setInheritSchool(true)
+                  setChannels([])
+                }
+              }}
+              className="rounded-lg border border-zinc-200 px-2 py-1.5 text-xs text-zinc-700"
+            >
+              {Object.entries(DESK_SPECIALTY_LABEL).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <input
+              value={locationHint}
+              onChange={(e) => setLocationHint(e.target.value)}
+              placeholder="Lieu (hall, bâtiment…)"
+              className="rounded-lg border border-zinc-200 px-2 py-1.5 text-xs"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleActive}
+          className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50"
+        >
+          {desk.isActive === false ? 'Réactiver' : 'Désactiver'}
+        </button>
+      </div>
+
+      <label className="flex items-center gap-2 text-xs text-zinc-600">
+        <input
+          type="checkbox"
+          checked={inheritSchool}
+          onChange={(e) => setInheritSchool(e.target.checked)}
+          className="rounded border-zinc-300"
+        />
+        Accepter tous les modes autorisés par l’école
+      </label>
+      {!inheritSchool ? (
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          {catalog.map((ch) => (
+            <label key={ch.key} className="flex items-center gap-2 text-xs text-zinc-700">
+              <input
+                type="checkbox"
+                disabled={!ch.enabled}
+                checked={channels.includes(ch.key)}
+                onChange={(e) =>
+                  setChannels((prev) =>
+                    e.target.checked ? [...prev, ch.key] : prev.filter((k) => k !== ch.key),
+                  )
+                }
+                className="rounded border-zinc-300"
+              />
+              {ch.label}
+              {!ch.enabled ? <span className="text-zinc-400">(école)</span> : null}
+            </label>
+          ))}
+        </div>
+      ) : null}
+
+      {cashiers.length > 0 ? (
+        <div>
+          <p className="mb-1 text-[11px] font-medium text-zinc-500">
+            Caissiers habilités (vide = tous)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {cashiers.map((c) => (
+              <label
+                key={c.id}
+                className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 px-2 py-1 text-[11px]"
+              >
+                <input
+                  type="checkbox"
+                  checked={assigned.includes(c.id)}
+                  onChange={(e) =>
+                    setAssigned((prev) =>
+                      e.target.checked ? [...prev, c.id] : prev.filter((id) => id !== c.id),
+                    )
+                  }
+                  className="rounded border-zinc-300"
+                />
+                {c.name}
+              </label>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <input
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Consigne interne (optionnel)"
+        className="w-full rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs"
+      />
+
+      <button
+        type="button"
+        disabled={saving || name.trim().length < 2}
+        onClick={() =>
+          onSave({
+            name: name.trim(),
+            specialty,
+            locationHint: locationHint.trim() || null,
+            notes: notes.trim() || null,
+            allowedChannels: inheritSchool ? null : channels,
+            assignedUserIds: assigned,
+          })
+        }
+        className="rounded-lg bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white disabled:opacity-50"
+      >
+        Enregistrer ce guichet
+      </button>
+    </li>
+  )
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -131,6 +315,8 @@ export default function AdminCashFloatPolicyPage() {
   const createDesk = useCreateCashDesk()
   const updateDesk = useUpdateCashDesk()
   const [newDeskName, setNewDeskName] = useState('')
+  const [newDeskSpecialty, setNewDeskSpecialty] = useState<CashDeskSpecialty>('GENERAL')
+  const [newDeskLocation, setNewDeskLocation] = useState('')
   const { data: valuePanel, isLoading: valueLoading } = useDemoValuePanel()
   const { data: goLive, isLoading: goLiveLoading } = useGoLiveReadiness()
   const { data: weekDigest, isLoading: weekLoading } = useWeeklyPromoterDigest()
@@ -320,8 +506,10 @@ export default function AdminCashFloatPolicyPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-lg font-semibold text-zinc-900">{row.desk.code}</p>
-                        <p className="text-xs text-zinc-500">{row.desk.name}</p>
+                        <p className="text-lg font-semibold text-zinc-900">{row.desk.name}</p>
+                        <p className="text-xs text-zinc-500">
+                          {row.desk.locationHint || row.desk.code}
+                        </p>
                         <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
                           {DESK_SPECIALTY_LABEL[row.desk.specialty] ?? row.desk.specialty}
                         </p>
@@ -1129,55 +1317,73 @@ export default function AdminCashFloatPolicyPage() {
                     ) : (
                       <ul className="divide-y divide-zinc-50 rounded-xl border border-zinc-100">
                         {(cashOps.desks ?? []).map((desk) => (
-                          <li
+                          <DeskEditor
                             key={desk.id}
-                            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-zinc-900">{desk.name}</p>
-                              <p className="text-[11px] text-zinc-500">
-                                {desk.code} · {DESK_SPECIALTY_LABEL[desk.specialty] ?? desk.specialty}
-                                {desk.isActive === false ? ' · inactif' : ''}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void updateDesk.mutateAsync({
-                                  id: desk.id,
-                                  isActive: desk.isActive === false,
-                                })
-                              }
-                              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50"
-                            >
-                              {desk.isActive === false ? 'Réactiver' : 'Désactiver'}
-                            </button>
-                          </li>
+                            desk={desk}
+                            catalog={cashOps.catalog ?? []}
+                            cashiers={cashOps.cashiers ?? []}
+                            saving={updateDesk.isPending}
+                            onSave={(patch) => void updateDesk.mutateAsync({ id: desk.id, ...patch })}
+                            onToggleActive={() =>
+                              void updateDesk.mutateAsync({
+                                id: desk.id,
+                                isActive: desk.isActive === false,
+                              })
+                            }
+                          />
                         ))}
                       </ul>
                     )}
                     <form
-                      className="flex flex-wrap gap-2"
+                      className="grid gap-2 sm:grid-cols-3"
                       onSubmit={(e) => {
                         e.preventDefault()
                         const name = newDeskName.trim()
                         if (name.length < 2) return
-                        void createDesk.mutateAsync({ name }).then(() => setNewDeskName(''))
+                        void createDesk
+                          .mutateAsync({
+                            name,
+                            specialty: newDeskSpecialty,
+                            locationHint: newDeskLocation.trim() || undefined,
+                          })
+                          .then(() => {
+                            setNewDeskName('')
+                            setNewDeskLocation('')
+                          })
                       }}
                     >
                       <input
                         value={newDeskName}
                         onChange={(e) => setNewDeskName(e.target.value)}
                         placeholder="Nom du guichet"
-                        className="min-w-[180px] flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        className="rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                       />
-                      <button
-                        type="submit"
-                        disabled={createDesk.isPending || newDeskName.trim().length < 2}
-                        className="rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
+                      <select
+                        value={newDeskSpecialty}
+                        onChange={(e) => setNewDeskSpecialty(e.target.value as CashDeskSpecialty)}
+                        className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
                       >
-                        Ajouter
-                      </button>
+                        {Object.entries(DESK_SPECIALTY_LABEL).map(([id, label]) => (
+                          <option key={id} value={id}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex gap-2">
+                        <input
+                          value={newDeskLocation}
+                          onChange={(e) => setNewDeskLocation(e.target.value)}
+                          placeholder="Lieu"
+                          className="min-w-0 flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+                        />
+                        <button
+                          type="submit"
+                          disabled={createDesk.isPending || newDeskName.trim().length < 2}
+                          className="rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
+                        >
+                          Ajouter
+                        </button>
+                      </div>
                     </form>
                   </div>
                 ) : null}

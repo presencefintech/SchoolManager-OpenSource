@@ -163,6 +163,13 @@ export interface CashDesk {
   sortOrder?: number
   isActive?: boolean
   printerHint?: string | null
+  locationHint?: string | null
+  notes?: string | null
+  allowedChannels?: SchoolPaymentChannelKey[] | null
+  assignedUserIds?: number[]
+  resolvedChannels?: SchoolPaymentChannelKey[]
+  canOpen?: boolean
+  occupiedBy?: { cashierId: number; cashierName: string } | null
 }
 
 export type CashDeskLiveMethods = {
@@ -234,6 +241,7 @@ export type SchoolCashOps = {
   catalog: SchoolPaymentChannelCatalogItem[]
   enabledMethods: Array<'CASH' | 'ORANGE_MONEY' | 'MPESA' | 'AIRTEL_MONEY' | 'BANK' | 'CARD'>
   desks: CashDesk[]
+  cashiers?: { id: number; name: string; email?: string | null }[]
 }
 
 export type CashDenominationLine = { denom: number; count: number }
