@@ -23,7 +23,6 @@ import {
   useStudentConfirmedPayments,
   useDownloadReceipt,
   useStudentWallet,
-  useCashOps,
 } from '@/lib/hooks/use-finance'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
@@ -141,7 +140,6 @@ export function PaymentModal({
     studentId,
     isCatalogMode ? catalog?.feeStructureId : undefined,
   )
-  const { data: cashOps } = useCashOps(open)
 
   const exchangeRate =
     currencyConfig?.legacyRate != null && Number(currencyConfig.legacyRate) > 0
@@ -183,42 +181,18 @@ export function PaymentModal({
     [profile, studentId],
   )
 
-  const allowedMethods = useMemo(() => {
-    const enabled = cashOps?.enabledMethods
-    if (!enabled?.length) return [...METHODS]
-    const set = new Set(enabled)
-    const filtered = METHODS.filter((m) => set.has(m.value))
-    return filtered.length ? filtered : [...METHODS]
-  }, [cashOps?.enabledMethods])
-
-  const allowedTenderCurrencies = useMemo<TenderCurrency[]>(() => {
-    const usd = cashOps?.channels?.CASH_USD !== false
-    const cdf = cashOps?.channels?.CASH_CDF !== false
-    const out: TenderCurrency[] = []
-    if (usd) out.push('USD')
-    if (cdf) out.push('CDF')
-    return out.length ? out : ['USD']
-  }, [cashOps?.channels])
-
   useEffect(() => {
     if (!open) return
-    const first = allowedMethods[0]?.value ?? 'CASH'
-    setMethod(first)
+    setMethod('CASH')
     setReference('')
     setComment('')
     setPayerName(identity.parentName || 'Parent')
     setPayerPhone('')
-    setProofType(defaultProofTypeForMethod(first))
+    setProofType(defaultProofTypeForMethod('CASH'))
     setManualJustification('')
     setErrorMsg('')
     setTendered('')
-    setTenderCurrency(
-      allowedTenderCurrencies.includes(
-        (currencyConfig?.displayCurrency as TenderCurrency) ?? 'USD',
-      )
-        ? ((currencyConfig?.displayCurrency as TenderCurrency) ?? 'USD')
-        : (allowedTenderCurrencies[0] ?? 'USD'),
-    )
+    setTenderCurrency(currencyConfig?.displayCurrency === 'CDF' ? 'CDF' : 'USD')
     setConfirmOpen(false)
     setAckDuplicate(false)
     setAckIdentity(false)
@@ -259,20 +233,6 @@ export function PaymentModal({
       setDraftRestored(true)
     }
   }, [open, selection, catalog, identity.parentName, currencyConfig?.displayCurrency, studentId])
-
-  useEffect(() => {
-    if (!open) return
-    if (!allowedMethods.some((m) => m.value === method)) {
-      const next = allowedMethods[0]?.value
-      if (next) {
-        setMethod(next)
-        setProofType(defaultProofTypeForMethod(next))
-      }
-    }
-    if (!allowedTenderCurrencies.includes(tenderCurrency)) {
-      setTenderCurrency(allowedTenderCurrencies[0] ?? 'USD')
-    }
-  }, [open, allowedMethods, method, allowedTenderCurrencies, tenderCurrency])
 
   // Brouillon local — reprise après coupure / refresh (2 h)
   useEffect(() => {
@@ -554,12 +514,6 @@ export function PaymentModal({
         manualJustification: manualJustification.trim() || undefined,
         payerPhone: normalizedPhone,
         idempotencyKey,
-        ...(method === 'CASH'
-          ? {
-              tenderCurrency,
-              tenderAmount: tendered.trim() ? Number(tendered) : undefined,
-            }
-          : {}),
       }
 
       const feeLines = !isCatalogMode ? buildPaymentFeeLines(editedLines) : []
@@ -1085,7 +1039,6 @@ export function PaymentModal({
                 onTenderedChange={setTendered}
                 onTenderCurrencyChange={setTenderCurrency}
                 availableDrawerUsd={drawerAvailableUsd}
-                allowedTenderCurrencies={allowedTenderCurrencies}
               />
             ) : null}
 
@@ -1125,7 +1078,7 @@ export function PaymentModal({
                   }}
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 >
-                  {allowedMethods.map((m) => (
+                  {METHODS.map((m) => (
                     <option key={m.value} value={m.value}>
                       {m.label}
                     </option>

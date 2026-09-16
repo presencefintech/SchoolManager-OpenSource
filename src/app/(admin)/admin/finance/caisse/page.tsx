@@ -28,14 +28,6 @@ import {
   useGoLiveReadiness,
   useWeeklyPromoterDigest,
   useSendWeeklyPromoterDigest,
-  useCashDesksLive,
-  useForceCloseCashSession,
-  useUnlockCashSessionCorrections,
-  useReviewCashSession,
-  useAdminCashOps,
-  useUpdateCashOps,
-  useCreateCashDesk,
-  useUpdateCashDesk,
 } from '@/lib/hooks/use-admin'
 import type { CashFloatPolicy } from '@/types/finance'
 import { formatMoney } from '@/lib/finance/currency'
@@ -45,14 +37,7 @@ import { formatDurationMinutes } from '@/lib/finance/cash-session.utils'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
 
-type Tab = 'guichets' | 'valeur' | 'journee' | 'suivi' | 'promoteur' | 'ecarts' | 'politique'
-
-const DESK_SPECIALTY_LABEL: Record<string, string> = {
-  ENROLLMENT: 'Inscriptions',
-  TUITION: 'Scolarité',
-  MOBILE_MONEY: 'Mobile money / banque',
-  GENERAL: 'Général',
-}
+type Tab = 'valeur' | 'journee' | 'suivi' | 'promoteur' | 'ecarts' | 'politique'
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -95,16 +80,10 @@ export default function AdminCashFloatPolicyPage() {
   const { format: formatLedger } = useSchoolMoney()
   const money = (amount: number, currency?: string) =>
     currency === 'CDF' ? formatMoney(amount, 'CDF') : formatLedger(amount, currency)
-  const [tab, setTab] = useState<Tab>('guichets')
+  const [tab, setTab] = useState<Tab>('valeur')
   const [digestDate, setDigestDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [copied, setCopied] = useState(false)
   const [copiedWeek, setCopiedWeek] = useState(false)
-  const [deskAction, setDeskAction] = useState<{
-    type: 'force' | 'unlock' | 'review'
-    sessionId: number
-    deskCode: string
-  } | null>(null)
-  const [actionReason, setActionReason] = useState('')
   const { data: policy, isLoading: policyLoading } = useCashFloatPolicy()
   const { mutateAsync: save, isPending } = useUpdateCashFloatPolicy()
   const {
@@ -118,19 +97,6 @@ export default function AdminCashFloatPolicyPage() {
     isLoading: digestLoading,
     refetch: refetchDigest,
   } = useSchoolDayDigest(digestDate)
-  const {
-    data: liveDesks,
-    isLoading: liveDesksLoading,
-    refetch: refetchLiveDesks,
-  } = useCashDesksLive(digestDate)
-  const forceClose = useForceCloseCashSession()
-  const unlockCorrections = useUnlockCashSessionCorrections()
-  const reviewSession = useReviewCashSession()
-  const { data: cashOps, isLoading: cashOpsLoading } = useAdminCashOps()
-  const updateCashOps = useUpdateCashOps()
-  const createDesk = useCreateCashDesk()
-  const updateDesk = useUpdateCashDesk()
-  const [newDeskName, setNewDeskName] = useState('')
   const { data: valuePanel, isLoading: valueLoading } = useDemoValuePanel()
   const { data: goLive, isLoading: goLiveLoading } = useGoLiveReadiness()
   const { data: weekDigest, isLoading: weekLoading } = useWeeklyPromoterDigest()
@@ -150,27 +116,6 @@ export default function AdminCashFloatPolicyPage() {
     await save(form)
   }
 
-  async function handleDeskAction() {
-    if (!deskAction) return
-    if (deskAction.type === 'force') {
-      const reason = actionReason.trim()
-      if (reason.length < 4) return
-      await forceClose.mutateAsync({ sessionId: deskAction.sessionId, reason })
-    } else if (deskAction.type === 'unlock') {
-      await unlockCorrections.mutateAsync({
-        sessionId: deskAction.sessionId,
-        notes: actionReason.trim() || undefined,
-      })
-    } else {
-      await reviewSession.mutateAsync({
-        sessionId: deskAction.sessionId,
-        notes: actionReason.trim() || undefined,
-      })
-    }
-    setDeskAction(null)
-    setActionReason('')
-  }
-
   const kpis = trace?.kpis
   const { status: liveStatus, lastUpdate, recentCashActivity } = useAdminRealtimeStatus()
 
@@ -184,7 +129,7 @@ export default function AdminCashFloatPolicyPage() {
           <div>
             <h1 className="text-lg font-semibold text-zinc-900">Caisse &amp; fonds</h1>
             <p className="mt-1 text-sm text-zinc-500">
-              Caisse du jour, synthèse et suivi des fonds pour la direction.
+              Synthèse journalière, suivi des fonds et rapports pour la direction.
               {liveStatus === 'live'
                 ? ' Les mouvements du guichet apparaissent ici tout de suite.'
                 : ' Connexion temps réel en cours — les totaux se rafraîchissent aussi à l’intervalle.'}
@@ -201,7 +146,6 @@ export default function AdminCashFloatPolicyPage() {
           onClick={() => {
             void refetch()
             void refetchDigest()
-            void refetchLiveDesks()
           }}
           className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-600 hover:bg-zinc-50"
         >
@@ -220,7 +164,6 @@ export default function AdminCashFloatPolicyPage() {
       <div className="flex gap-1 overflow-x-auto rounded-xl bg-zinc-100 p-1">
         {(
           [
-            ['guichets', 'Guichets live'],
             ['valeur', 'Vue d’ensemble'],
             ['journee', 'Synthèse journée'],
             ['suivi', 'Suivi fonds'],
@@ -242,249 +185,6 @@ export default function AdminCashFloatPolicyPage() {
           </button>
         ))}
       </div>
-
-      {tab === 'guichets' && (
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-zinc-900">
-                {liveDesks?.multiCounterEnabled ? 'Mur des guichets' : 'Caisse du jour'}
-              </p>
-              <p className="text-xs text-zinc-500">
-                Ouverts {liveDesks?.openDesks ?? 0}/{liveDesks?.deskCount ?? 0}
-                {liveDesks?.varianceAlertCount
-                  ? ` · ${liveDesks.varianceAlertCount} écart${liveDesks.varianceAlertCount > 1 ? 's' : ''}`
-                  : ''}
-              </p>
-            </div>
-            <label className="text-xs text-zinc-500">
-              Date
-              <input
-                type="date"
-                value={digestDate}
-                onChange={(e) => setDigestDate(e.target.value)}
-                className="ml-2 rounded-lg border border-zinc-200 px-2 py-1 text-xs text-zinc-800"
-              />
-            </label>
-          </div>
-
-          {liveDesks?.schoolTotals ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Kpi
-                label="Encaissé USD"
-                value={money(liveDesks.schoolTotals.collectedUsd ?? 0)}
-                hint={`${liveDesks.schoolTotals.count} paiement${liveDesks.schoolTotals.count > 1 ? 's' : ''}`}
-                tone="ok"
-              />
-              <Kpi
-                label="Espèces USD"
-                value={money(liveDesks.schoolTotals.cashUsd)}
-                hint={
-                  liveDesks.schoolTotals.cashCdf > 0
-                    ? `+ ${money(liveDesks.schoolTotals.cashCdf, 'CDF')} FC`
-                    : undefined
-                }
-              />
-              <Kpi label="Mobile money" value={money(liveDesks.schoolTotals.mobileMoney)} />
-              <Kpi
-                label="Banque / carte"
-                value={money(liveDesks.schoolTotals.bank + liveDesks.schoolTotals.card)}
-              />
-            </div>
-          ) : null}
-
-          {liveDesksLoading ? (
-            <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500">
-              <Loader2 size={16} className="animate-spin" /> Chargement des guichets…
-            </div>
-          ) : (
-            <div className="grid gap-3 lg:grid-cols-3">
-              {(liveDesks?.desks ?? []).map((row) => {
-                const open = row.session?.status === 'OPEN'
-                const variance = row.session?.variance
-                const varianceTone =
-                  variance == null
-                    ? undefined
-                    : Math.abs(variance) < 0.02
-                      ? 'ok'
-                      : Math.abs(variance) < 5
-                        ? 'warn'
-                        : 'danger'
-                return (
-                  <div
-                    key={row.desk.id}
-                    className={cn(
-                      'rounded-2xl border bg-white p-4 shadow-sm space-y-3',
-                      open ? 'border-emerald-200' : 'border-zinc-100',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-lg font-semibold text-zinc-900">{row.desk.code}</p>
-                        <p className="text-xs text-zinc-500">{row.desk.name}</p>
-                        <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400">
-                          {DESK_SPECIALTY_LABEL[row.desk.specialty] ?? row.desk.specialty}
-                        </p>
-                      </div>
-                      <span
-                        className={cn(
-                          'rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                          open
-                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
-                            : 'bg-zinc-100 text-zinc-500',
-                        )}
-                      >
-                        {open ? 'OUVERT' : 'FERMÉ'}
-                      </span>
-                    </div>
-
-                    {row.session ? (
-                      <>
-                        <p className="text-xs text-zinc-600">
-                          Caissier :{' '}
-                          <span className="font-medium text-zinc-900">
-                            {row.session.cashierName ?? `#${row.session.cashierId}`}
-                          </span>
-                          {row.session.forceClosed ? ' · clôture admin' : ''}
-                        </p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Kpi
-                            label="Espèces USD"
-                            value={money(row.methods.cashUsd)}
-                            hint={
-                              row.methods.cashCdf > 0
-                                ? `${money(row.methods.cashCdf, 'CDF')} FC`
-                                : `${row.methods.count} tx`
-                            }
-                          />
-                          <Kpi
-                            label="Attendu"
-                            value={money(row.session.expectedCash)}
-                            hint={`Fond ${money(row.session.openingFloat)}`}
-                            tone={open ? 'ok' : varianceTone}
-                          />
-                        </div>
-                        <p className="text-[11px] text-zinc-500">
-                          MM {money(row.methods.mobileMoney)} · Banque {money(row.methods.bank)} ·
-                          Carte {money(row.methods.card)}
-                          {variance != null
-                            ? ` · Écart ${variance >= 0 ? '+' : ''}${money(variance)}`
-                            : ''}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {open ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActionReason('')
-                                setDeskAction({
-                                  type: 'force',
-                                  sessionId: row.session!.id,
-                                  deskCode: row.desk.code,
-                                })
-                              }}
-                              className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100"
-                            >
-                              Forcer clôture
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActionReason('')
-                                  setDeskAction({
-                                    type: 'unlock',
-                                    sessionId: row.session!.id,
-                                    deskCode: row.desk.code,
-                                  })
-                                }}
-                                className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-100"
-                              >
-                                Déverrouiller
-                              </button>
-                              {!row.session.adminReviewedAt ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActionReason('')
-                                    setDeskAction({
-                                      type: 'review',
-                                      sessionId: row.session!.id,
-                                      deskCode: row.desk.code,
-                                    })
-                                  }}
-                                  className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50"
-                                >
-                                  Viser
-                                </button>
-                              ) : (
-                                <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
-                                  Visé
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-xs text-zinc-400">Aucune session ce jour.</p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-
-          {deskAction ? (
-            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-zinc-900">
-                {deskAction.type === 'force'
-                  ? `Forcer la clôture de ${deskAction.deskCode}`
-                  : deskAction.type === 'unlock'
-                    ? `Déverrouiller les corrections de ${deskAction.deskCode}`
-                    : `Viser la session ${deskAction.deskCode}`}
-              </p>
-              <textarea
-                value={actionReason}
-                onChange={(e) => setActionReason(e.target.value)}
-                rows={2}
-                placeholder={
-                  deskAction.type === 'force'
-                    ? 'Motif obligatoire (min. 4 caractères)'
-                    : 'Note optionnelle'
-                }
-                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleDeskAction()}
-                  disabled={
-                    forceClose.isPending ||
-                    unlockCorrections.isPending ||
-                    reviewSession.isPending ||
-                    (deskAction.type === 'force' && actionReason.trim().length < 4)
-                  }
-                  className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-                >
-                  Confirmer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeskAction(null)
-                    setActionReason('')
-                  }}
-                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      )}
 
       {tab === 'valeur' && (
         <div className="space-y-5">
@@ -1059,132 +759,7 @@ export default function AdminCashFloatPolicyPage() {
       )}
 
       {tab === 'politique' && (
-        <div className="space-y-5">
-          <div className="space-y-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <div>
-              <p className="text-sm font-semibold text-zinc-800">Guichets et modes de paiement</p>
-              <p className="mt-1 text-xs text-zinc-500">
-                Chaque école active le multi-guichets et choisit les canaux qu’elle accepte.
-              </p>
-            </div>
-            {cashOpsLoading || !cashOps ? (
-              <div className="flex items-center gap-2 py-6 text-sm text-zinc-500">
-                <Loader2 size={16} className="animate-spin" /> Chargement…
-              </div>
-            ) : (
-              <>
-                <label className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-3 text-sm text-zinc-800">
-                  <input
-                    type="checkbox"
-                    checked={cashOps.multiCounterEnabled}
-                    onChange={(e) =>
-                      void updateCashOps.mutateAsync({ multiCounterEnabled: e.target.checked })
-                    }
-                    className="mt-0.5 rounded border-zinc-300"
-                  />
-                  <span>
-                    <span className="font-medium">Mode multi-guichets</span>
-                    <span className="mt-0.5 block text-xs text-zinc-500">
-                      Désactivé : une caisse unique liée au caissier. Activé : l’école crée et nomme
-                      ses propres guichets.
-                    </span>
-                  </span>
-                </label>
-
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Modes acceptés
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {(cashOps.catalog ?? []).map((ch) => (
-                      <label
-                        key={ch.key}
-                        className="flex items-center gap-2 rounded-lg border border-zinc-100 px-3 py-2 text-sm text-zinc-700"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={cashOps.channels[ch.key]}
-                          onChange={(e) =>
-                            void updateCashOps.mutateAsync({
-                              channels: { [ch.key]: e.target.checked },
-                            })
-                          }
-                          className="rounded border-zinc-300"
-                        />
-                        {ch.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {cashOps.multiCounterEnabled ? (
-                  <div className="space-y-3 border-t border-zinc-100 pt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                      Guichets de l’école
-                    </p>
-                    {(cashOps.desks ?? []).length === 0 ? (
-                      <p className="text-xs text-amber-800">
-                        Créez au moins un guichet (ex. « Guichet Inscription », « Guichet Secondaire »).
-                      </p>
-                    ) : (
-                      <ul className="divide-y divide-zinc-50 rounded-xl border border-zinc-100">
-                        {(cashOps.desks ?? []).map((desk) => (
-                          <li
-                            key={desk.id}
-                            className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"
-                          >
-                            <div>
-                              <p className="text-sm font-medium text-zinc-900">{desk.name}</p>
-                              <p className="text-[11px] text-zinc-500">
-                                {desk.code} · {DESK_SPECIALTY_LABEL[desk.specialty] ?? desk.specialty}
-                                {desk.isActive === false ? ' · inactif' : ''}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                void updateDesk.mutateAsync({
-                                  id: desk.id,
-                                  isActive: desk.isActive === false,
-                                })
-                              }
-                              className="rounded-lg border border-zinc-200 px-2.5 py-1 text-[11px] font-medium text-zinc-600 hover:bg-zinc-50"
-                            >
-                              {desk.isActive === false ? 'Réactiver' : 'Désactiver'}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    <form
-                      className="flex flex-wrap gap-2"
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        const name = newDeskName.trim()
-                        if (name.length < 2) return
-                        void createDesk.mutateAsync({ name }).then(() => setNewDeskName(''))
-                      }}
-                    >
-                      <input
-                        value={newDeskName}
-                        onChange={(e) => setNewDeskName(e.target.value)}
-                        placeholder="Nom du guichet"
-                        className="min-w-[180px] flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                      />
-                      <button
-                        type="submit"
-                        disabled={createDesk.isPending || newDeskName.trim().length < 2}
-                        className="rounded-lg bg-zinc-900 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
-                      >
-                        Ajouter
-                      </button>
-                    </form>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
-
+        <div>
           {policyLoading || !form ? (
             <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500">
               <Loader2 size={16} className="animate-spin" /> Chargement politique…

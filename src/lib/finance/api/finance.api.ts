@@ -164,18 +164,7 @@ export const financeRoleApi = {
       .then((r) => (r.data.data ?? []) as unknown[]),
 
   // ── Sessions de caisse ─────────────────────────────────────────────────────
-  listCashDesks: () =>
-    apiClient
-      .get('/finance/cash-sessions/desks')
-      .then((r) => (r.data.data ?? []) as import('@/types/finance').CashDesk[]),
-
-  getCashOps: () =>
-    apiClient
-      .get('/finance/cash-sessions/ops')
-      .then((r) => r.data.data as import('@/types/finance').SchoolCashOps),
-
   openSession: (payload: {
-    cashDeskId?: number
     openingFloat?: number
     openingFloatCdf?: number
     openNotes?: string
@@ -252,8 +241,6 @@ export const financeRoleApi = {
     proofType?: string
     manualJustification?: string
     payerPhone?: string
-    tenderCurrency?: 'USD' | 'CDF'
-    tenderAmount?: number
     idempotencyKey?: string
   }) => {
     const { idempotencyKey, ...body } = payload

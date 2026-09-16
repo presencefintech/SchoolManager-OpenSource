@@ -131,14 +131,6 @@ export interface CashSession {
   cashierId?: number
   openedById?: number
   cashierName?: string
-  cashDeskId?: number | null
-  cashDesk?: CashDesk | null
-  forceClosed?: boolean
-  forceClosedById?: number | null
-  forceCloseReason?: string | null
-  adminReviewedAt?: string | null
-  adminReviewNotes?: string | null
-  correctionUnlockedUntil?: string | null
   openingFloatCdf?: number | null
   openingSheet?: CashDenominationSheet | CashDenominationSheet[] | null
   closingSheet?: CashDenominationSheet | CashDenominationSheet[] | null
@@ -149,91 +141,6 @@ export interface CashSession {
   submittedToPromoter?: boolean
   promoterAcknowledged?: boolean
   summary?: CashSessionSummary
-}
-
-export type CashDeskSpecialty = 'ENROLLMENT' | 'TUITION' | 'MOBILE_MONEY' | 'GENERAL'
-
-export interface CashDesk {
-  id: number
-  uuid?: string
-  schoolId?: number
-  code: string
-  name: string
-  specialty: CashDeskSpecialty
-  sortOrder?: number
-  isActive?: boolean
-  printerHint?: string | null
-}
-
-export type CashDeskLiveMethods = {
-  cashUsd: number
-  cashCdf: number
-  mobileMoney: number
-  bank: number
-  card: number
-  other: number
-  count: number
-  collectedUsd?: number
-}
-
-export type CashDeskLiveRow = {
-  desk: CashDesk
-  session: {
-    id: number
-    status: 'OPEN' | 'CLOSED'
-    openedAt: string
-    closedAt: string | null
-    cashierId: number
-    cashierName: string | null
-    openingFloat: number
-    cashCollected: number
-    expectedCash: number
-    closingCounted: number | null
-    variance: number | null
-    forceClosed: boolean
-    forceClosedByName: string | null
-    adminReviewedAt: string | null
-    correctionUnlockedUntil: string | null
-  } | null
-  methods: CashDeskLiveMethods
-}
-
-export type CashDeskLiveSnapshot = {
-  date: string
-  generatedAt: string
-  currency: string
-  multiCounterEnabled?: boolean
-  openDesks: number
-  deskCount: number
-  schoolTotals: CashDeskLiveMethods
-  varianceAlertCount: number
-  desks: CashDeskLiveRow[]
-}
-
-export type SchoolPaymentChannelKey =
-  | 'CASH_USD'
-  | 'CASH_CDF'
-  | 'ORANGE_MONEY'
-  | 'MPESA'
-  | 'AIRTEL_MONEY'
-  | 'BANK'
-  | 'CARD'
-
-export type SchoolPaymentChannelCatalogItem = {
-  key: SchoolPaymentChannelKey
-  method: 'CASH' | 'ORANGE_MONEY' | 'MPESA' | 'AIRTEL_MONEY' | 'BANK' | 'CARD'
-  tenderCurrency?: 'USD' | 'CDF'
-  label: string
-  needsPhone: boolean
-  enabled: boolean
-}
-
-export type SchoolCashOps = {
-  multiCounterEnabled: boolean
-  channels: Record<SchoolPaymentChannelKey, boolean>
-  catalog: SchoolPaymentChannelCatalogItem[]
-  enabledMethods: Array<'CASH' | 'ORANGE_MONEY' | 'MPESA' | 'AIRTEL_MONEY' | 'BANK' | 'CARD'>
-  desks: CashDesk[]
 }
 
 export type CashDenominationLine = { denom: number; count: number }
