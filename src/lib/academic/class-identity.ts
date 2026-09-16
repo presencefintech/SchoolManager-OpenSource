@@ -76,9 +76,9 @@ export function dedupeClassList<T extends {
     list.push(row)
     groups.set(key, list)
   }
-  return [...groups.values()].map((group) => {
+  return Array.from(groups.values()).map((group) => {
     if (group.length === 1) return group[0]
-    return [...group].sort((a, b) => {
+    return group.slice().sort((a, b) => {
       const studentDelta = (b.studentCount ?? 0) - (a.studentCount ?? 0)
       if (studentDelta !== 0) return studentDelta
       if (currentYear) {
