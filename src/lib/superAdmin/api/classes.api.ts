@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client'
+import { dedupeClassList } from '@/lib/academic/class-identity'
 import type {
   ClassListData,
   CapacityAlertItem,
@@ -14,7 +15,17 @@ export const classesApi = {
   getClasses: (schoolId: number, params?: { page?: number; limit?: number; name?: string }) =>
     apiClient
       .get<ClassListData>('/superadmin/classes', { params: { schoolId, ...params } })
-      .then((r) => r.data),
+      .then((r) => {
+        const payload = r.data
+        const data = dedupeClassList(
+          (payload.data ?? []).map((c) => ({
+            ...c,
+            studentCount: c._count?.students ?? 0,
+            sectionName: (c as { section?: { name?: string } }).section?.name,
+          })),
+        )
+        return { ...payload, data, meta: { ...payload.meta, total: data.length } }
+      }),
 
   getCapacityAlerts: (schoolId: number) =>
     apiClient

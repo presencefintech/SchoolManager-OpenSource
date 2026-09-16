@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api/client'
 import type { ClassListItem, ClassDetail, ClassStats, ClassAuditEntry, CreateClassPayload, RolloverPayload } from '@/types/admin'
+import { dedupeClassList } from '@/lib/academic/class-identity'
 
 // Note: ClassController utilise res.json(result) directement (sans ApiResponse wrapper).
 // Seuls create/update wrappent dans { status, data }.
@@ -11,11 +12,19 @@ export const classesApi = {
     sectionId?: number
     optionId?: number
     academicYear?: string
-  }) =>
-    apiClient.get('/admin/classes', { params: { limit: 100, ...params } }).then(r => {
+  }) => {
+    const { search, isActive, ...rest } = params ?? {}
+    return apiClient.get('/admin/classes', {
+      params: {
+        limit: 100,
+        isActive: isActive !== false,
+        ...rest,
+        ...(search ? { name: search } : {}),
+      },
+    }).then(r => {
       const d = r.data
       const raw: any[] = Array.isArray(d) ? d : d?.data ?? d?.classes ?? []
-      return raw.map(c => ({
+      const mapped = raw.map(c => ({
         ...c,
         studentCount: c.studentCount ?? c._count?.students ?? 0,
         capacity: c.capacity ?? c.maxStudents ?? undefined,
@@ -26,7 +35,9 @@ export const classesApi = {
         optionName: c.option?.name ?? c.optionName,
         academicYear: c.academicYear,
       })) as ClassListItem[]
-    }),
+      return dedupeClassList(mapped)
+    })
+  },
 
   create: (payload: CreateClassPayload) =>
     apiClient.post('/admin/classes', payload).then(r => (r.data?.data ?? r.data) as ClassDetail),

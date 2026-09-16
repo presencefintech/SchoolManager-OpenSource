@@ -346,12 +346,14 @@ export default function ClassesPage() {
   const apiParams = useMemo(
     () => ({
       ...(filters.search ? { search: String(filters.search) } : {}),
-      ...(filters.isActive === 'true' ? { isActive: true } : filters.isActive === 'false' ? { isActive: false } : {}),
+      isActive: filters.isActive === 'false' ? false : true,
       ...(filters.sectionId ? { sectionId: Number(filters.sectionId) } : {}),
       ...(filters.optionId ? { optionId: Number(filters.optionId) } : {}),
-      ...(filters.academicYear ? { academicYear: String(filters.academicYear) } : {}),
+      ...((filters.academicYear || currentSession?.label)
+        ? { academicYear: String(filters.academicYear || currentSession?.label) }
+        : {}),
     }),
-    [filters],
+    [filters, currentSession?.label],
   )
 
   const { data: classes = [], isPending, refetch, isFetching } = useClasses(apiParams)
