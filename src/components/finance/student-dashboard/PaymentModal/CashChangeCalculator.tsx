@@ -25,6 +25,7 @@ export function CashChangeCalculator({
   onTenderedChange,
   onTenderCurrencyChange,
   availableDrawerUsd,
+  allowedTenderCurrencies = ['USD', 'CDF'],
 }: {
   amountDueUsd: number
   currency: FinanceCurrencyCode
@@ -35,6 +36,7 @@ export function CashChangeCalculator({
   onTenderCurrencyChange: (value: TenderCurrency) => void
   /** Fond + cash déjà en caisse (USD) — alerte si rendu trop élevé. */
   availableDrawerUsd?: number | null
+  allowedTenderCurrencies?: TenderCurrency[]
 }) {
   const rate = exchangeRate != null && exchangeRate > 0 ? exchangeRate : null
   const dueInTender =
@@ -71,8 +73,9 @@ export function CashChangeCalculator({
         <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">
           Billetage · guichet RDC
         </p>
+        {allowedTenderCurrencies.length > 1 ? (
         <div className="inline-flex rounded-lg border border-amber-200 bg-white p-0.5">
-          {(['USD', 'CDF'] as const).map((c) => (
+          {allowedTenderCurrencies.map((c) => (
             <button
               key={c}
               type="button"
@@ -91,6 +94,11 @@ export function CashChangeCalculator({
             </button>
           ))}
         </div>
+        ) : (
+          <p className="text-[10px] font-semibold text-amber-800/80">
+            {tenderCurrency === 'CDF' ? 'FC' : 'USD'}
+          </p>
+        )}
       </div>
 
       <div className="rounded-lg bg-white/80 border border-amber-100 px-2.5 py-1.5 text-[11px] text-zinc-600">
