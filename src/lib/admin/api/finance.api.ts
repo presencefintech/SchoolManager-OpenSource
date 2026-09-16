@@ -679,6 +679,77 @@ export const financeApi = {
       .patch('/admin/finance/cash-float-policy', payload)
       .then((r) => r.data.data as import('@/types/finance').CashFloatPolicy),
 
+  getCashDesks: () =>
+    apiClient
+      .get('/admin/finance/cash-desks')
+      .then((r) => (r.data.data ?? []) as import('@/types/finance').CashDesk[]),
+
+  getCashOps: () =>
+    apiClient
+      .get('/admin/finance/cash-ops')
+      .then((r) => r.data.data as import('@/types/finance').SchoolCashOps),
+
+  updateCashOps: (payload: {
+    multiCounterEnabled?: boolean
+    channels?: Partial<import('@/types/finance').SchoolCashOps['channels']>
+  }) =>
+    apiClient
+      .patch('/admin/finance/cash-ops', payload)
+      .then((r) => r.data.data as import('@/types/finance').SchoolCashOps),
+
+  createCashDesk: (payload: {
+    name: string
+    code?: string
+    specialty?: import('@/types/finance').CashDeskSpecialty
+    sortOrder?: number
+    isActive?: boolean
+    printerHint?: string | null
+  }) =>
+    apiClient
+      .post('/admin/finance/cash-desks', payload)
+      .then((r) => r.data.data as import('@/types/finance').CashDesk),
+
+  updateCashDesk: (
+    id: number,
+    payload: {
+      name?: string
+      code?: string
+      specialty?: import('@/types/finance').CashDeskSpecialty
+      sortOrder?: number
+      isActive?: boolean
+      printerHint?: string | null
+    },
+  ) =>
+    apiClient
+      .patch(`/admin/finance/cash-desks/${id}`, payload)
+      .then((r) => r.data.data as import('@/types/finance').CashDesk),
+
+  getCashDesksLive: (date?: string) =>
+    apiClient
+      .get('/admin/finance/cash-desks/live', { params: date ? { date } : undefined })
+      .then((r) => r.data.data as import('@/types/finance').CashDeskLiveSnapshot),
+
+  forceCloseCashSession: (
+    sessionId: number,
+    payload: { reason: string; closingCounted?: number; closeNotes?: string },
+  ) =>
+    apiClient
+      .post(`/admin/finance/cash-sessions/${sessionId}/force-close`, payload)
+      .then((r) => r.data.data),
+
+  unlockCashSessionCorrections: (
+    sessionId: number,
+    payload?: { hours?: number; notes?: string },
+  ) =>
+    apiClient
+      .post(`/admin/finance/cash-sessions/${sessionId}/unlock-corrections`, payload ?? {})
+      .then((r) => r.data.data),
+
+  reviewCashSession: (sessionId: number, notes?: string) =>
+    apiClient
+      .post(`/admin/finance/cash-sessions/${sessionId}/review`, notes ? { notes } : {})
+      .then((r) => r.data.data),
+
   getCashFundTraceability: (params?: {
     varianceDays?: number
     varianceOnly?: boolean
