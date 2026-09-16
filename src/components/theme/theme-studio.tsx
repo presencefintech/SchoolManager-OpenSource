@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import {
   ACCENTS,
   APPEARANCES,
+  ATMOSPHERES,
   CONTRASTS,
   DENSITIES,
   MOTIONS,
@@ -12,6 +13,10 @@ import {
   SIDEBARS,
 } from '@/lib/theme/preferences'
 import { useTheme } from '@/providers/theme-provider'
+import { AtmosphereSwatch } from '@/components/theme/theme-atmosphere'
+import { useAuth } from '@/providers/auth-provider'
+import { useUpdateSchoolBranding } from '@/lib/hooks/use-admin'
+import { useState } from 'react'
 
 const ICONS = { light: Sun, dark: Moon, system: Monitor } as const
 
@@ -85,6 +90,22 @@ function ChoiceRow<T extends string>({
 
 export function ThemeStudio() {
   const theme = useTheme()
+  const { user } = useAuth()
+  const updateBranding = useUpdateSchoolBranding()
+  const [saved, setSaved] = useState(false)
+  const canSaveSchool = user?.role === 'ADMIN' && user.schoolId != null
+
+  async function saveForSchool() {
+    await updateBranding.mutateAsync({
+      uiTheme: {
+        atmosphere: theme.atmosphere,
+        appearance: theme.appearance,
+        accent: theme.accent,
+      },
+    })
+    setSaved(true)
+    window.setTimeout(() => setSaved(false), 2500)
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -94,7 +115,7 @@ export function ThemeStudio() {
           <div>
             <h2 className="text-sm font-semibold text-zinc-900">Apparence</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Thème, palette, densité et accessibilité — mémorisé sur cet appareil.
+              Thème, palette, fond animé et accessibilité — mémorisé sur cet appareil.
             </p>
           </div>
         </div>
@@ -180,11 +201,68 @@ export function ThemeStudio() {
           </div>
         </div>
 
+        <div>
+          <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide mb-3">
+            Fond animé
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {ATMOSPHERES.map((opt) => {
+              const active = theme.atmosphere === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => theme.setAtmosphere(opt.id)}
+                  className={cn(
+                    'rounded-2xl border p-2 text-left transition-all',
+                    active
+                      ? 'border-[rgb(var(--pf-accent))] ring-1 ring-[rgb(var(--pf-accent)/0.3)] bg-white'
+                      : 'border-zinc-200 hover:border-zinc-300 bg-white',
+                  )}
+                >
+                  <AtmosphereSwatch kind={opt.id} />
+                  <span className="mt-2 flex items-center justify-between gap-2 px-0.5">
+                    <span>
+                      <span className="block text-sm font-semibold text-zinc-900">{opt.label}</span>
+                      <span className="block text-[11px] text-zinc-500">{opt.hint}</span>
+                    </span>
+                    {active && <Check size={16} className="text-zinc-900 flex-shrink-0" />}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-zinc-400 mt-2">
+            Les cartes et textes restent opaques par-dessus le fond. Mode Calme arrête l’animation.
+          </p>
+        </div>
+
         <ChoiceRow label="Densité" options={DENSITIES} value={theme.density} onChange={theme.setDensity} />
         <ChoiceRow label="Coins" options={RADII} value={theme.radius} onChange={theme.setRadius} />
         <ChoiceRow label="Menu" options={SIDEBARS} value={theme.sidebar} onChange={theme.setSidebar} />
         <ChoiceRow label="Contraste" options={CONTRASTS} value={theme.contrast} onChange={theme.setContrast} />
         <ChoiceRow label="Mouvement" options={MOTIONS} value={theme.motion} onChange={theme.setMotion} />
+
+        {canSaveSchool ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-3">
+            <p className="text-xs text-zinc-600">
+              Enregistrer ce fond et cette palette pour tout le personnel de l’école (connexion et
+              tableaux de bord).
+            </p>
+            <button
+              type="button"
+              disabled={updateBranding.isPending}
+              onClick={() => void saveForSchool()}
+              className="rounded-lg bg-zinc-900 px-3 py-1.5 text-[11px] font-medium text-white disabled:opacity-50"
+            >
+              {updateBranding.isPending
+                ? 'Enregistrement…'
+                : saved
+                  ? 'Enregistré pour l’école'
+                  : 'Appliquer à l’école'}
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   )

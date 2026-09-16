@@ -68,20 +68,6 @@ function LoginPageContent() {
         <ThemePicker compact />
       </div>
 
-      {/* Ambient mesh background */}
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 right-[-10%] h-[420px] w-[420px] rounded-full bg-emerald-200/40 blur-3xl" />
-        <div className="absolute top-[30%] -left-24 h-[360px] w-[360px] rounded-full bg-teal-200/30 blur-3xl" />
-        <div className="absolute bottom-[-15%] right-[15%] h-[300px] w-[300px] rounded-full bg-emerald-100/50 blur-3xl" />
-        <div
-          className="absolute inset-0 opacity-[0.025]"
-          style={{
-            backgroundImage: `linear-gradient(#0f1623 1px, transparent 1px), linear-gradient(90deg, #0f1623 1px, transparent 1px)`,
-            backgroundSize: '48px 48px',
-          }}
-        />
-      </div>
-
       <motion.div
         className="relative w-full max-w-xl"
         initial={{ opacity: 0, y: 16 }}

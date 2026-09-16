@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check, Monitor, Moon, Palette, Sun } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ACCENTS, APPEARANCES, DENSITIES } from '@/lib/theme/preferences'
+import { ACCENTS, APPEARANCES, ATMOSPHERES, DENSITIES } from '@/lib/theme/preferences'
 import { useTheme } from '@/providers/theme-provider'
 
 const APPEARANCE_ICON = {
@@ -16,7 +16,7 @@ const APPEARANCE_ICON = {
 const PANEL_WIDTH = 300
 
 export function ThemePicker({ compact = false }: { compact?: boolean }) {
-  const { appearance, accent, density, setAppearance, setAccent, setDensity } = useTheme()
+  const { appearance, accent, density, atmosphere, setAppearance, setAccent, setDensity, setAtmosphere } = useTheme()
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState({ top: 8, left: 8 })
   const rootRef = useRef<HTMLDivElement>(null)
@@ -109,6 +109,29 @@ export function ThemePicker({ compact = false }: { compact?: boolean }) {
               )}
             >
               {opt.label}
+            </button>
+          )
+        })}
+      </div>
+
+      <p className="px-1 pb-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+        Fond
+      </p>
+      <div className="grid grid-cols-1 gap-1 mb-3">
+        {ATMOSPHERES.map((opt) => {
+          const active = atmosphere === opt.id
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setAtmosphere(opt.id)}
+              className={cn(
+                'flex items-center justify-between rounded-xl px-2.5 py-2 text-[11px] font-medium ring-1',
+                active ? 'bg-zinc-900 text-white ring-zinc-900' : 'bg-zinc-50 text-zinc-600 ring-transparent',
+              )}
+            >
+              <span>{opt.label}</span>
+              <span className={active ? 'text-white/70' : 'text-zinc-400'}>{opt.hint}</span>
             </button>
           )
         })}

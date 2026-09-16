@@ -10,6 +10,8 @@ import { OfflineBanner } from '@/components/layout/offline-banner'
 import { SentryClientInit } from '@/components/observability/sentry-client-init'
 import { ForcePasswordChangeGate } from '@/components/auth/force-password-change-gate'
 import { THEME_BOOT_SCRIPT } from '@/lib/theme/preferences'
+import { ThemeAtmosphere } from '@/components/theme/theme-atmosphere'
+import { SchoolThemeSync } from '@/components/theme/school-theme-sync'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -38,6 +40,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <QueryProvider>
             <AuthProvider>
+              <SchoolThemeSync />
+              <ThemeAtmosphere />
               <ToastProvider>
                 <SentryClientInit />
                 <ForcePasswordChangeGate />

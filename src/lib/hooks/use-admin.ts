@@ -2477,7 +2477,7 @@ export function useUpdateSchoolBranding() {
       payload: Partial<
         Pick<
           SchoolBranding,
-          'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme'
+          'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme' | 'uiTheme'
         > & { documentAccentColor?: string | null }
       >,
     ) => schoolsApi.updateBranding(payload),
