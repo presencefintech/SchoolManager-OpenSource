@@ -22,6 +22,7 @@ export const classesApi = {
             ...c,
             studentCount: c._count?.students ?? 0,
             sectionName: (c as { section?: { name?: string } }).section?.name,
+            optionName: (c as { option?: { name?: string } }).option?.name,
           })),
         )
         return { ...payload, data, meta: { ...payload.meta, total: data.length } }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   Plus, RefreshCw, BookOpen, Users, TrendingUp, ToggleLeft, ChevronRight,
-  GraduationCap, LayoutGrid, ArrowRight, Download, CalendarPlus,
+  GraduationCap, LayoutGrid, ArrowRight, Download, CalendarPlus, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
@@ -17,12 +17,13 @@ import { classesApi } from '@/lib/admin/api'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { getApiErrorMessage } from '@/lib/api/client'
 import {
-  useClasses, useCreateClass, useToggleClassStatus, useRollover,
+  useClasses, useCreateClass, useToggleClassStatus, useDeleteClass, useRollover,
   useSections, useOptions, useAcademicSessions, useOpenAcademicSession, inferSchoolYearLabel,
   useStaff,
 } from '@/lib/hooks/use-admin'
 import type { ClassListItem, CreateClassPayload, RolloverPayload } from '@/types/admin'
 import { useToast } from '@/providers/toast-provider'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { findSectionById, sectionRequiresOption } from '@/lib/academic/rdc-section-cycle'
 
 const CLASS_FILTER_DEFAULTS = {
@@ -358,6 +359,8 @@ export default function ClassesPage() {
 
   const { data: classes = [], isPending, refetch, isFetching } = useClasses(apiParams)
   const { mutate: toggle } = useToggleClassStatus()
+  const { mutateAsync: deleteClass, isPending: deleting } = useDeleteClass()
+  const [deleteTarget, setDeleteTarget] = useState<ClassListItem | null>(null)
   const toast = useToast()
 
   async function downloadRoster(classId: number, className?: string) {
@@ -366,6 +369,23 @@ export default function ClassesPage() {
       triggerBlobDownload(blob, `liste-${className || classId}.csv`)
     } catch (error) {
       toast.error('Liste de classe', getApiErrorMessage(error))
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    try {
+      const result = await deleteClass(deleteTarget.id)
+      const remaining = Number(result?.studentCount ?? deleteTarget.studentCount ?? 0)
+      toast.success(
+        'Classe retirée',
+        remaining > 0
+          ? `${deleteTarget.name} a disparu de la liste. ${remaining} élève(s) y sont encore rattachés — transférez-les si besoin.`
+          : `${deleteTarget.name} a été retirée.`,
+      )
+      setDeleteTarget(null)
+    } catch (error) {
+      toast.error('Suppression impossible', getApiErrorMessage(error))
     }
   }
 
@@ -696,6 +716,16 @@ export default function ClassesPage() {
                               Ouvrir
                               <ChevronRight size={14} />
                             </Link>
+                            {!deskOnly && (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteTarget(cls)}
+                                className="text-xs font-medium text-rose-500 hover:text-rose-700 inline-flex items-center gap-1"
+                              >
+                                <Trash2 size={12} />
+                                Supprimer
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -710,6 +740,28 @@ export default function ClassesPage() {
 
       {showCreate && <CreateClassModal onClose={() => setShowCreate(false)} />}
       {showRollover && <RolloverModal onClose={() => setShowRollover(false)} />}
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Supprimer cette classe ?"
+        description={
+          deleteTarget
+            ? `« ${deleteTarget.name} » disparaîtra de la liste${deleteTarget.optionName ? ` (${deleteTarget.optionName})` : ''}.`
+            : ''
+        }
+        impact={
+          deleteTarget && (deleteTarget.studentCount ?? 0) > 0
+            ? [
+                `${deleteTarget.studentCount} élève(s) y sont encore inscrits.`,
+                'Ils ne seront pas effacés. Transférez-les vers une vraie classe si besoin.',
+              ]
+            : ['La classe sera masquée. Vous pourrez encore la voir dans le filtre « Inactives ».']
+        }
+        variant="danger"
+        confirmLabel="Supprimer"
+        loading={deleting}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }

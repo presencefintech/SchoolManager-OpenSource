@@ -51,6 +51,9 @@ export const classesApi = {
   toggleStatus: (id: number) =>
     apiClient.patch(`/admin/classes/${id}/status`).then(r => r.data?.data ?? r.data),
 
+  remove: (id: number) =>
+    apiClient.delete(`/admin/classes/${id}`).then(r => r.data?.data ?? r.data),
+
   assignStudents: (id: number, studentIds: number[]) =>
     apiClient.post(`/admin/classes/${id}/assign-students`, { studentIds }).then(r => r.data?.data ?? r.data),
 

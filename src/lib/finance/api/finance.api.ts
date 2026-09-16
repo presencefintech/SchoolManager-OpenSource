@@ -1,6 +1,7 @@
 import { downloadBlob } from '@/lib/finance/download-blob'
 import { parseContentDispositionFilename } from '@/lib/download-blob'
 import { apiClient } from '@/lib/api/client'
+import { dedupeClassList } from '@/lib/academic/class-identity'
 import { normalizeFinanceAiInsights } from '@/lib/admin/finance-ai.utils'
 import {
   mapEnterpriseDashboardToKpi,
@@ -712,7 +713,10 @@ export const financeRoleApi = {
 
   // ── Classes (vue financière) ───────────────────────────────────────────────
   getClasses: () =>
-    apiClient.get('/finance/classes').then(r => r.data.data),
+    apiClient.get('/finance/classes').then(r => {
+      const raw = r.data?.data ?? r.data ?? []
+      return dedupeClassList(Array.isArray(raw) ? raw : [])
+    }),
 
   getClassDetail: (id: number) =>
     apiClient.get(`/finance/classes/${id}`).then(r => {

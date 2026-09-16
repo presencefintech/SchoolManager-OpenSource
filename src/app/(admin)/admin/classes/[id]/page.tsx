@@ -4,15 +4,18 @@ import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet } from 'lucide-react'
+import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2 } from 'lucide-react'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } },
 } satisfies Variants
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
-import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
+import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useDeleteClass, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/providers/toast-provider'
 import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
@@ -226,6 +229,9 @@ export default function ClassDetailPage() {
   const { data: audit = [] } = useClassAudit(classId, !deskOnly)
   const { data: students = [] } = useEnrollmentsByClass(classId)
   const { mutate: toggle } = useToggleClassStatus()
+  const { mutateAsync: deleteClass, isPending: deleting } = useDeleteClass()
+  const toast = useToast()
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   function handleExport() {
     classesApi.exportClass(classId).then(blob => {
@@ -335,6 +341,16 @@ export default function ClassDetailPage() {
             <button onClick={() => toggle(classId)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <ToggleLeft size={12} />
               {cls.isActive ? 'Désactiver' : 'Activer'}
+            </button>
+            )}
+            {!deskOnly && (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-rose-200 text-xs text-rose-600 hover:bg-rose-50 transition-colors"
+            >
+              <Trash2 size={12} />
+              Supprimer
             </button>
             )}
           </div>
@@ -490,6 +506,33 @@ export default function ClassDetailPage() {
       {showAssign && <AssignModal classId={classId} onClose={() => setShowAssign(false)} />}
       {showTransfer && <TransferModal classId={classId} onClose={() => setShowTransfer(false)} />}
       {showEdit && cls && <EditModal cls={cls} onClose={() => setShowEdit(false)} />}
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Supprimer cette classe ?"
+        description={`« ${cls.name} » disparaîtra de la liste.`}
+        impact={
+          students.length > 0
+            ? [
+                `${students.length} élève(s) y sont encore inscrits.`,
+                'Ils ne seront pas effacés. Transférez-les vers une vraie classe si besoin.',
+              ]
+            : ['La classe sera masquée. Vous pourrez encore la voir dans le filtre « Inactives ».']
+        }
+        variant="danger"
+        confirmLabel="Supprimer"
+        loading={deleting}
+        onConfirm={() => {
+          void deleteClass(classId)
+            .then(() => {
+              toast.success('Classe retirée', cls.name)
+              router.push('/admin/classes')
+            })
+            .catch((error) => {
+              toast.error('Suppression impossible', getApiErrorMessage(error))
+            })
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   )
 }

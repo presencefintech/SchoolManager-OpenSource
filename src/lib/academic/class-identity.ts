@@ -13,7 +13,25 @@ function foldClassText(raw: string): string {
   return out.replace(/['’]/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim()
 }
 
-function parseClassIdentity(name: string, sectionName?: string | null) {
+function canonicalizeOptionName(raw: string | null | undefined): string {
+  const folded = foldClassText(raw ?? '')
+  if (!folded || folded === 'general' || folded === 'generale' || folded === 'gen') {
+    return 'Générale'
+  }
+  return String(raw ?? '').trim() || 'Générale'
+}
+
+const CYCLE_ABBREVIATIONS: Record<string, string> = {
+  t: 'tech',
+  tech: 'tech',
+  sc: 'sci',
+  sci: 'sci',
+  p: 'prim',
+  prim: 'prim',
+  mat: 'mat',
+}
+
+function parseClassIdentity(name: string, sectionName?: string | null, optionName?: string | null) {
   let text = foldClassText(name)
     .replace(/\b(premiere|premier)\b/g, '1')
     .replace(/\b(deuxieme|second)\b/g, '2')
@@ -28,37 +46,69 @@ function parseClassIdentity(name: string, sectionName?: string | null) {
     .replace(/\b(\d{1,2})(ere|eme|re)\b/g, '$1')
 
   const foldedSection = foldClassText(sectionName ?? '')
+  const foldedOption = foldClassText(canonicalizeOptionName(optionName))
   const cycleFromName = detectCycle(text)
+  const cycleFromOption = detectCycle(foldedOption)
   const cycleFromSection = detectCycle(foldedSection)
-  const cycle = cycleFromName || cycleFromSection || 'other'
+  let cycle = cycleFromName || cycleFromOption || cycleFromSection || 'other'
 
   text = text
     .replace(
-      /\b(maternelle|maternel|mater|mat|primaire|prim|elementaire|elem|prescolaire|creche|garderie|secondaire|humanites|humanite|lycee|college|technique|tech|scientifique|annee|an|classe|niveau|degre)\b/g,
+      /\b(maternelle|maternel|mater|mat|primaire|prim|elementaire|elem|prescolaire|creche|garderie|secondaire|humanites|humanite|lycee|college|technique|tech|scientifique|sci|annee|an|classe|niveau|degre)\b/g,
       ' ',
     )
     .replace(/\b(\d+)\s*p\b/g, '$1')
-    .replace(/\s+/g, ' ')
-    .trim()
+    .replace(/\b(\d+)\s*sc\b/g, '$1')
+    .replace(/\b(\d+)\s*t\b/g, '$1')
 
-  const parts = text.split(' ').filter(Boolean)
-  const grade = parts.find((p) => /^\d{1,2}$/.test(p)) ?? ''
-  const group = parts.filter((p) => p !== grade).join(' ')
-  return { cycle, grade, group }
+  if (foldedOption && foldedOption !== 'generale' && foldedOption !== 'general') {
+    text = text.replace(new RegExp(`\\b${foldedOption.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g'), ' ')
+  }
+  text = text.replace(/\s+/g, ' ').trim()
+
+  const leftover: string[] = []
+  for (const part of text.split(' ').filter(Boolean)) {
+    const promoted = CYCLE_ABBREVIATIONS[part]
+    if (promoted) {
+      if (cycle === 'other' || cycle === 'sec') cycle = promoted
+      continue
+    }
+    leftover.push(part)
+  }
+
+  const grade = leftover.find((p) => /^\d{1,2}$/.test(p)) ?? ''
+  const group = leftover.filter((p) => p !== grade).join(' ')
+  const stream =
+    cycle === 'mat' || cycle === 'prim'
+      ? ''
+      : cycle === 'tech'
+        ? 'tech'
+        : cycle === 'sci'
+          ? 'sci'
+          : foldedOption && foldedOption !== 'generale' && foldedOption !== 'general'
+            ? foldedOption
+            : ''
+  return { cycle, grade, group, stream }
 }
 
 function detectCycle(text: string): string | null {
   if (!text) return null
   if (/\b(maternelle|maternel|mater|mat|prescolaire|creche|garderie)\b/.test(text)) return 'mat'
   if (/\b(primaire|prim|elementaire|elem)\b/.test(text)) return 'prim'
+  if (/\b(scientifique|sci)\b/.test(text) || /\b(\d+)\s*sc\b/.test(text)) return 'sci'
+  if (/\b(technique|tech)\b/.test(text) || /\b(\d+)\s*t\b/.test(text)) return 'tech'
   if (/\b(secondaire|humanite|humanites|lycee|college)\b/.test(text)) return 'sec'
   if (/\b(\d+)\s*p\b/.test(text)) return 'prim'
   return null
 }
 
-export function classIdentityKey(name: string, sectionName?: string | null): string {
-  const parsed = parseClassIdentity(name, sectionName)
-  return `${parsed.cycle}|${parsed.grade}|${parsed.group}`
+export function classIdentityKey(
+  name: string,
+  sectionName?: string | null,
+  optionName?: string | null,
+): string {
+  const parsed = parseClassIdentity(name, sectionName, optionName)
+  return `${parsed.cycle}|${parsed.grade}|${parsed.group}|${parsed.stream}`
 }
 
 export function dedupeClassList<T extends {
@@ -67,11 +117,17 @@ export function dedupeClassList<T extends {
   studentCount?: number | null
   academicYear?: string | null
   sectionName?: string | null
+  optionName?: string | null
   section?: { name?: string | null } | null
+  option?: { name?: string | null } | null
 }>(rows: T[], currentYear?: string | null): T[] {
   const groups = new Map<string, T[]>()
   for (const row of rows) {
-    const key = classIdentityKey(row.name, row.sectionName ?? row.section?.name)
+    const key = classIdentityKey(
+      row.name,
+      row.sectionName ?? row.section?.name,
+      row.optionName ?? row.option?.name,
+    )
     const list = groups.get(key) ?? []
     list.push(row)
     groups.set(key, list)

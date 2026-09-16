@@ -1083,6 +1083,17 @@ export function useToggleClassStatus() {
   })
 }
 
+export function useDeleteClass() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => classesApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'classes'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
 export function useClassConflicts(teacherId: number | undefined) {
   return useQuery({
     queryKey: ['admin', 'classes', 'conflicts', teacherId],
