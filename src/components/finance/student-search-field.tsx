@@ -76,7 +76,7 @@ export function FinanceStudentSearchField({
     () =>
       Array.isArray(classesRaw)
         ? (classesRaw as ClassRow[])
-        : ((classesRaw as { data?: ClassRow[] })?.data ?? []),
+        : ((classesRaw as unknown as { data?: ClassRow[] })?.data ?? []),
     [classesRaw],
   )
 

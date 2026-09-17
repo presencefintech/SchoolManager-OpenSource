@@ -74,7 +74,7 @@ function SuiviFinancierContent() {
     optionId?: number
     section?: { id: number; name: string }
     option?: { id: number; name: string }
-  }> = Array.isArray(classesRaw) ? classesRaw : (classesRaw as { data?: unknown[] })?.data ?? []
+  }> = Array.isArray(classesRaw) ? classesRaw : (classesRaw as unknown as { data?: unknown[] })?.data ?? []
 
   const sections = useMemo(() => {
     const map = new Map<number, string>()
