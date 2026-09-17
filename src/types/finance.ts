@@ -181,6 +181,23 @@ export type CashDeskLiveMethods = {
   other: number
   count: number
   collectedUsd?: number
+  cashCdfConsolidatedUsd?: number
+  consolidatedUsd?: number
+  consolidatedCdf?: number
+  fxRate?: number
+}
+
+export type CashDrawerReconciliation = {
+  openingFloatUsd: number
+  cashCollectedUsd: number
+  pettyCashUsd: number
+  ledgerNetUsd: number
+  expectedCashUsd: number
+  countedUsd: number | null
+  varianceUsd: number | null
+  formula: string
+  alert: 'NONE' | 'WARN' | 'DANGER'
+  alertLabel: string | null
 }
 
 export type CashDeskLiveRow = {
@@ -201,6 +218,7 @@ export type CashDeskLiveRow = {
     forceClosedByName: string | null
     adminReviewedAt: string | null
     correctionUnlockedUntil: string | null
+    reconciliation?: CashDrawerReconciliation | null
   } | null
   methods: CashDeskLiveMethods
 }
@@ -212,7 +230,22 @@ export type CashDeskLiveSnapshot = {
   multiCounterEnabled?: boolean
   openDesks: number
   deskCount: number
-  schoolTotals: CashDeskLiveMethods
+  schoolTotals: CashDeskLiveMethods & {
+    unassignedCount?: number
+    unassignedUsd?: number
+  }
+  recentPayments?: {
+    id: number
+    amount: number
+    method: string
+    reference: string
+    paidAt: string
+    studentId: number | null
+    studentName: string | null
+    cashierId: number | null
+    cashierName: string | null
+    cashDesk: { id: number; name: string } | null
+  }[]
   varianceAlertCount: number
   desks: CashDeskLiveRow[]
 }

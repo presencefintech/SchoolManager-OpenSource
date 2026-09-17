@@ -77,7 +77,7 @@ export const schoolsApi = {
     payload: Partial<
       Pick<
         SchoolBranding,
-        'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme'
+        'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme' | 'uiTheme'
       > & { documentAccentColor?: string | null }
     >,
   ) =>

@@ -20,6 +20,7 @@ describe('theme preferences', () => {
         contrast: 'high',
         motion: 'reduced',
         sidebar: 'tinted',
+        atmosphere: 'aurora-glow',
       }),
     ).toEqual({
       appearance: 'dark',
@@ -29,7 +30,15 @@ describe('theme preferences', () => {
       contrast: 'high',
       motion: 'reduced',
       sidebar: 'tinted',
+      atmosphere: 'aurora-glow',
     })
+  })
+
+  it('conserve un fond animé et ignore un id inconnu', () => {
+    expect(parseThemePrefs({ atmosphere: 'mesh-gradient-soft' }).atmosphere).toBe(
+      'mesh-gradient-soft',
+    )
+    expect(parseThemePrefs({ atmosphere: 'lava' }).atmosphere).toBe('none')
   })
 
   it('résout system selon le media', () => {

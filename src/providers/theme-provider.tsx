@@ -15,6 +15,7 @@ import {
   type MotionPref,
   type Radius,
   type SidebarStyle,
+  type Atmosphere,
   type ThemePrefs,
 } from '@/lib/theme/preferences'
 
@@ -26,6 +27,7 @@ type ThemeContextValue = ThemePrefs & {
   setContrast: (contrast: Contrast) => void
   setMotion: (motion: MotionPref) => void
   setSidebar: (sidebar: SidebarStyle) => void
+  setAtmosphere: (atmosphere: Atmosphere) => void
   setPrefs: (prefs: ThemePrefs) => void
   resetTheme: () => void
 }
@@ -89,6 +91,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setContrast: (contrast) => setPrefs({ ...prefs, contrast }),
       setMotion: (motion) => setPrefs({ ...prefs, motion }),
       setSidebar: (sidebar) => setPrefs({ ...prefs, sidebar }),
+      setAtmosphere: (atmosphere) => setPrefs({ ...prefs, atmosphere }),
       setPrefs,
       resetTheme: () => setPrefs({ ...DEFAULT_THEME }),
     }),

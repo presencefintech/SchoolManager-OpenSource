@@ -1083,6 +1083,17 @@ export function useToggleClassStatus() {
   })
 }
 
+export function useDeleteClass() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => classesApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'classes'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'dashboard'] })
+    },
+  })
+}
+
 export function useClassConflicts(teacherId: number | undefined) {
   return useQuery({
     queryKey: ['admin', 'classes', 'conflicts', teacherId],
@@ -2477,7 +2488,7 @@ export function useUpdateSchoolBranding() {
       payload: Partial<
         Pick<
           SchoolBranding,
-          'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme'
+          'address' | 'phone' | 'email' | 'city' | 'logoUrl' | 'slogan' | 'devise' | 'legalFooter' | 'cardTheme' | 'uiTheme'
         > & { documentAccentColor?: string | null }
       >,
     ) => schoolsApi.updateBranding(payload),

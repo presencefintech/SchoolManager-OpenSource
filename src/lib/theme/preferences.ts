@@ -14,6 +14,12 @@ export type Radius = 'soft' | 'rounded' | 'sharp'
 export type Contrast = 'standard' | 'high'
 export type MotionPref = 'system' | 'reduced'
 export type SidebarStyle = 'plain' | 'tinted'
+export type Atmosphere =
+  | 'none'
+  | 'aurora-glow'
+  | 'mesh-gradient-soft'
+  | 'floating-clouds'
+  | 'smooth-waves'
 
 export type ThemePrefs = {
   appearance: Appearance
@@ -23,6 +29,7 @@ export type ThemePrefs = {
   contrast: Contrast
   motion: MotionPref
   sidebar: SidebarStyle
+  atmosphere: Atmosphere
 }
 
 export const THEME_STORAGE_KEY = 'pf-theme'
@@ -77,6 +84,18 @@ export const SIDEBARS: Array<{ id: SidebarStyle; label: string; hint: string }> 
   { id: 'tinted', label: 'Teinté', hint: 'Menu à la couleur d’accent' },
 ]
 
+export const ATMOSPHERES: Array<{
+  id: Atmosphere
+  label: string
+  hint: string
+}> = [
+  { id: 'none', label: 'Sobre', hint: 'Fond uni, sans animation' },
+  { id: 'aurora-glow', label: 'Aurore', hint: 'Voiles lumineux lents' },
+  { id: 'mesh-gradient-soft', label: 'Maillage', hint: 'Dégradé doux en mouvement' },
+  { id: 'floating-clouds', label: 'Nuages', hint: 'Brume qui dérive' },
+  { id: 'smooth-waves', label: 'Vagues', hint: 'Ondulations lumineuses' },
+]
+
 export const DEFAULT_THEME: ThemePrefs = {
   appearance: 'system',
   accent: 'emerald',
@@ -85,6 +104,7 @@ export const DEFAULT_THEME: ThemePrefs = {
   contrast: 'standard',
   motion: 'system',
   sidebar: 'plain',
+  atmosphere: 'none',
 }
 
 function pick<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -102,6 +122,7 @@ export function parseThemePrefs(raw: unknown): ThemePrefs {
     contrast: pick(o.contrast, CONTRASTS.map((a) => a.id), DEFAULT_THEME.contrast),
     motion: pick(o.motion, MOTIONS.map((a) => a.id), DEFAULT_THEME.motion),
     sidebar: pick(o.sidebar, SIDEBARS.map((a) => a.id), DEFAULT_THEME.sidebar),
+    atmosphere: pick(o.atmosphere, ATMOSPHERES.map((a) => a.id), DEFAULT_THEME.atmosphere),
   }
 }
 
@@ -138,6 +159,7 @@ export function applyThemePrefs(prefs: ThemePrefs) {
   root.dataset.contrast = prefs.contrast
   root.dataset.motion = prefs.motion
   root.dataset.sidebar = prefs.sidebar
+  root.dataset.atmosphere = prefs.atmosphere
   root.style.colorScheme = dark ? 'dark' : 'light'
   const reduce =
     prefs.motion === 'reduced' ||
@@ -153,4 +175,4 @@ export function cycleAppearance(current: Appearance): Appearance {
   return order[(order.indexOf(current) + 1) % order.length] ?? 'system'
 }
 
-export const THEME_BOOT_SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var p={};try{p=JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){}var a=p.appearance||'system';var c=p.accent||'emerald';var dark=a==='dark'||(a!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',dark);r.setAttribute('data-accent',c);r.setAttribute('data-density',p.density||'comfortable');r.setAttribute('data-radius',p.radius||'rounded');r.setAttribute('data-contrast',p.contrast||'standard');r.setAttribute('data-motion',p.motion||'system');r.setAttribute('data-sidebar',p.sidebar||'plain');r.style.colorScheme=dark?'dark':'light';var motion=p.motion||'system';if(motion==='reduced'||(motion==='system'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches))r.classList.add('reduce-motion')}catch(e){}})();`
+export const THEME_BOOT_SCRIPT = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var p={};try{p=JSON.parse(localStorage.getItem(k)||'{}')||{}}catch(e){}var a=p.appearance||'system';var c=p.accent||'emerald';var dark=a==='dark'||(a!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;r.classList.toggle('dark',dark);r.setAttribute('data-accent',c);r.setAttribute('data-density',p.density||'comfortable');r.setAttribute('data-radius',p.radius||'rounded');r.setAttribute('data-contrast',p.contrast||'standard');r.setAttribute('data-motion',p.motion||'system');r.setAttribute('data-sidebar',p.sidebar||'plain');r.setAttribute('data-atmosphere',p.atmosphere||'none');r.style.colorScheme=dark?'dark':'light';var motion=p.motion||'system';if(motion==='reduced'||(motion==='system'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches))r.classList.add('reduce-motion')}catch(e){}})();`

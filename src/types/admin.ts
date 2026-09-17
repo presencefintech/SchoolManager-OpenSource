@@ -1632,4 +1632,9 @@ export interface SchoolBranding {
   documentAccentColorOverride: string | null
   legalFooter: string | null
   cardTheme?: import('@/lib/student-card/card-theme').SchoolCardTheme | null
+  uiTheme?: {
+    atmosphere: import('@/lib/theme/preferences').Atmosphere
+    appearance?: import('@/lib/theme/preferences').Appearance
+    accent?: string
+  } | null
 }

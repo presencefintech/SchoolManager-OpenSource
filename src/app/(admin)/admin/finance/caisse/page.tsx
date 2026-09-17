@@ -187,6 +187,10 @@ function DeskEditor({
           <p className="mb-1 text-[11px] font-medium text-zinc-500">
             Caissiers habilités (vide = tous)
           </p>
+          <p className="mb-1.5 text-[10px] leading-snug text-zinc-400">
+            Plusieurs caissiers peuvent partager le même bureau (rotation). À un instant T, une
+            seule session ouverte par guichet.
+          </p>
           <div className="flex flex-wrap gap-2">
             {cashiers.map((c) => (
               <label
@@ -340,12 +344,14 @@ export default function AdminCashFloatPolicyPage() {
     if (!deskAction) return
     if (deskAction.type === 'force') {
       const reason = actionReason.trim()
-      if (reason.length < 4) return
+      if (reason.length < 8) return
       await forceClose.mutateAsync({ sessionId: deskAction.sessionId, reason })
     } else if (deskAction.type === 'unlock') {
+      const notes = actionReason.trim()
+      if (notes.length < 8) return
       await unlockCorrections.mutateAsync({
         sessionId: deskAction.sessionId,
-        notes: actionReason.trim() || undefined,
+        notes,
       })
     } else {
       await reviewSession.mutateAsync({
@@ -454,12 +460,23 @@ export default function AdminCashFloatPolicyPage() {
             </label>
           </div>
 
+          {liveDesks?.varianceAlertCount ? (
+            <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
+              {liveDesks.varianceAlertCount} écart{liveDesks.varianceAlertCount > 1 ? 's' : ''}{' '}
+              théorique / physique — identifier l’origine avant que ça ne dégénère.
+            </p>
+          ) : null}
+
           {liveDesks?.schoolTotals ? (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Kpi
                 label="Encaissé USD"
-                value={money(liveDesks.schoolTotals.collectedUsd ?? 0)}
-                hint={`${liveDesks.schoolTotals.count} paiement${liveDesks.schoolTotals.count > 1 ? 's' : ''}`}
+                value={money(liveDesks.schoolTotals.consolidatedUsd ?? liveDesks.schoolTotals.collectedUsd ?? 0)}
+                hint={
+                  liveDesks.schoolTotals.consolidatedCdf
+                    ? `${money(liveDesks.schoolTotals.consolidatedCdf, 'CDF')} FC consolidés`
+                    : `${liveDesks.schoolTotals.count} paiement${liveDesks.schoolTotals.count > 1 ? 's' : ''}`
+                }
                 tone="ok"
               />
               <Kpi
@@ -476,6 +493,35 @@ export default function AdminCashFloatPolicyPage() {
                 label="Banque / carte"
                 value={money(liveDesks.schoolTotals.bank + liveDesks.schoolTotals.card)}
               />
+            </div>
+          ) : null}
+
+          {(liveDesks?.recentPayments?.length ?? 0) > 0 ? (
+            <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-zinc-900">Derniers paiements (école)</p>
+              <p className="mb-3 text-[11px] text-zinc-500">
+                Tous les guichets · y compris mobile / hors caisse
+              </p>
+              <ul className="divide-y divide-zinc-50">
+                {liveDesks!.recentPayments!.slice(0, 12).map((p) => (
+                  <li key={p.id} className="flex items-start justify-between gap-3 py-2 text-xs">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-zinc-800">
+                        {p.studentName ?? `Élève #${p.studentId ?? p.id}`}
+                      </p>
+                      <p className="text-[11px] text-zinc-500">
+                        {p.cashDesk?.name ?? 'Hors guichet'}
+                        {p.cashierName ? ` · ${p.cashierName}` : ''}
+                        {p.reference ? ` · ${p.reference}` : ''}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold tabular-nums text-zinc-900">{money(p.amount)}</p>
+                      <p className="text-[10px] text-zinc-400">{p.method}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
 
@@ -535,6 +581,19 @@ export default function AdminCashFloatPolicyPage() {
                           </span>
                           {row.session.forceClosed ? ' · clôture admin' : ''}
                         </p>
+                        {row.session.reconciliation?.alert &&
+                        row.session.reconciliation.alert !== 'NONE' ? (
+                          <p
+                            className={cn(
+                              'rounded-lg px-2.5 py-1.5 text-[11px] font-semibold',
+                              row.session.reconciliation.alert === 'DANGER'
+                                ? 'bg-red-50 text-red-800 ring-1 ring-red-200'
+                                : 'bg-amber-50 text-amber-900 ring-1 ring-amber-200',
+                            )}
+                          >
+                            {row.session.reconciliation.alertLabel}
+                          </p>
+                        ) : null}
                         <div className="grid grid-cols-2 gap-2">
                           <Kpi
                             label="Espèces USD"
@@ -546,12 +605,26 @@ export default function AdminCashFloatPolicyPage() {
                             }
                           />
                           <Kpi
-                            label="Attendu"
+                            label="Attendu tiroir"
                             value={money(row.session.expectedCash)}
                             hint={`Fond ${money(row.session.openingFloat)}`}
                             tone={open ? 'ok' : varianceTone}
                           />
                         </div>
+                        <p className="text-[11px] leading-snug text-zinc-500">
+                          Fond {money(row.session.reconciliation?.openingFloatUsd ?? row.session.openingFloat)}
+                          {' + encaissé '}
+                          {money(row.session.reconciliation?.cashCollectedUsd ?? row.session.cashCollected)}
+                          {' − sorties '}
+                          {money(
+                            (row.session.reconciliation?.pettyCashUsd ?? 0) -
+                              Math.min(0, row.session.reconciliation?.ledgerNetUsd ?? 0),
+                          )}
+                          {' = '}
+                          <span className="font-medium text-zinc-800">
+                            {money(row.session.expectedCash)}
+                          </span>
+                        </p>
                         <p className="text-[11px] text-zinc-500">
                           MM {money(row.methods.mobileMoney)} · Banque {money(row.methods.bank)} ·
                           Carte {money(row.methods.card)}
@@ -638,8 +711,8 @@ export default function AdminCashFloatPolicyPage() {
                 onChange={(e) => setActionReason(e.target.value)}
                 rows={2}
                 placeholder={
-                  deskAction.type === 'force'
-                    ? 'Motif obligatoire (min. 4 caractères)'
+                  deskAction.type === 'force' || deskAction.type === 'unlock'
+                    ? 'Motif obligatoire (min. 8 caractères)'
                     : 'Note optionnelle'
                 }
                 className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -652,7 +725,8 @@ export default function AdminCashFloatPolicyPage() {
                     forceClose.isPending ||
                     unlockCorrections.isPending ||
                     reviewSession.isPending ||
-                    (deskAction.type === 'force' && actionReason.trim().length < 4)
+                    (deskAction.type === 'force' || deskAction.type === 'unlock') &&
+                    actionReason.trim().length < 8
                   }
                   className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
                 >

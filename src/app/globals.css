@@ -316,3 +316,322 @@ html.dark .hover\:bg-slate-50:hover {
   cursor: not-allowed;
   background: rgb(250 250 250);
 }
+
+/* ─── Fonds animés (GPU : transform3d, opacity) ─────────────────── */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  isolation: isolate;
+}
+
+.pf-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.pf-atmosphere[data-kind='none'],
+html[data-atmosphere='none'] .pf-atmosphere {
+  display: none;
+}
+
+.pf-atmosphere span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  filter: blur(64px);
+}
+
+html[data-atmosphere='aurora-glow'] .pf-atmosphere span:nth-child(1) {
+  top: -18%;
+  left: -10%;
+  width: 58vw;
+  height: 58vw;
+  background: rgb(var(--pf-accent) / 0.28);
+  animation: pf-aurora-a 22s ease-in-out infinite;
+}
+html[data-atmosphere='aurora-glow'] .pf-atmosphere span:nth-child(2) {
+  top: 12%;
+  right: -16%;
+  width: 48vw;
+  height: 48vw;
+  background: rgb(56 189 248 / 0.22);
+  animation: pf-aurora-b 28s ease-in-out infinite;
+}
+html[data-atmosphere='aurora-glow'] .pf-atmosphere span:nth-child(3) {
+  bottom: -22%;
+  left: 18%;
+  width: 52vw;
+  height: 42vw;
+  background: rgb(167 139 250 / 0.2);
+  animation: pf-aurora-c 26s ease-in-out infinite;
+}
+
+html[data-atmosphere='mesh-gradient-soft'] .pf-atmosphere span:nth-child(1) {
+  top: -12%;
+  left: 8%;
+  width: 46vw;
+  height: 46vw;
+  background: rgb(var(--pf-accent) / 0.22);
+  animation: pf-mesh-a 24s ease-in-out infinite;
+}
+html[data-atmosphere='mesh-gradient-soft'] .pf-atmosphere span:nth-child(2) {
+  top: 28%;
+  right: -8%;
+  width: 40vw;
+  height: 40vw;
+  background: rgb(14 165 233 / 0.16);
+  animation: pf-mesh-b 20s ease-in-out infinite;
+}
+html[data-atmosphere='mesh-gradient-soft'] .pf-atmosphere span:nth-child(3) {
+  bottom: -10%;
+  left: -6%;
+  width: 50vw;
+  height: 36vw;
+  background: rgb(251 191 36 / 0.14);
+  animation: pf-mesh-c 30s ease-in-out infinite;
+}
+
+html[data-atmosphere='floating-clouds'] .pf-atmosphere span {
+  filter: blur(72px);
+  border-radius: 42%;
+}
+html[data-atmosphere='floating-clouds'] .pf-atmosphere span:nth-child(1) {
+  top: 4%;
+  left: -8%;
+  width: 42vw;
+  height: 22vw;
+  background: rgb(255 255 255 / 0.55);
+  animation: pf-cloud-a 32s linear infinite;
+}
+html[data-atmosphere='floating-clouds'] .pf-atmosphere span:nth-child(2) {
+  top: 38%;
+  left: 22%;
+  width: 50vw;
+  height: 24vw;
+  background: rgb(var(--pf-accent) / 0.16);
+  animation: pf-cloud-b 38s linear infinite;
+}
+html[data-atmosphere='floating-clouds'] .pf-atmosphere span:nth-child(3) {
+  bottom: 6%;
+  right: -12%;
+  width: 46vw;
+  height: 20vw;
+  background: rgb(241 245 249 / 0.7);
+  animation: pf-cloud-c 34s linear infinite;
+}
+html.dark[data-atmosphere='floating-clouds'] .pf-atmosphere span:nth-child(1),
+html.dark[data-atmosphere='floating-clouds'] .pf-atmosphere span:nth-child(3) {
+  background: rgb(255 255 255 / 0.06);
+}
+
+html[data-atmosphere='smooth-waves'] .pf-atmosphere span {
+  border-radius: 46% 54% 48% 52%;
+  filter: blur(48px);
+}
+html[data-atmosphere='smooth-waves'] .pf-atmosphere span:nth-child(1) {
+  bottom: -28%;
+  left: -12%;
+  width: 70vw;
+  height: 38vw;
+  background: rgb(var(--pf-accent) / 0.2);
+  animation: pf-wave-a 18s ease-in-out infinite;
+}
+html[data-atmosphere='smooth-waves'] .pf-atmosphere span:nth-child(2) {
+  bottom: -32%;
+  right: -18%;
+  width: 64vw;
+  height: 34vw;
+  background: rgb(14 165 233 / 0.16);
+  animation: pf-wave-b 22s ease-in-out infinite;
+}
+html[data-atmosphere='smooth-waves'] .pf-atmosphere span:nth-child(3) {
+  bottom: -18%;
+  left: 22%;
+  width: 58vw;
+  height: 28vw;
+  background: rgb(167 139 250 / 0.14);
+  animation: pf-wave-c 26s ease-in-out infinite;
+}
+
+@keyframes pf-aurora-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(8%, 6%, 0) scale(1.12); }
+}
+@keyframes pf-aurora-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-10%, 8%, 0) scale(1.08); }
+}
+@keyframes pf-aurora-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
+  50% { transform: translate3d(6%, -10%, 0) scale(1); }
+}
+@keyframes pf-mesh-a {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(6%, 10%, 0); }
+}
+@keyframes pf-mesh-b {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-8%, -6%, 0); }
+}
+@keyframes pf-mesh-c {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(10%, -4%, 0); }
+}
+@keyframes pf-cloud-a {
+  0% { transform: translate3d(-8%, 0, 0); }
+  100% { transform: translate3d(28%, 4%, 0); }
+}
+@keyframes pf-cloud-b {
+  0% { transform: translate3d(10%, 0, 0); }
+  100% { transform: translate3d(-18%, 6%, 0); }
+}
+@keyframes pf-cloud-c {
+  0% { transform: translate3d(6%, 0, 0); }
+  100% { transform: translate3d(-22%, -5%, 0); }
+}
+@keyframes pf-wave-a {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(6%, -4%, 0) rotate(6deg); }
+}
+@keyframes pf-wave-b {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-8%, 3%, 0) rotate(-5deg); }
+}
+@keyframes pf-wave-c {
+  0%, 100% { transform: translate3d(0, 4%, 0); }
+  50% { transform: translate3d(4%, -6%, 0); }
+}
+
+html.reduce-motion .pf-atmosphere span {
+  animation: none !important;
+  will-change: auto;
+}
+
+@media print {
+  .pf-atmosphere {
+    display: none !important;
+  }
+}
+
+.pf-atmosphere-preview {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.pf-atmosphere-preview span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(14px);
+  transform: translate3d(0, 0, 0);
+  animation-duration: 8s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+.pf-atmosphere-preview[data-kind='none'] {
+  background: rgb(var(--pf-canvas));
+}
+.pf-atmosphere-preview[data-kind='aurora-glow'] span:nth-child(1) {
+  inset: -20% auto auto -10%;
+  width: 70%;
+  height: 80%;
+  background: rgb(var(--pf-accent) / 0.45);
+  animation-name: pf-aurora-a;
+}
+.pf-atmosphere-preview[data-kind='aurora-glow'] span:nth-child(2) {
+  top: 10%;
+  right: -15%;
+  width: 55%;
+  height: 70%;
+  background: rgb(56 189 248 / 0.4);
+  animation-name: pf-aurora-b;
+}
+.pf-atmosphere-preview[data-kind='aurora-glow'] span:nth-child(3) {
+  bottom: -20%;
+  left: 30%;
+  width: 50%;
+  height: 50%;
+  background: rgb(167 139 250 / 0.35);
+  animation-name: pf-aurora-c;
+}
+.pf-atmosphere-preview[data-kind='mesh-gradient-soft'] span:nth-child(1) {
+  top: -10%;
+  left: 10%;
+  width: 55%;
+  height: 55%;
+  background: rgb(var(--pf-accent) / 0.4);
+  animation-name: pf-mesh-a;
+}
+.pf-atmosphere-preview[data-kind='mesh-gradient-soft'] span:nth-child(2) {
+  right: -10%;
+  top: 30%;
+  width: 50%;
+  height: 50%;
+  background: rgb(14 165 233 / 0.35);
+  animation-name: pf-mesh-b;
+}
+.pf-atmosphere-preview[data-kind='mesh-gradient-soft'] span:nth-child(3) {
+  bottom: -10%;
+  left: -5%;
+  width: 45%;
+  height: 40%;
+  background: rgb(251 191 36 / 0.3);
+  animation-name: pf-mesh-c;
+}
+.pf-atmosphere-preview[data-kind='floating-clouds'] span:nth-child(1) {
+  top: 10%;
+  left: 0;
+  width: 60%;
+  height: 40%;
+  background: rgb(255 255 255 / 0.8);
+  animation-name: pf-cloud-a;
+}
+.pf-atmosphere-preview[data-kind='floating-clouds'] span:nth-child(2) {
+  top: 40%;
+  left: 20%;
+  width: 55%;
+  height: 35%;
+  background: rgb(var(--pf-accent) / 0.3);
+  animation-name: pf-cloud-b;
+}
+.pf-atmosphere-preview[data-kind='floating-clouds'] span:nth-child(3) {
+  bottom: 5%;
+  right: 0;
+  width: 50%;
+  height: 30%;
+  background: rgb(241 245 249 / 0.9);
+  animation-name: pf-cloud-c;
+}
+.pf-atmosphere-preview[data-kind='smooth-waves'] span:nth-child(1) {
+  bottom: -20%;
+  left: -10%;
+  width: 80%;
+  height: 55%;
+  background: rgb(var(--pf-accent) / 0.35);
+  animation-name: pf-wave-a;
+}
+.pf-atmosphere-preview[data-kind='smooth-waves'] span:nth-child(2) {
+  bottom: -25%;
+  right: -15%;
+  width: 70%;
+  height: 50%;
+  background: rgb(14 165 233 / 0.3);
+  animation-name: pf-wave-b;
+}
+.pf-atmosphere-preview[data-kind='smooth-waves'] span:nth-child(3) {
+  bottom: -10%;
+  left: 25%;
+  width: 60%;
+  height: 40%;
+  background: rgb(167 139 250 / 0.25);
+  animation-name: pf-wave-c;
+}

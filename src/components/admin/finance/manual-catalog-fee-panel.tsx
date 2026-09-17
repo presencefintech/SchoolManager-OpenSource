@@ -43,7 +43,8 @@ function PeriodStatusBanner({ status }: { status: StudentFeePeriodStatusDto }) {
   if (status.oneTimePaid || status.annualPaid) {
     return (
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-        Ce barème ({BILLING_PERIOD_LABEL[status.billingPeriod] ?? status.billingPeriod}) est déjà soldé.
+        Ce barème ({BILLING_PERIOD_LABEL[status.billingPeriod] ?? status.billingPeriod}) est déjà soldé
+        pour cet élève (tous les guichets).
       </div>
     )
   }
