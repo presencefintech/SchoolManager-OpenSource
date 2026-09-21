@@ -15,6 +15,10 @@ import {
   UserX,
   Menu,
   X,
+  GraduationCap,
+  ShieldAlert,
+  Users,
+  Handshake,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -28,6 +32,10 @@ const NAV_LINKS = [
   { label: 'Mes sections', href: '/director/sections', icon: Layers },
   { label: 'Présences', href: '/director/presences', icon: Activity },
   { label: 'Absences', href: '/director/absences', icon: UserX },
+  { label: 'Pédagogie', href: '/director/pedagogie', icon: GraduationCap },
+  { label: 'Discipline', href: '/director/discipline', icon: ShieldAlert },
+  { label: 'Personnel', href: '/director/personnel', icon: Users },
+  { label: 'Parents & inspection', href: '/director/parents-inspection', icon: Handshake },
   { label: 'Communiqués', href: '/director/announcements', icon: Megaphone },
   { label: 'Profil & sécurité', href: '/director/profil-securite', icon: UserCircle },
 ]
