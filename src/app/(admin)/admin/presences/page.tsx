@@ -169,7 +169,7 @@ function PresencesPageContent() {
   const { data: alerts, isLoading: loadingAlerts } = usePresenceAlerts(canMutate)
   const { data: classesData } = useClasses()
   const { data: sectionsData } = useSections()
-  const classes = classesData ?? []
+  const classes = useMemo(() => classesData ?? [], [classesData])
   const sections = (sectionsData ?? []).map((s: { id: number; name: string }) => ({
     id: s.id,
     name: s.name,

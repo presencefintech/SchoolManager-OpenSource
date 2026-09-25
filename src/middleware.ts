@@ -22,15 +22,22 @@ const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   IT: '/admin',
 }
 
-async function refreshAccessFromCookie(refreshToken: string): Promise<{
-  token: string
-  refreshToken?: string
-} | null> {
+const REFRESH_TIMEOUT_MS = 8_000
+
+type RefreshResult =
+  | { token: string; refreshToken?: string }
+  /** Backend injoignable ou trop lent : le refresh token reste peut-être valide. */
+  | 'unavailable'
+  | null
+
+async function refreshAccessFromCookie(refreshToken: string): Promise<RefreshResult> {
   try {
     const upstream = await fetch(`${getBackendUrl()}/api/v1/auth/refresh-token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
+      // Exécuté à chaque navigation : ne jamais bloquer la page sur un backend lent.
+      signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
     })
     if (!upstream.ok) return null
     const data = (await upstream.json().catch(() => ({}))) as {
@@ -40,7 +47,7 @@ async function refreshAccessFromCookie(refreshToken: string): Promise<{
     if (!data.token) return null
     return { token: data.token, refreshToken: data.refreshToken }
   } catch {
-    return null
+    return 'unavailable'
   }
 }
 
@@ -65,9 +72,12 @@ export async function middleware(request: NextRequest) {
 
   let session = token ? decodeAccessToken(token) : null
   let refreshed: { token: string; refreshToken?: string } | null = null
+  let backendUnavailable = false
 
   if (!session && refreshToken) {
-    refreshed = await refreshAccessFromCookie(refreshToken)
+    const result = await refreshAccessFromCookie(refreshToken)
+    backendUnavailable = result === 'unavailable'
+    refreshed = result === 'unavailable' ? null : result
     if (refreshed?.token) {
       token = refreshed.token
       session = decodeAccessToken(token)
@@ -80,7 +90,8 @@ export async function middleware(request: NextRequest) {
       : NextResponse.redirect(new URL('/login', request.url))
     res.cookies.delete(AUTH_COOKIE.access)
     // Refresh déjà tenté et mort : le garder provoquerait une boucle /login.
-    if (refreshToken) res.cookies.delete(AUTH_COOKIE.refresh)
+    // Sauf panne réseau / timeout : on le conserve pour ne pas déconnecter sur un backend lent.
+    if (refreshToken && !backendUnavailable) res.cookies.delete(AUTH_COOKIE.refresh)
     return res
   }
 

@@ -14,6 +14,42 @@ const withSerwist = withSerwistInit({
   disable: process.env.NODE_ENV === 'development',
 })
 
+function originOf(url) {
+  try {
+    return url ? new URL(url).origin : null
+  } catch {
+    return null
+  }
+}
+
+function buildContentSecurityPolicy() {
+  const apiOrigin = originOf(process.env.NEXT_PUBLIC_API_URL)
+  const wsOrigin = apiOrigin ? apiOrigin.replace(/^http/, 'ws') : null
+  const connect = [
+    "'self'",
+    apiOrigin,
+    wsOrigin,
+    'https://*.ingest.sentry.io',
+    'https://*.ingest.de.sentry.io',
+    'https://vitals.vercel-insights.com',
+  ].filter(Boolean)
+  return [
+    "default-src 'self'",
+    // Next.js 14 injecte des scripts inline (hydratation) + script de thème dans layout.tsx
+    "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src ${connect.join(' ')}`,
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "object-src 'none'",
+  ].join('; ')
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -36,6 +72,12 @@ const nextConfig = {
       { key: 'X-DNS-Prefetch-Control', value: 'on' },
     ]
     if (isProd) {
+      securityHeaders.push({
+        // Report-Only : signale les violations (console navigateur) sans rien bloquer.
+        // Passer la clé à 'Content-Security-Policy' une fois la console propre en production.
+        key: 'Content-Security-Policy-Report-Only',
+        value: buildContentSecurityPolicy(),
+      })
       securityHeaders.push({
         key: 'Strict-Transport-Security',
         value: 'max-age=63072000; includeSubDomains; preload',

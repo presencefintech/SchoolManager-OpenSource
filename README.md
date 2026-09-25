@@ -31,6 +31,9 @@ src/
 │   │   └── super-admin/        → /super-admin/...
 │   ├── (finances)/             → rôle FINANCE
 │   │   └── finances/           → /finances/...
+│   ├── (director)/             → rôle DIRECTOR
+│   │   └── director/           → /director/...
+│   ├── api/                    → proxy backend + routes auth (cookies httpOnly)
 │   ├── layout.tsx              → root layout (providers)
 │   └── globals.css
 │
@@ -43,7 +46,7 @@ src/
 │   ├── admin/                  → appels API rôle ADMIN
 │   ├── superAdmin/             → appels API rôle SUPER_ADMIN
 │   ├── finances/               → appels API rôle FINANCE
-│   └── hooks/                  → hooks React Query
+│   └── hooks/                  → hooks React Query (use-admin.ts → admin/<domaine>.ts)
 │
 ├── providers/
 │   ├── auth-provider.tsx       → context auth
@@ -64,6 +67,7 @@ src/
 | Administrateur | `ADMIN` | `/admin/dashboard` |
 | Super Administrateur | `SUPER_ADMIN` | `/super-admin/dashboard` |
 | Finances | `FINANCE` | `/finances/dashboard` |
+| Directeur (préfet / directeur d'études) | `DIRECTOR` | `/director/dashboard` |
 | Guichet inscriptions | `IT` | `/admin/desk` |
 
 ---
@@ -74,8 +78,10 @@ src/
 
 1. Formulaire `/login` soumis
 2. `POST /api/v1/auth/login` appelé
-3. JWT + rôle stockés en `localStorage` **et** en cookie (requis par le middleware)
+3. Le route handler `src/app/api/auth/login/route.ts` pose les tokens en cookies **httpOnly** (`auth_token`, `auth_refresh`) — jamais en `localStorage`
 4. Redirect automatique vers la home du rôle
+
+Les appels navigateur passent par le proxy `src/app/api/[...path]/route.ts`, qui ajoute le `Bearer` depuis le cookie. Si le backend est injoignable, il répond `502` (ou `504` après 90 s).
 
 **Protection des routes** — `src/middleware.ts`
 
@@ -85,6 +91,8 @@ src/
 | Authentifié sur `/login` | → home du rôle |
 | Authentifié sur section d'un autre rôle | → sa propre home |
 | Authentifié sur `/` | → home du rôle |
+| Access token expiré | refresh via `auth_refresh` (timeout 8 s) ; backend injoignable → `/login` sans perdre le refresh token |
+| Rôle mobile (`TEACHER`, `PARENT`) | → `/login?error=role_not_supported` |
 
 ---
 
@@ -102,9 +110,10 @@ npm run dev
 # Production
 npm run build && npm run start
 
-# Vérifications
+# Vérifications (également lancées par la CI GitHub Actions sur chaque PR)
 npm run type-check
 npm run lint
+npm test
 ```
 
 **Variables d'environnement** — copier `.env.example` vers `.env.local` à la racine :
@@ -118,7 +127,7 @@ API_URL=http://localhost:5000
 | Frontend Next.js | http://localhost:3001 |
 | Backend Presence API (`dev:local`) | http://localhost:5000 |
 
-Le proxy Next.js réécrit `/api/*` vers `${API_URL}/api/*` (voir `next.config.js`). Redémarrer `npm run dev` après toute modification de `.env.local`.
+Le route handler `src/app/api/[...path]/route.ts` relaie `/api/*` vers `${API_URL}/api/*`. Redémarrer `npm run dev` après toute modification de `.env.local`.
 
 ---
 

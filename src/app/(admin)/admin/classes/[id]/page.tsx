@@ -13,7 +13,7 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useDeleteClass, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
-import { getApiErrorMessage } from '@/lib/api/client'
+import { getApiErrorMessage, getBackendMessage } from '@/lib/api/client'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
@@ -36,8 +36,8 @@ function AssignModal({ classId, onClose }: { classId: number; onClose: () => voi
     try {
       await mutateAsync({ classId, studentIds })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur')
     }
   }
 
@@ -80,8 +80,8 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
     try {
       await mutateAsync({ classId, studentIds, targetClassId: Number(targetClassId) })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur')
     }
   }
 
@@ -149,8 +149,8 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
         },
       })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur')
     }
   }
 
@@ -438,11 +438,11 @@ export default function ClassDetailPage() {
             {stats ? (
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-xs text-zinc-400 mb-1">Présents aujourd'hui</p>
+                  <p className="text-xs text-zinc-400 mb-1">Présents aujourd&apos;hui</p>
                   <p className="text-2xl font-bold text-emerald-600">{stats.presentToday ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400 mb-1">Absents aujourd'hui</p>
+                  <p className="text-xs text-zinc-400 mb-1">Absents aujourd&apos;hui</p>
                   <p className="text-2xl font-bold text-red-500">{stats.absentToday ?? '—'}</p>
                 </div>
                 <div>
@@ -472,7 +472,7 @@ export default function ClassDetailPage() {
             {!audit.length ? (
               <div className="p-12 text-center">
                 <BookOpen size={32} className="mx-auto text-zinc-300 mb-3" />
-                <p className="text-sm text-zinc-500">Aucun événement d'audit</p>
+                <p className="text-sm text-zinc-500">Aucun événement d&apos;audit</p>
               </div>
             ) : (
               <div className="divide-y divide-zinc-50">

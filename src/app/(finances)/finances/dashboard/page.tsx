@@ -330,7 +330,7 @@ export default function FinanceDashboardPage() {
       ) : (
         <>
           <div>
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Aujourd'hui</p>
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Aujourd&apos;hui</p>
             <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
               <motion.div variants={fadeUp}>
                 <KpiCard

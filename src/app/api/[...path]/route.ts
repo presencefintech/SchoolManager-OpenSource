@@ -3,6 +3,9 @@ import { AUTH_COOKIE } from '@/lib/auth/session-cookies'
 
 const BACKEND = process.env.API_URL ?? 'http://localhost:5000'
 
+/** Au-delà du timeout axios côté client (60 s max) : libère un upstream bloqué sans couper plus tôt. */
+const UPSTREAM_TIMEOUT_MS = 90_000
+
 const SKIP_REQUEST_HEADERS = new Set([
   'host',
   'origin',
@@ -77,11 +80,21 @@ async function proxy(req: NextRequest, path: string[]) {
     }
   }
 
-  const upstream = await fetch(target, {
-    method: req.method,
-    headers,
-    body,
-  })
+  let upstream: Response
+  try {
+    upstream = await fetch(target, {
+      method: req.method,
+      headers,
+      body,
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    })
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'TimeoutError'
+    return NextResponse.json(
+      { message: timedOut ? 'Le serveur met trop de temps à répondre' : 'Backend indisponible' },
+      { status: timedOut ? 504 : 502 },
+    )
+  }
 
   const resHeaders = new Headers()
   upstream.headers.forEach((value, key) => {

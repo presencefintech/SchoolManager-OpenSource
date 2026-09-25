@@ -119,12 +119,12 @@ export default function SanctionsPage() {
         <div className="space-y-4">
           <motion.div variants={fadeUp} initial="hidden" animate="show"
             className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
-            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Résultat de l'analyse</h2>
+            <h2 className="text-sm font-semibold text-zinc-900 mb-4">Résultat de l&apos;analyse</h2>
 
             {!result ? (
               <div className="py-10 text-center">
                 <Gavel size={26} className="mx-auto text-zinc-200 mb-2" />
-                <p className="text-xs text-zinc-400">Remplissez le formulaire et lancez l'analyse</p>
+                <p className="text-xs text-zinc-400">Remplissez le formulaire et lancez l&apos;analyse</p>
               </div>
             ) : (() => {
               const status   = result.status as string | undefined

@@ -159,8 +159,8 @@ function DirectorPresencesPageContent() {
     enabled: tab === 'live',
   })
 
-  const entries = liveQuery.data?.data ?? []
-  const classes = classesQuery.data ?? []
+  const entries = useMemo(() => liveQuery.data?.data ?? [], [liveQuery.data])
+  const classes = useMemo(() => classesQuery.data ?? [], [classesQuery.data])
 
   const statusCounts = useMemo(() => {
     const counts = { PRESENT: 0, LATE: 0, ABSENT: 0, EXITED: 0, OTHER: 0 }

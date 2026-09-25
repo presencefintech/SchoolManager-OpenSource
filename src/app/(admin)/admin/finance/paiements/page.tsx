@@ -29,7 +29,7 @@ import { formatMoney } from '@/lib/finance/currency'
 import { exportRowsToCsv } from '@/lib/finance/export-csv'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
-import { getApiErrorMessage } from '@/lib/api/client'
+import { getApiErrorMessage, getBackendMessage } from '@/lib/api/client'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import {
   ManualCatalogFeePanel,
@@ -438,7 +438,7 @@ function LinkOrphanModal({ onClose }: { onClose: () => void }) {
     }
     setError(null)
     try { await mutateAsync(form); setSuccess(true) }
-    catch (err: any) { setError(err?.response?.data?.message ?? 'Erreur') }
+    catch (err) { setError(getBackendMessage(err) ?? 'Erreur') }
   }
 
   return (

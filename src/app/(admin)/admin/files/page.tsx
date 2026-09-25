@@ -88,7 +88,7 @@ export default function FilesPage() {
         <div className="max-w-5xl mx-auto flex items-center justify-between px-8 py-5">
           <div>
             <h1 className="text-2xl font-semibold text-zinc-900">Fichiers</h1>
-            <p className="text-sm text-zinc-400 mt-0.5">Upload et gestion des documents de l'établissement</p>
+            <p className="text-sm text-zinc-400 mt-0.5">Upload et gestion des documents de l&apos;établissement</p>
           </div>
           <button onClick={() => inputRef.current?.click()} disabled={uploading}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors">

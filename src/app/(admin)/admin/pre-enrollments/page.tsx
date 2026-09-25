@@ -296,7 +296,7 @@ function PreEnrollmentsPageContent() {
   })
   const updateStatus = useUpdatePreEnrollmentStatus()
 
-  const items = data?.data ?? []
+  const items = useMemo(() => data?.data ?? [], [data])
 
   useEffect(() => {
     const focus = searchParams.get('focus')

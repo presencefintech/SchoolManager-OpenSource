@@ -218,7 +218,11 @@ export function EnrollmentCreateModal({
   const emergencyContactPhone = watch('emergencyContactPhone')
   const emergencyContactName = watch('emergencyContactName')
   const autoAssignExplicitFees = watch('autoAssignExplicitFees')
-  const explicitFeeStructureIds = watch('explicitFeeStructureIds') ?? []
+  const watchedExplicitFeeStructureIds = watch('explicitFeeStructureIds')
+  const explicitFeeStructureIds = useMemo(
+    () => watchedExplicitFeeStructureIds ?? [],
+    [watchedExplicitFeeStructureIds],
+  )
 
   const { data: apiOptions = [], isLoading: loadingOptions } = useOptions(sectionId || undefined)
 

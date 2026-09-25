@@ -63,7 +63,7 @@ function PromoteModal({ enrollment, onClose }: { enrollment: EnrollmentListItem;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Promouvoir l'élève</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Promouvoir l&apos;élève</h2>
         <p className="text-sm text-zinc-500 mb-5">{formatStudentFullName(enrollment)}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -118,7 +118,7 @@ function UpdateEnrollmentModal({ enrollment, onClose }: { enrollment: Enrollment
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Modifier l'inscription</h2>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-1">Modifier l&apos;inscription</h2>
         <p className="text-sm text-zinc-500 mb-5">{formatStudentFullName(enrollment)}</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -268,7 +268,7 @@ function EnrollmentsPageContent() {
   const [rejectTarget, setRejectTarget] = useState<EnrollmentListItem | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  const enrollmentsRaw = enrollmentsData?.data ?? []
+  const enrollmentsRaw = useMemo(() => enrollmentsData?.data ?? [], [enrollmentsData])
   const enrollments = useMemo(() => {
     const bal = String(filters.balance ?? '')
     if (!bal) return enrollmentsRaw

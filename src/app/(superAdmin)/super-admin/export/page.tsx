@@ -227,7 +227,7 @@ export default function ExportPage() {
         {/* ── 3. Formats d'export ── */}
         {schoolId && (
           <div className="bg-white rounded-2xl border border-zinc-200 shadow-[0_2px_12px_rgba(0,0,0,0.06)] p-7">
-            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-5">Format d'export</h2>
+            <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wider mb-5">Format d&apos;export</h2>
 
             {error && (
               <div className="mb-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -332,7 +332,7 @@ export default function ExportPage() {
               </table>
               {report!.details.length > 10 && (
                 <div className="px-7 py-3 border-t border-zinc-100 text-xs text-zinc-400">
-                  + {(report!.details.length - 10).toLocaleString('fr-FR')} autres transactions dans l'export
+                  + {(report!.details.length - 10).toLocaleString('fr-FR')} autres transactions dans l&apos;export
                 </div>
               )}
             </div>

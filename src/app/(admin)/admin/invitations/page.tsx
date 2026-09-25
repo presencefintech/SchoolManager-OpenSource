@@ -88,7 +88,7 @@ function ParentCodesTab() {
         {isLoading ? (
           <div className="p-6 text-center text-sm text-zinc-400">Chargement…</div>
         ) : codes.length === 0 ? (
-          <div className="p-6 text-center text-sm text-zinc-400">Aucun code d'invitation parent</div>
+          <div className="p-6 text-center text-sm text-zinc-400">Aucun code d&apos;invitation parent</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -303,7 +303,7 @@ function StaffInvitationsTab() {
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
         >
           <Mail size={14} />
-          Envoyer l'invitation
+          Envoyer l&apos;invitation
         </button>
         {inviteError && (
           <p className="mt-2 text-xs text-red-600">{inviteError}</p>

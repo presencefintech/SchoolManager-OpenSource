@@ -115,7 +115,7 @@ export default function AdminSealBatchesPage() {
     { enabled: modalOpen },
   )
 
-  const items = data?.items ?? []
+  const items = useMemo(() => data?.items ?? [], [data])
   const candidates = (paymentSearch as { data?: unknown[] } | undefined)?.data ?? []
 
   const filtered = useMemo(() => {

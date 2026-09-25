@@ -790,7 +790,7 @@ export default function FeesPage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-zinc-500 block mb-1">
-                    IDs d'inscriptions <span className="text-zinc-300">(séparés par virgule)</span>
+                    IDs d&apos;inscriptions <span className="text-zinc-300">(séparés par virgule)</span>
                   </label>
                   <textarea
                     rows={3}
@@ -839,7 +839,7 @@ export default function FeesPage() {
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {applyLoading ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />}
-                  Forcer l'application
+                  Forcer l&apos;application
                 </button>
 
                 <FeedbackBanner fb={applyFb} />
@@ -886,7 +886,7 @@ export default function FeesPage() {
                 <History size={16} className="text-zinc-500" />
                 <h2 className="text-base font-semibold text-zinc-900">Audit factures élève</h2>
               </div>
-              <p className="text-xs text-zinc-400">Historique complet des factures d'un élève dans cet établissement</p>
+              <p className="text-xs text-zinc-400">Historique complet des factures d&apos;un élève dans cet établissement</p>
             </div>
 
             <div className="px-7 py-5 border-b border-zinc-100">

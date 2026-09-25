@@ -6,6 +6,7 @@ import { ShieldAlert, Search, AlertTriangle, CheckCircle, XCircle, RefreshCw, Us
 import { useFraudAlertsTop, useCheckFraud } from '@/lib/hooks/use-admin'
 import type { FraudAnalysisResult } from '@/lib/admin/api/fraud.api'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
+import { getBackendMessage } from '@/lib/api/client'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -39,8 +40,8 @@ export default function FraudPage() {
         studentId: form.studentId,
         amount: form.amount ? Number(form.amount) : undefined,
       })
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur lors de la vérification')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur lors de la vérification')
     }
   }
 
