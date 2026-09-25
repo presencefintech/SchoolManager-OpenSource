@@ -497,7 +497,7 @@ export default function AuthManagementPage() {
                       value={cleanupDays} onChange={(e) => setCleanupDays(e.target.value)}
                       className="w-20 border border-zinc-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-200"
                     />
-                    <span className="text-xs text-zinc-400">jours d'ancienneté</span>
+                    <span className="text-xs text-zinc-400">jours d&apos;ancienneté</span>
                   </div>
                   <button
                     onClick={handleCleanup} disabled={cleanupLoading}
@@ -832,7 +832,7 @@ export default function AuthManagementPage() {
                     className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-700 disabled:opacity-40 transition-colors"
                   >
                     {inviteStaffMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />}
-                    Envoyer l'invitation 2FA
+                    Envoyer l&apos;invitation 2FA
                   </button>
                   <Feedback state={staffFeedback} />
                   {whatsappAssist ? (

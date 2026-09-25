@@ -170,7 +170,7 @@ export default function CaissePage() {
   const { data: openingSuggestion } = useOpeningFloatSuggestion(!hasOpenSession)
   const { mutateAsync: openSession, isPending: opening } = useOpenSession()
   const { data: cashOps, isLoading: desksLoading } = useCashOps()
-  const cashDesks = cashOps?.desks ?? []
+  const cashDesks = useMemo(() => cashOps?.desks ?? [], [cashOps])
   const multiCounterEnabled = Boolean(cashOps?.multiCounterEnabled)
   const { mutateAsync: closeSession, isPending: closing } = useCloseSession()
   const { mutateAsync: addMovement, isPending: moving } = useAddCashSessionMovement()

@@ -49,7 +49,7 @@ export default function AdminRefundsPage() {
   const { data: selectedDetail } = useAdminRefundRequest(selectedId)
   const review = useReviewRefundRequest()
 
-  const items = (data?.items ?? []) as AdminRefundRequest[]
+  const items = useMemo(() => (data?.items ?? []) as AdminRefundRequest[], [data])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()

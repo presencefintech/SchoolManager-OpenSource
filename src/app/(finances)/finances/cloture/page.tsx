@@ -150,7 +150,7 @@ export default function CloturePage() {
           {!canFinalize && !success && (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 mb-4">
               <AlertCircle size={13} className="text-amber-500" />
-              <p className="text-xs text-amber-700">Clôture non disponible — traitez d'abord tous les paiements en attente.</p>
+              <p className="text-xs text-amber-700">Clôture non disponible — traitez d&apos;abord tous les paiements en attente.</p>
             </div>
           )}
           <form onSubmit={handleFinalize} className="space-y-4">

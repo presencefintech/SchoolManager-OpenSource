@@ -553,7 +553,7 @@ export function AuditView({ embedded = false }: { embedded?: boolean }) {
           <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] px-6 py-5">
             <div className="flex items-center gap-2 mb-4">
               <SearchCheck size={13} className="text-zinc-400" />
-              <span className="text-sm text-zinc-500">Audit d'intégrité d'un élève dans un établissement</span>
+              <span className="text-sm text-zinc-500">Audit d&apos;intégrité d&apos;un élève dans un établissement</span>
             </div>
             <div className="flex items-end gap-3 flex-wrap">
               <div>

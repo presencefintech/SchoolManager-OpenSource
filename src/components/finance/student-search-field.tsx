@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { useFinanceClasses, useFinanceStudentSearch } from '@/lib/hooks/use-finance'
 import type { FinanceStudentResult } from '@/types/finance'
@@ -242,6 +242,7 @@ export function FinanceStudentSearchField({
   }
 
   const showResults = debounced.length >= 2 || hasFilter
+  const resultsId = useId()
 
   return (
     <div className={cn('space-y-1.5', className)}>
@@ -380,6 +381,7 @@ export function FinanceStudentSearchField({
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="search"
+              role="combobox"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
@@ -388,6 +390,7 @@ export function FinanceStudentSearchField({
               className="w-full rounded-xl border border-zinc-200 py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
               aria-autocomplete="list"
               aria-expanded={showResults}
+              aria-controls={resultsId}
             />
           </div>
 
@@ -421,7 +424,7 @@ export function FinanceStudentSearchField({
           )}
 
           {showResults && (
-            <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+            <div id={resultsId} className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-3 py-1.5 border-b border-zinc-100 bg-zinc-50/80">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
                   {isFetching

@@ -26,7 +26,7 @@ export default function DirectorSectionsPage() {
   })
 
   const sections = sectionsQuery.data ?? []
-  const classes = classesQuery.data ?? []
+  const classes = useMemo(() => classesQuery.data ?? [], [classesQuery.data])
 
   const bySection = useMemo(() => {
     const map = new Map<number, typeof classes>()

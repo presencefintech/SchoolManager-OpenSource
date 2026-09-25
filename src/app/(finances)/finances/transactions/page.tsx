@@ -109,7 +109,11 @@ export default function TransactionsPage() {
     optionId?: number
     section?: { id: number; name: string }
     option?: { id: number; name: string }
-  }> = Array.isArray(classesRaw) ? classesRaw : (classesRaw as unknown as { data?: unknown[] })?.data ?? []
+  }> = useMemo(
+    () =>
+      Array.isArray(classesRaw) ? classesRaw : (classesRaw as unknown as { data?: unknown[] })?.data ?? [],
+    [classesRaw],
+  )
 
   const sections = useMemo(() => {
     const map = new Map<number, string>()

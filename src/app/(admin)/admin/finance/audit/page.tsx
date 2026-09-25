@@ -269,7 +269,7 @@ export default function AuditPage() {
       {integrity && integrity.details.length > 0 && (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
           <div className="px-5 py-4 border-b border-zinc-100">
-            <h3 className="text-sm font-semibold text-zinc-900">Anomalies d'intégrité</h3>
+            <h3 className="text-sm font-semibold text-zinc-900">Anomalies d&apos;intégrité</h3>
           </div>
           <div className="divide-y divide-zinc-50">
             {integrity.details.slice(0, 10).map((detail) => (
@@ -348,7 +348,7 @@ export default function AuditPage() {
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm">
         <div className="px-5 py-4 border-b border-zinc-100">
-          <h3 className="text-sm font-semibold text-zinc-900">Journal d'audit</h3>
+          <h3 className="text-sm font-semibold text-zinc-900">Journal d&apos;audit</h3>
         </div>
         {(logs as AuditLogEntry[]).length === 0 ? (
           <EmptyState icon={ClipboardList} message="Aucun événement d'audit" />

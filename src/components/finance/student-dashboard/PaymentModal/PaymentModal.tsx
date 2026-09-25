@@ -293,6 +293,9 @@ export function PaymentModal({
       }
       setDraftRestored(true)
     }
+    // Initialisation à l'ouverture uniquement : ajouter allowedMethods / allowedTenderCurrencies
+    // réinitialiserait le formulaire (et la clé d'idempotence) à chaque refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, selection, catalog, identity.parentName, currencyConfig?.displayCurrency, studentId])
 
   useEffect(() => {
