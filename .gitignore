@@ -16,3 +16,6 @@ public/swe-worker*.js.map
 .env.local
 .env*.local
 .vercel
+
+# typescript
+*.tsbuildinfo

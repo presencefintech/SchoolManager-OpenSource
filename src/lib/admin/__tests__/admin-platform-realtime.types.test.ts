@@ -55,7 +55,7 @@ describe('admin platform realtime parsers', () => {
       timestamp: '2026-07-11T08:03:00.000Z',
     })
     expect(item?.type).toBe('request')
-    expect(item?.fullName).toBe('Marie Kabila')
+    expect(item?.fullName).toBe('KABILA Marie')
   })
 
   it('parses cash activity with school name (console groupe)', () => {
