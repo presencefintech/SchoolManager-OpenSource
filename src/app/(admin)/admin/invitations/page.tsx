@@ -15,6 +15,7 @@ import { WhatsAppInviteAssist } from '@/components/super-admin/whatsapp-invite-a
 import { staffApi } from '@/lib/admin/api/staff.api'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
+import { STAFF_PASSWORD_REGEX } from '@/lib/auth/password-policy'
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -159,7 +160,14 @@ function StaffInvitationsTab() {
     },
   })
 
-  const [form, setForm] = useState<InviteStaffPayload>({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '' })
+  const [form, setForm] = useState<InviteStaffPayload>({
+    email: '',
+    phone: '',
+    role: 'TEACHER',
+    firstName: '',
+    lastName: '',
+    password: '',
+  })
   const [inviteError, setInviteError] = useState('')
   const [revokeError, setRevokeError] = useState('')
   const [whatsappAssist, setWhatsappAssist] = useState<{
@@ -207,12 +215,22 @@ function StaffInvitationsTab() {
       setInviteError('Numéro de téléphone invalide pour le pays sélectionné.')
       return
     }
+    if (form.password && !STAFF_PASSWORD_REGEX.test(form.password)) {
+      setInviteError(
+        'Mot de passe : 12 caractères min., majuscule, minuscule, chiffre et @ $ ! % * ? & — ou laissez vide pour une activation par lien.',
+      )
+      return
+    }
     setInviteError('')
     inviteStaff.mutate(
-      { ...form, phone: formatPhoneToE164(form.phone) },
+      {
+        ...form,
+        phone: formatPhoneToE164(form.phone),
+        password: form.password?.trim() || undefined,
+      },
       {
         onSuccess: (res) => {
-          setForm({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '', })
+          setForm({ email: '', phone: '', role: 'TEACHER', firstName: '', lastName: '', password: '' })
           refetch()
           setWhatsappAssist({
             link: res?.whatsappDeepLink ?? null,
@@ -267,7 +285,18 @@ function StaffInvitationsTab() {
             <option value="DIRECTOR">Directeur</option>
             <option value="IT">IT / Guichet</option>
           </select>
+          <input
+            placeholder="Mot de passe (optionnel — connexion immédiate)"
+            type="password"
+            autoComplete="new-password"
+            value={form.password ?? ''}
+            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            className="px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 col-span-2"
+          />
         </div>
+        <p className="text-[11px] text-zinc-500 mb-2">
+          Sans mot de passe : lien d’activation + OTP. Avec mot de passe (12 caractères, majuscule, chiffre, @$!%*?&) : connexion immédiate.
+        </p>
         <button
           onClick={handleInvite}
           disabled={!form.email || !form.phone || !isValidInternationalPhone(form.phone) || !form.firstName || !form.lastName || inviteStaff.isPending}

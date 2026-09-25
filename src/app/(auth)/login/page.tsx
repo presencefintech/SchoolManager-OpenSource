@@ -16,6 +16,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
+import { ROLE_HOME } from '@/types/auth'
 
 const loginSchema = z.object({
   identifier: z.string().min(3, 'Email ou téléphone requis'),
@@ -43,7 +44,7 @@ function LoginPageContent() {
   const justActivated = searchParams.get('activated') === '1'
   const passwordChanged = searchParams.get('passwordChanged') === '1'
   const roleNotSupported = searchParams.get('error') === 'role_not_supported'
-  const { login } = useAuth()
+  const { login, user, isLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
 
@@ -92,8 +93,28 @@ function LoginPageContent() {
         <div className="rounded-3xl border border-line bg-surface/90 backdrop-blur-sm shadow-xl shadow-slate-200/60 dark:shadow-black/40 ring-1 ring-line p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-zinc-900">Connexion</h2>
-            <p className="text-sm text-zinc-400 mt-1">Accédez à votre espace administrateur</p>
+            <p className="text-sm text-zinc-400 mt-1">Espace établissement, finances, direction ou guichet</p>
           </div>
+
+          {user && !isLoading && (
+            <div
+              role="status"
+              className="mb-4 rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3 text-sm text-indigo-900 flex flex-col gap-2"
+            >
+              <span>
+                Session déjà ouverte : {user.firstName} {user.lastName} ({user.email}).
+              </span>
+              <a
+                href={ROLE_HOME[user.role]}
+                className="font-medium underline underline-offset-2"
+              >
+                Continuer vers le tableau de bord
+              </a>
+              <span className="text-xs text-indigo-700">
+                Pour un autre compte, saisissez ses identifiants ci-dessous (la session actuelle sera remplacée).
+              </span>
+            </div>
+          )}
 
           {justActivated && (
             <div
