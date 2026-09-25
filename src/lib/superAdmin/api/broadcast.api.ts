@@ -32,8 +32,9 @@ export const broadcastApi = {
 export const adminBroadcastApi = {
   unread: () =>
     apiClient
-      .get<{ success: boolean; rows: PlatformBroadcast[] }>('/admin/platform-broadcasts/unread')
-      .then((r) => r.data.rows),
+      .get<{ success: boolean; rows?: PlatformBroadcast[] }>('/admin/platform-broadcasts/unread')
+      // Réponse inattendue → aucune bannière plutôt qu'un crash de tout l'espace admin
+      .then((r) => (Array.isArray(r.data.rows) ? r.data.rows : [])),
 
   markRead: (id: number) =>
     apiClient

@@ -9,7 +9,7 @@ import {
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
   Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3, Smartphone, Upload,
-  Menu, X,
+  Menu, X, BadgeCheck, NotebookPen,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -44,6 +44,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
       { label: 'Classes', href: '/admin/classes', icon: BookOpen },
       { label: 'Emploi du temps', href: '/admin/schedule', icon: CalendarClock },
+      { label: 'Devoirs', href: '/admin/devoirs', icon: NotebookPen },
       { label: 'Enseignants', href: '/admin/teachers', icon: School },
       { label: 'Personnel', href: '/admin/staff', icon: Users },
     ],
@@ -87,6 +88,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Import Excel', href: '/admin/import', icon: Upload },
       { label: 'État du système', href: '/admin/monitoring', icon: Monitor },
       { label: 'Vérifier document', href: '/verify', icon: QrCode },
+      { label: 'Mon abonnement', href: '/admin/abonnement', icon: BadgeCheck },
       { label: 'Paramètres', href: '/admin/settings', icon: Settings },
       { label: 'Profil & sécurité', href: '/admin/profil-securite', icon: UserCircle },
     ],
