@@ -865,7 +865,13 @@ function StudentDetailPageContent() {
   const deskOnly = isItDesk(user?.role)
   const studentId = Number(id)
 
-  const { data: student, isLoading } = useStudentDetail(studentId)
+  const {
+    data: student,
+    isPending,
+    isError,
+    error: studentError,
+    refetch: refetchStudent,
+  } = useStudentDetail(studentId)
   const { data: enrollmentDetail } = useEnrollmentDetail(studentId)
   const { data: activity, isLoading: loadingActivity } = useStudentActivity(studentId)
   const { data: dossier } = useDossierStatus(studentId)
@@ -1081,7 +1087,15 @@ function StudentDetailPageContent() {
     }
   }
 
-  if (isLoading) {
+  if (!Number.isFinite(studentId) || studentId <= 0) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <p className="text-sm text-zinc-400">Élève introuvable.</p>
+      </div>
+    )
+  }
+
+  if (isPending) {
     return (
       <div className="min-h-screen bg-zinc-50 p-8 space-y-4 max-w-4xl mx-auto">
         <Sk className="h-8 w-48" />
@@ -1091,10 +1105,19 @@ function StudentDetailPageContent() {
     )
   }
 
-  if (!student) {
+  if (isError || !student?.id) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <p className="text-sm text-zinc-400">Élève introuvable.</p>
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center gap-3 px-6">
+        <p className="text-sm text-zinc-600 text-center">
+          {getApiErrorMessage(studentError) || 'Élève introuvable.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refetchStudent()}
+          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+        >
+          Réessayer
+        </button>
       </div>
     )
   }
