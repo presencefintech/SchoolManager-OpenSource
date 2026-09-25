@@ -468,8 +468,7 @@ export function PaymentModal({
 
   const needsRef = method !== 'CASH'
   const needsPhone = method === 'ORANGE_MONEY' || method === 'MPESA' || method === 'AIRTEL_MONEY'
-  const requiresCashSession =
-    method === 'CASH' && !hasOpenSession && !couldNotVerify && !sessionLoading
+  const requiresCashSession = !hasOpenSession && !couldNotVerify && !sessionLoading
   const isMulti = editedLines.length > 1
   const structureCount = new Set(editedLines.map((sel) => sel.line.feeStructureId)).size
   const primaryLine = editedLines[0]?.line ?? selection?.lines[0]?.line
@@ -506,7 +505,7 @@ export function PaymentModal({
     setErrorMsg('')
 
     if (requiresCashSession) {
-      setErrorMsg("Ouvrez une session de caisse dans Caisse avant d'encaisser des espèces.")
+      setErrorMsg("Ouvrez une session de caisse dans Caisse avant d'encaisser.")
       return false
     }
     if (needsRef) {
@@ -996,7 +995,7 @@ export function PaymentModal({
                   </p>
                 ) : (
                   <p className="text-[11px] text-zinc-600 mt-0.5">
-                    Requis pour les espèces.{' '}
+                    Requis pour tout encaissement au guichet.{' '}
                     <Link
                       href="/finances/caisse"
                       className="font-semibold text-emerald-700 underline"
@@ -1166,7 +1165,7 @@ export function PaymentModal({
               <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
                 <AlertTriangle size={15} className="text-amber-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-amber-900">
-                  Impossible d&apos;encaisser en espèces sans session ouverte.
+                  Impossible d&apos;encaisser au guichet sans session ouverte.
                 </p>
               </div>
             )}

@@ -209,7 +209,11 @@ export default function CaissePage() {
     variance: number
     status: string
     sessionId: number
+    promoterMessage: string | null
+    promoterRequired: boolean
   } | null>(null)
+  const [recountDiffers, setRecountDiffers] = useState(false)
+  const [promoterNotice, setPromoterNotice] = useState<string | null>(null)
 
   const fxRate =
     currencyConfig?.legacyRate != null && Number(currencyConfig.legacyRate) > 0
@@ -259,6 +263,13 @@ export default function CaissePage() {
     const firstOpenable = cashDesks.find((d) => d.canOpen !== false)
     setCashDeskId(firstOpenable?.id ?? null)
   }, [hasOpenSession, multiCounterEnabled, cashDesks, cashDeskId])
+
+  const floatLocked = Boolean(openingSuggestion?.lockedToLastClose)
+
+  useEffect(() => {
+    const message = openingSuggestion?.pendingPromoterReview?.message
+    if (message) setPromoterNotice(message)
+  }, [openingSuggestion])
 
   useEffect(() => {
     if (hasOpenSession || !openingSuggestion || suggestionApplied) return
@@ -317,30 +328,50 @@ export default function CaissePage() {
     const fromBilletage = mustBilletage && openSheet.total > 0 ? openSheet.total : null
     const fromField =
       openForm.openingFloat.trim() !== '' ? Number(openForm.openingFloat) : null
-    const float = fromBilletage ?? fromField ?? suggested
+    if (
+      floatLocked &&
+      mustBilletage &&
+      openSheet.total > 0 &&
+      suggested != null &&
+      Math.abs(openSheet.total - suggested) > 0.05
+    ) {
+      setOpenError('Le billetage doit correspondre au fond repris de la dernière clôture.')
+      return
+    }
+    const float = floatLocked ? suggested : (fromBilletage ?? fromField ?? suggested)
     if (float == null || Number.isNaN(float) || float < 0) {
-      setOpenError('Le fond d’ouverture est obligatoire (prérempli depuis la dernière clôture).')
+      setOpenError(
+        floatLocked
+          ? 'Le fond d’ouverture reprend votre dernière clôture. Réessayez.'
+          : 'Première ouverture : comptez le tiroir et déclarez le fond.',
+      )
       return
     }
     const floatCdf =
       dualEnabled
-        ? mustBilletage && openCdfSheet.total > 0
-          ? openCdfSheet.total
-          : openForm.openingFloatCdf.trim() !== ''
-            ? Number(openForm.openingFloatCdf)
-            : openingSuggestion?.suggestedCdf ?? undefined
+        ? floatLocked && openingSuggestion?.suggestedCdf != null
+          ? openingSuggestion.suggestedCdf
+          : mustBilletage && openCdfSheet.total > 0
+            ? openCdfSheet.total
+            : openForm.openingFloatCdf.trim() !== ''
+              ? Number(openForm.openingFloatCdf)
+              : openingSuggestion?.suggestedCdf ?? undefined
         : undefined
     const sheets = []
     if (mustBilletage && openSheet.lines.length > 0) sheets.push(openSheet)
     if (dualEnabled && mustBilletage && openCdfSheet.lines.length > 0) sheets.push(openCdfSheet)
     try {
-      await openSession({
+      const opened = await openSession({
         ...(multiCounterEnabled && cashDeskId ? { cashDeskId } : {}),
         openingFloat: float,
         openingFloatCdf: floatCdf,
         openNotes: openForm.openNotes || undefined,
         openingSheet: sheets.length ? sheets : undefined,
       })
+      const review = (
+        opened as { pendingPromoterReview?: { message?: string } | null } | null
+      )?.pendingPromoterReview
+      if (review?.message) setPromoterNotice(review.message)
       setOpenSuccess(true)
       setOpenForm({ openingFloat: '', openingFloatCdf: '', openNotes: '' })
       setOpenUsdCounts(emptyDenomCounts('USD'))
@@ -365,26 +396,45 @@ export default function CaissePage() {
     setCloseError(null)
     setCloseResult(null)
     const closedId = currentSession.id
+    if (recountDiffers && Math.abs(varianceUsd) > 0.02 && closeForm.closeNotes.trim().length < 8) {
+      setCloseError(
+        'Décrivez l’écart (8 caractères minimum). Le promoteur le verra plus tard : la caisse n’est pas bloquée.',
+      )
+      return
+    }
     const sheets = []
-    if (useBilletage && closeUsdSheet.lines.length > 0) sheets.push(closeUsdSheet)
-    if (useBilletage && closeCdfSheet.lines.length > 0) sheets.push(closeCdfSheet)
+    if (recountDiffers && useBilletage && closeUsdSheet.lines.length > 0) sheets.push(closeUsdSheet)
+    if (recountDiffers && useBilletage && closeCdfSheet.lines.length > 0) sheets.push(closeCdfSheet)
     try {
       const result = await closeSession({
         id: closedId,
         payload: {
-          closingCounted: countedUsd,
+          ...(recountDiffers ? { closingCounted: countedUsd } : {}),
           closeNotes: closeForm.closeNotes || undefined,
           fxRateAtClose: fxRate ?? undefined,
           closingSheet: sheets.length ? sheets : undefined,
         },
       })
-      const variance = Number((result as { variance?: number })?.variance ?? varianceUsd)
+      const variance = Number(
+        (result as { variance?: number })?.variance ?? (recountDiffers ? varianceUsd : 0),
+      )
       const status = String(
         (result as { varianceStatus?: string })?.varianceStatus ??
           (Math.abs(variance) < 0.02 ? 'BALANCED' : variance > 0 ? 'OVER' : 'SHORT'),
       )
-      setCloseResult({ variance, status, sessionId: closedId })
+      const promoter = (
+        result as { promoterReview?: { required?: boolean; message?: string | null } }
+      )?.promoterReview
+      if (promoter?.message) setPromoterNotice(promoter.message)
+      setCloseResult({
+        variance,
+        status,
+        sessionId: closedId,
+        promoterMessage: promoter?.message ?? null,
+        promoterRequired: Boolean(promoter?.required),
+      })
       setCloseForm({ closingCounted: '', closeNotes: '' })
+      setRecountDiffers(false)
       setCloseUsdCounts(emptyDenomCounts('USD'))
       setCloseCdfCounts(emptyDenomCounts('CDF'))
       refetch()
@@ -556,6 +606,12 @@ export default function CaissePage() {
         emptyHint="Espèces, mobile money, SMS à valider et mouvements de tiroir apparaissent ici en direct."
       />
 
+      {promoterNotice ? (
+        <p className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {promoterNotice}
+        </p>
+      ) : null}
+
       {exportError ? (
         <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
           {exportError}
@@ -591,6 +647,12 @@ export default function CaissePage() {
             ({closeResult.variance >= 0 ? '+' : ''}
             {money(closeResult.variance)})
           </div>
+          <p className="mt-1 text-xs">
+            Prochaine ouverture de ce caissier : fond d’ouverture repris de ce montant.
+          </p>
+          {closeResult.promoterMessage ? (
+            <p className="mt-1 text-xs">{closeResult.promoterMessage}</p>
+          ) : null}
           <button
             type="button"
             onClick={() => void handleReportPdf(closeResult.sessionId)}
@@ -600,6 +662,7 @@ export default function CaissePage() {
             <FileText size={12} />
             {exportReport.isPending ? 'Génération…' : 'Télécharger le rapport Z (PDF)'}
           </button>
+          {!closeResult.promoterRequired ? (
           <button
             type="button"
             onClick={() => void handleSubmitToPromoter(closeResult.sessionId)}
@@ -608,6 +671,7 @@ export default function CaissePage() {
           >
             {submitting ? 'Soumission…' : 'Soumettre au promoteur'}
           </button>
+          ) : null}
         </motion.div>
       ) : null}
 
@@ -853,12 +917,16 @@ export default function CaissePage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-semibold text-emerald-900">
-                        Fond d’ouverture obligatoire · {money(openingSuggestion.suggested, openingSuggestion.currency as 'USD' | 'CDF')}
+                        Fond d’ouverture :{' '}
+                        {money(openingSuggestion.suggested, openingSuggestion.currency as 'USD' | 'CDF')}
                       </p>
                       <p className="text-[11px] text-emerald-800/80">
-                        Auto-rempli : {openingSuggestion.label}
+                        {floatLocked
+                          ? 'Repris de votre dernière clôture. Ce montant n’est pas modifiable.'
+                          : 'Première ouverture : comptez l’argent déjà dans le tiroir et déclarez-le.'}
                       </p>
                     </div>
+                    {!floatLocked ? (
                     <button
                       type="button"
                       onClick={() => applySuggestedAmount(openingSuggestion.suggested)}
@@ -866,8 +934,9 @@ export default function CaissePage() {
                     >
                       Appliquer
                     </button>
+                    ) : null}
                   </div>
-                  {openingSuggestion.alternatives.length > 1 ? (
+                  {!floatLocked && openingSuggestion.alternatives.length > 1 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {openingSuggestion.alternatives.map((alt) => (
                         <button
@@ -901,6 +970,7 @@ export default function CaissePage() {
                           {money(openingSuggestion.suggestedCdf, 'CDF')}
                         </span>
                       </p>
+                      {!floatLocked ? (
                       <button
                         type="button"
                         onClick={() => applySuggestedCdf(openingSuggestion.suggestedCdf!)}
@@ -908,6 +978,7 @@ export default function CaissePage() {
                       >
                         Appliquer FC
                       </button>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -949,11 +1020,14 @@ export default function CaissePage() {
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-zinc-500">
-                      Fond d’ouverture USD ($) — obligatoire
+                      {floatLocked
+                        ? 'Fond d’ouverture USD ($) — repris de la clôture'
+                        : 'Fond d’ouverture USD ($) — à déclarer'}
                     </label>
                     <input
                       type="number"
                       required
+                      readOnly={floatLocked}
                       min={floatPolicy?.minOpeningFloat ?? 0}
                       max={floatPolicy?.maxOpeningFloat}
                       step="0.01"
@@ -962,7 +1036,7 @@ export default function CaissePage() {
                         setOpenForm((p) => ({ ...p, openingFloat: e.target.value }))
                       }
                       placeholder={String(openingSuggestion?.suggested ?? '')}
-                      className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                      className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 read-only:bg-zinc-50"
                     />
                   </div>
                   {dualEnabled ? (
@@ -972,6 +1046,7 @@ export default function CaissePage() {
                       </label>
                       <input
                         type="number"
+                        readOnly={floatLocked && openingSuggestion?.suggestedCdf != null}
                         min={floatPolicy?.minOpeningFloatCdf ?? 0}
                         max={floatPolicy?.maxOpeningFloatCdf}
                         step="1"
@@ -980,7 +1055,7 @@ export default function CaissePage() {
                           setOpenForm((p) => ({ ...p, openingFloatCdf: e.target.value }))
                         }
                         placeholder={String(openingSuggestion?.suggestedCdf ?? 0)}
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 read-only:bg-zinc-50"
                       />
                     </div>
                   ) : null}
@@ -1175,25 +1250,28 @@ export default function CaissePage() {
             </div>
             <form onSubmit={handleClose} className="space-y-4">
               <div className="space-y-1 rounded-xl border border-sky-100 bg-sky-50/80 px-3 py-2.5 text-xs">
-                <p className="font-semibold text-sky-950">Attendu en caisse</p>
+                <p className="font-semibold text-sky-950">Montant calculé par le système</p>
                 <p className="tabular-nums text-sky-900">
                   {expectedDual.primary}
                   {expectedDual.secondary ? ` · ${expectedDual.secondary}` : ''}
                 </p>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCloseForm((p) => ({
-                      ...p,
-                      closingCounted: String(Number(expectedCashUsd.toFixed(2))),
-                    }))
-                  }
-                  className="mt-1 text-[11px] font-semibold text-sky-800 underline"
-                >
-                  Préremplir = attendu
-                </button>
+                <p className="text-[11px] text-sky-800/80">
+                  La clôture reprend ce montant. La prochaine ouverture de ce caissier s’en sert comme fond.
+                </p>
               </div>
 
+              <label className="flex items-center gap-2 text-xs text-zinc-600">
+                <input
+                  type="checkbox"
+                  checked={recountDiffers}
+                  onChange={(e) => setRecountDiffers(e.target.checked)}
+                  className="rounded border-zinc-300"
+                />
+                Le comptage du tiroir est différent
+              </label>
+
+              {recountDiffers ? (
+              <>
               <label className="flex items-center gap-2 text-xs text-zinc-600">
                 <input
                   type="checkbox"
@@ -1261,6 +1339,8 @@ export default function CaissePage() {
                   ) : null}
                 </div>
               )}
+              </>
+              ) : null}
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-zinc-500">
@@ -1272,7 +1352,11 @@ export default function CaissePage() {
                     setCloseForm((p) => ({ ...p, closeNotes: e.target.value }))
                   }
                   rows={2}
-                  placeholder="Écarts, dépôt banque, observations…"
+                  placeholder={
+                    recountDiffers
+                      ? 'Obligatoire si le comptage diffère (8 caractères minimum)'
+                      : 'Optionnel'
+                  }
                   className="w-full resize-none rounded-lg border border-zinc-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 />
               </div>

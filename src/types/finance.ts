@@ -341,9 +341,17 @@ export type CashFloatPolicy = {
 export type OpeningFloatSuggestion = {
   suggested: number
   source: 'LAST_CLOSE' | 'BALANCED_AVERAGE' | 'SCHOOL_DEFAULT'
+  /** true : ce caissier doit reprendre le montant de sa dernière clôture. */
+  lockedToLastClose?: boolean
   label: string
   currency: string
   suggestedCdf: number | null
+  pendingPromoterReview?: {
+    cashSessionId: number
+    variance: number
+    blocking: false
+    message: string
+  } | null
   policy: CashFloatPolicy
   alternatives: Array<{
     amount: number

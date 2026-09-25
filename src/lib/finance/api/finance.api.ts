@@ -211,7 +211,7 @@ export const financeRoleApi = {
   closeSession: (
     id: number,
     payload: {
-      closingCounted: number
+      closingCounted?: number
       closeNotes?: string
       fxRateAtClose?: number
       closingSheet?:
