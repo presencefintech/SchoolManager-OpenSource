@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BookOpen, Search, Users, TrendingUp, AlertTriangle, CheckCircle2,
@@ -506,10 +506,11 @@ export default function ClassesPage() {
   const { data: classList, isLoading: classLoading } = useClasses(schoolId, { page, limit: 20, name: debouncedSearch || undefined })
   const { data: capacityAlerts } = useCapacityAlerts(schoolId)
 
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>()
   const handleSearch = (v: string) => {
     setSearch(v)
-    clearTimeout((window as any).__classSearchTimer)
-    ;(window as any).__classSearchTimer = setTimeout(() => { setDebouncedSearch(v); setPage(1) }, 400)
+    clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(() => { setDebouncedSearch(v); setPage(1) }, 400)
   }
 
   const handleSelectClass = (cls: ClassItem) => {

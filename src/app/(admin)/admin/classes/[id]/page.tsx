@@ -13,7 +13,7 @@ const fadeUp = {
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
 import { useClassDetail, useClassStats, useClassAudit, useToggleClassStatus, useDeleteClass, useAssignStudents, useTransferStudents, useClasses, useEnrollmentsByClass, useUpdateClass, useClassConflicts, useStaff } from '@/lib/hooks/use-admin'
 import { classesApi } from '@/lib/admin/api'
-import { getApiErrorMessage } from '@/lib/api/client'
+import { getApiErrorMessage, getBackendMessage } from '@/lib/api/client'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
@@ -36,8 +36,8 @@ function AssignModal({ classId, onClose }: { classId: number; onClose: () => voi
     try {
       await mutateAsync({ classId, studentIds })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur')
     }
   }
 
@@ -80,8 +80,8 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
     try {
       await mutateAsync({ classId, studentIds, targetClassId: Number(targetClassId) })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur')
     }
   }
 
@@ -149,8 +149,8 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
         },
       })
       onClose()
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erreur')
+    } catch (err) {
+      setError(getBackendMessage(err) ?? 'Erreur')
     }
   }
 

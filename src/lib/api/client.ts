@@ -118,6 +118,13 @@ apiClient.interceptors.response.use(
   },
 )
 
+/** `message` brut renvoyé par le backend (sans reformulation), si c'est une chaîne. */
+export function getBackendMessage(error: unknown): string | undefined {
+  if (!axios.isAxiosError(error)) return undefined
+  const msg = (error.response?.data as { message?: unknown } | undefined)?.message
+  return typeof msg === 'string' ? msg : undefined
+}
+
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response && (error.code === 'ECONNABORTED' || /timeout/i.test(error.message))) {

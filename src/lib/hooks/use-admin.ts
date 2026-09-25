@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import { useEmpirePollingInterval } from '@/lib/realtime/empire-realtime-provider'
 import { dashboardApi, staffApi, studentsApi, enrollmentsApi, preEnrollmentApi, schoolAcademicApi, presencesApi, classesApi, classPeriodsApi, structureApi, financeApi, invitationsApi, parentsApi, teachersApi, schoolsApi, importApi, adminFraudApi, adminCloudinaryApi, attendanceNotificationsApi } from '@/lib/admin/api'
 import type { ImportType, ImportJobResult } from '@/lib/admin/api'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
-import { getApiErrorMessage } from '@/lib/api/client'
+import { getApiErrorMessage, getBackendMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
 import type {
   CreateStaffPayload,
@@ -770,12 +771,13 @@ export function useDeletePresence() {
       })
       return { feedSnapshots }
     },
-    onError: (err: any, _vars, ctx) => {
+    onError: (err, _vars, ctx) => {
       ctx?.feedSnapshots.forEach(([key, data]) => {
         if (data) qc.setQueryData(key, data)
       })
-      const msg = err?.response?.data?.message ?? err?.message ?? 'Erreur lors de la suppression'
-      console.error('[useDeletePresence]', msg, err?.response?.status)
+      const msg =
+        getBackendMessage(err) ?? (err instanceof Error ? err.message : 'Erreur lors de la suppression')
+      console.error('[useDeletePresence]', msg, axios.isAxiosError(err) ? err.response?.status : undefined)
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ['admin', 'presences'] })
