@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { adminMonitoringApi } from '@/lib/admin/api'
 import { formatDetailValue, humanizeEnum, serviceLabel } from '@/lib/i18n/display-labels'
+import { PresenceDiagnosticsPanel } from '@/components/admin/dashboard/presence-diagnostics-panel'
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } }
 
@@ -201,6 +202,7 @@ export default function MonitoringPage() {
           )}
         </motion.div>
 
+        <PresenceDiagnosticsPanel />
       </div>
     </div>
   )
