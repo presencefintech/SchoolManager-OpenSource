@@ -938,6 +938,7 @@ export interface InviteStaffPayload {
   schoolId: number
   firstName: string
   lastName: string
+  password?: string
 }
 
 export interface RevokeStaffInvitationPayload {

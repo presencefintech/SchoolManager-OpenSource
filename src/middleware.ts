@@ -111,6 +111,13 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && !pathname.startsWith('/verify')) {
+    const stayOnAuthForm =
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/forgot-password') ||
+      pathname.startsWith('/reset-password')
+    if (stayOnAuthForm) {
+      return attachRefreshedCookies(NextResponse.next(), refreshed)
+    }
     return attachRefreshedCookies(
       NextResponse.redirect(new URL(ROLE_HOME[role], request.url)),
       refreshed,

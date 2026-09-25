@@ -80,5 +80,11 @@ export async function POST(req: NextRequest) {
     res.cookies.set(buildAuthCookie(AUTH_COOKIE.school, '', 0, false))
   }
 
+  // Nouvelle connexion = plus d’impersonation Superadmin
+  res.cookies.set(buildAuthCookie(AUTH_COOKIE.impersonation, '', 0, false))
+  res.cookies.set(buildAuthCookie(AUTH_COOKIE.saBackup, '', 0, true))
+  res.cookies.set(buildAuthCookie(AUTH_COOKIE.saRefreshBackup, '', 0, true))
+  res.cookies.set(buildAuthCookie(AUTH_COOKIE.saSchoolBackup, '', 0, true))
+
   return res
 }

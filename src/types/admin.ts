@@ -1457,6 +1457,8 @@ export interface InviteStaffPayload {
   role: 'TEACHER' | 'FINANCE' | string
   firstName: string
   lastName: string
+  /** Si renseigné (politique 12 car. + spécial), le compte est actif tout de suite. */
+  password?: string
 }
 
 export interface InvitationStatusSummary {
