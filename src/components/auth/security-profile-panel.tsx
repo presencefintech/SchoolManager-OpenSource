@@ -11,6 +11,7 @@ import {
   EyeOff,
   KeyRound,
   Loader2,
+  LogOut,
   Mail,
   RefreshCw,
   Shield,
@@ -25,6 +26,7 @@ import { evaluateStaffPassword, staffPasswordField } from '@/lib/auth/password-p
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/toast-provider'
 import { ThemeStudio } from '@/components/theme/theme-studio'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 const changePasswordSchema = z
   .object({
@@ -71,6 +73,8 @@ export function SecurityProfilePanel() {
   const [resending, setResending] = useState(false)
 
   const [waLink, setWaLink] = useState<string | null>(null)
+  const [confirmLogoutAll, setConfirmLogoutAll] = useState(false)
+  const [loggingOutAll, setLoggingOutAll] = useState(false)
 
   const {
     register,
@@ -100,6 +104,20 @@ export function SecurityProfilePanel() {
       setTimeout(() => void logout(), 1500)
     } catch (err) {
       toastError('Échec', getApiErrorMessage(err))
+    }
+  }
+
+  async function onLogoutAll() {
+    setLoggingOutAll(true)
+    try {
+      await authApi.logoutAll()
+      setConfirmLogoutAll(false)
+      success('Sessions fermées', 'Tous vos appareils ont été déconnectés.')
+      setTimeout(() => void logout(), 1200)
+    } catch (err) {
+      toastError('Échec', getApiErrorMessage(err))
+    } finally {
+      setLoggingOutAll(false)
     }
   }
 
@@ -514,6 +532,43 @@ export function SecurityProfilePanel() {
           </button>
         </form>
       </section>
+
+      {/* Sessions */}
+      <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <LogOut size={18} className="text-emerald-600" />
+          <h2 className="text-sm font-semibold text-zinc-900">Sessions actives</h2>
+        </div>
+        <div className="p-6 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          <p className="text-sm text-zinc-600 max-w-lg">
+            Téléphone perdu, ordinateur partagé ou doute sur votre compte ? Fermez toutes vos sessions
+            ouvertes (web et mobile). Vous devrez vous reconnecter partout, y compris ici.
+          </p>
+          <button
+            type="button"
+            onClick={() => setConfirmLogoutAll(true)}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-700 hover:bg-red-100"
+          >
+            <LogOut size={16} />
+            Déconnecter toutes mes sessions
+          </button>
+        </div>
+      </section>
+
+      <ConfirmDialog
+        open={confirmLogoutAll}
+        title="Déconnecter toutes vos sessions ?"
+        description="Toutes les sessions ouvertes sur ce compte seront fermées immédiatement."
+        impact={[
+          'Web et application mobile : reconnexion obligatoire partout',
+          'Vous serez redirigé vers la page de connexion',
+        ]}
+        confirmLabel="Tout déconnecter"
+        variant="danger"
+        loading={loggingOutAll}
+        onConfirm={() => void onLogoutAll()}
+        onCancel={() => setConfirmLogoutAll(false)}
+      />
     </div>
   )
 }

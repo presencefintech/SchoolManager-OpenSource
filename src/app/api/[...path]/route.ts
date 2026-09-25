@@ -28,7 +28,9 @@ const SKIP_RESPONSE_HEADERS = new Set([
 
 async function proxy(req: NextRequest, path: string[]) {
   const search = req.nextUrl.search
-  let joined = path.join('/')
+  // Next décode les segments (%2F → /) : on les ré-encode pour qu'un identifiant contenant
+  // des « / » (ex. publicId Cloudinary « schools/3/abc ») reste un seul segment côté backend.
+  let joined = path.map(encodeURIComponent).join('/')
   // `/api/auth/*` (pages login / mot de passe oublié) → backend `/api/v1/auth/*`
   if (joined === 'auth' || joined.startsWith('auth/')) {
     joined = `v1/${joined}`

@@ -36,6 +36,16 @@ export const authApi = {
   logout: () =>
     fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => null),
 
+  /** Ferme toutes les sessions du compte, sur tous les appareils (y compris celle-ci). */
+  logoutAll: async () => {
+    const res = await fetch('/api/auth/logout-all', { method: 'POST', credentials: 'include' })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw Object.assign(new Error(data.message ?? 'Impossible de fermer les sessions'), { response: { data } })
+    }
+    return data
+  },
+
   changePassword: async (payload: { oldPassword: string; newPassword: string }) => {
     const res = await fetch('/api/auth/change-password', {
       method: 'POST',
