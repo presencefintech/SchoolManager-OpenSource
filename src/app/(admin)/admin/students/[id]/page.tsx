@@ -850,7 +850,15 @@ function DossierCheck({ ok, label }: { ok: boolean; label: string }) {
 
 export default function StudentDetailPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-50 p-8 space-y-4 max-w-4xl mx-auto">
+          <div className="h-8 w-48 rounded-xl bg-zinc-200 animate-pulse" />
+          <div className="h-48 rounded-xl bg-zinc-200 animate-pulse" />
+          <div className="h-64 rounded-xl bg-zinc-200 animate-pulse" />
+        </div>
+      }
+    >
       <StudentDetailPageContent />
     </Suspense>
   )
@@ -938,6 +946,7 @@ function StudentDetailPageContent() {
 
   const cardData = useMemo(() => {
     if (!student) return null
+    try {
     const gender =
       student.gender === 'M' || student.gender === 'F' || student.gender === 'MALE' || student.gender === 'FEMALE'
         ? student.gender
@@ -965,6 +974,9 @@ function StudentDetailPageContent() {
       feesBalance: deskOnly ? undefined : student.feesBalance ?? student.debtAmount ?? enrollmentDetail?.feesBalance,
       isPaymentLocked: student.isPaymentLocked,
     })
+    } catch {
+      return null
+    }
   }, [student, branding, enrollmentDetail, deskOnly])
 
   const handleCardElement = useCallback((el: HTMLDivElement | null) => {
@@ -1107,17 +1119,29 @@ function StudentDetailPageContent() {
 
   if (isError || !student?.id) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center gap-3 px-6">
-        <p className="text-sm text-zinc-600 text-center">
+      <div className="min-h-[60vh] bg-white flex flex-col items-center justify-center gap-4 px-6">
+        <p className="text-base font-semibold text-zinc-900 text-center">
+          La fiche de l’élève #{studentId} ne s’est pas ouverte.
+        </p>
+        <p className="text-sm text-zinc-600 text-center max-w-md">
           {getApiErrorMessage(studentError) || 'Élève introuvable.'}
         </p>
-        <button
-          type="button"
-          onClick={() => void refetchStudent()}
-          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-        >
-          Réessayer
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void refetchStudent()}
+            className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          >
+            Réessayer
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push('/admin/students')}
+            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+          >
+            Retour à la liste
+          </button>
+        </div>
       </div>
     )
   }
