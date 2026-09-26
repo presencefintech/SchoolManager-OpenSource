@@ -38,7 +38,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { labelBiometricStatus } from '@/lib/business-labels'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatStudentDisplayName } from '@/lib/admin/normalizers'
-import { formatStudentInitials, formatRdcFullName } from '@/lib/utils/student-name.util'
+import { formatRdcFullName } from '@/lib/utils/student-name.util'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
@@ -54,12 +54,96 @@ const STATUS_CFG: Record<string, { label: string; cls: string }> = {
   SUSPENDED: { label: 'Suspendu', cls: 'bg-red-50 text-red-700' },
 }
 
-function InfoRow({ label, value, action }: { label: string; value?: string | null; action?: React.ReactNode }) {
-  if (!value) return null
+function ageLabel(dateOfBirth?: string): string | null {
+  if (!dateOfBirth) return null
+  const born = new Date(dateOfBirth)
+  if (Number.isNaN(born.getTime())) return null
+  const now = new Date()
+  let years = now.getFullYear() - born.getFullYear()
+  const monthDelta = now.getMonth() - born.getMonth()
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < born.getDate())) years -= 1
+  if (years < 0 || years > 30) return null
+  return `${years} ans`
+}
+
+function isSameLocalDay(iso?: string): boolean {
+  if (!iso) return false
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return false
+  const now = new Date()
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  )
+}
+
+function todayPresenceLabel(lastPresence?: string, status?: string): { label: string; tone: 'ok' | 'warn' | 'bad' | 'neutral' } {
+  if (!isSameLocalDay(lastPresence)) return { label: 'Non pointé', tone: 'neutral' }
+  if (status === 'PRESENT') return { label: 'Présent aujourd’hui', tone: 'ok' }
+  if (status === 'LATE') return { label: 'En retard', tone: 'warn' }
+  if (status === 'ABSENT') return { label: 'Absent aujourd’hui', tone: 'bad' }
+  return { label: 'Pointé aujourd’hui', tone: 'ok' }
+}
+
+function activitySentence(evt: Record<string, unknown>, index: number): { key: string; text: string } {
+  const type = String(evt.type ?? '')
+  const title = typeof evt.title === 'string' ? evt.title : ''
+  const description = typeof evt.description === 'string' ? evt.description : ''
+  const rawDate = (evt.date ?? evt.createdAt) as string | undefined
+  const parsed = rawDate ? new Date(rawDate) : null
+  const day = parsed && !Number.isNaN(parsed.getTime())
+    ? parsed.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+    : ''
+
+  let text = title || description || 'Activité'
+  if (/^Présence\s*:/i.test(title)) {
+    const status = title.split(':').pop()?.trim()
+    text = status === 'LATE' ? `En retard le ${day}` : status === 'ABSENT' ? `Absent le ${day}` : `Présent le ${day}`
+  } else if (/^Paiement\s*:/i.test(title)) {
+    text = `Paiement ${title.replace(/^Paiement\s*:\s*/i, '')}`.trim()
+  } else if (type === 'PRESENCE' && !title && day) {
+    text = `Présent le ${day}`
+  }
+
+  return { key: String(evt.id ?? `${type}-${rawDate ?? index}`), text }
+}
+
+function GlancePill({ label, tone }: { label: string; tone: 'ok' | 'warn' | 'bad' | 'neutral' }) {
+  const toneClass =
+    tone === 'ok'
+      ? 'bg-emerald-50 text-emerald-800 ring-emerald-100'
+      : tone === 'warn'
+        ? 'bg-amber-50 text-amber-900 ring-amber-100'
+        : tone === 'bad'
+          ? 'bg-red-50 text-red-800 ring-red-100'
+          : 'bg-zinc-100 text-zinc-700 ring-zinc-200'
+  return (
+    <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1', toneClass)}>
+      {label}
+    </span>
+  )
+}
+
+function InfoRow({
+  label,
+  value,
+  action,
+  skipEmpty,
+}: {
+  label: string
+  value?: string | null
+  action?: React.ReactNode
+  skipEmpty?: boolean
+}) {
+  const text = value?.trim() ?? ''
+  if (!text && skipEmpty) return null
   return (
     <div className="flex items-start gap-3 py-2 border-b border-zinc-50 last:border-0">
       <span className="text-xs text-zinc-400 w-32 flex-shrink-0 pt-0.5">{label}</span>
-      <span className="text-sm text-zinc-700 min-w-0 break-words flex-1">{value}</span>
+      <span className={cn('text-sm min-w-0 break-words flex-1', text ? 'text-zinc-700' : 'text-zinc-400')}>
+        {text || 'À compléter'}
+      </span>
       {action}
     </div>
   )
@@ -1149,7 +1233,6 @@ function StudentDetailPageContent() {
   const sc = STATUS_CFG[student.status] ?? { label: student.status, cls: 'bg-zinc-100 text-zinc-500' }
   const debtAmount = student.debtAmount ?? 0
   const studentDisplayName = formatStudentDisplayName(student)
-  const studentInitials = formatStudentInitials(student)
   const identity = {
     nom: (student.lastName ?? '').trim().toUpperCase() || null,
     postnom: (student.postnom ?? '').trim().toUpperCase() || null,
@@ -1199,24 +1282,70 @@ function StudentDetailPageContent() {
         className="bg-white border-b border-zinc-200"
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
       >
-        <div className="max-w-4xl mx-auto px-8 py-5 flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors"
-          >
-            <ArrowLeft size={16} />
-          </button>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center">
-              <span className="text-sm font-bold text-emerald-700">
-                {studentInitials}
-              </span>
+        <div className="max-w-4xl mx-auto px-8 py-5">
+          <div className="flex items-start gap-4">
+            <button
+              onClick={() => router.back()}
+              className="mt-1 p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div className="h-16 w-16 rounded-2xl overflow-hidden flex-shrink-0 ring-1 ring-zinc-200">
+              <StudentCardPhoto
+                photoUrl={student.photoUrl ?? null}
+                firstName={student.prenom || student.firstName}
+                lastName={student.lastName}
+              />
             </div>
-            <div>
-              <h1 className="text-lg font-semibold text-zinc-900">{studentDisplayName}</h1>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', sc.cls)}>{sc.label}</span>
-                {student.matricule && <span className="text-xs text-zinc-400 font-mono">{student.matricule}</span>}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-900">{studentDisplayName}</h1>
+              <p className="text-sm text-zinc-500 mt-0.5">
+                {[
+                  student.className || 'Classe à compléter',
+                  student.academicYear || enrollmentDetail?.academicYear || 'Année à compléter',
+                  ageLabel(student.dateOfBirth),
+                  student.placeOfBirth,
+                ].filter(Boolean).join(' · ')}
+              </p>
+              <p className="text-sm mt-1">
+                {student.parentName ? (
+                  <span className="text-zinc-700">
+                    {student.parentName}{student.parentPhone ? ` · ${student.parentPhone}` : ''}
+                  </span>
+                ) : (
+                  <span className="text-zinc-400">Tuteur à compléter</span>
+                )}
+              </p>
+              {student.matricule && (
+                <p className="text-xs font-mono text-zinc-400 mt-1">{student.matricule}</p>
+              )}
+              {(student.bloodGroup || student.allergies) && (
+                <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800 ring-1 ring-red-100">
+                  Urgence
+                  {student.bloodGroup ? ` · Groupe ${student.bloodGroup}` : ''}
+                  {student.allergies ? ` · ${student.allergies}` : ''}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                <GlancePill
+                  label={sc.label}
+                  tone={student.status === 'ACTIVE' ? 'ok' : student.status === 'SUSPENDED' ? 'bad' : 'neutral'}
+                />
+                <GlancePill
+                  label={
+                    (deskOnly ? (dossierItem?.isFinanciallyCleared ?? debtAmount <= 0) : debtAmount <= 0)
+                      ? 'En ordre'
+                      : deskOnly
+                        ? 'Dette'
+                        : `Dette ${fmtMoney(debtAmount)}`
+                  }
+                  tone={(deskOnly ? (dossierItem?.isFinanciallyCleared ?? debtAmount <= 0) : debtAmount <= 0) ? 'ok' : 'bad'}
+                />
+                <GlancePill {...todayPresenceLabel(student.lastPresence, student.lastPresenceStatus)} />
+                <GlancePill
+                  label={dossierItem?.completionRate == null ? 'Dossier' : `Dossier ${Math.round(dossierItem.completionRate)} %`}
+                  tone={(dossierItem?.completionRate ?? 0) >= 80 ? 'ok' : (dossierItem?.completionRate ?? 0) > 0 ? 'warn' : 'neutral'}
+                />
               </div>
               <StudentFinanceBadges
                 className="mt-2"
@@ -1361,7 +1490,7 @@ function StudentDetailPageContent() {
               <InfoRow label="Nom" value={identity.nom} />
               <InfoRow label="Postnom" value={identity.postnom} />
               <InfoRow label="Prénom" value={identity.prenom} />
-              <InfoRow label="Prénom d'usage" value={identity.prenomUsage} />
+              <InfoRow label="Prénom d'usage" value={identity.prenomUsage} skipEmpty />
               <InfoRow label="Classe" value={student.className} />
               <InfoRow label="Email" value={student.email} />
               <InfoRow label="Téléphone" value={student.phone} />
@@ -1370,7 +1499,16 @@ function StudentDetailPageContent() {
               <InfoRow label="Parent/Tuteur" value={student.parentName} />
               <InfoRow label="Tél. parent" value={student.parentPhone} />
               <InfoRow label="Email parent" value={student.parentEmail} />
-              <InfoRow label="Genre" value={student.gender === 'M' ? 'Masculin' : student.gender === 'F' ? 'Féminin' : undefined} />
+              <InfoRow
+                label="Genre"
+                value={
+                  student.gender === 'M' || student.gender === 'MALE'
+                    ? 'Masculin'
+                    : student.gender === 'F' || student.gender === 'FEMALE'
+                      ? 'Féminin'
+                      : student.gender
+                }
+              />
               <InfoRow label="Lieu de naissance" value={student.placeOfBirth} />
               <InfoRow label="Nationalité" value={student.nationality} />
               <InfoRow label="Année scolaire" value={student.academicYear ?? enrollmentDetail?.academicYear} />
@@ -1488,18 +1626,15 @@ function StudentDetailPageContent() {
                 <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-10" />)}</div>
               ) : (activity as unknown[])?.length ? (
                 <div className="divide-y divide-zinc-50 max-h-72 overflow-y-auto">
-                  {((activity as Array<{ id: number; type: string; description: string; createdAt: string }>) ?? []).map((evt) => (
-                    <div key={evt.id} className="px-5 py-3 flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-zinc-700">{evt.type}</p>
-                        <p className="text-xs text-zinc-400 truncate">{evt.description}</p>
+                  {((activity as unknown as Array<Record<string, unknown>>) ?? []).map((evt, index) => {
+                    const line = activitySentence(evt, index)
+                    return (
+                      <div key={line.key} className="px-5 py-3 flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-2 flex-shrink-0" />
+                        <p className="text-sm text-zinc-700">{line.text}</p>
                       </div>
-                      <span className="text-[10px] text-zinc-300 flex-shrink-0 ml-auto pt-0.5 tabular-nums">
-                        {new Date(evt.createdAt).toLocaleDateString('fr-FR')}
-                      </span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="py-8 text-center text-sm text-zinc-400">Aucune activité</div>
@@ -1526,29 +1661,36 @@ function StudentDetailPageContent() {
                 </div>
               </div>
             )}
-            {student.presenceCount !== undefined && (
-              <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-                <h2 className="text-sm font-semibold text-zinc-700 mb-3">Présence</h2>
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
+              <h2 className="text-sm font-semibold text-zinc-700 mb-3">Présence du mois</h2>
+              {student.monthPresenceRate == null ? (
+                <p className="text-sm text-zinc-400">Aucun pointage ce mois.</p>
+              ) : (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-500">Total présences</span>
-                    <span className="text-sm font-bold text-zinc-900 tabular-nums">{student.presenceCount}</span>
+                    <span className="text-xs text-zinc-500">Taux</span>
+                    <span className="text-sm font-bold text-zinc-900 tabular-nums">{student.monthPresenceRate} %</span>
                   </div>
-                  {student.lastPresence && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-zinc-500">Dernière présence</span>
-                      <span className="text-xs text-zinc-600">{new Date(student.lastPresence).toLocaleDateString('fr-FR')}</span>
-                    </div>
-                  )}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-500">Dossier verrouillé</span>
-                    <span className={cn('text-xs font-medium', student.isLocked ? 'text-red-600' : 'text-emerald-600')}>
-                      {student.isLocked ? 'Oui — modifications suspendues' : 'Non'}
-                    </span>
+                    <span className="text-xs text-zinc-500">Présences</span>
+                    <span className="text-sm font-medium text-zinc-800 tabular-nums">{student.monthPresent ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-500">Retards</span>
+                    <span className="text-sm font-medium text-zinc-800 tabular-nums">{student.monthLate ?? 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-500">Absences</span>
+                    <span className="text-sm font-medium text-zinc-800 tabular-nums">{student.monthAbsent ?? 0}</span>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+              {student.lastPresence && (
+                <p className="text-xs text-zinc-400 mt-3">
+                  Dernier pointage le {new Date(student.lastPresence).toLocaleDateString('fr-FR')}
+                </p>
+              )}
+            </div>
 
             {!deskOnly && (
             <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">

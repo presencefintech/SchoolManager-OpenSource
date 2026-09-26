@@ -291,6 +291,11 @@ export interface StudentDetail {
   debtAmount?: number
   presenceCount?: number
   lastPresence?: string
+  lastPresenceStatus?: string
+  monthPresent?: number
+  monthLate?: number
+  monthAbsent?: number
+  monthPresenceRate?: number | null
   enrollments?: SessionEnrollment[]
   photoUrl?: string
   birthCertificateUrl?: string

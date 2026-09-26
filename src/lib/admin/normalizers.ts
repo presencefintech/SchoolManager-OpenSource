@@ -147,13 +147,28 @@ export function normalizeStudentStats(raw: Record<string, unknown>): import('@/t
   }
 }
 
+function readMonthPresence(raw: unknown): Pick<StudentDetail, 'monthPresent' | 'monthLate' | 'monthAbsent' | 'monthPresenceRate'> {
+  if (!raw || typeof raw !== 'object') return {}
+  const month = raw as Record<string, unknown>
+  const present = Number(month.present ?? 0)
+  const late = Number(month.late ?? 0)
+  const absent = Number(month.absent ?? 0)
+  const rate = month.rate == null || month.rate === '' ? null : Number(month.rate)
+  return {
+    monthPresent: Number.isFinite(present) ? present : 0,
+    monthLate: Number.isFinite(late) ? late : 0,
+    monthAbsent: Number.isFinite(absent) ? absent : 0,
+    monthPresenceRate: rate != null && Number.isFinite(rate) ? rate : null,
+  }
+}
+
 /** GET /admin/students/:id/detail — réponse { profile, stats, history } ou plat legacy */
 export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDetail {
   const profile = (raw.profile ?? raw) as Record<string, unknown>
   const stats = (raw.stats ?? {}) as Record<string, unknown>
   const history = (raw.history ?? {}) as Record<string, unknown>
   const cls = profile.class as { name?: string; id?: number } | undefined
-  const presences = (history.presences ?? profile.presences) as Array<{ scannedAt?: string }> | undefined
+  const presences = (history.presences ?? profile.presences) as Array<{ scannedAt?: string; status?: string }> | undefined
   const parentsLink = profile.parentsLink as Array<{
     parent?: { firstName?: string; lastName?: string; prenom?: string; postnom?: string; phone?: string }
   }> | undefined
@@ -223,6 +238,8 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
     updatedAt: String(profile.updatedAt ?? ''),
     presenceCount: presences?.length,
     lastPresence: presences?.[0]?.scannedAt ? String(presences[0].scannedAt) : undefined,
+    lastPresenceStatus: presences?.[0]?.status ? String(presences[0].status) : undefined,
+    ...readMonthPresence(stats.monthPresence),
     photoUrl: profile.photoUrl as string | undefined,
     birthCertificateUrl: profile.birthCertificateUrl as string | undefined,
     enrollmentFormUrl: profile.enrollmentFormUrl as string | undefined,

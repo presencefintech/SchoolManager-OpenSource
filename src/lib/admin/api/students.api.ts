@@ -6,6 +6,20 @@ import type {
   StudentActivity, DossierStatus, Debtor, StudentApplication, PaginatedResponse,
 } from '@/types/admin'
 
+function normalizeDossierStatus(raw: Record<string, unknown>): DossierStatus {
+  const checks = (raw.checks && typeof raw.checks === 'object' ? raw.checks : {}) as Record<string, unknown>
+  const rate = Number(raw.completionRate ?? 0)
+  return {
+    studentId: Number(raw.studentId ?? 0),
+    hasPhoto: Boolean(raw.hasPhoto ?? checks.photo),
+    hasBiometrics: Boolean(raw.hasBiometrics ?? checks.biometrics),
+    hasParentContact: Boolean(raw.hasParentContact ?? checks.parent),
+    isFinanciallyCleared: Boolean(raw.isFinanciallyCleared ?? checks.payment),
+    matricule: typeof raw.matricule === 'string' ? raw.matricule : undefined,
+    completionRate: Number.isFinite(rate) ? Math.round(rate <= 1 && rate > 0 ? rate * 100 : rate) : 0,
+  }
+}
+
 export const studentsApi = {
   getMainDashboard: () =>
     apiClient
@@ -62,8 +76,8 @@ export const studentsApi = {
       .then(r => r.data.data),
 
   getDossierStatus: (id: number) =>
-    apiClient.get<{ success: boolean; data: DossierStatus }>(`/admin/students/${id}/dossier-status`)
-      .then(r => r.data.data),
+    apiClient.get<{ success: boolean; data: Record<string, unknown> }>(`/admin/students/${id}/dossier-status`)
+      .then(r => normalizeDossierStatus(r.data.data ?? {})),
 
   getDebtors: () =>
     apiClient.get<{ success: boolean; data: unknown }>('/admin/students/reports/debtors')
