@@ -179,7 +179,7 @@ function LoginPageContent() {
             {/* Password */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                <label htmlFor="password" className="block text-xs font-medium text-zinc-300 uppercase tracking-wide">
                   Mot de passe
                 </label>
                 <Link href="/forgot-password" className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
