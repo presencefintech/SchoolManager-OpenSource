@@ -6,6 +6,7 @@ import { resolveBackendUploadHref } from '@/lib/finance/download-blob'
 
 export type ThermalReceiptPayload = {
   url?: string
+  pdfBase64?: string
   whatsapp?: string | null
   receiptData?: {
     transaction?: {

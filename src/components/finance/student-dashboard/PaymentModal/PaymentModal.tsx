@@ -52,7 +52,7 @@ import {
   loadGuichetPaymentDraft,
   clearGuichetPaymentDraft,
 } from '@/lib/finance/guichet-ops.utils'
-import { printPdfBlob } from '@/lib/finance/download-blob'
+import { pdfBase64ToBlob, printPdfBlob } from '@/lib/finance/download-blob'
 import { useToast } from '@/providers/toast-provider'
 import { labelMoratorium, labelMoratoriumType } from '@/lib/business-labels'
 import type { ProcessPaymentResponse } from '@/types/finance'
@@ -667,9 +667,10 @@ export function PaymentModal({
       }
 
       setThermalLoading(true)
+      let thermalRes: ThermalReceiptPayload | null = null
       try {
-        const thermalRes = await financeRoleApi.getThermalReceipt(paymentId)
-        setThermal(thermalRes as ThermalReceiptPayload)
+        thermalRes = (await financeRoleApi.getThermalReceipt(paymentId)) as ThermalReceiptPayload
+        setThermal(thermalRes)
       } catch (err) {
         toast.warning('Aperçu reçu indisponible', getApiErrorMessage(err))
       } finally {
@@ -679,12 +680,18 @@ export function PaymentModal({
       if (autoPrintThermal && !didAutoPrint) {
         setDidAutoPrint(true)
         try {
-          const blob = await downloadReceipt.mutateAsync({
-            paymentId,
-            format: 'Thermal',
-          })
-          await printPdfBlob(blob)
-          toast.info('Impression ticket', 'Dialogue d’impression ouvert')
+          const blob = thermalRes?.pdfBase64
+            ? pdfBase64ToBlob(thermalRes.pdfBase64)
+            : await downloadReceipt.mutateAsync({
+                paymentId,
+                format: 'Thermal',
+              })
+          const mode = await printPdfBlob(blob)
+          if (mode === 'downloaded') {
+            toast.info('Ticket enregistré', 'Le fichier PDF a été téléchargé. Ouvrez-le pour l’imprimer.')
+          } else {
+            toast.info('Impression ticket', 'Dialogue d’impression ouvert')
+          }
         } catch (err) {
           toast.warning('Auto-impression échouée', getApiErrorMessage(err))
         }
@@ -804,12 +811,19 @@ export function PaymentModal({
                 onPrint={() => {
                   void (async () => {
                     try {
-                      const blob = await downloadReceipt.mutateAsync({
-                        paymentId: successPaymentId,
-                        format: 'Thermal',
-                      })
-                      await printPdfBlob(blob)
-                      toast.info('Impression ticket', 'Dialogue d’impression ouvert')
+                      const blob = thermal.pdfBase64
+                        ? pdfBase64ToBlob(thermal.pdfBase64)
+                        : await downloadReceipt.mutateAsync({
+                            paymentId: successPaymentId,
+                            format: 'Thermal',
+                          })
+                      const mode = await printPdfBlob(blob)
+                      toast.info(
+                        'Impression ticket',
+                        mode === 'downloaded'
+                          ? 'Le fichier PDF a été téléchargé. Ouvrez-le pour l’imprimer.'
+                          : 'Dialogue d’impression ouvert',
+                      )
                     } catch (err) {
                       toast.error('Impression impossible', getApiErrorMessage(err))
                     }
