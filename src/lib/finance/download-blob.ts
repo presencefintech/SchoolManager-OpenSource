@@ -8,32 +8,42 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-/**
- * Ouvre le dialogue d’impression système pour un PDF (iframe caché).
- * Fallback : nouvel onglet si l’iframe ne peut pas imprimer.
- */
-export async function printPdfBlob(blob: Blob): Promise<'printed' | 'opened'> {
-  const url = URL.createObjectURL(blob)
+export function pdfBase64ToBlob(base64: string): Blob {
+  const clean = base64.replace(/\s/g, '')
+  const binary = atob(clean)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: 'application/pdf' })
+}
 
-  const cleanup = () => {
-    try {
-      URL.revokeObjectURL(url)
-    } catch {
-      /* ignore */
-    }
+/**
+ * Ouvre le dialogue d’impression. L’iframe a une vraie taille hors écran :
+ * un cadre 0×0 ne charge pas le PDF dans Chrome, et l’impression ne part jamais.
+ * Si le dialogue ne s’ouvre pas, le fichier est téléchargé.
+ */
+export async function printPdfBlob(blob: Blob): Promise<'printed' | 'opened' | 'downloaded'> {
+  const url = URL.createObjectURL(blob)
+  const filename = 'ticket-caisse.pdf'
+
+  const saveFile = () => {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const iframe = document.createElement('iframe')
     iframe.setAttribute('title', 'Impression reçu')
     iframe.style.cssText =
-      'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;'
+      'position:fixed;left:-2400px;top:0;width:800px;height:1100px;border:0;background:#fff;'
     iframe.src = url
 
     let settled = false
-    const finish = (mode: 'printed' | 'opened') => {
+    const finish = (mode: 'printed' | 'opened' | 'downloaded') => {
       if (settled) return
       settled = true
+      window.clearTimeout(timer)
       resolve(mode)
       window.setTimeout(() => {
         try {
@@ -41,51 +51,56 @@ export async function printPdfBlob(blob: Blob): Promise<'printed' | 'opened'> {
         } catch {
           /* ignore */
         }
-        cleanup()
+        try {
+          URL.revokeObjectURL(url)
+        } catch {
+          /* ignore */
+        }
       }, 120_000)
     }
 
-    iframe.onload = () => {
-      window.setTimeout(() => {
-        try {
-          const win = iframe.contentWindow
-          if (!win) throw new Error('Fenêtre impression indisponible')
-          win.focus()
-          win.print()
-          finish('printed')
-        } catch {
-          // Certains navigateurs bloquent print() dans iframe PDF → nouvel onglet
-          const popup = window.open(url, '_blank', 'noopener,noreferrer')
-          if (!popup) {
-            settled = true
-            iframe.remove()
-            cleanup()
-            reject(
-              new Error(
-                'Impression bloquée — autorisez les popups, ou utilisez Télécharger.',
-              ),
-            )
-            return
-          }
+    const tryPrint = () => {
+      if (settled) return
+      try {
+        const win = iframe.contentWindow
+        if (!win) throw new Error('Fenêtre impression indisponible')
+        win.focus()
+        win.print()
+        finish('printed')
+      } catch {
+        const popup = window.open(url, '_blank', 'noopener,noreferrer')
+        if (popup) {
           window.setTimeout(() => {
             try {
               popup.focus()
               popup.print()
             } catch {
-              /* l’utilisateur peut imprimer depuis l’onglet PDF */
+              /* l’utilisateur imprime depuis l’onglet */
             }
             finish('opened')
-          }, 600)
+          }, 400)
+          return
         }
-      }, 400)
+        saveFile()
+        finish('downloaded')
+      }
+    }
+
+    const timer = window.setTimeout(() => {
+      tryPrint()
+      if (!settled) {
+        saveFile()
+        finish('downloaded')
+      }
+    }, 1500)
+
+    iframe.onload = () => {
+      window.setTimeout(tryPrint, 300)
     }
 
     iframe.onerror = () => {
-      if (settled) return
-      settled = true
-      iframe.remove()
-      cleanup()
-      reject(new Error('Impossible de charger le PDF pour impression.'))
+      saveFile()
+      finish('downloaded')
     }
 
     document.body.appendChild(iframe)

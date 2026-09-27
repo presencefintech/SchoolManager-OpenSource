@@ -325,6 +325,7 @@ export const financeRoleApi = {
         const raw = r.data?.data ?? r.data
         return raw as {
           url?: string
+          pdfBase64?: string
           whatsapp?: string | null
           receiptData?: Record<string, unknown>
         }

@@ -30,9 +30,11 @@ export function PrintReceiptButton({
       const mode = await printPdfBlob(blob)
       toast.success(
         format === 'Thermal' ? 'Impression ticket' : 'Impression A4',
-        mode === 'printed'
-          ? 'Dialogue d’impression ouvert'
-          : 'PDF ouvert — utilisez Ctrl+P si besoin',
+        mode === 'downloaded'
+          ? 'Le fichier PDF a été téléchargé. Ouvrez-le pour l’imprimer.'
+          : mode === 'printed'
+            ? 'Dialogue d’impression ouvert'
+            : 'PDF ouvert — utilisez Ctrl+P si besoin',
       )
     } catch (err) {
       toast.error('Impression impossible', getApiErrorMessage(err))
