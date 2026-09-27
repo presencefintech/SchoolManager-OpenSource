@@ -1316,6 +1316,7 @@ export type CreateExpensePayload = {
   vendor?: string | null
   reference?: string | null
   notes?: string | null
+  budgetCategoryId?: number | null
   postImmediately?: boolean
 }
 
@@ -1326,6 +1327,7 @@ export type CreateExpenseBatchPayload = {
   currency?: string
   vendor?: string | null
   cashSessionId?: number | null
+  budgetCategoryId?: number | null
   lines: Array<{
     kind: ExpenseKind
     category: string
