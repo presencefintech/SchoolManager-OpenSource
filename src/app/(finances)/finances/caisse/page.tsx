@@ -30,6 +30,7 @@ import {
   useAddCashSessionMovement,
   useSubmitCashSessionToPromoter,
   useCashOps,
+  useGuichetDashboard,
 } from '@/lib/hooks/use-finance'
 import type { CashLedgerMovementType } from '@/types/finance'
 import { fadeUp } from '@/lib/animations'
@@ -46,6 +47,8 @@ import {
 } from '@/lib/finance/cash-session.utils'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
+import { CashPaceStrip } from '@/components/finance/cash-pace-strip'
+import { ClassCollectionRank } from '@/components/finance/class-collection-rank'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 import type { CashSessionSummary } from '@/types/finance'
 import axios from 'axios'
@@ -160,6 +163,7 @@ export default function CaissePage() {
     couldNotVerify,
     refetch,
   } = useResolvedCashSession()
+  const { data: guichet } = useGuichetDashboard()
 
   const { data: summaryRaw, isFetching: summaryFetching } = useSessionSummary(
     currentSession?.id ?? 0,
@@ -680,6 +684,10 @@ export default function CaissePage() {
           {submitOk}
         </p>
       ) : null}
+
+      <CashPaceStrip pace={guichet?.cashPace} />
+
+      <ClassCollectionRank rows={guichet?.classRanking} />
 
       {/* KPI strip */}
       {hasOpenSession ? (

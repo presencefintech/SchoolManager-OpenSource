@@ -8,7 +8,7 @@ const CURRENCY_QUERY_KEY = ['finance', 'currency-config'] as const
 
 /** Devise d’affichage école — même règle partout (caisse, réseau, live, rapports). */
 export function useSchoolMoney() {
-  const { data } = useQuery({
+  const { data, isFetched } = useQuery({
     queryKey: CURRENCY_QUERY_KEY,
     queryFn: financeRoleApi.getCurrencyConfig,
     staleTime: 300_000,
@@ -25,6 +25,7 @@ export function useSchoolMoney() {
     format,
     displayCurrency,
     rate: Number(data?.legacyRate) > 0 ? Number(data?.legacyRate) : null,
+    isFetched,
     config: data ?? null,
   }
 }

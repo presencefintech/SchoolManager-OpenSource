@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import {
   AlertTriangle,
   DollarSign,
-  RefreshCw,
   Search,
   Banknote,
   ClipboardCheck,
@@ -30,6 +29,7 @@ import { GuichetSiblingsStrip } from '@/components/finance/guichet-siblings-stri
 import { GuichetCrossSiteBanner } from '@/components/finance/guichet-cross-site-banner'
 import { GuichetNetworkOpsCard } from '@/components/finance/guichet-network-ops-card'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
+import { DayCashCollectionsCard } from '@/components/finance/day-cash-collections'
 import { fadeUp } from '@/lib/animations'
 import { formatMoney } from '@/lib/finance/currency'
 import { labelMoratorium, labelMoratoriumType } from '@/lib/business-labels'
@@ -350,7 +350,6 @@ export default function PaiementsPage() {
 
   const cash: { method?: string; _count?: { id?: number }; _sum?: { amount?: number } }[] =
     Array.isArray(dailyCash) ? dailyCash : []
-  const totalCash = cash.reduce((acc, r) => acc + (Number(r._sum?.amount) || 0), 0)
 
   return (
     <FinancePageShell>
@@ -470,46 +469,13 @@ export default function PaiementsPage() {
           <MethodMixToday byMethod={collectionsToday?.byMethod} />
           <PendingVerificationsCard />
 
-          <div className="rounded-2xl border border-zinc-200/70 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-            <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
-              <h2 className="text-sm font-semibold text-zinc-900">Encaissements du jour</h2>
-              <button
-                type="button"
-                onClick={() => refetchCash()}
-                className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100"
-                title="Actualiser"
-              >
-                <RefreshCw size={13} className={isFetching ? 'animate-spin' : ''} />
-              </button>
-            </div>
-            {cash.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-sm text-zinc-400">Aucun encaissement aujourd&apos;hui</p>
-              </div>
-            ) : (
-              <>
-                <div className="divide-y divide-zinc-50">
-                  {cash.map((row, i) => (
-                    <div key={i} className="flex items-center justify-between px-5 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-zinc-900">{row.method ?? '—'}</p>
-                        <p className="text-xs text-zinc-400">{row._count?.id ?? 0} transaction(s)</p>
-                      </div>
-                      <span className="text-sm font-semibold text-emerald-700 tabular-nums">
-                        {row._sum?.amount != null ? formatMoney(Number(row._sum.amount)) : '—'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-zinc-100 bg-zinc-50/60 px-5 py-3 flex justify-between">
-                  <span className="text-sm font-semibold text-zinc-700">Total</span>
-                  <span className="text-sm font-bold text-emerald-700 tabular-nums">
-                    {formatMoney(totalCash)}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          <DayCashCollectionsCard
+            rows={cash}
+            isFetching={isFetching}
+            onRefresh={() => {
+              void refetchCash()
+            }}
+          />
 
           <div className="rounded-2xl border border-zinc-200/70 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700/80 mb-3">

@@ -87,6 +87,20 @@ export interface GuichetDashboard {
     count: number
     byMethod: { method: string; amount: number; count: number }[]
   }
+  cashPace?: {
+    todayUsd: number
+    yesterdayUsd: number
+    weekUsd: number
+  }
+  classRanking?: Array<{
+    classId: number
+    className: string
+    level: string | null
+    studentCount: number
+    expectedUsd: number
+    paidUsd: number
+    collectionRatePct: number
+  }>
   network?: {
     groupId: number | null
     groupName: string | null
@@ -314,6 +328,18 @@ export interface CashSessionSummary {
   closingCounted?: number | null
   ledger?: { movements: CashLedgerMovement[] }
   ledgerTotals?: CashLedgerTotals
+  dualTotals?: {
+    cashUsd: number
+    cashCdf: number
+    cashCdfInUsd?: number
+    fxRate?: number
+  }
+  reconciliation?: {
+    pettyCashUsd?: number
+    openingFloatUsd?: number
+    expectedCashUsd?: number
+    cashCollectedUsd?: number
+  }
 }
 
 export interface CashSessionHistoryPage {
