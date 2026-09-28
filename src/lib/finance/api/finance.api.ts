@@ -29,6 +29,7 @@ import type {
   DebtReminderJournalPage,
   DebtReminderHealth,
   DeskReminderList,
+  DeskReminderDispatch,
   LateFeeRunResult,
   GuichetDashboard,
   CollectionAnalyticsSummary,
@@ -371,6 +372,11 @@ export const financeRoleApi = {
     apiClient
       .post(`/finance/debt-reminders/today/${studentId}/opened`)
       .then((r) => r.data.data),
+
+  dispatchDeskReminders: (studentIds: number[]) =>
+    apiClient
+      .post('/finance/debt-reminders/today/dispatch', { studentIds })
+      .then((r) => r.data.data as DeskReminderDispatch),
 
   runLateFees: () =>
     apiClient

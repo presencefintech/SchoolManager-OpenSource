@@ -35,3 +35,17 @@ export function filterDeskReminderRows<T extends DeskReminderFilterRow>(
     )
   })
 }
+
+/** File d'un clic : l'API si elle est branchée, sinon les liens un par un. */
+export function planBulkReminders<T extends { whatsappUrl: string | null }>(
+  rows: T[],
+  messagingReady: boolean,
+): { mode: 'api' | 'queue'; reachable: T[]; missingPhone: T[] } {
+  const reachable = rows.filter((row) => Boolean(row.whatsappUrl))
+  const missingPhone = rows.filter((row) => !row.whatsappUrl)
+  return {
+    mode: messagingReady ? 'api' : 'queue',
+    reachable,
+    missingPhone,
+  }
+}

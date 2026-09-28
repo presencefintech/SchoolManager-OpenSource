@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals'
-import { deskReminderShareUrl, filterDeskReminderRows, formatReminderDay } from '../desk-reminders'
+import { deskReminderShareUrl, filterDeskReminderRows, formatReminderDay, planBulkReminders } from '../desk-reminders'
 
 const rows = [
   {
@@ -33,5 +33,13 @@ describe('relances du guichet', () => {
   it('écrit la date de la prochaine vague', () => {
     expect(formatReminderDay('2026-09-08')).toMatch(/8/)
     expect(formatReminderDay('2026-09-08')).toMatch(/septembre/i)
+  })
+
+  it('garde une file de liens tant que la messagerie n’est pas branchée', () => {
+    const plan = planBulkReminders(rows, false)
+    expect(plan.mode).toBe('queue')
+    expect(plan.reachable).toHaveLength(1)
+    expect(plan.missingPhone).toHaveLength(1)
+    expect(planBulkReminders(rows, true).mode).toBe('api')
   })
 })

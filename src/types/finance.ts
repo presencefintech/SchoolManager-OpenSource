@@ -119,7 +119,18 @@ export type DeskReminderList = {
   deadlineDay?: number | null
   deadlinePassed?: boolean
   digest: string | null
+  messagingReady?: boolean
   rows: DeskReminderRow[]
+}
+
+export type DeskReminderDispatch = {
+  mode: 'api' | 'manual' | 'failed'
+  messagingReady: boolean
+  queued: number
+  failed: number
+  skippedInvalidPhone: number
+  skippedAlreadySent: number
+  error: string | null
 }
 
 /** GET /finance/dashboard/guichet */
