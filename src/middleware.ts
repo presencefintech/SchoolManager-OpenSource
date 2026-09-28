@@ -11,6 +11,7 @@ import {
   decodeImpersonationCookie,
   getBackendUrl,
 } from '@/lib/auth/session-cookies'
+import { NONCE_HEADER, buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp'
 
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite']
 
@@ -58,6 +59,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Nonce CSP par requête : transmis au rendu (Next le pose sur ses scripts) et renvoyé au navigateur.
+  const nonce = generateNonce()
+  const csp = buildContentSecurityPolicy(nonce)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set(NONCE_HEADER, nonce)
+  requestHeaders.set('Content-Security-Policy', csp)
+  const next = () => {
+    const res = NextResponse.next({ request: { headers: requestHeaders } })
+    res.headers.set('Content-Security-Policy', csp)
+    return res
+  }
+
   let token = request.cookies.get(AUTH_COOKIE.access)?.value
   const refreshToken = request.cookies.get(AUTH_COOKIE.refresh)?.value
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
@@ -67,7 +80,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!token && !refreshToken) {
-    return NextResponse.next()
+    return next()
   }
 
   let session = token ? decodeAccessToken(token) : null
@@ -86,7 +99,7 @@ export async function middleware(request: NextRequest) {
 
   if (!session) {
     const res = isPublic
-      ? NextResponse.next()
+      ? next()
       : NextResponse.redirect(new URL('/login', request.url))
     res.cookies.delete(AUTH_COOKIE.access)
     // Refresh déjà tenté et mort : le garder provoquerait une boucle /login.
@@ -127,7 +140,7 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/forgot-password') ||
       pathname.startsWith('/reset-password')
     if (stayOnAuthForm) {
-      return attachRefreshedCookies(NextResponse.next(), refreshed)
+      return attachRefreshedCookies(next(), refreshed)
     }
     return attachRefreshedCookies(
       NextResponse.redirect(new URL(ROLE_HOME[role], request.url)),
@@ -149,7 +162,7 @@ export async function middleware(request: NextRequest) {
     )
   }
 
-  return attachRefreshedCookies(NextResponse.next(), refreshed)
+  return attachRefreshedCookies(next(), refreshed)
 }
 
 function attachRefreshedCookies(

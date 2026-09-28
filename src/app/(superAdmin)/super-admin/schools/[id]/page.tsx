@@ -10,9 +10,12 @@ import {
   UserCheck, UserX, Wallet, ExternalLink, Sparkles,
 } from 'lucide-react'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend,
-} from 'recharts'
+  LazySchoolFinanceDonutChart,
+  LazySchoolPresenceDonutChart,
+  LazySchoolClassBarChart,
+  LazySchoolTreasuryBarChart,
+  LazySchoolEfficiencyBarChart,
+} from '@/components/charts/lazy'
 import {
   useSchool,
   useSchoolPerformance,
@@ -42,8 +45,6 @@ const fmtShort = (n: number) => {
 }
 
 const pct = (n: number) => `${Math.round(n)}%`
-
-const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-2xl bg-zinc-100/80 animate-pulse', className)} />
@@ -116,26 +117,6 @@ function KpiCard({
       <p className={cn('text-2xl font-bold tabular-nums tracking-tight', tones.val)}>{value}</p>
       {sub && <p className="text-[11px] text-zinc-400 mt-1.5">{sub}</p>}
     </motion.div>
-  )
-}
-
-function ChartTooltip({ active, payload, label, formatter }: {
-  active?: boolean
-  payload?: Array<{ name: string; value: number; color: string }>
-  label?: string
-  formatter?: (v: number) => string
-}) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-zinc-900/95 text-white text-xs rounded-lg px-3 py-2 shadow-xl border border-zinc-700/50">
-      {label && <p className="text-zinc-400 mb-1">{label}</p>}
-      {payload.map((p) => (
-        <p key={p.name} className="font-medium tabular-nums">
-          <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: p.color }} />
-          {p.name} : {formatter ? formatter(p.value) : p.value}
-        </p>
-      ))}
-    </div>
   )
 }
 
@@ -408,43 +389,11 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 <Skeleton className="h-52" />
               ) : financePie.length ? (
                 <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="relative w-44 h-44 flex-shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={financePie}
-                          cx="50%" cy="50%"
-                          innerRadius={52} outerRadius={78}
-                          paddingAngle={3}
-                          dataKey="value"
-                          strokeWidth={0}
-                        >
-                          {financePie.map((entry) => (
-                            <Cell key={entry.name} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip
-                          content={({ active, payload }) => (
-                            <ChartTooltip
-                              active={active}
-                              payload={payload?.map((p) => ({
-                                name: String(p.name),
-                                value: Number(p.value),
-                                color: String(p.payload?.color ?? '#6366f1'),
-                              }))}
-                              formatter={(v) => fmt(v)}
-                            />
-                          )}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-lg font-bold text-zinc-900 tabular-nums">
-                        {perf ? pct(perf.efficiency) : '—'}
-                      </span>
-                      <span className="text-[10px] text-zinc-400 uppercase">efficacité</span>
-                    </div>
-                  </div>
+                  <LazySchoolFinanceDonutChart
+                    data={financePie}
+                    centerLabel={perf ? pct(perf.efficiency) : '—'}
+                    fmt={fmt}
+                  />
                   <div className="flex-1 w-full space-y-3">
                     {financePie.map((d) => (
                       <div key={d.name} className="flex items-center justify-between text-sm">
@@ -483,39 +432,10 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 <Skeleton className="h-52" />
               ) : presencePie.length ? (
                 <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="relative w-44 h-44 flex-shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={presencePie}
-                          cx="50%" cy="50%"
-                          innerRadius={52} outerRadius={78}
-                          paddingAngle={3}
-                          dataKey="value"
-                          strokeWidth={0}
-                        >
-                          {presencePie.map((entry) => (
-                            <Cell key={entry.name} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip
-                          content={({ active, payload }) => (
-                            <ChartTooltip active={active} payload={payload?.map((p) => ({
-                              name: String(p.name),
-                              value: Number(p.value),
-                              color: String(p.payload?.color ?? '#6366f1'),
-                            }))} />
-                          )}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-lg font-bold text-zinc-900 tabular-nums">
-                        {studentStats ? pct(studentStats.attendanceRate) : '—'}
-                      </span>
-                      <span className="text-[10px] text-zinc-400 uppercase">taux</span>
-                    </div>
-                  </div>
+                  <LazySchoolPresenceDonutChart
+                    data={presencePie}
+                    centerLabel={studentStats ? pct(studentStats.attendanceRate) : '—'}
+                  />
                   <div className="flex-1 w-full space-y-2">
                     {presencePie.map((d) => (
                       <div key={d.name} className="flex items-center justify-between text-sm">
@@ -549,31 +469,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
               {loadingClasses ? (
                 <Skeleton className="h-52" />
               ) : classBarData.length ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={classBarData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }} barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
-                    <RechartsTooltip
-                      content={({ active, payload, label }) => {
-                        if (!active || !payload?.length) return null
-                        const row = payload[0]?.payload as typeof classBarData[0]
-                        return (
-                          <div className="bg-zinc-900/95 text-white text-xs rounded-lg px-3 py-2 shadow-xl">
-                            <p className="font-medium mb-1">{label}</p>
-                            <p>{row.élèves} élèves / {row.capacité} places ({row.taux}%)</p>
-                          </div>
-                        )
-                      }}
-                    />
-                    <Bar dataKey="élèves" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    <Bar dataKey="capacité" fill="#e4e4e7" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                    <Legend
-                      wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                      formatter={(v) => <span className="text-zinc-500">{v === 'élèves' ? 'Inscrits' : 'Capacité'}</span>}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                <LazySchoolClassBarChart data={classBarData} />
               ) : (
                 <p className="text-sm text-zinc-400 text-center py-12">Aucune classe configurée</p>
               )}
@@ -590,31 +486,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
               {loadingPay ? (
                 <Skeleton className="h-52" />
               ) : treasuryBar.length ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={treasuryBar} layout="vertical" margin={{ top: 0, right: 16, left: 4, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickFormatter={fmtShort} tickLine={false} axisLine={false} />
-                    <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: '#71717a' }} width={90} tickLine={false} axisLine={false} />
-                    <RechartsTooltip
-                      content={({ active, payload }) => (
-                        <ChartTooltip
-                          active={active}
-                          payload={payload?.map((p) => ({
-                            name: String(p.payload?.label ?? ''),
-                            value: Number(p.value),
-                            color: '#6366f1',
-                          }))}
-                          formatter={(v) => fmt(v)}
-                        />
-                      )}
-                    />
-                    <Bar dataKey="montant" radius={[0, 4, 4, 0]} maxBarSize={22}>
-                      {treasuryBar.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+                <LazySchoolTreasuryBarChart data={treasuryBar} fmt={fmt} fmtShort={fmtShort} />
               ) : (
                 <p className="text-sm text-zinc-400 text-center py-12">Données trésorerie indisponibles</p>
               )}
@@ -632,27 +504,7 @@ export default function SchoolDetailPage({ params }: { params: { id: string } })
                 {loadingEfficiency ? (
                   <Skeleton className="h-48" />
                 ) : efficiencyBar.length ? (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={efficiencyBar} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                      <RechartsTooltip
-                        content={({ active, payload, label }) => {
-                          if (!active || !payload?.length) return null
-                          const row = payload[0]?.payload as typeof efficiencyBar[0]
-                          return (
-                            <div className="bg-zinc-900/95 text-white text-xs rounded-lg px-3 py-2 shadow-xl">
-                              <p className="font-medium mb-1">{label}</p>
-                              <p>Efficacité : {row.efficacité}%</p>
-                              <p>{row.élèves} élèves</p>
-                            </div>
-                          )
-                        }}
-                      />
-                      <Bar dataKey="efficacité" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={36} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <LazySchoolEfficiencyBarChart data={efficiencyBar} />
                 ) : (
                   <p className="text-sm text-zinc-400 text-center py-8">Pas de segmentation par niveau</p>
                 )}

@@ -33,7 +33,11 @@ import type {
   GuichetDashboard,
   CollectionAnalyticsSummary,
 } from '@/types/finance'
-import { PaymentCategoryDonutChart, PaymentMethodBarChart, PaymentMethodCountBarChart } from '@/components/charts/finance-transactions-charts'
+import {
+  LazyPaymentCategoryDonutChart as PaymentCategoryDonutChart,
+  LazyPaymentMethodBarChart as PaymentMethodBarChart,
+  LazyPaymentMethodCountBarChart as PaymentMethodCountBarChart,
+} from '@/components/charts/lazy'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
 

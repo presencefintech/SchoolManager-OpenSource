@@ -9,10 +9,6 @@ import {
   ShieldAlert, Calendar, RefreshCw,
 } from 'lucide-react'
 import {
-  PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer,
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-} from 'recharts'
-import {
   usePlatformStats, useSchools, useActiveSessions,
   useProviderStats, useFinanceReport, useWorkerHealth,
   useGodModeDashboardStats,
@@ -22,7 +18,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import { roleLabel } from '@/lib/i18n/display-labels'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatMoney, formatMoneyCompact } from '@/lib/finance/currency'
+import { formatMoney } from '@/lib/finance/currency'
 import { PlatformKpiStrip } from '@/components/super-admin/platform-kpi-strip'
 import { OwnerActionQueue } from '@/components/super-admin/owner-action-queue'
 import { MasterAnalyticsSection } from '@/components/super-admin/master-analytics-section'
@@ -31,6 +27,7 @@ import {
   GodModeKpiCards,
 } from '@/components/super-admin/god-mode-dashboard'
 import { superAdminApi } from '@/lib/superAdmin/api'
+import { LazyPlatformRevenueArea, LazyProviderDonut } from '@/components/charts/lazy'
 
 /* ── helpers ──────────────────────────────────────────────────────────────── */
 const fmt = (n: number) => formatMoney(n)
@@ -72,34 +69,6 @@ const STUDENT_STATUS_CFG: Record<string, { label: string; color: string; bg: str
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
-
-const fmtShort = (n: number) => formatMoneyCompact(n)
-
-function AreaTooltip({ active, payload, label }: { active?: boolean; label?: string; payload?: Array<{ value: number }> }) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-zinc-200 rounded-xl px-4 py-3 shadow-lg text-xs min-w-[140px]">
-      <p className="font-semibold text-zinc-500 mb-1">{label}</p>
-      <p className="font-bold text-zinc-900 tabular-nums">{fmt(payload[0].value)}</p>
-    </div>
-  )
-}
-
-function DonutTooltip({ active, payload }: {
-  active?: boolean
-  payload?: Array<{ value: number; payload: { label: string; pct: string } }>
-}) {
-  if (!active || !payload?.length) return null
-  const d = payload[0]
-  return (
-    <div className="bg-white border border-zinc-200 rounded-lg px-3 py-2 shadow-md text-xs">
-      <p className="font-medium text-zinc-700">{d.payload.label}</p>
-      <p className="text-zinc-400 tabular-nums mt-0.5">
-        {d.value.toLocaleString('fr-FR')} txns · {d.payload.pct}%
-      </p>
-    </div>
-  )
-}
 
 export default function SuperAdminDashboardPage() {
   const { isLoading: authLoading } = useAuth()
@@ -359,21 +328,7 @@ export default function SuperAdminDashboardPage() {
             ) : loadingRevenue ? (
               <Skeleton className="h-48 rounded-xl" />
             ) : dailyData.length ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={dailyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gradRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} interval={Math.floor(dailyData.length / 6)} />
-                  <YAxis tick={{ fontSize: 10, fill: '#a1a1aa' }} tickLine={false} axisLine={false} tickFormatter={(v) => fmtShort(v)} />
-                  <RechartsTooltip content={<AreaTooltip />} />
-                  <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={2} fill="url(#gradRevenue)" dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <LazyPlatformRevenueArea data={dailyData} />
             ) : (
               <div className="h-48 flex items-center justify-center text-sm text-zinc-400">Aucun paiement confirmé sur cette période</div>
             )}
@@ -391,14 +346,7 @@ export default function SuperAdminDashboardPage() {
             ) : chartData.length ? (
               <>
                 <div className="relative w-44 h-44 mx-auto flex-shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie data={chartData} cx="50%" cy="50%" innerRadius={52} outerRadius={78} paddingAngle={2} dataKey="value" strokeWidth={0}>
-                        {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                      </Pie>
-                      <RechartsTooltip content={<DonutTooltip />} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <LazyProviderDonut data={chartData} />
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-lg font-bold text-zinc-900 tabular-nums leading-none">{providerTotal.toLocaleString('fr-FR')}</span>
                     <span className="text-[10px] text-zinc-400 mt-1 uppercase tracking-wide">txns</span>
