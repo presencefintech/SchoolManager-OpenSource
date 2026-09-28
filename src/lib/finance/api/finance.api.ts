@@ -490,6 +490,18 @@ export const financeRoleApi = {
       .get(`/finance/students/${studentId}/payments/details`, { params })
       .then((r) => asStudentPaymentsDetailedPage(r.data?.data ?? r.data)),
 
+  getStudentStats: () =>
+    apiClient.get('/finance/students/stats').then(
+      (r) =>
+        r.data.data as {
+          total: number
+          inOrder: number
+          debtors: number
+          inOrderPct: number | null
+          debtorPct: number | null
+        },
+    ),
+
   listStudentsFinancial: (params?: {
     classId?: number
     sectionId?: number

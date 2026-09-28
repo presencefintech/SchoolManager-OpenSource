@@ -5,6 +5,8 @@ describe('presentStudentPaymentStatus', () => {
   it('calcule le pourcentage d’élèves en ordre', () => {
     const view = presentStudentPaymentStatus({ total: 100, paid: 75, debtors: 25 })
     expect(view.solvencyPct).toBe(75)
+    expect(view.debtorPct).toBe(25)
+    expect(view.inOrder + view.debtors).toBe(view.total)
     expect(view.sentence).toBe('75 % des élèves en ordre')
     expect(view.inOrder).toBe(75)
     expect(view.debtors).toBe(25)
