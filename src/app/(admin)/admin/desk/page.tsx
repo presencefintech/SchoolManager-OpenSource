@@ -8,6 +8,7 @@ import {
   Search, UserPlus, Users,
 } from 'lucide-react'
 import { AdminModuleHero } from '@/components/admin/shared/admin-module-hero'
+import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
 import { useIncompleteDossiers, useIntakeInbox, useStudents } from '@/lib/hooks/use-admin'
 import { useQueryLoading } from '@/lib/hooks/use-auth-query'
 import { cn } from '@/lib/utils'
@@ -77,6 +78,7 @@ function DeskHomeContent() {
       />
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-5">
+        <StudentPaymentStatusWidget href="/admin/finance/controle" />
         <form
           className="bg-white rounded-xl border border-zinc-200 p-4 flex gap-2"
           onSubmit={(e) => {

@@ -35,6 +35,7 @@ import type {
 } from '@/types/finance'
 import { PaymentCategoryDonutChart, PaymentMethodBarChart, PaymentMethodCountBarChart } from '@/components/charts/finance-transactions-charts'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
+import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
 
 const QUICK_LINKS = [
   { href: '/finances/intelligence', label: 'Intelligence', icon: Brain, tone: 'text-violet-600 bg-violet-50' },
@@ -282,6 +283,8 @@ export default function FinanceDashboardPage() {
           ))}
         </div>
       </motion.div>
+
+      <StudentPaymentStatusWidget href="/finances/suivi-financier" />
 
       <GuichetOnlinePaymentsBanner profile={paymentProfile} />
 

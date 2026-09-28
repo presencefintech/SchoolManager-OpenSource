@@ -78,6 +78,35 @@ export interface CollectionAnalyticsSummary {
   totalReceivables: number
 }
 
+export type DeskReminderRow = {
+  studentId: number
+  studentName: string
+  parentName: string | null
+  className: string | null
+  balanceUsd: number
+  balanceLabel: string
+  balanceCdfLabel: string | null
+  phoneLabel: string | null
+  phoneMasked: string | null
+  whatsappUrl: string | null
+  message: string
+}
+
+export type DeskReminderList = {
+  dueToday: boolean
+  campaignKey: string
+  reason: 'ready' | 'disabled' | 'off-schedule' | 'no-policy'
+  remindedToday: number
+  total: number
+  totalUsd: number
+  totalLabel: string
+  totalCdfLabel: string | null
+  missingPhone: number
+  nextReminderOn: string | null
+  digest: string | null
+  rows: DeskReminderRow[]
+}
+
 /** GET /finance/dashboard/guichet */
 export interface GuichetDashboard {
   date: string

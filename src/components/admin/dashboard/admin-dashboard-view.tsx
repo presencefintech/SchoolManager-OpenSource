@@ -30,6 +30,7 @@ import { DashboardActionWidgets } from '@/components/admin/dashboard/dashboard-a
 import { ActiveQrSessionsPanel } from '@/components/admin/dashboard/active-qr-sessions-panel'
 import { SyncBatchesPanel } from '@/components/admin/dashboard/sync-batches-panel'
 import { AdminPlatformEventsPanel } from '@/components/admin/dashboard/admin-platform-events-panel'
+import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
 
 const LIVE_FEED_PARAMS = { limit: 25 } as const
 const ACTIVE_CLASSES_PARAMS = { isActive: true } as const
@@ -441,6 +442,8 @@ export function AdminDashboardView() {
             </button>
           </div>
         )}
+
+        <StudentPaymentStatusWidget href="/admin/finance/controle" />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard
