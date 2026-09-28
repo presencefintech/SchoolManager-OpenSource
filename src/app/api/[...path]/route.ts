@@ -119,21 +119,15 @@ async function proxy(req: NextRequest, path: string[]) {
   })
 }
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxy(req, params.path)
+type RouteCtx = { params: Promise<{ path: string[] }> }
+
+async function handle(req: NextRequest, { params }: RouteCtx) {
+  return proxy(req, (await params).path)
 }
-export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxy(req, params.path)
-}
-export async function PUT(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxy(req, params.path)
-}
-export async function PATCH(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxy(req, params.path)
-}
-export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxy(req, params.path)
-}
-export async function OPTIONS(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return proxy(req, params.path)
-}
+
+export const GET = handle
+export const POST = handle
+export const PUT = handle
+export const PATCH = handle
+export const DELETE = handle
+export const OPTIONS = handle

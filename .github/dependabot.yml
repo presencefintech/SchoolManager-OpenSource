@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # Dépendances npm : correctifs de sécurité dès publication, mises à jour groupées chaque semaine
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Africa/Kinshasa
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Montées de version majeures : à planifier à la main (migrations)
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

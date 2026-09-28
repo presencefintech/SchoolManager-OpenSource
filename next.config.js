@@ -20,7 +20,6 @@ const nextConfig = {
   // Tree-shake lucide / framer barrels — big win on client chunk size
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', 'date-fns'],
-    instrumentationHook: true,
   },
   webpack: (config) => {
     config.resolve.alias.canvas = false

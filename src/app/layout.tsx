@@ -32,10 +32,10 @@ export const viewport: Viewport = {
   themeColor: '#059669',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Lire le nonce rend chaque page dynamique : indispensable, un HTML statique ne peut
   // pas porter le nonce propre à chaque requête exigé par la CSP.
-  const nonce = headers().get(NONCE_HEADER) ?? undefined
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>

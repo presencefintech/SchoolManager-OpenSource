@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft, GraduationCap, BookOpen, Banknote, Users,
@@ -121,7 +122,8 @@ function KpiCard({
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
-export default function SchoolDetailPage({ params }: { params: { id: string } }) {
+export default function SchoolDetailPage() {
+  const params = useParams<{ id: string }>()
   const id = Number(params.id)
 
   const { data: school, isLoading: loadingSchool, isError } = useSchool(id)
