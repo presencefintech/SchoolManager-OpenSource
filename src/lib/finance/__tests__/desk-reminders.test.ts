@@ -1,5 +1,12 @@
 import { describe, expect, it } from '@jest/globals'
-import { deskReminderShareUrl, filterDeskReminderRows, formatReminderDay, planBulkReminders } from '../desk-reminders'
+import {
+  deskReminderShareUrl,
+  filterDeskReminderRows,
+  formatReminderDay,
+  planBulkReminders,
+  planSelectedReminders,
+  toggleVisibleSelection,
+} from '../desk-reminders'
 
 const rows = [
   {
@@ -41,5 +48,23 @@ describe('relances du guichet', () => {
     expect(plan.reachable).toHaveLength(1)
     expect(plan.missingPhone).toHaveLength(1)
     expect(planBulkReminders(rows, true).mode).toBe('api')
+  })
+
+  it('sélectionne toute la liste filtrée puis prépare WhatsApp ou SMS', () => {
+    const visible = [
+      { studentId: 1, whatsappUrl: 'https://wa.me/243811111111?text=a', smsUrl: 'sms:+243811111111?body=a', preferredChannel: 'whatsapp' as const },
+      { studentId: 2, whatsappUrl: 'https://wa.me/243822222222?text=b', smsUrl: 'sms:+243822222222?body=b', preferredChannel: 'sms' as const },
+      { studentId: 3, whatsappUrl: null, smsUrl: null, preferredChannel: 'sms' as const },
+    ]
+    const all = toggleVisibleSelection([1, 2], new Set())
+    expect([...all].sort()).toEqual([1, 2])
+    expect([...toggleVisibleSelection([1, 2], all)]).toEqual([])
+    const plan = planSelectedReminders(visible, all, new Map([[2, 'sms']]))
+    expect(plan.reachable.map((item) => item.channel)).toEqual(['whatsapp', 'sms'])
+    expect(plan.reachable[1].url.startsWith('sms:+243822222222?body=')).toBe(true)
+    expect(plan.missingPhone).toHaveLength(0)
+    const withMissing = planSelectedReminders(visible, new Set([3]), new Map())
+    expect(withMissing.reachable).toHaveLength(0)
+    expect(withMissing.missingPhone).toHaveLength(1)
   })
 })
