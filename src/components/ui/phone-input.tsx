@@ -1,59 +1,19 @@
 'use client'
 
-import PhoneInputWithCountry from 'react-phone-number-input'
-import fr from 'react-phone-number-input/locale/fr'
-import type { Country } from 'react-phone-number-input'
-import 'react-phone-number-input/style.css'
-import { cn } from '@/lib/utils'
-import { getPhoneValidationError } from '@/lib/phone/validation'
+import dynamic from 'next/dynamic'
 
-export type PhoneInputProps = {
-  value: string
-  onChange: (value: string) => void
-  defaultCountry?: Country
-  placeholder?: string
-  disabled?: boolean
-  className?: string
-  id?: string
-  /** Affiche le message d'erreur sous le champ */
-  showError?: boolean
-  error?: string | null
-}
+export type { PhoneInputProps } from './phone-input-field'
 
-export function PhoneInput({
-  value,
-  onChange,
-  defaultCountry = 'CD',
-  placeholder = 'Numéro de téléphone',
-  disabled,
-  className,
-  id,
-  showError = true,
-  error: errorProp,
-}: PhoneInputProps) {
-  const derivedError = errorProp ?? (value ? getPhoneValidationError(value) : null)
-  const displayError = showError && value ? derivedError : null
-
-  return (
-    <div className={cn('space-y-1', className)}>
-      <PhoneInputWithCountry
-        id={id}
-        international
-        countryCallingCodeEditable={false}
-        defaultCountry={defaultCountry}
-        labels={fr}
-        value={value || undefined}
-        onChange={(next) => onChange(next ?? '')}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={cn(
-          'PhoneInputField',
-          displayError && 'PhoneInputField--error',
-        )}
-      />
-      {displayError && (
-        <p className="text-xs text-red-600">{displayError}</p>
-      )}
-    </div>
-  )
-}
+/**
+ * react-phone-number-input embarque les drapeaux SVG de tous les pays et les métadonnées
+ * libphonenumber (~350 kB bruts) : chargé à la demande pour ne pas alourdir les pages.
+ */
+export const PhoneInput = dynamic(
+  () => import('./phone-input-field').then((m) => m.PhoneInputField),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-10 w-full rounded-lg border border-zinc-200 bg-zinc-50 animate-pulse" />
+    ),
+  },
+)
