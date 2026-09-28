@@ -1,8 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { useCreateExpensesBatch } from '@/lib/hooks/use-finance'
+import { financeBudgetApi } from '@/lib/admin/api/finance-budget.api'
 import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { ExpenseKind } from '@/types/finance'
@@ -46,7 +48,15 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
   const [occurredAt, setOccurredAt] = useState(defaultDate || todayIsoDate())
   const [affectsCash, setAffectsCash] = useState(true)
   const [postImmediately, setPostImmediately] = useState(true)
+  const [budgetCategoryId, setBudgetCategoryId] = useState('')
   const [lines, setLines] = useState<ExpenseDraftLine[]>([newLine()])
+
+  const budgetCategoriesQuery = useQuery({
+    queryKey: ['finance', 'budget-categories'],
+    queryFn: () => financeBudgetApi.listCategories(),
+    staleTime: 60_000,
+  })
+  const budgetCategories = (budgetCategoriesQuery.data ?? []).filter((c) => c.isActive)
 
   const total = useMemo(
     () =>
@@ -91,6 +101,7 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
         occurredAt,
         affectsCash,
         postImmediately,
+        budgetCategoryId: budgetCategoryId ? Number(budgetCategoryId) : undefined,
         lines: prepared,
       })
       setOk(`${result.count} dépense(s) enregistrée(s) · ${formatMoney(result.total, 'USD')}.`)
@@ -142,6 +153,21 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
             className="rounded border-zinc-300"
           />
           Comptabiliser tout de suite
+        </label>
+        <label className="text-xs font-medium text-zinc-500">
+          Catégorie budgétaire (optionnel)
+          <select
+            value={budgetCategoryId}
+            onChange={(e) => setBudgetCategoryId(e.target.value)}
+            className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm bg-white"
+          >
+            <option value="">Hors budget</option>
+            {budgetCategories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

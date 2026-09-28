@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ShieldAlert, RefreshCw, Plus, X, Gavel, Send, CheckCircle2 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -130,8 +131,9 @@ function DeliberationModal({
   )
 }
 
-export default function DirectorDisciplinePage() {
+function DirectorDisciplineContent() {
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
   const [statusFilter, setStatusFilter] = useState<DisciplineIncidentItem['status'] | ''>('')
   const [deliberating, setDeliberating] = useState<DisciplineIncidentItem | null>(null)
   const [form, setForm] = useState({
@@ -145,6 +147,20 @@ export default function DirectorDisciplinePage() {
   })
   const [err, setErr] = useState('')
   const [ok, setOk] = useState('')
+
+  // Pré-remplissage depuis une alerte de fraude (/director/fraude → « Ouvrir un dossier »)
+  useEffect(() => {
+    const studentId = searchParams.get('studentId')
+    const classId = searchParams.get('classId')
+    if (!studentId && !classId) return
+    setForm((f) => ({
+      ...f,
+      studentId: studentId ?? f.studentId,
+      classId: classId ?? f.classId,
+      nature: f.nature || 'Alerte de fraude présence',
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const classesQuery = useQuery({
     queryKey: ['director', 'classes'],
@@ -424,5 +440,13 @@ export default function DirectorDisciplinePage() {
         />
       )}
     </div>
+  )
+}
+
+export default function DirectorDisciplinePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50" />}>
+      <DirectorDisciplineContent />
+    </Suspense>
   )
 }

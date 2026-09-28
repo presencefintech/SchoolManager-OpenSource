@@ -19,24 +19,31 @@ import {
   ShieldAlert,
   Users,
   Handshake,
+  AlertTriangle,
+  Wallet,
+  Bell,
 } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 import { useDirectorPresenceRealtime } from '@/lib/director/use-director-presence-realtime'
+import { directorActionItemsApi } from '@/lib/admin/api/director-action-items.api'
 
 const NAV_LINKS = [
   { label: 'Dashboard', href: '/director/dashboard', icon: LayoutDashboard },
   { label: 'Mes sections', href: '/director/sections', icon: Layers },
   { label: 'Présences', href: '/director/presences', icon: Activity },
   { label: 'Absences', href: '/director/absences', icon: UserX },
+  { label: 'Fraude', href: '/director/fraude', icon: AlertTriangle },
   { label: 'Pédagogie', href: '/director/pedagogie', icon: GraduationCap },
   { label: 'Discipline', href: '/director/discipline', icon: ShieldAlert },
   { label: 'Personnel', href: '/director/personnel', icon: Users },
   { label: 'Parents & inspection', href: '/director/parents-inspection', icon: Handshake },
+  { label: 'Finances', href: '/director/finances', icon: Wallet },
   { label: 'Communiqués', href: '/director/announcements', icon: Megaphone },
+  { label: 'Notifications', href: '/director/notifications', icon: Bell },
   { label: 'Profil & sécurité', href: '/director/profil-securite', icon: UserCircle },
 ]
 
@@ -45,6 +52,14 @@ function DirectorNav() {
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const actionItemsQuery = useQuery({
+    queryKey: ['director', 'action-items'],
+    queryFn: () => directorActionItemsApi.list(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  })
+  const pendingCount = actionItemsQuery.data?.counts.total ?? 0
 
   useEffect(() => {
     setMobileOpen(false)
@@ -152,7 +167,12 @@ function DirectorNav() {
                     active ? 'text-emerald-600' : 'text-zinc-400',
                   )}
                 />
-                {label}
+                <span className="flex-1">{label}</span>
+                {href === '/director/notifications' && pendingCount > 0 && (
+                  <span className="flex-shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                    {pendingCount > 99 ? '99+' : pendingCount}
+                  </span>
+                )}
               </Link>
             )
           })}
