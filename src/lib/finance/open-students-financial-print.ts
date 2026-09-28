@@ -1,46 +1,62 @@
 import { formatMoney } from '@/lib/finance/currency'
 import type { StudentsFinancialPrintReport } from '@/types/finance'
 
+/** Échappe les données serveur (noms d'élèves, école…) avant injection dans le HTML imprimable. */
+function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 /** Ouvre une vue imprimable du registre filtré (montants uniquement si le rôle y a droit). */
 export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintReport) {
-  const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=700')
+  // Pas de `noopener` dans windowFeatures : window.open renverrait alors null.
+  const w = window.open('', '_blank', 'width=900,height=700')
   if (!w) return
+  try {
+    w.opener = null
+  } catch {
+    /* ignore */
+  }
 
   const hideAmounts = Boolean(report.amountsHidden)
 
   const rows = report.rows
     .map((r) => hideAmounts
       ? `<tr>
-        <td>${r.matricule}</td>
-        <td>${r.eleve}</td>
-        <td>${r.classe}</td>
-        <td>${r.section}</td>
-        <td>${r.option}</td>
-        <td>${r.statut}</td>
+        <td>${esc(r.matricule)}</td>
+        <td>${esc(r.eleve)}</td>
+        <td>${esc(r.classe)}</td>
+        <td>${esc(r.section)}</td>
+        <td>${esc(r.option)}</td>
+        <td>${esc(r.statut)}</td>
       </tr>`
       : `<tr>
-        <td>${r.matricule}</td>
-        <td>${r.eleve}</td>
-        <td>${r.classe}</td>
-        <td>${r.section}</td>
-        <td>${r.option}</td>
+        <td>${esc(r.matricule)}</td>
+        <td>${esc(r.eleve)}</td>
+        <td>${esc(r.classe)}</td>
+        <td>${esc(r.section)}</td>
+        <td>${esc(r.option)}</td>
         <td class="num">${formatMoney(r.fraisTotaux ?? 0)}</td>
         <td class="num">${formatMoney(r.dejaPaye ?? 0)}</td>
         <td class="num">${formatMoney(r.solde ?? 0)}</td>
-        <td>${r.statut}</td>
+        <td>${esc(r.statut)}</td>
       </tr>`)
     .join('')
 
   const contactBits = [
-    report.schoolAddress,
-    report.schoolPhone ? `Tél. ${report.schoolPhone}` : null,
-    report.schoolEmail,
+    report.schoolAddress ? esc(report.schoolAddress) : null,
+    report.schoolPhone ? `Tél. ${esc(report.schoolPhone)}` : null,
+    report.schoolEmail ? esc(report.schoolEmail) : null,
   ].filter(Boolean)
 
   const title = hideAmounts ? 'Liste en ordre / dette' : 'Situation financière'
 
   w.document.write(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>${title} — ${report.schoolName}</title>
+<html><head><meta charset="utf-8"/><title>${title} — ${esc(report.schoolName)}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:24px;color:#18181b;font-size:12px}
   h1{font-size:18px;margin:0 0 4px} .meta{color:#71717a;margin-bottom:16px}
@@ -52,7 +68,7 @@ export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintR
   .summary strong{display:block;font-size:16px;margin-top:2px}
   @media print{body{padding:12px}}
 </style></head><body>
-  <h1>${title} — ${report.schoolName}</h1>
+  <h1>${title} — ${esc(report.schoolName)}</h1>
   ${contactBits.length ? `<p class="meta">${contactBits.join(' · ')}</p>` : ''}
   <p class="meta">Généré le ${new Date(report.generatedAt).toLocaleString('fr-FR')}</p>
   <div class="summary">
@@ -63,7 +79,7 @@ export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintR
     ${!hideAmounts && report.summary.totalExpectedLoss != null ? `<div>ECL<strong>${formatMoney(report.summary.totalExpectedLoss)}</strong></div>` : ''}
   </div>
   <table>
-    <thead><tr>${report.columns.map((c) => `<th>${c}</th>`).join('')}</tr></thead>
+    <thead><tr>${report.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <script>window.onload=()=>window.print()</script>

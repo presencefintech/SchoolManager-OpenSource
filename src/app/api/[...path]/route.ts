@@ -14,6 +14,8 @@ const SKIP_REQUEST_HEADERS = new Set([
   'transfer-encoding',
   'cookie',
   'authorization',
+  // Toujours dérivé du cookie école, jamais d'un en-tête fourni par le navigateur
+  'x-school-id',
   // Content-Length recalculé par fetch selon le body (surtout multipart)
   'content-length',
 ])
@@ -27,6 +29,10 @@ const SKIP_RESPONSE_HEADERS = new Set([
 ])
 
 async function proxy(req: NextRequest, path: string[]) {
+  // `..` / `.` normalisés par fetch permettraient de sortir de /api côté backend
+  if (path.some((segment) => segment === '..' || segment === '.')) {
+    return NextResponse.json({ message: 'Chemin invalide' }, { status: 400 })
+  }
   const search = req.nextUrl.search
   // Next décode les segments (%2F → /) : on les ré-encode pour qu'un identifiant contenant
   // des « / » (ex. publicId Cloudinary « schools/3/abc ») reste un seul segment côté backend.
@@ -55,11 +61,9 @@ async function proxy(req: NextRequest, path: string[]) {
   const isSuperAdminApi = originalPath.startsWith('v1/superadmin') || originalPath.startsWith('superadmin')
   if (!isSuperAdminApi) {
     const schoolId = req.cookies.get(AUTH_COOKIE.school)?.value
-    if (schoolId && schoolId !== '0' && !headers['x-school-id']) {
+    if (schoolId && schoolId !== '0') {
       headers['x-school-id'] = schoolId
     }
-  } else {
-    delete headers['x-school-id']
   }
 
   const method = req.method.toUpperCase()
