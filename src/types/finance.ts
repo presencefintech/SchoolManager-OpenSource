@@ -78,10 +78,21 @@ export interface CollectionAnalyticsSummary {
   totalReceivables: number
 }
 
-export type DeskReminderRow = {
+export type DeskReminderLine = {
   studentId: number
   studentName: string
+  feeLabel: string
+  amountUsd: number
+  amountLabel: string
+  amountCdfLabel?: string | null
+}
+
+export type DeskReminderRow = {
+  studentId: number
+  studentIds?: number[]
+  studentName: string
   parentName: string | null
+  childCount?: number
   className: string | null
   balanceUsd: number
   balanceLabel: string
@@ -90,6 +101,8 @@ export type DeskReminderRow = {
   phoneMasked: string | null
   whatsappUrl: string | null
   message: string
+  overdue?: boolean
+  lines?: DeskReminderLine[]
 }
 
 export type DeskReminderList = {
@@ -103,6 +116,8 @@ export type DeskReminderList = {
   totalCdfLabel: string | null
   missingPhone: number
   nextReminderOn: string | null
+  deadlineDay?: number | null
+  deadlinePassed?: boolean
   digest: string | null
   rows: DeskReminderRow[]
 }

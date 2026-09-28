@@ -21,7 +21,12 @@ function emptyHint(list: DeskReminderList | undefined): string | null {
       ? `Pas de relance prévue aujourd’hui. Prochaine vague le ${when}.`
       : 'Pas de relance prévue aujourd’hui selon le calendrier de l’école.'
   }
-  if (list.rows.length === 0 && list.reason === 'ready') return 'Aucun solde à relancer aujourd’hui.'
+  if (list.rows.length === 0 && list.reason === 'ready') {
+    if (list.deadlinePassed === false && list.deadlineDay) {
+      return `L'échéance est le ${list.deadlineDay} du mois. La relance part le lendemain.`
+    }
+    return 'Aucun solde à relancer aujourd’hui.'
+  }
   return null
 }
 
@@ -156,11 +161,24 @@ export function DeskReminders() {
               {rows.map((row) => (
                 <li key={row.studentId} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-zinc-900">{row.studentName}</p>
-                    <p className="truncate text-[11px] text-zinc-500">
-                      {row.parentName ?? 'Parent non renseigné'}
-                      {row.className ? ` · ${row.className}` : ''}
-                      {row.phoneMasked ? ` · ${row.phoneMasked}` : ''}
+                    <p className="truncate text-sm font-medium text-zinc-900">
+                      {row.parentName ?? row.studentName}
+                      {row.childCount && row.childCount > 1 ? ` · ${row.childCount} enfants` : ''}
+                    </p>
+                    {row.lines && row.lines.length > 0 ? (
+                      <ul className="mt-1 space-y-0.5">
+                        {row.lines.map((line) => (
+                          <li key={`${line.studentId}-${line.feeLabel}`} className="truncate text-[11px] text-zinc-500">
+                            {line.feeLabel} - {line.studentName} : {line.amountLabel}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="truncate text-[11px] text-zinc-500">{row.studentName}</p>
+                    )}
+                    <p className="truncate text-[11px] text-zinc-400">
+                      {row.className ? `${row.className} · ` : ''}
+                      {row.phoneMasked ?? 'Numéro absent'}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
