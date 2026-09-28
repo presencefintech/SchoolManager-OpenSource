@@ -7,8 +7,13 @@ export async function GET(req: NextRequest, { params }: { params: { path: string
     return NextResponse.json({ message: 'Non authentifié' }, { status: 401 })
   }
 
+  // `..` / `.` normalisés par fetch permettraient de sortir de /uploads côté backend
+  if (params.path.some((segment) => segment === '..' || segment === '.')) {
+    return NextResponse.json({ message: 'Chemin invalide' }, { status: 400 })
+  }
+
   const search = req.nextUrl.search
-  const target = `${getBackendUrl()}/uploads/${params.path.join('/')}${search}`
+  const target = `${getBackendUrl()}/uploads/${params.path.map(encodeURIComponent).join('/')}${search}`
 
   const upstream = await fetch(target, {
     headers: {
