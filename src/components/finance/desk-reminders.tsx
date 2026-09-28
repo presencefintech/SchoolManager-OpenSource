@@ -159,7 +159,7 @@ export function DeskReminders() {
           ) : (
             <ul className="mt-2 max-h-96 divide-y divide-zinc-50 overflow-y-auto">
               {rows.map((row) => (
-                <li key={row.studentId} className="flex items-center justify-between gap-3 px-4 py-3">
+                <li key={row.studentId} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-zinc-900">
                       {row.parentName ?? row.studentName}
@@ -169,7 +169,7 @@ export function DeskReminders() {
                       <ul className="mt-1 space-y-0.5">
                         {row.lines.map((line) => (
                           <li key={`${line.studentId}-${line.feeLabel}`} className="truncate text-[11px] text-zinc-500">
-                            {line.feeLabel} - {line.studentName} : {line.amountLabel}
+                            {line.feeLabel} — {line.studentName} : {line.amountLabel}
                           </li>
                         ))}
                       </ul>
@@ -180,6 +180,7 @@ export function DeskReminders() {
                       {row.className ? `${row.className} · ` : ''}
                       {row.phoneMasked ?? 'Numéro absent'}
                     </p>
+                    <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-zinc-50 px-2.5 py-2 font-sans text-[11px] leading-relaxed text-zinc-600">{row.message}</pre>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <div className="text-right">
