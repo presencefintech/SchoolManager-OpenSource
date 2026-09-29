@@ -31,6 +31,7 @@ import { ActiveQrSessionsPanel } from '@/components/admin/dashboard/active-qr-se
 import { SyncBatchesPanel } from '@/components/admin/dashboard/sync-batches-panel'
 import { AdminPlatformEventsPanel } from '@/components/admin/dashboard/admin-platform-events-panel'
 import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
+import { CashJournalReport } from '@/components/finance/cash-journal-report'
 
 const LIVE_FEED_PARAMS = { limit: 25 } as const
 const ACTIVE_CLASSES_PARAMS = { isActive: true } as const
@@ -444,6 +445,7 @@ export function AdminDashboardView() {
         )}
 
         <StudentPaymentStatusWidget href="/admin/finance/controle" />
+        <CashJournalReport />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard

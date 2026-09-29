@@ -47,7 +47,7 @@ import {
 } from '@/lib/finance/cash-session.utils'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
-import { CashPaceStrip } from '@/components/finance/cash-pace-strip'
+import { CashJournalReport } from '@/components/finance/cash-journal-report'
 import { ClassCollectionRank } from '@/components/finance/class-collection-rank'
 import { DeskReminders } from '@/components/finance/desk-reminders'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
@@ -688,7 +688,7 @@ export default function CaissePage() {
 
       <DeskReminders />
 
-      <CashPaceStrip pace={guichet?.cashPace} />
+      <CashJournalReport />
 
       <ClassCollectionRank rows={guichet?.classRanking} />
 
