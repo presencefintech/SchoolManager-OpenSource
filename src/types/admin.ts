@@ -120,7 +120,7 @@ export interface PresenceSyncBatchDetail extends PresenceSyncBatch {
 
 export interface AdminPaymentRealtimeItem {
   id: string
-  type: 'confirmed' | 'failed'
+  type: 'confirmed' | 'failed' | 'correction'
   paymentId: number
   studentId?: number
   studentName?: string

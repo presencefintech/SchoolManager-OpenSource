@@ -619,6 +619,12 @@ export const financeRoleApi = {
         amountReversed: number
         remainingActiveLines: number
         status: string
+        avoirPaymentId?: number | null
+        receiptNumber?: string | null
+        originalReceiptNumber?: string
+        rectificationLabel?: string
+        pdfBase64?: string | null
+        pdfFilename?: string | null
         feeLines: Array<{
           id: number
           feeStructureId: number
