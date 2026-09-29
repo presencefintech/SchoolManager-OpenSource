@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { directorsApi } from '@/lib/admin/api/directors.api'
 import { directorFinanceApi } from '@/lib/admin/api/director-finance.api'
 import { StudentFinancialControlRows } from '@/components/finance/student-financial-control-rows'
+import { CashJournalReport } from '@/components/finance/cash-journal-report'
 import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
 import { DirectorPageHeader, DirectorEmptyState, DirectorKpiCard } from '@/components/director/director-ui'
 import type { StudentFinancialStatus } from '@/types/finance'
@@ -108,6 +109,7 @@ export default function DirectorFinancesPage() {
       />
 
       <div className="max-w-6xl mx-auto px-6 sm:px-8 py-8 space-y-6">
+        <CashJournalReport />
         <div className="flex flex-wrap items-center gap-3">
           <select
             value={classId ?? ''}

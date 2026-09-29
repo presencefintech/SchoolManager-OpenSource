@@ -19,7 +19,7 @@ import {
 } from '@/lib/admin/finance-dashboard.utils'
 import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online-payments-banner'
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
-import { CashPaceStrip } from '@/components/finance/cash-pace-strip'
+import { CashJournalReport } from '@/components/finance/cash-journal-report'
 import { ClassCollectionRank } from '@/components/finance/class-collection-rank'
 import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
@@ -329,6 +329,8 @@ export default function FinanceDashboardPage() {
         <FinanceAiInsightsPanel enabled={coreReady} source="finance" />
       </div>
 
+      <CashJournalReport />
+
       {/* KPIs guichet */}
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
@@ -338,7 +340,6 @@ export default function FinanceDashboardPage() {
         <>
           <div>
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Aujourd&apos;hui</p>
-            <CashPaceStrip pace={g?.cashPace} className="mb-3" />
             <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
               <motion.div variants={fadeUp}>
                 <KpiCard

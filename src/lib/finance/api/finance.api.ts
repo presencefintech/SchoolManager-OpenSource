@@ -39,6 +39,11 @@ import type {
   PaymentDeclarationStudentLookup,
 } from '@/types/finance'
 import type { FeeCategoryItem, PaymentProfile, PendingVerificationItem } from '@/types/admin'
+import type {
+  CashJournalParams,
+  CashJournalReport,
+  CashJournalVisibilityPatch,
+} from '@/lib/finance/cash-journal'
 
 async function throwIfJsonErrorBlob(blob: Blob, fallback: string): Promise<void> {
   const type = blob.type || ''
@@ -115,6 +120,16 @@ export const financeRoleApi = {
 
   getGuichetDashboard: () =>
     apiClient.get('/finance/dashboard/guichet').then((r) => r.data.data as GuichetDashboard),
+
+  getCashJournal: (params: CashJournalParams) =>
+    apiClient
+      .get('/finance/dashboard/cash-journal', { params })
+      .then((r) => r.data.data as CashJournalReport),
+
+  updateCashJournalVisibility: (body: CashJournalVisibilityPatch) =>
+    apiClient
+      .put('/finance/dashboard/cash-journal/visibility', body)
+      .then((r) => r.data.data as CashJournalReport['visibility']),
 
   getClassYearFees: (params?: { sessionId?: number; classId?: number }) =>
     apiClient
