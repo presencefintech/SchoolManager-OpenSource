@@ -23,20 +23,47 @@ type Props = {
   onDone?: () => void
 }
 
+function isSameLocalDay(iso: string): boolean {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return false
+  const now = new Date()
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  )
+}
+
+function printRectification(pdfBase64?: string | null, filename?: string | null) {
+  if (!pdfBase64) return
+  const bytes = Uint8Array.from(atob(pdfBase64), (char) => char.charCodeAt(0))
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
+  const popup = window.open(url)
+  if (!popup) {
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename || 'recu-rectificatif.pdf'
+    link.click()
+  }
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
 /**
- * Annule le mois le plus récent d’un paiement cash multi-mois (ex. déc coché par erreur).
- * Soft-reverse côté API — aucune suppression.
+ * Correction de saisie sur un encaissement espèces de la session ouverte.
+ * Contre-passation : la ligne d'origine reste, un avoir et un reçu rectificatif sont émis.
  */
 export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
-  const [reason, setReason] = useState('Mois coché par erreur')
+  const [reason, setReason] = useState('Erreur de sélection de mois par le caissier')
   const [error, setError] = useState<string | null>(null)
 
   const target = pickCorrectableSuffix(payment.fees)
   const canShow =
     payment.method === 'CASH' &&
+    payment.amount > 0 &&
     (payment.status === 'CONFIRMED' || payment.status === 'RECONCILED') &&
+    isSameLocalDay(payment.confirmedAt || payment.createdAt) &&
     target?.id != null
 
   const mutation = useMutation({
@@ -45,9 +72,10 @@ export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
         paymentFeeIds: [target!.id!],
         reason: reason.trim() || 'Mois coché par erreur',
       }),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       setOpen(false)
       setError(null)
+      printRectification(result?.pdfBase64, result?.pdfFilename)
       await qc.invalidateQueries({ queryKey: ['finance'] })
       onDone?.()
     },
@@ -74,7 +102,7 @@ export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
         className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-800 hover:bg-amber-100"
       >
         <Undo2 size={12} />
-        Corriger mois
+        Correction de saisie
       </button>
 
       {open ? (
@@ -83,8 +111,9 @@ export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
             Annuler {target.feeLabel}
           </p>
           <p className="mt-1 text-[11px] text-zinc-500">
-            Montant rendu : {formatMoney(target.amount, currency)}. La ligne reste visible
-            (annulée) et le mois redevient dû. Session de caisse encore ouverte requise.
+            Montant retiré de la caisse : {formatMoney(target.amount, currency)}. Le reçu
+            d’origine reste archivé. Un avoir et un reçu « Rectification du reçu précédent »
+            sont imprimés tout de suite. L’administrateur est alerté sans bloquer le guichet.
           </p>
           <label className="mt-2 block text-[10px] font-medium uppercase tracking-wide text-zinc-400">
             Motif
@@ -106,7 +135,7 @@ export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
             </button>
             <button
               type="button"
-              disabled={mutation.isPending || reason.trim().length < 5}
+              disabled={mutation.isPending || reason.trim().length < 8}
               onClick={() => mutation.mutate()}
               className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
             >
