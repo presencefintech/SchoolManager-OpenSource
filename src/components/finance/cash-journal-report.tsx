@@ -54,19 +54,20 @@ function TrendMark({ trend }: { trend: CashPaceTrend | null }) {
   return null
 }
 
-function moneyCell(usd: number | null, cdf: number | null) {
-  if (usd == null && cdf == null) return '—'
-  const parts: string[] = []
-  if (usd != null) parts.push(formatMoney(usd, 'USD'))
-  if (cdf != null) parts.push(formatMoney(cdf, 'CDF'))
-  return parts.join(' · ')
+function MoneyCells({ usd, cdf }: { usd: number | null; cdf: number | null }) {
+  return (
+    <>
+      <td className="pf-money pf-usd py-1.5 pr-3 text-right">{usd == null ? '—' : formatMoney(usd, 'USD')}</td>
+      <td className="pf-money pf-cdf py-1.5 text-right">{cdf == null ? '—' : formatMoney(cdf, 'CDF')}</td>
+    </>
+  )
 }
 
 const BADGE_CLASS = {
-  validated: 'bg-emerald-50 text-emerald-700',
-  pending: 'bg-amber-50 text-amber-800',
-  cancelled: 'bg-zinc-100 text-zinc-600',
-  reconciled: 'bg-sky-50 text-sky-800',
+  validated: 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200',
+  pending: 'bg-amber-50 text-amber-800 ring-1 ring-amber-200',
+  cancelled: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+  reconciled: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
 } as const
 
 function PaceLine({ report }: { report: CashJournalReport }) {
@@ -319,9 +320,10 @@ export function CashJournalReport({ className }: { className?: string }) {
         </p>
       ) : null}
 
-      <article className="cash-journal-sheet rounded-xl border border-zinc-200 bg-white px-3 py-3 shadow-sm">
-        <header className="border-b border-zinc-100 pb-2">
-          <p className="text-sm font-semibold text-zinc-900">{report?.schoolName ?? 'Rapport de caisse'}</p>
+      <article className="cash-journal-sheet rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-800">
+        <header className="border-b border-slate-200 pb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">PresenceFintech · Document de caisse</p>
+          <p className="mt-0.5 text-sm font-semibold text-slate-900">{report?.schoolName ?? 'Rapport de caisse'}</p>
           <h2 className="text-xs text-zinc-700">
             Rapport de Caisse &amp; {report?.reportTitle ?? 'Journalier'} — Généré le {report ? formatGeneratedAt(report.generatedAt) : '…'}
           </h2>
@@ -330,7 +332,10 @@ export function CashJournalReport({ className }: { className?: string }) {
 
         <div className="mt-2">
           {journal.isPending || !report ? (
-            <div className="h-8 animate-pulse rounded-lg bg-zinc-100" />
+            <div className="space-y-2">
+              <div className="pf-skeleton h-4 w-2/3 rounded-md" />
+              <div className="pf-skeleton h-16 rounded-lg" />
+            </div>
           ) : (
             <PaceLine report={report} />
           )}
@@ -347,20 +352,21 @@ export function CashJournalReport({ className }: { className?: string }) {
               Situation mois par mois — exercice {report.monthlySituation.exercise}
             </h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="pf-ledger w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-400">
+                  <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-500">
                     <th className="py-1.5 pr-2 font-medium">Mois</th>
-                    <th className="py-1.5 pr-2 font-medium">Opérations</th>
-                    <th className="py-1.5 font-medium">USD / CDF</th>
+                    <th className="py-1.5 pr-2 text-right font-medium">Opérations</th>
+                    <th className="pf-usd py-1.5 pr-3 text-right font-medium">USD</th>
+                    <th className="pf-cdf py-1.5 text-right font-medium">CDF</th>
                   </tr>
                 </thead>
                 <tbody>
                   {report.monthlySituation.months.map((month) => (
-                    <tr key={month.label} className="border-b border-zinc-50">
-                      <td className="py-1.5 pr-2 text-zinc-800">{month.label}</td>
-                      <td className="py-1.5 pr-2 tabular-nums text-zinc-600">{month.count}</td>
-                      <td className="py-1.5 tabular-nums text-zinc-900">{moneyCell(month.usd, month.cdf)}</td>
+                    <tr key={month.label} className="border-b border-slate-100">
+                      <td className="py-1.5 pr-2 text-slate-800">{month.label}</td>
+                      <td className="pf-money py-1.5 pr-2 text-right text-slate-600">{month.count}</td>
+                      <MoneyCells usd={month.usd} cdf={month.cdf} />
                     </tr>
                   ))}
                 </tbody>
@@ -373,20 +379,21 @@ export function CashJournalReport({ className }: { className?: string }) {
           Entrées confirmées
         </h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="pf-ledger w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-zinc-200 text-[11px] uppercase tracking-wide text-zinc-400">
+              <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-500">
                 <th className="py-1.5 pr-2 font-medium">Mode</th>
-                <th className="py-1.5 pr-2 font-medium">Opérations</th>
-                <th className="py-1.5 font-medium">USD / CDF</th>
+                <th className="py-1.5 pr-2 text-right font-medium">Opérations</th>
+                <th className="pf-usd py-1.5 pr-3 text-right font-medium">USD</th>
+                <th className="pf-cdf py-1.5 text-right font-medium">CDF</th>
               </tr>
             </thead>
             <tbody>
               {(report?.methods ?? []).map((row) => (
-                <tr key={row.method} className="border-b border-zinc-50">
-                  <td className="py-1.5 pr-2 text-zinc-800">{row.label || METHOD_LABEL[row.method] || row.method}</td>
-                  <td className="py-1.5 pr-2 tabular-nums text-zinc-600">{row.count}</td>
-                  <td className="py-1.5 tabular-nums text-zinc-900">{moneyCell(row.usd, row.cdf)}</td>
+                <tr key={row.method} className="border-b border-slate-100">
+                  <td className="py-1.5 pr-2 text-slate-800">{row.label || METHOD_LABEL[row.method] || row.method}</td>
+                  <td className="pf-money py-1.5 pr-2 text-right text-slate-600">{row.count}</td>
+                  <MoneyCells usd={row.usd} cdf={row.cdf} />
                 </tr>
               ))}
             </tbody>
@@ -397,26 +404,26 @@ export function CashJournalReport({ className }: { className?: string }) {
           Journal des opérations
         </h3>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-[11px]">
+          <table className="pf-ledger w-full min-w-[860px] text-left text-[11px]">
             <thead>
-              <tr className="border-b border-zinc-200 text-[10px] uppercase tracking-wide text-zinc-400">
+              <tr className="border-b border-slate-200 text-[10px] uppercase tracking-wide text-slate-500">
                 <th className="py-1.5 pr-2 font-medium">Heure</th>
                 <th className="py-1.5 pr-2 font-medium">N° Reçu / Réf</th>
                 <th className="py-1.5 pr-2 font-medium">Élève &amp; Classe</th>
                 <th className="py-1.5 pr-2 font-medium">Payeur</th>
                 <th className="py-1.5 pr-2 font-medium">Motif</th>
                 <th className="py-1.5 pr-2 font-medium">Mode</th>
-                <th className="py-1.5 pr-2 font-medium">Montant</th>
-                <th className="py-1.5 pr-2 font-medium">Reste à payer</th>
+                <th className="py-1.5 pr-2 text-right font-medium">Montant</th>
+                <th className="py-1.5 pr-2 text-right font-medium">Reste à payer</th>
                 <th className="py-1.5 pr-2 font-medium">Caissier</th>
                 <th className="py-1.5 font-medium">Statut</th>
               </tr>
             </thead>
             <tbody>
               {(report?.transactions ?? []).map((row) => (
-                <tr key={row.id} className="border-b border-zinc-50 align-top">
-                  <td className="py-1.5 pr-2 tabular-nums text-zinc-700">{formatJournalTime(row.createdAt)}</td>
-                  <td className="py-1.5 pr-2 font-medium text-zinc-900">{row.receipt}</td>
+                <tr key={row.id} className="border-b border-slate-100 align-middle">
+                  <td className="pf-money py-1.5 pr-2 text-slate-700">{formatJournalTime(row.createdAt)}</td>
+                  <td className="py-1.5 pr-2 font-medium text-slate-900">{row.receipt}</td>
                   <td className="py-1.5 pr-2 text-zinc-800">
                     {row.student}
                     <span className="block text-zinc-500">
@@ -426,13 +433,21 @@ export function CashJournalReport({ className }: { className?: string }) {
                   <td className="py-1.5 pr-2 text-zinc-700">{row.payer}</td>
                   <td className="py-1.5 pr-2 text-zinc-700">{row.motive}</td>
                   <td className="py-1.5 pr-2 text-zinc-700">{METHOD_LABEL[row.method] ?? row.method}</td>
-                  <td className="py-1.5 pr-2 tabular-nums text-zinc-900">{formatJournalAmount(row.amount)}</td>
-                  <td className="py-1.5 pr-2 tabular-nums text-zinc-700">
+                  <td className="pf-money py-1.5 pr-2 text-right text-slate-900">
+                    <span className={cn(
+                      'mr-1 font-sans text-[9px] font-semibold uppercase',
+                      row.amount.currency === 'CDF' ? 'text-emerald-700' : 'text-slate-500',
+                    )}>
+                      {row.amount.currency}
+                    </span>
+                    {formatJournalAmount(row.amount)}
+                  </td>
+                  <td className="pf-money py-1.5 pr-2 text-right text-slate-700">
                     {row.balanceUsd == null ? '—' : formatMoney(row.balanceUsd, 'USD')}
                   </td>
                   <td className="py-1.5 pr-2 text-zinc-700">{row.cashier}</td>
                   <td className="py-1.5">
-                    <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', BADGE_CLASS[row.badge])}>
+                    <span className={cn('inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none', BADGE_CLASS[row.badge])}>
                       {row.badgeLabel}
                     </span>
                   </td>
