@@ -9,6 +9,7 @@ export type StudentPaymentStatusView = {
   debtors: number
   total: number
   solvencyPct: number | null
+  debtorPct: number | null
   sentence: string | null
 }
 
@@ -20,7 +21,7 @@ export function presentStudentPaymentStatus(
   const inOrder = Number.isFinite(meta.paid) ? Math.max(0, Math.trunc(meta.paid)) : 0
   const debtors = Number.isFinite(meta.debtors) ? Math.max(0, Math.trunc(meta.debtors)) : 0
   if (total <= 0) {
-    return { inOrder, debtors, total, solvencyPct: null, sentence: null }
+    return { inOrder, debtors, total, solvencyPct: null, debtorPct: null, sentence: null }
   }
   const solvencyPct = Math.min(100, Math.round((inOrder / total) * 100))
   return {
@@ -28,6 +29,7 @@ export function presentStudentPaymentStatus(
     debtors,
     total,
     solvencyPct,
+    debtorPct: 100 - solvencyPct,
     sentence: `${solvencyPct} % des élèves en ordre`,
   }
 }

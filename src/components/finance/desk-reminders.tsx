@@ -9,6 +9,9 @@ import {
   filterDeskReminderRows,
   formatReminderDay,
   planBulkReminders,
+  planSelectedReminders,
+  toggleVisibleSelection,
+  type ReminderChannel,
 } from '@/lib/finance/desk-reminders'
 import type { DeskReminderDispatch, DeskReminderList, DeskReminderRow } from '@/types/finance'
 
@@ -39,6 +42,9 @@ export function DeskReminders() {
   const [copiedId, setCopiedId] = useState<number | null>(null)
   const [queueOpen, setQueueOpen] = useState(false)
   const [queueIndex, setQueueIndex] = useState(0)
+  const [queueItems, setQueueItems] = useState<DeskReminderRow[]>([])
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [channels, setChannels] = useState<Record<number, ReminderChannel>>({})
   const [busy, setBusy] = useState(false)
   const [report, setReport] = useState<DeskReminderDispatch | null>(null)
   const { data, isLoading } = useQuery({
@@ -53,7 +59,18 @@ export function DeskReminders() {
   const nextLabel = formatReminderDay(data?.nextReminderOn)
   const showWaiting = data?.reason === 'off-schedule' && (data.total ?? 0) > 0
   const bulk = planBulkReminders(data?.rows ?? [], Boolean(data?.messagingReady))
-  const current = bulk.reachable[queueIndex] ?? null
+  const visibleIds = rows.map((row) => row.studentId)
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id))
+  const selectedCount = rows.filter((row) => selected.has(row.studentId)).length
+  const current = queueItems[queueIndex] ?? null
+
+  function channelOf(row: DeskReminderRow): ReminderChannel {
+    return channels[row.studentId] ?? row.preferredChannel ?? (row.whatsappUrl ? 'whatsapp' : 'sms')
+  }
+
+  function urlOf(row: DeskReminderRow): string | null {
+    return channelOf(row) === 'sms' ? row.smsUrl ?? null : row.whatsappUrl
+  }
 
   async function relance(studentId: number, url: string) {
     const popup = window.open(url, '_blank', 'noopener,noreferrer')
@@ -110,6 +127,20 @@ export function DeskReminders() {
       setHint('Aucun numéro utilisable dans cette vague.')
       return
     }
+    setQueueItems(bulk.reachable)
+    setQueueOpen(true)
+    setQueueIndex(0)
+    setHint(null)
+  }
+
+  function relanceSelection() {
+    if (!data) return
+    const plan = planSelectedReminders(rows, selected, new Map(Object.entries(channels).map(([id, channel]) => [Number(id), channel])))
+    if (plan.reachable.length === 0) {
+      setHint(selectedCount === 0 ? 'Cochez au moins un parent.' : 'Aucun numéro utilisable dans la sélection.')
+      return
+    }
+    setQueueItems(plan.reachable.map((item) => item.row))
     setQueueOpen(true)
     setQueueIndex(0)
     setHint(null)
@@ -165,19 +196,39 @@ export function DeskReminders() {
                   {data.missingPhone} sans numéro utilisable
                 </p>
               ) : null}
+              <p className="mt-0.5 text-[11px] text-emerald-900/70">
+                Sans WhatsApp, le bouton SMS ouvre le message dans l’application de ce téléphone.
+              </p>
             </div>
             {data.rows.length > 0 ? (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  void relanceAll()
-                }}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-900 disabled:opacity-60"
-              >
-                <MessageCircle size={12} />
-                {busy ? 'Envoi…' : 'Relancer tous les débiteurs échus'}
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelected((current) => toggleVisibleSelection(visibleIds, current))}
+                  className="inline-flex shrink-0 items-center rounded-lg border border-emerald-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-emerald-900 hover:bg-emerald-100"
+                >
+                  {allVisibleSelected ? 'Tout retirer' : 'Tout sélectionner'}
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedCount === 0}
+                  onClick={relanceSelection}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-900 disabled:opacity-60"
+                >
+                  <MessageCircle size={12} />
+                  Relancer la sélection{selectedCount > 0 ? ` (${selectedCount})` : ''}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    void relanceAll()
+                  }}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-emerald-800 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-900 hover:bg-emerald-100 disabled:opacity-60"
+                >
+                  {busy ? 'Envoi…' : 'Relancer tous'}
+                </button>
+              </div>
             ) : null}
           </div>
         </div>
@@ -196,7 +247,7 @@ export function DeskReminders() {
         <div className="mx-4 mt-3 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold text-zinc-700">
-              File {queueIndex + 1} / {bulk.reachable.length}
+              File {queueIndex + 1} / {queueItems.length}
             </p>
             <button
               type="button"
@@ -210,18 +261,18 @@ export function DeskReminders() {
           <pre className="mt-2 whitespace-pre-wrap font-sans text-[11px] leading-relaxed text-zinc-600">{current.message}</pre>
           <div className="mt-2 flex flex-wrap gap-2">
             <a
-              href={current.whatsappUrl ?? undefined}
+              href={urlOf(current) ?? undefined}
               target="_blank"
               rel="noreferrer"
               onClick={() => markFromLink(current.studentId)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-800"
             >
               <MessageCircle size={12} />
-              Ouvrir WhatsApp
+              {channelOf(current) === 'sms' ? 'Ouvrir SMS' : 'Ouvrir WhatsApp'}
             </a>
             <button
               type="button"
-              disabled={queueIndex >= bulk.reachable.length - 1}
+              disabled={queueIndex >= queueItems.length - 1}
               onClick={() => setQueueIndex((index) => index + 1)}
               className="rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 disabled:opacity-40"
             >
@@ -229,10 +280,10 @@ export function DeskReminders() {
             </button>
           </div>
           <ul className="mt-3 max-h-36 space-y-1 overflow-y-auto">
-            {bulk.reachable.map((row: DeskReminderRow, index) => (
+            {queueItems.map((row: DeskReminderRow, index) => (
               <li key={row.studentId}>
                 <a
-                  href={row.whatsappUrl ?? undefined}
+                  href={urlOf(row) ?? undefined}
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => {
@@ -250,9 +301,9 @@ export function DeskReminders() {
               </li>
             ))}
           </ul>
-          {bulk.missingPhone.length > 0 ? (
+          {queueItems.length < selectedCount ? (
             <p className="mt-2 text-[11px] text-zinc-500">
-              {bulk.missingPhone.length} sans numéro, laissés de côté.
+              {selectedCount - queueItems.length} sans numéro, laissés de côté.
             </p>
           ) : null}
         </div>
@@ -302,8 +353,26 @@ export function DeskReminders() {
             <p className="px-4 py-8 text-center text-sm text-zinc-400">Aucun résultat pour cette recherche.</p>
           ) : (
             <ul className="mt-2 max-h-96 divide-y divide-zinc-50 overflow-y-auto">
-              {rows.map((row) => (
+              {rows.map((row) => {
+                const channel = channelOf(row)
+                const outbound = urlOf(row)
+                return (
                 <li key={row.studentId} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(row.studentId)}
+                      aria-label={`Sélectionner ${row.parentName ?? row.studentName}`}
+                      onChange={() => {
+                        setSelected((current) => {
+                          const next = new Set(current)
+                          if (next.has(row.studentId)) next.delete(row.studentId)
+                          else next.add(row.studentId)
+                          return next
+                        })
+                      }}
+                      className="mt-1"
+                    />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-zinc-900">
                       {row.parentName ?? row.studentName}
@@ -326,7 +395,26 @@ export function DeskReminders() {
                     </p>
                     <pre className="mt-2 whitespace-pre-wrap rounded-lg bg-zinc-50 px-2.5 py-2 font-sans text-[11px] leading-relaxed text-zinc-600">{row.message}</pre>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <div className="flex rounded-lg border border-zinc-200 p-0.5 text-[11px] font-semibold">
+                      <button
+                        type="button"
+                        disabled={!row.whatsappUrl}
+                        onClick={() => setChannels((current) => ({ ...current, [row.studentId]: 'whatsapp' }))}
+                        className={channel === 'whatsapp' ? 'rounded-md bg-emerald-700 px-2 py-1 text-white' : 'rounded-md px-2 py-1 text-zinc-600 disabled:opacity-40'}
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!row.smsUrl}
+                        onClick={() => setChannels((current) => ({ ...current, [row.studentId]: 'sms' }))}
+                        className={channel === 'sms' ? 'rounded-md bg-zinc-900 px-2 py-1 text-white' : 'rounded-md px-2 py-1 text-zinc-600 disabled:opacity-40'}
+                      >
+                        SMS
+                      </button>
+                    </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold tabular-nums text-zinc-900">{row.balanceLabel}</p>
                       {row.balanceCdfLabel ? (
@@ -343,23 +431,24 @@ export function DeskReminders() {
                       <Copy size={12} />
                       {copiedId === row.studentId ? 'Copié' : 'Copier'}
                     </button>
-                    {row.whatsappUrl ? (
+                    {outbound ? (
                       <button
                         type="button"
                         onClick={() => {
-                          void relance(row.studentId, row.whatsappUrl!)
+                          void relance(row.studentId, outbound)
                         }}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-800"
                       >
                         <MessageCircle size={12} />
-                        Relancer WhatsApp
+                        {channel === 'sms' ? 'Relancer SMS' : 'Relancer WhatsApp'}
                       </button>
                     ) : (
                       <span className="text-[11px] text-zinc-400">Numéro absent</span>
                     )}
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </>

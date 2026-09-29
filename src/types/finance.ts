@@ -100,6 +100,9 @@ export type DeskReminderRow = {
   phoneLabel: string | null
   phoneMasked: string | null
   whatsappUrl: string | null
+  smsUrl?: string | null
+  preferredChannel?: 'whatsapp' | 'sms'
+  hasSmartphone?: boolean
   message: string
   overdue?: boolean
   lines?: DeskReminderLine[]
@@ -120,6 +123,7 @@ export type DeskReminderList = {
   deadlinePassed?: boolean
   digest: string | null
   messagingReady?: boolean
+  smsProviderReady?: boolean
   rows: DeskReminderRow[]
 }
 
