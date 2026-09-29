@@ -78,4 +78,15 @@ describe('middleware', () => {
     expect(location(res)).toBeNull()
     expect(res.headers.get('set-cookie')).toContain(`${AUTH_COOKIE.refresh}=new-refresh`)
   })
+
+  it('pose une CSP bloquante avec un nonce propre à chaque requête', async () => {
+    const first = await middleware(request('/login'))
+    const second = await middleware(request('/login'))
+    const csp = first.headers.get('content-security-policy') ?? ''
+    const nonce = /'nonce-([^']+)'/.exec(csp)?.[1]
+    expect(nonce).toBeTruthy()
+    expect(csp).toContain("'strict-dynamic'")
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/)
+    expect(second.headers.get('content-security-policy')).not.toContain(nonce)
+  })
 })

@@ -7,14 +7,15 @@ import type { DocumentVerifyResult } from '@/types/document-verify'
 import type { ReceiptVerifyResult } from '@/types/receipt-verify'
 
 type PageProps = {
-  searchParams: {
+  searchParams: Promise<{
     receiptNumber?: string
     documentRef?: string
     code?: string
-  }
+  }>
 }
 
-export default async function VerifyPage({ searchParams }: PageProps) {
+export default async function VerifyPage(props: PageProps) {
+  const searchParams = await props.searchParams
   const code = searchParams.code?.trim() ?? ''
   const receiptNumber = searchParams.receiptNumber?.trim() ?? ''
   const documentRef = searchParams.documentRef?.trim() ?? ''

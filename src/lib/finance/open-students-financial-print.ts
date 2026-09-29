@@ -82,7 +82,9 @@ export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintR
     <thead><tr>${report.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>
     <tbody>${rows}</tbody>
   </table>
-  <script>window.onload=()=>window.print()</script>
 </body></html>`)
   w.document.close()
+  // Pas de <script> inline dans la fenêtre : elle hérite de la CSP (nonce) de l'application.
+  w.focus()
+  w.print()
 }

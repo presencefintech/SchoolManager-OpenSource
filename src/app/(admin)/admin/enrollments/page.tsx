@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useState, useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -19,14 +20,30 @@ import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
-import { EnrollSessionDrawer, RentreePackDrawer, MoratoriumDrawer } from '@/components/admin/enrollments/enrollment-business-drawers'
-import { EnrollmentCreateModal } from '@/components/admin/enrollments/enrollment-create-modal'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
 import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import type { EnrollmentListItem } from '@/types/admin'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
+
+// Fenêtres ouvertes au clic (~2 000 lignes + champ téléphone) : hors du JS initial de la page
+const EnrollmentCreateModal = dynamic(
+  () => import('@/components/admin/enrollments/enrollment-create-modal').then((m) => m.EnrollmentCreateModal),
+  { ssr: false },
+)
+const EnrollSessionDrawer = dynamic(
+  () => import('@/components/admin/enrollments/enrollment-business-drawers').then((m) => m.EnrollSessionDrawer),
+  { ssr: false },
+)
+const RentreePackDrawer = dynamic(
+  () => import('@/components/admin/enrollments/enrollment-business-drawers').then((m) => m.RentreePackDrawer),
+  { ssr: false },
+)
+const MoratoriumDrawer = dynamic(
+  () => import('@/components/admin/enrollments/enrollment-business-drawers').then((m) => m.MoratoriumDrawer),
+  { ssr: false },
+)
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />

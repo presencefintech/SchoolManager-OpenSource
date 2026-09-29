@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AUTH_COOKIE, getBackendUrl } from '@/lib/auth/session-cookies'
 
-type RouteCtx = { params: Promise<{ id: string }> | { id: string } }
+type RouteCtx = { params: Promise<{ id: string }> }
 
 async function resolveId(params: RouteCtx['params']) {
-  const p = await Promise.resolve(params)
+  const p = await params
   return p.id
 }
 

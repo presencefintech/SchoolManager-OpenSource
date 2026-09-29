@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { QueryProvider } from '@/providers/query-provider'
@@ -10,6 +11,7 @@ import { OfflineBanner } from '@/components/layout/offline-banner'
 import { SentryClientInit } from '@/components/observability/sentry-client-init'
 import { ForcePasswordChangeGate } from '@/components/auth/force-password-change-gate'
 import { THEME_BOOT_SCRIPT } from '@/lib/theme/preferences'
+import { NONCE_HEADER } from '@/lib/security/csp'
 import { ThemeAtmosphere } from '@/components/theme/theme-atmosphere'
 import { SchoolThemeSync } from '@/components/theme/school-theme-sync'
 import './globals.css'
@@ -30,11 +32,14 @@ export const viewport: Viewport = {
   themeColor: '#059669',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Lire le nonce rend chaque page dynamique : indispensable, un HTML statique ne peut
+  // pas porter le nonce propre à chaque requête exigé par la CSP.
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body className={inter.className}>
         <ThemeProvider>

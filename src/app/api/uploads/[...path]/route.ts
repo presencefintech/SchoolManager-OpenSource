@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AUTH_COOKIE, getBackendUrl } from '@/lib/auth/session-cookies'
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const token = req.cookies.get(AUTH_COOKIE.access)?.value
   if (!token) {
     return NextResponse.json({ message: 'Non authentifié' }, { status: 401 })
   }
 
+  const { path } = await params
   // `..` / `.` normalisés par fetch permettraient de sortir de /uploads côté backend
-  if (params.path.some((segment) => segment === '..' || segment === '.')) {
+  if (path.some((segment) => segment === '..' || segment === '.')) {
     return NextResponse.json({ message: 'Chemin invalide' }, { status: 400 })
   }
 
   const search = req.nextUrl.search
-  const target = `${getBackendUrl()}/uploads/${params.path.map(encodeURIComponent).join('/')}${search}`
+  const target = `${getBackendUrl()}/uploads/${path.map(encodeURIComponent).join('/')}${search}`
 
   const upstream = await fetch(target, {
     headers: {

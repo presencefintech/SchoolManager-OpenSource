@@ -66,7 +66,42 @@ export const LazyAttendanceDonutChart = dynamic(
   { ssr: false, loading: () => <ChartSkeleton variant="donut" className="py-8" /> },
 )
 
+export const LazyScanFlowChart = dynamic(
+  () => import('../admin/dashboard/admin-dashboard-charts').then((m) => m.ScanFlowChart),
+  { ssr: false, loading: () => <ChartSkeleton height={160} /> },
+)
+
+export const LazyPaymentCategoryDonutChart = dynamic(
+  () => import('./finance-transactions-charts').then((m) => m.PaymentCategoryDonutChart),
+  { ssr: false, loading: () => <ChartSkeleton variant="donut" /> },
+)
+
+export const LazyPaymentMethodBarChart = dynamic(
+  () => import('./finance-transactions-charts').then((m) => m.PaymentMethodBarChart),
+  { ssr: false, loading: () => <ChartSkeleton height={120} /> },
+)
+
+export const LazyPaymentMethodCountBarChart = dynamic(
+  () => import('./finance-transactions-charts').then((m) => m.PaymentMethodCountBarChart),
+  { ssr: false, loading: () => <ChartSkeleton height={120} /> },
+)
+
 export const LazyClassEnrollmentChart = dynamic(
   () => import('../admin/dashboard/admin-dashboard-charts').then((m) => m.ClassEnrollmentChart),
   { ssr: false, loading: () => <ChartSkeleton height={240} /> },
+)
+
+export const LazyEnrollmentTrendArea = dynamic(
+  () => import('./super-admin-dashboard-charts').then((m) => m.EnrollmentTrendArea),
+  { ssr: false, loading: () => <ChartSkeleton height={220} /> },
+)
+
+export const LazyPlatformRevenueArea = dynamic(
+  () => import('./super-admin-dashboard-charts').then((m) => m.PlatformRevenueArea),
+  { ssr: false, loading: () => <ChartSkeleton height={200} /> },
+)
+
+export const LazyProviderDonut = dynamic(
+  () => import('./super-admin-dashboard-charts').then((m) => m.ProviderDonut),
+  { ssr: false, loading: () => <div className="h-full w-full rounded-full bg-zinc-100 animate-pulse" /> },
 )

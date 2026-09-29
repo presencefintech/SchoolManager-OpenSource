@@ -8,7 +8,7 @@ import {
   getBackendUrl,
 } from '@/lib/auth/session-cookies'
 
-type Ctx = { params: Promise<{ id: string }> | { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 /**
  * GET /api/superadmin/schools/[id]/impersonate
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, ctx: Ctx) {
     )
   }
 
-  const params = await Promise.resolve(ctx.params)
+  const params = await ctx.params
   const id = params.id
   if (!/^\d+$/.test(id)) {
     return NextResponse.json({ success: false, message: 'ID invalide.' }, { status: 400 })

@@ -3,11 +3,12 @@ import { DocumentVerifyCard } from '@/components/document/DocumentVerifyCard'
 import { fetchDocumentVerification } from '@/lib/document/verify-document'
 
 type PageProps = {
-  params: { token: string }
+  params: Promise<{ token: string }>
 }
 
 export default async function DocumentVerifyPage({ params }: PageProps) {
-  const result = await fetchDocumentVerification(params.token)
+  const { token } = await params
+  const result = await fetchDocumentVerification(token)
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-10 bg-[#f4f6fa]">

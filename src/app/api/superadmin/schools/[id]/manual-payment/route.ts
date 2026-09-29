@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { proxySchoolSupport } from '../_proxy'
 
-type Ctx = { params: Promise<{ id: string }> | { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 /** POST /api/superadmin/schools/[id]/manual-payment */
 export async function POST(req: NextRequest, ctx: Ctx) {

@@ -8,17 +8,9 @@ import {
   TrendingDown,
   Minus,
 } from 'lucide-react'
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { LazyEnrollmentTrendArea } from '@/components/charts/lazy'
 import type { GodModeDashboardStats } from '@/types/super-admin'
 
 import { formatMoney } from '@/lib/finance/currency'
@@ -198,47 +190,7 @@ export function EnrollmentTrendChart({
           Aucune inscription sur les 30 derniers jours
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-            <defs>
-              <linearGradient id="gradEnroll" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 10, fill: '#a1a1aa' }}
-              tickLine={false}
-              axisLine={false}
-              interval={Math.max(0, Math.floor(chartData.length / 7))}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fontSize: 10, fill: '#a1a1aa' }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <Tooltip
-              contentStyle={{
-                borderRadius: 12,
-                border: '1px solid #e4e4e7',
-                fontSize: 12,
-              }}
-              formatter={(value: number) => [`${value} inscription${value > 1 ? 's' : ''}`, 'Volume']}
-            />
-            <Area
-              type="monotone"
-              dataKey="count"
-              stroke="#4f46e5"
-              strokeWidth={2.5}
-              fill="url(#gradEnroll)"
-              dot={false}
-              activeDot={{ r: 4 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+        <LazyEnrollmentTrendArea data={chartData} />
       )}
     </CardShell>
   )

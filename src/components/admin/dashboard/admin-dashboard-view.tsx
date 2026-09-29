@@ -17,11 +17,11 @@ import { useAuth } from '@/providers/auth-provider'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 import { useToast } from '@/providers/toast-provider'
 import {
-  WeeklyAttendanceChart,
-  HourlyScansChart,
-  AttendanceDonutChart,
-  ClassEnrollmentChart,
-} from '@/components/admin/dashboard/admin-dashboard-charts'
+  LazyWeeklyAttendanceChart as WeeklyAttendanceChart,
+  LazyHourlyScansChart as HourlyScansChart,
+  LazyAttendanceDonutChart as AttendanceDonutChart,
+  LazyClassEnrollmentChart as ClassEnrollmentChart,
+} from '@/components/charts/lazy'
 import { AttendanceReadinessPanel } from '@/components/admin/dashboard/attendance-readiness-panel'
 import { AttendanceSettingsBanner } from '@/components/admin/dashboard/attendance-settings-banner'
 import { ControlDashboardPanel } from '@/components/admin/dashboard/control-dashboard-panel'

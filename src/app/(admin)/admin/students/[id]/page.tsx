@@ -19,7 +19,7 @@ import type { StudentSecurityAction } from '@/types/admin'
 import { SessionEnrollmentsTable } from '@/components/admin/enrollments/session-enrollments-table'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
 import { StudentCardPhoto } from '@/components/student-card/student-card-photo'
-import { StudentCard } from '@/components/StudentCard'
+import { LazyStudentCard } from '@/components/student-card/lazy-student-card'
 import {
   buildStudentCardData,
   buildStudentQrPayload,
@@ -1394,7 +1394,7 @@ function StudentDetailPageContent() {
               </div>
             </div>
             <div className="flex justify-center p-5 overflow-x-auto bg-zinc-50/70">
-              <StudentCard
+              <LazyStudentCard
                 data={cardData}
                 preview
                 onCardElement={handleCardElement}

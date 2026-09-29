@@ -5,7 +5,7 @@ import { ReceiptVerifyCard } from '@/components/receipt/ReceiptVerifyCard'
 import type { ReceiptVerifyFailureReason, ReceiptVerifyResult } from '@/types/receipt-verify'
 
 type PageProps = {
-  params: { token: string }
+  params: Promise<{ token: string }>
 }
 
 const loadVerification = cache(async (token: string): Promise<ReceiptVerifyResult> => {
@@ -45,7 +45,7 @@ const loadVerification = cache(async (token: string): Promise<ReceiptVerifyResul
 })
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const result = await loadVerification(params.token)
+  const result = await loadVerification((await params).token)
   if (!result.valid) {
     return {
       title: 'Reçu non vérifiable',
@@ -77,7 +77,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ReceiptVerifyPage({ params }: PageProps) {
-  const result = await loadVerification(params.token)
+  const { token } = await params
+  const result = await loadVerification(token)
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-8 bg-[#f4f6fa]">
@@ -93,7 +94,7 @@ export default async function ReceiptVerifyPage({ params }: PageProps) {
 
         <ReceiptVerifyCard
           result={result}
-          proofQuery={params.token ? `t=${encodeURIComponent(params.token)}` : ''}
+          proofQuery={token ? `t=${encodeURIComponent(token)}` : ''}
         />
 
         <p className="text-center text-[11px] text-zinc-400 leading-relaxed px-4">
