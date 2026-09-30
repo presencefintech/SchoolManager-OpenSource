@@ -191,6 +191,8 @@ export interface StaffMember {
   createdAt: string
   lastLogin: string | null
   account?: StaffAccountView
+  /** Teacher.id — identifiant que la classe enregistre. Absent si le profil n’existe pas encore. */
+  teacherProfileId?: number | null
 }
 
 export interface CreateStaffPayload {

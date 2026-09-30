@@ -42,6 +42,10 @@ function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-lg bg-zinc-100 animate-pulse', className)} />
 }
 
+function teacherOptionId(member: { id: number; teacherProfileId?: number | null }): number {
+  return member.teacherProfileId && member.teacherProfileId > 0 ? member.teacherProfileId : member.id
+}
+
 function occupancyPct(cls: ClassListItem): number | null {
   if (!cls.capacity || cls.capacity <= 0) return null
   return Math.min(100, Math.round(((cls.studentCount ?? 0) / cls.capacity) * 100))
@@ -219,7 +223,7 @@ function CreateClassModal({ onClose }: { onClose: () => void }) {
               >
                 <option value="">Aucun</option>
                 {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
+                  <option key={t.id} value={teacherOptionId(t)}>{t.firstName} {t.lastName}</option>
                 ))}
               </select>
             </div>
@@ -632,6 +636,7 @@ export default function ClassesPage() {
                 <thead>
                   <tr className="border-b border-zinc-100 bg-white">
                     <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Classe</th>
+                    <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Titulaire</th>
                     <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Parcours</th>
                     <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Effectif</th>
                     <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Remplissage</th>
@@ -647,6 +652,9 @@ export default function ClassesPage() {
                         <td className="px-5 py-4">
                           <p className="font-semibold text-zinc-900">{cls.name}</p>
                           <p className="text-xs text-zinc-400 mt-0.5">{cls.level ?? cls.academicYear ?? '—'}</p>
+                        </td>
+                        <td className="px-5 py-4 text-zinc-700">
+                          {cls.teacherName?.trim() || '—'}
                         </td>
                         <td className="px-5 py-4 text-zinc-600">
                           <p className="text-sm">{cls.sectionName ?? '—'}</p>
