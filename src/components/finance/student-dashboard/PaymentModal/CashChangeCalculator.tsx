@@ -9,6 +9,9 @@ import {
   type TenderCurrency,
   usdToCdf,
 } from '@/lib/finance/congo-money.utils'
+import { previewCashTender } from '@/lib/finance/mixed-tender'
+
+export type TenderMode = TenderCurrency | 'MIXED'
 import { changeExceedsDrawer } from '@/lib/finance/guichet-ops.utils'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +27,10 @@ export function CashChangeCalculator({
   tenderCurrency,
   onTenderedChange,
   onTenderCurrencyChange,
+  tenderedUsd = '',
+  tenderedCdf = '',
+  onTenderedUsdChange,
+  onTenderedCdfChange,
   availableDrawerUsd,
   allowedTenderCurrencies = ['USD', 'CDF'],
 }: {
@@ -31,9 +38,13 @@ export function CashChangeCalculator({
   currency: FinanceCurrencyCode
   exchangeRate?: number | null
   tendered: string
-  tenderCurrency: TenderCurrency
+  tenderCurrency: TenderMode
   onTenderedChange: (value: string) => void
-  onTenderCurrencyChange: (value: TenderCurrency) => void
+  onTenderCurrencyChange: (value: TenderMode) => void
+  tenderedUsd?: string
+  tenderedCdf?: string
+  onTenderedUsdChange?: (value: string) => void
+  onTenderedCdfChange?: (value: string) => void
   /** Fond + cash déjà en caisse (USD) — alerte si rendu trop élevé. */
   availableDrawerUsd?: number | null
   allowedTenderCurrencies?: TenderCurrency[]
@@ -64,8 +75,31 @@ export function CashChangeCalculator({
         : changeInTender
       : null
 
+  const mixedPreview = tenderCurrency === 'MIXED'
+    ? previewCashTender(
+        amountDueUsd,
+        Number(tenderedUsd) || 0,
+        Number(tenderedCdf) || 0,
+        rate,
+      )
+    : null
+  const mixedChangeUsd = mixedPreview && !mixedPreview.short ? mixedPreview.changeUsd : 0
+  const mixedChangeCdfUsd = mixedPreview && !mixedPreview.short && rate
+    ? cdfToUsd(mixedPreview.changeCdf, rate)
+    : 0
   const floatTight =
-    availableDrawerUsd != null && changeExceedsDrawer(changeUsd, availableDrawerUsd)
+    availableDrawerUsd != null && changeExceedsDrawer(
+      tenderCurrency === 'MIXED' ? mixedChangeUsd + mixedChangeCdfUsd : changeUsd,
+      availableDrawerUsd,
+    )
+
+  function addMixedDenomination(currencyCode: 'USD' | 'CDF', value: number) {
+    if (currencyCode === 'USD') {
+      onTenderedUsdChange?.(String((Number(tenderedUsd) || 0) + value))
+      return
+    }
+    onTenderedCdfChange?.(String((Number(tenderedCdf) || 0) + value))
+  }
 
   return (
     <div className="rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-2.5 space-y-2.5">
@@ -93,6 +127,18 @@ export function CashChangeCalculator({
               {c === 'CDF' ? 'FC' : 'USD'}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => onTenderCurrencyChange('MIXED')}
+            className={cn(
+              'rounded-md px-2 py-0.5 text-[10px] font-semibold',
+              tenderCurrency === 'MIXED'
+                ? 'bg-amber-600 text-white'
+                : 'text-amber-900/70 hover:bg-amber-50',
+            )}
+          >
+            Mixte
+          </button>
         </div>
         ) : (
           <p className="text-[10px] font-semibold text-amber-800/80">
@@ -106,23 +152,111 @@ export function CashChangeCalculator({
         <span className="font-semibold tabular-nums text-zinc-900">
           {formatMoney(amountDueUsd, currency)}
         </span>
-        {rate && tenderCurrency === 'CDF' ? (
+        {rate && (tenderCurrency === 'CDF' || tenderCurrency === 'MIXED') ? (
           <>
             {' '}
             ≈{' '}
             <span className="font-semibold tabular-nums text-amber-900">
-              {formatMoney(dueInTender, 'CDF')}
+              {formatMoney(tenderCurrency === 'CDF' ? dueInTender : usdToCdf(amountDueUsd, rate), 'CDF')}
             </span>
           </>
         ) : null}
       </div>
 
-      {!rate && tenderCurrency === 'CDF' ? (
+      {!rate && (tenderCurrency === 'CDF' || tenderCurrency === 'MIXED') ? (
         <p className="text-[10px] text-amber-800">
           Taux école indisponible — basculez en USD ou configurez le taux Admin.
         </p>
       ) : null}
 
+      {tenderCurrency === 'MIXED' ? (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1">
+            {USD_DENOMINATIONS.map((d) => (
+              <button
+                key={`usd-${d}`}
+                type="button"
+                onClick={() => addMixedDenomination('USD', d)}
+                className="rounded-md border border-amber-200/90 bg-white px-2 py-1 text-[10px] font-semibold text-amber-950 hover:bg-amber-50"
+              >
+                +${d}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {CDF_DENOMINATIONS.map((d) => (
+              <button
+                key={`cdf-${d}`}
+                type="button"
+                disabled={!rate}
+                onClick={() => addMixedDenomination('CDF', d)}
+                className="rounded-md border border-amber-200/90 bg-white px-2 py-1 text-[10px] font-semibold text-amber-950 hover:bg-amber-50 disabled:opacity-40"
+              >
+                +{d.toLocaleString('fr-CD')} FC
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                onTenderedUsdChange?.('')
+                onTenderedCdfChange?.('')
+              }}
+              className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-[10px] font-medium text-zinc-500 hover:bg-zinc-50"
+            >
+              Effacer
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div>
+              <label className="block text-[11px] text-zinc-500 mb-1">Remis en USD</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={tenderedUsd}
+                onChange={(e) => onTenderedUsdChange?.(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] text-zinc-500 mb-1">Remis en FC</label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={tenderedCdf}
+                disabled={!rate}
+                onChange={(e) => onTenderedCdfChange?.(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-40"
+              />
+            </div>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-800">Rendu de monnaie</p>
+            <p className={cn(
+              'mt-1 text-base font-semibold tabular-nums',
+              mixedPreview?.short || floatTight ? 'text-red-600' : 'text-emerald-700',
+            )}>
+              {mixedPreview == null
+                ? '—'
+                : mixedPreview.short
+                  ? mixedPreview.message
+                  : mixedPreview.changeUsd <= 0 && mixedPreview.changeCdf <= 0
+                    ? 'Aucun rendu'
+                    : [
+                        mixedPreview.changeUsd > 0 ? formatMoney(mixedPreview.changeUsd, 'USD') : null,
+                        mixedPreview.changeCdf > 0 ? formatMoney(mixedPreview.changeCdf, 'CDF') : null,
+                      ].filter(Boolean).join(' · ')}
+            </p>
+            {rate ? (
+              <p className="mt-0.5 text-[10px] text-zinc-500">
+                Taux du jour : 1 USD = {rate.toLocaleString('fr-CD')} FC. Le serveur confirme le rendu.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="flex flex-wrap gap-1">
         {denominations.map((d) => (
           <button
@@ -177,8 +311,8 @@ export function CashChangeCalculator({
             {changeInTender == null
               ? '—'
               : short
-                ? `Manque ${formatMoney(Math.abs(changeInTender), tenderCurrency)}`
-                : formatMoney(changeInTender, tenderCurrency)}
+                ? `Manque ${formatMoney(Math.abs(changeInTender), tenderCurrency === 'CDF' ? 'CDF' : 'USD')}`
+                : formatMoney(changeInTender, tenderCurrency === 'CDF' ? 'CDF' : 'USD')}
           </p>
           {changeUsd != null && changeUsd > 0 && tenderCurrency === 'CDF' ? (
             <p className="text-[10px] text-zinc-400 tabular-nums">
@@ -187,12 +321,17 @@ export function CashChangeCalculator({
           ) : null}
         </div>
       </div>
+      </>
+      )}
 
       {floatTight ? (
         <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-900">
           <AlertTriangle size={13} className="mt-0.5 shrink-0 text-red-600" />
           <p>
-            Rendu ({formatMoney(changeUsd ?? 0, 'USD')}) supérieur au fond disponible (
+            Rendu ({formatMoney(
+              tenderCurrency === 'MIXED' ? mixedChangeUsd + mixedChangeCdfUsd : (changeUsd ?? 0),
+              'USD',
+            )}) supérieur au fond disponible (
             {formatMoney(availableDrawerUsd ?? 0, 'USD')}). Demandez le montant exact ou un
             billet plus petit — classique file d&apos;attente Kinshasa / Lubumbashi.
           </p>

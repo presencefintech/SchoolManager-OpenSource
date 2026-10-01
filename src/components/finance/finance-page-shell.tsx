@@ -12,8 +12,8 @@ export function FinancePageShell({
   className?: string
 }) {
   return (
-    <div className={cn('min-h-full px-8 py-8', className)}>
-      <div className="mx-auto max-w-[1440px] space-y-6">{children}</div>
+    <div className={cn('min-h-full px-4 py-5 sm:px-6 lg:px-8', className)}>
+      <div className="mx-auto max-w-7xl space-y-4">{children}</div>
     </div>
   )
 }
@@ -33,23 +33,23 @@ export function FinancePageHeader({
 }) {
   const accentBar =
     accent === 'violet'
-      ? 'from-violet-600 via-purple-600 to-fuchsia-600'
+      ? 'from-violet-700 to-violet-500'
       : accent === 'slate'
-        ? 'from-slate-700 via-slate-800 to-slate-900'
-        : 'from-emerald-600 via-emerald-700 to-teal-800'
+        ? 'from-slate-900 to-slate-700'
+        : 'from-slate-900 via-slate-800 to-emerald-700'
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22 }}
-      className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
+      className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800"
     >
       <div className={cn('h-1 bg-gradient-to-r', accentBar)} />
       <div className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl">{title}</h1>
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">{title}</h1>
             {badge}
           </div>
           {subtitle && (
@@ -78,7 +78,7 @@ export function FinancePanel({
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.05)]',
+        'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800',
         className,
       )}
     >
@@ -108,7 +108,7 @@ export function FinanceEmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/50 px-6 py-16 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-6 py-8 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-zinc-100">
         <Icon size={26} className="text-zinc-300" />
       </div>

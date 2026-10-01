@@ -78,7 +78,7 @@ function FinanceNav() {
   return (
     <>
       {/* Barre mobile — hamburger + logo, masquée en desktop */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-zinc-200/80">
+      <div className="pf-chrome lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-slate-200">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -112,9 +112,9 @@ function FinanceNav() {
 
       <aside
         className={cn(
-          'fixed top-0 left-0 h-dvh max-h-screen w-64 z-50 flex flex-col overflow-hidden',
-          'bg-white lg:bg-white/92 lg:backdrop-blur-md',
-          'border-r border-zinc-200/80',
+          'pf-chrome fixed top-0 left-0 h-dvh max-h-screen w-64 z-50 flex flex-col overflow-hidden',
+          'bg-white lg:bg-white/95 lg:backdrop-blur-md',
+          'border-r border-slate-200',
           'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',
           'transition-transform duration-200 ease-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
@@ -161,13 +161,13 @@ function FinanceNav() {
                 className={cn(
                   'relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
                   active
-                    ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100'
-                    : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50',
+                    ? 'bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50',
                 )}
               >
                 <Icon
                   size={16}
-                  className={cn('flex-shrink-0 transition-colors', active ? 'text-emerald-600' : 'text-zinc-400')}
+                  className={cn('flex-shrink-0 transition-colors', active ? 'text-emerald-400 dark:text-emerald-700' : 'text-slate-400')}
                 />
                 {label}
               </Link>

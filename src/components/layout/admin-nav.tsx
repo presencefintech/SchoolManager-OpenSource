@@ -186,7 +186,7 @@ export function AdminNav() {
     <>
       {/* Barre mobile — hamburger + logo, masquée en desktop */}
       <div
-        className="lg:hidden fixed left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-zinc-100"
+        className="pf-chrome lg:hidden fixed left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-zinc-100"
         style={{ top: 'var(--impersonation-banner-h, 0px)' }}
       >
         <button
@@ -216,7 +216,7 @@ export function AdminNav() {
 
       <aside
         className={cn(
-          'fixed left-0 w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-zinc-100 shadow-[2px_0_24px_rgba(0,0,0,0.04)]',
+          'pf-chrome fixed left-0 w-64 z-50 flex flex-col overflow-hidden bg-white border-r border-slate-200 shadow-sm',
           'transition-transform duration-200 ease-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full',
         )}

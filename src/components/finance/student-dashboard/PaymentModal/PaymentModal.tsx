@@ -75,7 +75,8 @@ import {
   ReceiptTicketPreview,
   type ThermalReceiptPayload,
 } from '@/components/finance/student-dashboard/receipts/ReceiptTicketPreview'
-import { CashChangeCalculator } from '@/components/finance/student-dashboard/PaymentModal/CashChangeCalculator'
+import { CashChangeCalculator, type TenderMode } from '@/components/finance/student-dashboard/PaymentModal/CashChangeCalculator'
+import { previewCashTender } from '@/lib/finance/mixed-tender'
 import { DualCurrencyStrip } from '@/components/finance/student-dashboard/PaymentModal/DualCurrencyStrip'
 import { ParentAmountFlash } from '@/components/finance/student-dashboard/PaymentModal/ParentAmountFlash'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -168,7 +169,9 @@ export function PaymentModal({
   const [lineAmounts, setLineAmounts] = useState<Record<string, number>>({})
   const [catalogAmount, setCatalogAmount] = useState(0)
   const [tendered, setTendered] = useState('')
-  const [tenderCurrency, setTenderCurrency] = useState<TenderCurrency>('USD')
+  const [tenderedUsd, setTenderedUsd] = useState('')
+  const [tenderedCdf, setTenderedCdf] = useState('')
+  const [tenderCurrency, setTenderCurrency] = useState<TenderMode>('USD')
   const [errorMsg, setErrorMsg] = useState('')
   const [alreadyPaid, setAlreadyPaid] = useState<ReturnType<typeof extractFeeAlreadyPaidDetails>>(null)
   const [idempotencyKey, setIdempotencyKey] = useState(() => newIdempotencyKey())
@@ -183,6 +186,7 @@ export function PaymentModal({
   const [successPaymentId, setSuccessPaymentId] = useState<number | null>(null)
   const [successReference, setSuccessReference] = useState<string | null>(null)
   const [successServerAmount, setSuccessServerAmount] = useState<number | null>(null)
+  const [successTenderLabel, setSuccessTenderLabel] = useState<string | null>(null)
   const [thermal, setThermal] = useState<ThermalReceiptPayload | null>(null)
   const [thermalLoading, setThermalLoading] = useState(false)
 
@@ -247,6 +251,9 @@ export function PaymentModal({
     setErrorMsg('')
     setAlreadyPaid(null)
     setTendered('')
+    setTenderedUsd('')
+    setTenderedCdf('')
+    setSuccessTenderLabel(null)
     setTenderCurrency(
       allowedTenderCurrencies.includes(
         (currencyConfig?.displayCurrency as TenderCurrency) ?? 'USD',
@@ -319,7 +326,12 @@ export function PaymentModal({
         setProofType(defaultProofTypeForMethod(next))
       }
     }
-    if (!allowedTenderCurrencies.includes(tenderCurrency)) {
+    if (tenderCurrency === 'MIXED' && allowedTenderCurrencies.length < 2) {
+      setTenderCurrency(allowedTenderCurrencies[0] ?? 'USD')
+    } else if (
+      tenderCurrency !== 'MIXED' &&
+      !allowedTenderCurrencies.includes(tenderCurrency)
+    ) {
       setTenderCurrency(allowedTenderCurrencies[0] ?? 'USD')
     }
   }, [open, allowedMethods, method, allowedTenderCurrencies, tenderCurrency])
@@ -528,6 +540,22 @@ export function PaymentModal({
       setErrorMsg('Montant total invalide.')
       return false
     }
+    if (method === 'CASH') {
+      const preview = tenderCurrency === 'MIXED'
+        ? previewCashTender(totalAmount, Number(tenderedUsd) || 0, Number(tenderedCdf) || 0, exchangeRate)
+        : tendered.trim()
+          ? previewCashTender(
+              totalAmount,
+              tenderCurrency === 'USD' ? Number(tendered) : 0,
+              tenderCurrency === 'CDF' ? Number(tendered) : 0,
+              exchangeRate,
+            )
+          : null
+      if (preview?.short) {
+        setErrorMsg(preview.message ?? 'Encaissement insuffisant.')
+        return false
+      }
+    }
     if (duplicateHit && !ackDuplicate) {
       setErrorMsg(
         `Possible doublon (#${duplicateHit.id}, ${formatMinutesAgo(duplicateHit.createdAt)}). Cochez la confirmation anti-doublon.`,
@@ -604,10 +632,21 @@ export function PaymentModal({
         payerPhone: normalizedPhone,
         idempotencyKey,
         ...(method === 'CASH'
-          ? {
-              tenderCurrency,
-              tenderAmount: tendered.trim() ? Number(tendered) : undefined,
-            }
+          ? tenderCurrency === 'MIXED'
+            ? {
+                amountPaidUSD: Number(tenderedUsd) || 0,
+                amountPaidCDF: Number(tenderedCdf) || 0,
+              }
+            : {
+                tenderCurrency,
+                tenderAmount: tendered.trim() ? Number(tendered) : undefined,
+                ...(tenderCurrency === 'USD' && tendered.trim()
+                  ? { amountPaidUSD: Number(tendered) }
+                  : {}),
+                ...(tenderCurrency === 'CDF' && tendered.trim()
+                  ? { amountPaidCDF: Number(tendered) }
+                  : {}),
+              }
           : {}),
       }
 
@@ -649,10 +688,11 @@ export function PaymentModal({
       setSuccessPaymentId(paymentId)
       setSuccessReference(ref)
       setSuccessServerAmount(serverAmt)
+      setSuccessTenderLabel(result.tender?.label ?? null)
       onSuccess(paymentId)
       toast.success(
         'Encaissement enregistré',
-        `#${paymentId}${ref ? ` · ${ref}` : ''} · ${formatMoney(serverAmt, currency)}`,
+        `#${paymentId}${ref ? ` · ${ref}` : ''} · ${formatMoney(serverAmt, currency)}${result.tender?.label ? ` · ${result.tender.label}` : ''}`,
       )
 
       const paymentStatus = String(result.payment?.status ?? (method === 'CASH' ? 'CONFIRMED' : 'PENDING'))
@@ -798,6 +838,11 @@ export function PaymentModal({
                 {methodLabel}
               </p>
               <p className="mt-0.5 text-xs text-emerald-700/70">{identity.fullName}</p>
+              {successTenderLabel ? (
+                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs font-medium text-amber-950">
+                  {successTenderLabel}
+                </p>
+              ) : null}
             </div>
 
             {thermalLoading ? (
@@ -1157,6 +1202,10 @@ export function PaymentModal({
                 tenderCurrency={tenderCurrency}
                 onTenderedChange={setTendered}
                 onTenderCurrencyChange={setTenderCurrency}
+                tenderedUsd={tenderedUsd}
+                tenderedCdf={tenderedCdf}
+                onTenderedUsdChange={setTenderedUsd}
+                onTenderedCdfChange={setTenderedCdf}
                 availableDrawerUsd={drawerAvailableUsd}
                 allowedTenderCurrencies={allowedTenderCurrencies}
               />
