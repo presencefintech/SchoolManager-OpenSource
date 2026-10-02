@@ -38,10 +38,10 @@ export function mapActivateErrorMessage(raw: string | undefined): string {
   if (!raw) return 'Activation impossible. Réessayez ou contactez votre administrateur.'
   const code = raw.toUpperCase()
   if (code.includes('OTP_EXPIRED')) {
-    return 'Ce code a expiré (15 minutes). Demandez au super-admin de renvoyer l’invitation (nouveau lien + nouveau code).'
+    return 'Ce code a expiré. Demandez à renvoyer l’invitation : vous recevrez un nouveau SMS avec un nouveau lien et un nouveau code.'
   }
   if (code.includes('INVALID_OTP')) {
-    return 'Code incorrect. Utilisez le code à 6 chiffres du message WhatsApp (ou de l’email), pas un SMS.'
+    return 'Code incorrect. Utilisez le code à 6 chiffres du SMS (le même figure dans l’email).'
   }
   if (code.includes('TOKEN_EXPIRED')) {
     return 'Ce lien d\'invitation est invalide ou a expiré. Demandez une nouvelle invitation à votre administrateur.'

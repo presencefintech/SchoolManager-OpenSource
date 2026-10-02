@@ -26,6 +26,6 @@ describe('password-policy', () => {
   })
 
   it('mappe un OTP WhatsApp incorrect sans le confondre avec un token invalide', () => {
-    expect(mapActivateErrorMessage('INVALID_OTP')).toMatch(/WhatsApp/i)
+    expect(mapActivateErrorMessage('INVALID_OTP')).toMatch(/SMS/i)
   })
 })

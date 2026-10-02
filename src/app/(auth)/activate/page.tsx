@@ -42,7 +42,7 @@ type ActivateForm = z.infer<typeof activateSchema>
 
 const onboardingSteps = [
   { icon: UserCheck, title: 'Mot de passe défini', desc: 'Votre accès staff est préparé.' },
-  { icon: Mail, title: 'Code OTP vérifié', desc: 'Code WhatsApp (ou email), pas besoin de SMS.' },
+  { icon: Mail, title: 'Code OTP vérifié', desc: 'Le code à 6 chiffres du SMS.' },
   { icon: ShieldCheck, title: 'Connexion sécurisée', desc: 'Accédez à votre espace.' },
 ]
 
@@ -251,9 +251,8 @@ function ActivateContent() {
               <div className="mb-6">
                 <h2 className="text-lg font-semibold text-zinc-900">Code de vérification</h2>
                 <p className="text-sm text-zinc-400 mt-1 leading-relaxed">
-                  Saisissez le code à 6 chiffres envoyé par <strong>WhatsApp</strong> (lien wa.me
-                  à la création de l&apos;école) ou dans l&apos;email d&apos;invitation. Le SMS
-                  n&apos;est pas requis tant que Twilio SMS n&apos;est pas prêt.
+                  Saisissez le code à 6 chiffres reçu par <strong>SMS</strong>. Le même code
+                  figure dans l&apos;email d&apos;invitation. Il reste valable 72 heures, comme le lien.
                 </p>
               </div>
               <form onSubmit={onVerifyOtp} className="space-y-4" noValidate>
