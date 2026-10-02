@@ -43,7 +43,7 @@ export function mapActivateErrorMessage(raw: string | undefined): string {
   if (code.includes('INVALID_OTP')) {
     return 'Code incorrect. Utilisez le code à 6 chiffres du message WhatsApp (ou de l’email), pas un SMS.'
   }
-  if (code.includes('TOKEN_EXPIRED') || code.includes('TOKEN_EXPIRED_OR_INVALID') || code.includes('INVALID')) {
+  if (code.includes('TOKEN_EXPIRED')) {
     return 'Ce lien d\'invitation est invalide ou a expiré. Demandez une nouvelle invitation à votre administrateur.'
   }
   if (code.includes('WEAK_PASSWORD')) {

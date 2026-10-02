@@ -93,7 +93,7 @@ function StrengthBar({ password }: { password: string }) {
 function ActivateContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const token = searchParams.get('token') ?? ''
+  const token = (searchParams.get('token') ?? '').replace(/\s+/g, '')
 
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
