@@ -274,8 +274,6 @@ export const financeRoleApi = {
     tenderAmount?: number
     amountPaidUSD?: number
     amountPaidCDF?: number
-    amountPaidUSD?: number
-    amountPaidCDF?: number
     idempotencyKey?: string
   }) => {
     const { idempotencyKey, ...body } = payload
