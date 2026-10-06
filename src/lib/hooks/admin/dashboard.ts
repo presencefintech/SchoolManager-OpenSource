@@ -67,3 +67,27 @@ export function useTriggerWeeklyReport() {
     mutationFn: dashboardApi.triggerWeeklyReport,
   })
 }
+
+export function useDirectionMetrics() {
+  const refetchInterval = useEmpirePollingInterval(60_000)
+  return useQuery({
+    queryKey: ['admin', 'dashboard', 'metrics'],
+    queryFn: dashboardApi.getDirectionMetrics,
+    enabled: !!getAuthToken(),
+    staleTime: 45_000,
+    refetchInterval,
+    retry: 1,
+  })
+}
+
+export function useDirectionAlerts() {
+  const refetchInterval = useEmpirePollingInterval(60_000)
+  return useQuery({
+    queryKey: ['admin', 'dashboard', 'alerts'],
+    queryFn: dashboardApi.getDirectionAlerts,
+    enabled: !!getAuthToken(),
+    staleTime: 45_000,
+    refetchInterval,
+    retry: 1,
+  })
+}

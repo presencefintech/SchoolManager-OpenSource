@@ -7,6 +7,7 @@ import { SchoolBrandingSettings } from '@/components/admin/settings/SchoolBrandi
 import { FinanceCurrencySettings } from '@/components/admin/settings/FinanceCurrencySettings'
 import { SchoolMessagingSettings } from '@/components/admin/settings/SchoolMessagingSettings'
 import { StaffAccessSettings } from '@/components/admin/settings/StaffAccessSettings'
+import { SchoolAcademicSettings } from '@/components/admin/settings/SchoolAcademicSettings'
 import { useAttendanceSettings, useUpdateAttendanceSettings } from '@/lib/hooks/use-admin'
 import {
   buildPatch,
@@ -184,8 +185,16 @@ export default function SettingsPage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
         <h1 className="text-xl font-bold text-zinc-900">Paramètres école</h1>
         <p className="text-sm text-zinc-500 mt-0.5">
-          Identité, accès staff, pointage, horaires et notifications présence
+          Identité, année scolaire, accès staff, pointage et notifications
         </p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.02 }}
+      >
+        <SchoolAcademicSettings />
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -461,6 +470,34 @@ export default function SettingsPage() {
                   notificationSettings: {
                     ...f.notificationSettings,
                     parentDepartureNotificationsEnabled: v,
+                  },
+                }))
+              }
+            />
+            <Toggle
+              label="Indicateur frais scolaires au guichet"
+              description="Mention discrète sur la carte de confirmation — n’bloque jamais l’entrée"
+              checked={form.notificationSettings.gateFinanceDisplayEnabled}
+              onChange={(v) =>
+                updateForm((f) => ({
+                  ...f,
+                  notificationSettings: {
+                    ...f.notificationSettings,
+                    gateFinanceDisplayEnabled: v,
+                  },
+                }))
+              }
+            />
+            <Toggle
+              label="Rapport de ponctualité quotidien"
+              description="PDF + email aux DIRECTOR/ADMIN chaque matin (≈ 09:00)"
+              checked={form.notificationSettings.dailyPunctualityReportEnabled}
+              onChange={(v) =>
+                updateForm((f) => ({
+                  ...f,
+                  notificationSettings: {
+                    ...f.notificationSettings,
+                    dailyPunctualityReportEnabled: v,
                   },
                 }))
               }

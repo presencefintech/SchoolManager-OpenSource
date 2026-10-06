@@ -21,6 +21,9 @@ const DEFAULT_SCHEDULE: AttendanceScheduleSettings = {
 const DEFAULT_NOTIFICATION_SETTINGS: AttendanceNotificationSettings = {
   parentPresenceNotificationsEnabled: false,
   parentDepartureNotificationsEnabled: false,
+  gateFinanceDisplayEnabled: false,
+  dailyPunctualityReportEnabled: false,
+  dailyPunctualityReportEmails: [],
 }
 
 const DEFAULT_ABSENCE_SETTINGS: AttendanceAbsenceSettings = {
@@ -153,6 +156,13 @@ export function buildPatch(
       original.notificationSettings?.parentPresenceNotificationsEnabled ?? false,
     parentDepartureNotificationsEnabled:
       original.notificationSettings?.parentDepartureNotificationsEnabled ?? false,
+    gateFinanceDisplayEnabled:
+      original.notificationSettings?.gateFinanceDisplayEnabled ?? false,
+    dailyPunctualityReportEnabled:
+      original.notificationSettings?.dailyPunctualityReportEnabled ?? false,
+    dailyPunctualityReportEmails: [
+      ...(original.notificationSettings?.dailyPunctualityReportEmails ?? []),
+    ],
   }
 
   const methodKeys = Object.keys(form.methods) as (keyof AttendanceMethods)[]
@@ -174,11 +184,19 @@ export function buildPatch(
     patch.scheduleSettings = { ...form.scheduleSettings }
   }
 
+  const emailsChanged =
+    JSON.stringify(form.notificationSettings.dailyPunctualityReportEmails ?? []) !==
+    JSON.stringify(originalNotifs.dailyPunctualityReportEmails ?? [])
   if (
     form.notificationSettings.parentPresenceNotificationsEnabled !==
       originalNotifs.parentPresenceNotificationsEnabled ||
     form.notificationSettings.parentDepartureNotificationsEnabled !==
-      originalNotifs.parentDepartureNotificationsEnabled
+      originalNotifs.parentDepartureNotificationsEnabled ||
+    form.notificationSettings.gateFinanceDisplayEnabled !==
+      originalNotifs.gateFinanceDisplayEnabled ||
+    form.notificationSettings.dailyPunctualityReportEnabled !==
+      originalNotifs.dailyPunctualityReportEnabled ||
+    emailsChanged
   ) {
     patch.notificationSettings = { ...form.notificationSettings }
   }

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, CreditCard, FileText, RotateCcw, Clock,
   Fingerprint, Building2, Shield, QrCode, BarChart3, ClipboardCheck, Layers3, Smartphone, Network,
-  PiggyBank,
+  PiggyBank, LifeBuoy, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,6 +32,8 @@ const LINKS: FinanceAdminNavLink[] = [
   { href: '/admin/finance/scelles', label: 'Scellés', icon: Fingerprint },
   { href: '/admin/finance/payment-profile', label: 'Profil règlement', icon: Building2 },
   { href: '/admin/finance/reseau', label: 'Console groupe', icon: Network },
+  { href: '/admin/finance/caisse', label: 'Caisse & fonds', icon: Wallet },
+  { href: '/admin/finance/rescue', label: 'Secours', icon: LifeBuoy, highlight: true },
   { href: '/admin/finance/audit', label: 'Audit', icon: Shield },
   { href: '/verify', label: 'Vérifier document', icon: QrCode },
 ]

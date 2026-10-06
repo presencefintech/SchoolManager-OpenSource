@@ -10,7 +10,15 @@ const revision =
 const withSerwist = withSerwistInit({
   swSrc: 'src/app/sw.ts',
   swDest: 'public/sw.js',
-  additionalPrecacheEntries: [{ url: '/offline', revision }],
+  // Shell guichet + fallback : chargement instantané hors ligne après 1ère visite / install.
+  additionalPrecacheEntries: [
+    { url: '/offline', revision },
+    { url: '/teacher/attendance', revision },
+    { url: '/teacher/dashboard', revision },
+    { url: '/icons/icon-192.png', revision },
+    { url: '/icons/icon-512.png', revision },
+    { url: '/icons/icon-512-maskable.png', revision },
+  ],
   disable: process.env.NODE_ENV === 'development',
 })
 

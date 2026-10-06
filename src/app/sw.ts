@@ -2,7 +2,7 @@
 /// <reference lib="webworker" />
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
-import { Serwist } from 'serwist'
+import { NetworkFirst, Serwist } from 'serwist'
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -12,22 +12,44 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope
 
-// Deliberately no runtime caching rule for `/api/*`: financial/student data
-// must never be written to the (unencrypted, on-disk) Cache Storage. `defaultCache`
-// only covers Next.js static assets, fonts, images and documents/pages — API
-// requests fall through to a normal, uncached network fetch.
+/**
+ * Cache Storage = assets / pages UI uniquement.
+ * Le référentiel élèves et la file de scans vivent en IndexedDB (app), jamais ici.
+ */
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // Guichet : privilégier le réseau, repli cache pour ouverture hors ligne.
+    {
+      matcher: ({ url, sameOrigin }) =>
+        sameOrigin &&
+        (url.pathname === '/teacher/attendance' ||
+          url.pathname.startsWith('/teacher/attendance/') ||
+          url.pathname === '/teacher/dashboard'),
+      handler: new NetworkFirst({
+        cacheName: 'gate-pages',
+        networkTimeoutSeconds: 3,
+      }),
+    },
+    ...defaultCache,
+  ],
   fallbacks: {
     entries: [
       {
         url: '/offline',
         matcher({ request }) {
-          return request.destination === 'document'
+          if (request.destination !== 'document') return false
+          try {
+            const path = new URL(request.url).pathname
+            // Guichet précaché / NetworkFirst — ne pas écraser par /offline.
+            if (path.startsWith('/teacher/attendance')) return false
+          } catch {
+            /* ignore */
+          }
+          return true
         },
       },
     ],

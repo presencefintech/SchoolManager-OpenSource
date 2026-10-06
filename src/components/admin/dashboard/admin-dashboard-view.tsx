@@ -10,7 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import {
   useAdminStats, useLiveFeed, useFraudAlerts, useControlStats, useHeatmap, useClasses,
-  useTriggerWeeklyReport,
+  useTriggerWeeklyReport, useStaff,
 } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useAuth } from '@/providers/auth-provider'
@@ -25,6 +25,7 @@ import {
 import { AttendanceReadinessPanel } from '@/components/admin/dashboard/attendance-readiness-panel'
 import { AttendanceSettingsBanner } from '@/components/admin/dashboard/attendance-settings-banner'
 import { ControlDashboardPanel } from '@/components/admin/dashboard/control-dashboard-panel'
+import { DirectionPedagogyPanel } from '@/components/admin/dashboard/direction-pedagogy-panel'
 import { AttendanceActivityFeed } from '@/components/admin/dashboard/attendance-activity-feed'
 import { DashboardActionWidgets } from '@/components/admin/dashboard/dashboard-action-widgets'
 import { ActiveQrSessionsPanel } from '@/components/admin/dashboard/active-qr-sessions-panel'
@@ -221,6 +222,7 @@ export function AdminDashboardView() {
   } = useControlStats()
   const { data: heatmap = [], isPending: heatmapPending } = useHeatmap()
   const { data: classes = [], isPending: classesPending } = useClasses(ACTIVE_CLASSES_PARAMS)
+  const { data: staff = [], isPending: staffPending } = useStaff()
 
   const loadingStats = authLoading || statsPending
   const loadingFeed = authLoading || feedPending
@@ -228,6 +230,14 @@ export function AdminDashboardView() {
   const loadingControl = authLoading || controlPending
   const loadingHeatmap = authLoading || heatmapPending
   const loadingClasses = authLoading || classesPending
+  const loadingStaff = authLoading || staffPending
+
+  const activeTeachers = useMemo(
+    () => staff.filter((s) => s.role === 'TEACHER' && s.isActive !== false && s.status !== 'BLOCKED').length,
+    [staff],
+  )
+  const activeClassesCount = classes.length
+  const enrolledStudents = stats?.totalStudents ?? 0
 
   const attendanceRate = stats?.attendanceRate ?? 0
   const weeklyTrend = useMemo(() => stats?.weeklyTrend ?? [], [stats])
@@ -447,15 +457,39 @@ export function AdminDashboardView() {
         <StudentPaymentStatusWidget href="/admin/finance/controle" />
         <CashJournalReport />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            label="Élèves inscrits"
+            value={fmtKpi(enrolledStudents, loadingStats)}
+            icon={GraduationCap}
+            color="indigo"
+            loading={loadingStats}
+          />
+          <KpiCard
+            label="Enseignants actifs"
+            value={fmtKpi(activeTeachers, loadingStaff)}
+            icon={Users}
+            color="emerald"
+            loading={loadingStaff}
+          />
+          <KpiCard
+            label="Classes actives"
+            value={fmtKpi(activeClassesCount, loadingClasses)}
+            icon={BookOpen}
+            color="violet"
+            loading={loadingClasses}
+          />
           <KpiCard
             label="Taux de présence"
             value={loadingStats ? '…' : `${attendanceRate.toFixed(1)}%`}
             trend={rateDelta}
             icon={Activity}
-            color="violet"
+            color="amber"
             loading={loadingStats}
           />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard
             label="Alertes sécurité"
             value={fmtKpi(control?.security?.alerts, loadingControl)}
@@ -471,8 +505,17 @@ export function AdminDashboardView() {
             color="indigo"
             loading={loadingControl}
           />
+          <KpiCard
+            label="Présents aujourd’hui"
+            value={fmtKpi(stats?.presentToday, loadingStats)}
+            sub={`${fmtKpi(stats?.absentToday, loadingStats)} absents · ${fmtKpi(stats?.lateToday, loadingStats)} retards`}
+            icon={CheckCircle2}
+            color="emerald"
+            loading={loadingStats}
+          />
         </div>
 
+        <DirectionPedagogyPanel />
         <ControlDashboardPanel />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -162,4 +162,38 @@ export const studentsApi = {
         }
       }>('/admin/students/desk/incomplete', { params })
       .then((r) => r.data.data),
+
+  listGuardians: (studentId: number) =>
+    apiClient
+      .get<{ success: boolean; data: StudentGuardian[] }>(`/admin/students/${studentId}/guardians`)
+      .then((r) => (r.data.data ?? []) as StudentGuardian[]),
+
+  upsertGuardian: (
+    studentId: number,
+    body: {
+      firstName: string
+      lastName: string
+      phone: string
+      relationship?: string
+      isPrimary?: boolean
+      notifyEnabled?: boolean
+      hasSmartphone?: boolean
+      preferredChannel?: string
+      email?: string
+    },
+  ) =>
+    apiClient
+      .post<{ success: boolean; data: StudentGuardian }>(`/admin/students/${studentId}/guardians`, body)
+      .then((r) => r.data.data as StudentGuardian),
+}
+
+export type StudentGuardian = {
+  id?: number
+  firstName: string
+  lastName: string
+  phone: string
+  relationship?: string | null
+  isPrimary?: boolean
+  notifyEnabled?: boolean
+  email?: string | null
 }

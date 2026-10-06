@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { RefreshCw, BookOpen, QrCode, CheckCircle, XCircle, Clock, Phone, Mail } from 'lucide-react'
-import { useTeacherDashboard, useTeacherScans, useForceValidatePresence, useUpdateTeacherClasses, useStaff } from '@/lib/hooks/use-admin'
+import { useTeacherDashboard, useTeacherScans, useForceValidatePresence, useUpdateTeacherClasses, useStaff, useTeacherPerformance, useTeacherDisciplinary, useAddTeacherDisciplinary } from '@/lib/hooks/use-admin'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { useToast } from '@/providers/toast-provider'
 
 function ScanStatusIcon({ status }: { status: string }) {
   if (status === 'PRESENT') return <CheckCircle size={14} className="text-emerald-500" />
@@ -13,13 +15,27 @@ function ScanStatusIcon({ status }: { status: string }) {
   return <Clock size={14} className="text-yellow-500" />
 }
 
-function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () => void }) {
+function TeacherDetail({
+  teacherId,
+  teacherProfileId,
+  onBack,
+}: {
+  teacherId: number
+  teacherProfileId?: number | null
+  onBack: () => void
+}) {
+  const toast = useToast()
   const { data: dashboard, isLoading: dashLoading } = useTeacherDashboard(teacherId)
   const { data: scans, isLoading: scansLoading } = useTeacherScans(teacherId)
   const forceValidate = useForceValidatePresence()
   const updateClasses = useUpdateTeacherClasses()
+  const { data: performance, isLoading: perfLoading } = useTeacherPerformance(teacherProfileId)
+  const { data: sanctions = [], isLoading: sanctionsLoading } = useTeacherDisciplinary(teacherProfileId)
+  const addSanction = useAddTeacherDisciplinary(teacherProfileId)
 
   const [classInput, setClassInput] = useState('')
+  const [sanctionType, setSanctionType] = useState<'WARNING' | 'BLAME' | 'SUSPENSION' | 'OTHER'>('WARNING')
+  const [sanctionReason, setSanctionReason] = useState('')
 
   const teacher = dashboard?.teacher
   const stats = dashboard?.stats
@@ -32,6 +48,27 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
     const ids = classInput.split(',').map(s => Number(s.trim())).filter(Boolean)
     if (!ids.length) return
     updateClasses.mutate({ teacherId, classIds: ids }, { onSuccess: () => setClassInput('') })
+  }
+
+  const handleAddSanction = () => {
+    if (!teacherProfileId || sanctionReason.trim().length < 8) {
+      toast.error('Motif trop court', 'Indiquez au moins 8 caractères.')
+      return
+    }
+    addSanction.mutate(
+      {
+        infractionDate: new Date().toISOString(),
+        reason: sanctionReason.trim(),
+        sanctionType,
+      },
+      {
+        onSuccess: () => {
+          toast.success('Sanction enregistrée')
+          setSanctionReason('')
+        },
+        onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+      },
+    )
   }
 
   if (dashLoading) return <div className="p-6 text-center text-sm text-zinc-400">Chargement…</div>
@@ -56,6 +93,91 @@ function TeacherDetail({ teacherId, onBack }: { teacherId: number; onBack: () =>
             </div>
           ))}
         </div>
+      )}
+
+      {teacherProfileId ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="bg-white rounded-xl border border-zinc-200 p-4">
+            <h3 className="text-sm font-semibold text-zinc-700 mb-3">Performance pédagogique</h3>
+            {perfLoading ? (
+              <p className="text-sm text-zinc-400">Chargement…</p>
+            ) : performance ? (
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="text-xs text-zinc-500">Soumissions à temps</dt>
+                  <dd className="font-semibold tabular-nums">
+                    {performance.onTimeSubmissionRate != null
+                      ? `${performance.onTimeSubmissionRate}%`
+                      : '—'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-zinc-500">Fiches soumises</dt>
+                  <dd className="font-semibold tabular-nums">{performance.submittedCount}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-zinc-500">Approuvées 1er passage</dt>
+                  <dd className="font-semibold tabular-nums">{performance.approvedFirstPass}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-zinc-500">Sanctions</dt>
+                  <dd className="font-semibold tabular-nums">{performance.sanctionCount}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-sm text-zinc-400">Données indisponibles</p>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-zinc-200 p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-zinc-700">Discipline</h3>
+            {sanctionsLoading ? (
+              <p className="text-sm text-zinc-400">Chargement…</p>
+            ) : sanctions.length === 0 ? (
+              <p className="text-sm text-zinc-400">Aucune sanction enregistrée</p>
+            ) : (
+              <ul className="space-y-2 max-h-36 overflow-y-auto text-sm">
+                {sanctions.slice(0, 8).map((s) => (
+                  <li key={s.id} className="rounded-lg bg-zinc-50 px-2.5 py-2">
+                    <p className="font-medium text-zinc-800">{s.sanctionType}</p>
+                    <p className="text-xs text-zinc-500 line-clamp-2">{s.reason}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="border-t border-zinc-100 pt-3 space-y-2">
+              <select
+                value={sanctionType}
+                onChange={(e) => setSanctionType(e.target.value as typeof sanctionType)}
+                className="w-full rounded-lg border border-zinc-200 px-2 py-1.5 text-sm"
+              >
+                <option value="WARNING">Avertissement</option>
+                <option value="BLAME">Blâme</option>
+                <option value="SUSPENSION">Suspension</option>
+                <option value="OTHER">Autre</option>
+              </select>
+              <textarea
+                value={sanctionReason}
+                onChange={(e) => setSanctionReason(e.target.value)}
+                placeholder="Motif (8 caractères min.)"
+                rows={2}
+                className="w-full rounded-lg border border-zinc-200 px-2 py-1.5 text-sm"
+              />
+              <button
+                type="button"
+                disabled={addSanction.isPending}
+                onClick={handleAddSanction}
+                className="w-full rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                Enregistrer une sanction
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+          Profil enseignant (Teacher.id) manquant — performance / discipline indisponibles.
+        </p>
       )}
 
       {dashboard.classes?.length > 0 && (
@@ -181,6 +303,7 @@ export default function TeachersPage() {
   const { user } = useAuth()
   const deskOnly = isItDesk(user?.role)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [selectedProfileId, setSelectedProfileId] = useState<number | null>(null)
   const [selectValue, setSelectValue] = useState('')
   const { data: staff, isLoading: staffLoading } = useStaff()
   const teachers = (staff ?? []).filter(s => s.role === 'TEACHER')
@@ -188,14 +311,25 @@ export default function TeachersPage() {
   if (!deskOnly && selectedId) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <TeacherDetail teacherId={selectedId} onBack={() => { setSelectedId(null); setSelectValue('') }} />
+        <TeacherDetail
+          teacherId={selectedId}
+          teacherProfileId={selectedProfileId}
+          onBack={() => {
+            setSelectedId(null)
+            setSelectedProfileId(null)
+            setSelectValue('')
+          }}
+        />
       </div>
     )
   }
 
   const handleLoad = () => {
     const id = Number(selectValue)
-    if (id) setSelectedId(id)
+    if (!id) return
+    const member = teachers.find((t) => t.id === id)
+    setSelectedId(id)
+    setSelectedProfileId(member?.teacherProfileId ?? null)
   }
 
   return (
