@@ -46,6 +46,9 @@ function baseSettings(overrides: Partial<AttendanceSettings> = {}): AttendanceSe
     notificationSettings: {
       parentPresenceNotificationsEnabled: false,
       parentDepartureNotificationsEnabled: false,
+      gateFinanceDisplayEnabled: false,
+      dailyPunctualityReportEnabled: false,
+      dailyPunctualityReportEmails: [],
     },
     absenceSettings: {
       autoMarkEnabled: false,

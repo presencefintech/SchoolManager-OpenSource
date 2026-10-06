@@ -1541,6 +1541,11 @@ export interface AttendanceScheduleSettings {
 export interface AttendanceNotificationSettings {
   parentPresenceNotificationsEnabled: boolean
   parentDepartureNotificationsEnabled: boolean
+  /** Indicateur financier discret au guichet (jamais bloquant). */
+  gateFinanceDisplayEnabled: boolean
+  /** Rapport de ponctualité quotidien (PDF + email). */
+  dailyPunctualityReportEnabled: boolean
+  dailyPunctualityReportEmails: string[]
 }
 
 export interface AttendanceAbsenceSettings {

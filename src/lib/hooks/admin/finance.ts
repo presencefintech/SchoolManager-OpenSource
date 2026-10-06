@@ -378,3 +378,49 @@ export function useAdminStudentPaymentsDetailed(
     refetchOnWindowFocus: false,
   })
 }
+
+/** Demandes d’annulation de reçu (caissier → admin). */
+export function usePaymentVoidRequests(status?: 'PENDING' | 'APPROVED' | 'REJECTED') {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'payment-voids', status ?? 'ALL'],
+    queryFn: () => financeApi.listPaymentVoids(status ? { status } : undefined),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useReviewPaymentVoid() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { id: number; action: 'approve' | 'reject'; notes: string }) =>
+      financeApi.reviewPaymentVoid(input.id, { action: input.action, notes: input.notes }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'finance', 'payment-voids'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+    },
+  })
+}
+
+export function useSyncStudentLedger() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { studentId: number; sessionId?: number }) =>
+      financeApi.syncStudentLedger(input.studentId, {
+        sessionId: input.sessionId,
+      }),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'students', vars.studentId] })
+    },
+  })
+}
+
+export function useRepairSchoolLedgers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input?: { sessionId?: number }) => financeApi.repairSchoolLedgers(input),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+    },
+  })
+}

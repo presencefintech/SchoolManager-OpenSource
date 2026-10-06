@@ -65,6 +65,22 @@ function useDlq(enabled: boolean) {
   })
 }
 
+function useDeliverabilitySummary() {
+  return useQuery({
+    queryKey: ['admin', 'notif', 'deliverability-summary'],
+    queryFn: () => adminNotificationsApi.getDeliverabilitySummary(),
+    staleTime: 30_000,
+  })
+}
+
+function useDeliverabilityList() {
+  return useQuery({
+    queryKey: ['admin', 'notif', 'deliverability'],
+    queryFn: () => adminNotificationsApi.getDeliverability({ limit: 20 }),
+    staleTime: 30_000,
+  })
+}
+
 function useRetryDlq() {
   const qc = useQueryClient()
   return useMutation({
@@ -175,6 +191,16 @@ function DlqPanel({
   )
 }
 
+function extractDeliverabilityRows(data: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(data)) return data as Array<Record<string, unknown>>
+  if (data && typeof data === 'object') {
+    const d = data as { items?: unknown; data?: unknown }
+    if (Array.isArray(d.items)) return d.items as Array<Record<string, unknown>>
+    if (Array.isArray(d.data)) return d.data as Array<Record<string, unknown>>
+  }
+  return []
+}
+
 export default function NotificationsPage() {
   const [tab, setTab] = useState<'group' | 'direct' | 'dlq'>('group')
   const [groupForm, setGroupForm] = useState({ title: '', message: '', roles: [] as string[] })
@@ -190,6 +216,8 @@ export default function NotificationsPage() {
   const sendDirect = useSendDirect()
   const retryDlq = useRetryDlq()
   const { data: history, isLoading: histLoading, refetch } = useHistory()
+  const deliverabilitySummary = useDeliverabilitySummary()
+  const deliverabilityList = useDeliverabilityList()
   const {
     data: dlqItems = [],
     isLoading: dlqLoading,
@@ -198,6 +226,8 @@ export default function NotificationsPage() {
   const { data: staffList = [] } = useStaff()
 
   const histList = (history ?? []) as any[]
+  const summary = deliverabilitySummary.data
+  const deliverabilityRows = extractDeliverabilityRows(deliverabilityList.data)
 
   function toggleRole(role: string) {
     setGroupForm(f => ({
@@ -262,6 +292,8 @@ export default function NotificationsPage() {
           <button
             onClick={() => {
               void refetch()
+              void deliverabilitySummary.refetch()
+              void deliverabilityList.refetch()
               if (tab === 'dlq') void refetchDlq()
             }}
             className="p-2.5 rounded-xl border border-zinc-200 text-zinc-400 hover:bg-zinc-50 transition-colors"
@@ -269,6 +301,40 @@ export default function NotificationsPage() {
             <RefreshCw size={15} />
           </button>
         </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-8 pt-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
+          <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+            <p className="text-[10px] uppercase tracking-wide text-zinc-400">Outbox OK</p>
+            <p className="text-xl font-bold tabular-nums text-zinc-900">
+              {deliverabilitySummary.isLoading ? '…' : summary?.outbox.completed ?? 0}
+            </p>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+            <p className="text-[10px] uppercase tracking-wide text-zinc-400">Outbox échecs</p>
+            <p className="text-xl font-bold tabular-nums text-rose-600">
+              {deliverabilitySummary.isLoading ? '…' : summary?.outbox.failed ?? 0}
+            </p>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+            <p className="text-[10px] uppercase tracking-wide text-zinc-400">Livraisons envoyées</p>
+            <p className="text-xl font-bold tabular-nums text-zinc-900">
+              {deliverabilitySummary.isLoading ? '…' : summary?.deliveries.sent ?? 0}
+            </p>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white px-4 py-3">
+            <p className="text-[10px] uppercase tracking-wide text-zinc-400">Livraisons mortes</p>
+            <p className="text-xl font-bold tabular-nums text-amber-700">
+              {deliverabilitySummary.isLoading ? '…' : summary?.deliveries.dead ?? 0}
+            </p>
+          </div>
+        </div>
+        {deliverabilityRows.length > 0 && (
+          <p className="text-[11px] text-zinc-400 mb-4">
+            Dernières livraisons suivies : {deliverabilityRows.length} entrée(s)
+          </p>
+        )}
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-8 grid grid-cols-[1fr_380px] gap-6">

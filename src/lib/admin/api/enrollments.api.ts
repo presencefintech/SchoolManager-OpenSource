@@ -391,6 +391,14 @@ export const enrollmentsApi = {
       }),
       `attestations-classe-${classId}.pdf`,
     ),
+
+  revokeIssuedDocument: (payload: { documentRef: string; reason?: string }) =>
+    apiClient
+      .post<{ success: boolean; data: { documentRef: string; revokedAt: string } }>(
+        '/admin/enrollments/documents/revoke',
+        payload,
+      )
+      .then((r) => r.data.data),
 }
 
 async function fetchStudentCardsPdf(

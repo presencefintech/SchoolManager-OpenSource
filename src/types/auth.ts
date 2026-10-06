@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'FINANCE' | 'DIRECTOR' | 'IT'
+export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'FINANCE' | 'DIRECTOR' | 'IT' | 'TEACHER'
 
 export interface AuthUser {
   id: number
@@ -31,12 +31,12 @@ export const ROLE_HOME: Record<UserRole, string> = {
   FINANCE: '/finances/dashboard',
   DIRECTOR: '/director/dashboard',
   IT: '/admin/desk',
+  TEACHER: '/teacher/dashboard',
 }
 
 /**
- * Le backend accepte aussi TEACHER/PARENT (app mobile) sur /auth/login — ce
- * portail web ne leur propose aucune destination. Vérifie l'appartenance
- * avant tout `ROLE_HOME[role]` pour éviter une redirection vers "/undefined".
+ * Rôles autorisés sur le portail web (dont TEACHER pour le cahier de notes).
+ * PARENT reste réservé à l’app mobile.
  */
 export function isWebRole(role: string): role is UserRole {
   return role in ROLE_HOME
@@ -48,6 +48,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   SUPER_ADMIN: ['/super-admin'],
   FINANCE: ['/finances'],
   DIRECTOR: ['/director'],
+  TEACHER: ['/teacher'],
   IT: [
     '/admin/inbox',
     '/admin/desk',

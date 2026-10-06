@@ -79,4 +79,34 @@ export const adminNotificationsApi = {
     apiClient
       .post<{ success: boolean; message?: string }>(`/admin/notifications/dlq/${deliveryId}/retry`)
       .then((r) => r.data),
+
+  getDeliverabilitySummary: (params?: { studentId?: number; classId?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: {
+          outbox: { pending: number; processing: number; completed: number; failed: number }
+          deliveries: {
+            pending: number
+            sent: number
+            failed: number
+            dead: number
+            skipped: number
+          }
+        }
+      }>('/admin/notifications/deliverability/summary', { params })
+      .then((r) => r.data.data),
+
+  getDeliverability: (params?: {
+    status?: string
+    channel?: string
+    type?: string
+    studentId?: number
+    classId?: number
+    limit?: number
+    offset?: number
+  }) =>
+    apiClient
+      .get<{ success: boolean; data: unknown }>('/admin/notifications/deliverability', { params })
+      .then((r) => r.data.data),
 }

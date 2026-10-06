@@ -71,6 +71,12 @@ export function ImportPage() {
   const [dragOver, setDragOver] = useState(false)
   const [fileError, setFileError] = useState<string | null>(null)
   const [selectedSchoolId, setSelectedSchoolId] = useState<number | null>(null)
+  const [preview, setPreview] = useState<{
+    valid: number
+    errors: { row: number; field?: string; message: string; code?: string }[]
+    skippedExamples?: number
+  } | null>(null)
+  const [previewing, setPreviewing] = useState(false)
 
   const { data: schools = [] } = useQuery({
     queryKey: queryKeys.superadmin.schools({ list: 'all' }),
@@ -103,7 +109,19 @@ export function ImportPage() {
         return
       }
       setJobId(null)
+      setPreview(null)
+      setPreviewing(true)
       try {
+        const previewResult = await importApi.preview(
+          type,
+          file,
+          isSuperAdmin && selectedSchoolId ? selectedSchoolId : undefined,
+        )
+        setPreview(previewResult)
+        if ((previewResult.errors?.length ?? 0) > 0 && (previewResult.valid ?? 0) === 0) {
+          setFileError('Prévisualisation : aucune ligne valide — corrigez le fichier avant import.')
+          return
+        }
         const res = await upload.mutateAsync({
           type,
           file,
@@ -112,6 +130,8 @@ export function ImportPage() {
         setJobId(res.jobId)
       } catch (err: unknown) {
         setFileError(getApiErrorMessage(err))
+      } finally {
+        setPreviewing(false)
       }
     },
     [type, upload, isSuperAdmin, selectedSchoolId],
@@ -130,6 +150,7 @@ export function ImportPage() {
   const reset = () => {
     setJobId(null)
     setFileError(null)
+    setPreview(null)
     upload.reset()
   }
 
@@ -273,14 +294,37 @@ export function ImportPage() {
             <p className="text-sm font-medium text-zinc-700 mb-1">
               Glissez votre fichier ici ou cliquez pour parcourir
             </p>
-            <p className="text-xs text-zinc-400 mb-4">.xlsx ou .csv — 10 Mo max</p>
+            <p className="text-xs text-zinc-400 mb-4">
+              Prévisualisation puis import — .xlsx ou .csv — 10 Mo max
+            </p>
           </>
+        )}
+
+        {preview && (
+          <div className="mb-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-left text-sm">
+            <p className="font-medium text-zinc-800">
+              Prévisualisation : {preview.valid} ligne(s) valide(s)
+              {(preview.errors?.length ?? 0) > 0
+                ? ` · ${preview.errors.length} erreur(s)`
+                : ''}
+            </p>
+            {(preview.errors?.length ?? 0) > 0 && (
+              <ul className="mt-2 max-h-28 overflow-y-auto space-y-1 text-xs text-rose-700">
+                {preview.errors.slice(0, 8).map((err, i) => (
+                  <li key={`${err.row}-${i}`}>
+                    Ligne {err.row}
+                    {err.field ? ` · ${err.field}` : ''} : {err.message}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         )}
 
         <label
           className={cn(
             'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-sm',
-            upload.isPending || !canUpload
+            upload.isPending || previewing || !canUpload
               ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
               : fileError
                 ? 'bg-red-100 text-red-700 hover:bg-red-200 cursor-pointer'
@@ -288,7 +332,9 @@ export function ImportPage() {
           )}
         >
           <Upload size={14} />
-          {upload.isPending
+          {previewing
+            ? 'Prévisualisation…'
+            : upload.isPending
             ? 'Envoi en cours…'
             : !canUpload
               ? 'Choisir un établissement d\'abord'
@@ -299,7 +345,7 @@ export function ImportPage() {
             type="file"
             className="hidden"
             accept=".xlsx,.csv"
-            disabled={upload.isPending || !canUpload}
+            disabled={upload.isPending || previewing || !canUpload}
             onChange={e => {
               const f = e.target.files?.[0]
               if (f) handleFile(f)

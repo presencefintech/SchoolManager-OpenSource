@@ -19,6 +19,7 @@ const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   SUPER_ADMIN: '/super-admin',
   FINANCE: '/finances',
   DIRECTOR: '/director',
+  TEACHER: '/teacher',
   IT: '/admin',
 }
 

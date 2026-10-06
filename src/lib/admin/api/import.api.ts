@@ -47,4 +47,23 @@ export const importApi = {
 
   getStatus: (jobId: string): Promise<ImportJobResult> =>
     apiClient.get(`/admin/import/${jobId}`).then((r) => r.data.data),
+
+  preview: async (
+    type: ImportType,
+    file: File,
+    schoolId?: number,
+  ): Promise<{
+    valid: number
+    errors: { row: number; field?: string; message: string; code?: string }[]
+    skippedExamples?: number
+    totalRows?: number
+  }> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const r = await apiClient.post(`/admin/import/preview/${type}`, fd, {
+      params: schoolId ? { schoolId } : undefined,
+      timeout: 120_000,
+    })
+    return r.data.data
+  },
 }

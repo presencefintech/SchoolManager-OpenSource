@@ -43,6 +43,67 @@ import { fmtMoney } from '@/components/admin/finance/verification-ui'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
+import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
+
+function RevokeIssuedDocumentPanel() {
+  const toast = useToast()
+  const [documentRef, setDocumentRef] = useState('')
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const onRevoke = async () => {
+    if (!documentRef.trim()) {
+      toast.error('Référence requise', 'Indiquez le N° document (documentRef).')
+      return
+    }
+    setBusy(true)
+    try {
+      const result = await enrollmentsApi.revokeIssuedDocument({
+        documentRef: documentRef.trim(),
+        reason: reason.trim() || undefined,
+      })
+      toast.success('Document révoqué', result.documentRef)
+      setDocumentRef('')
+      setReason('')
+    } catch (err) {
+      toast.error('Révocation impossible', getApiErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-zinc-200 p-4 space-y-3">
+      <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-1.5">
+        <FileMinus size={14} className="text-rose-600" />
+        Révoquer un document émis
+      </h3>
+      <p className="text-xs text-zinc-500">
+        Invalide immédiatement le QR / code de vérification (fiche, attestation…).
+      </p>
+      <input
+        value={documentRef}
+        onChange={(e) => setDocumentRef(e.target.value)}
+        placeholder="N° document (ex. INS-2026-00042)"
+        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+      />
+      <input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Motif (optionnel)"
+        className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void onRevoke()}
+        className="rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+      >
+        {busy ? 'Révocation…' : 'Révoquer'}
+      </button>
+    </div>
+  )
+}
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
@@ -1540,6 +1601,8 @@ function StudentDetailPageContent() {
             />
 
             <PickupAdultsPanel studentId={studentId} />
+            <StudentGuardiansPanel studentId={studentId} />
+            <RevokeIssuedDocumentPanel />
 
             {enrollmentDetail?.enrollments && enrollmentDetail.enrollments.length > 0 && (
               <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">

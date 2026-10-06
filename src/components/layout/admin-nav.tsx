@@ -9,7 +9,7 @@ import {
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
   Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3, Smartphone, Upload,
-  Menu, X, BadgeCheck, NotebookPen,
+  Menu, X, BadgeCheck, NotebookPen, Calculator, Lock, ScrollText, LifeBuoy,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -45,6 +45,17 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Classes', href: '/admin/classes', icon: BookOpen },
       { label: 'Emploi du temps', href: '/admin/schedule', icon: CalendarClock },
       { label: 'Devoirs', href: '/admin/devoirs', icon: NotebookPen },
+      {
+        label: 'Notes',
+        href: '/admin/grades/overview',
+        icon: Calculator,
+        children: [
+          { label: 'Vue d’ensemble', href: '/admin/grades/overview', icon: LayoutDashboard },
+          { label: 'Cahier de notes', href: '/admin/grades/gradebook', icon: BookOpen },
+          { label: 'Périodes', href: '/admin/grades/periods', icon: Lock },
+          { label: 'Journal d’audit', href: '/admin/grades/audit-logs', icon: ScrollText },
+        ],
+      },
       { label: 'Enseignants', href: '/admin/teachers', icon: School },
       { label: 'Personnel', href: '/admin/staff', icon: Users },
     ],
@@ -68,6 +79,7 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
           { label: 'Console groupe', href: '/admin/finance/reseau', icon: Network },
           { label: 'Caisse & fonds', href: '/admin/finance/caisse', icon: Wallet },
+          { label: 'Secours', href: '/admin/finance/rescue', icon: LifeBuoy },
           { label: 'Audit & Fraude', href: '/admin/finance/audit', icon: Shield },
           { label: 'Vérifier document', href: '/verify', icon: QrCode },
         ],

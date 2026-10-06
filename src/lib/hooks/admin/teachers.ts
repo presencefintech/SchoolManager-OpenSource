@@ -43,3 +43,39 @@ export function useUpdateTeacherClasses() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'teachers'] }),
   })
 }
+
+export function useTeacherPerformance(teacherProfileId: number | null | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'teachers', teacherProfileId, 'performance'],
+    queryFn: () => teachersApi.getPerformance(teacherProfileId!),
+    enabled: !!teacherProfileId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useTeacherDisciplinary(teacherProfileId: number | null | undefined) {
+  return useQuery({
+    queryKey: ['admin', 'teachers', teacherProfileId, 'disciplinary'],
+    queryFn: () => teachersApi.listDisciplinary(teacherProfileId!),
+    enabled: !!teacherProfileId,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useAddTeacherDisciplinary(teacherProfileId: number | null | undefined) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: {
+      infractionDate: string
+      reason: string
+      sanctionType: 'WARNING' | 'BLAME' | 'SUSPENSION' | 'OTHER'
+      notes?: string
+    }) => teachersApi.addDisciplinary(teacherProfileId!, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'teachers', teacherProfileId] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'dashboard', 'alerts'] })
+    },
+  })
+}

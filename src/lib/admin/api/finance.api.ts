@@ -839,4 +839,80 @@ export const financeApi = {
     apiClient
       .get('/admin/finance/reports/ai-export', { params })
       .then((r) => r.data.data),
+
+  // ── Secours / supervision (ADMIN) ─────────────────────────────────────────
+  listPaymentVoids: (params?: { status?: 'PENDING' | 'APPROVED' | 'REJECTED' }) =>
+    apiClient
+      .get('/admin/finance/payment-voids', { params })
+      .then((r) => (r.data.data ?? []) as PaymentVoidRequestRow[]),
+
+  reviewPaymentVoid: (
+    id: number,
+    body: { action: 'approve' | 'reject'; notes: string },
+  ) =>
+    apiClient
+      .post(`/admin/finance/payment-voids/${id}/review`, body)
+      .then((r) => r.data.data as PaymentVoidRequestRow),
+
+  syncStudentLedger: (studentId: number, body?: { sessionId?: number }) =>
+    apiClient
+      .post(`/admin/finance/students/${studentId}/sync-ledger`, body ?? {})
+      .then(
+        (r) =>
+          r.data.data as {
+            totalFees: number
+            feesPaid: number
+            feesBalance: number
+            lineCount: number
+            sessionId: number | null
+          },
+      ),
+
+  repairSchoolLedgers: (body?: { sessionId?: number }) =>
+    apiClient.post('/admin/finance/audit/repair-ledgers', body ?? {}).then(
+      (r) =>
+        r.data.data as {
+          scanned: number
+          drifted: number
+          repaired: number
+          failed: number
+          samples: Array<{
+            studentId: number
+            before: { totalFees: number; feesPaid: number; tuitionBalance: number }
+            after?: { totalFees: number; feesPaid: number; feesBalance: number }
+            error?: string
+          }>
+        },
+    ),
+}
+
+export type PaymentVoidStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+
+export type PaymentVoidRequestRow = {
+  id: number
+  schoolId: number
+  paymentId: number
+  status: PaymentVoidStatus
+  reason: string
+  requestedAt: string
+  reviewedAt?: string | null
+  reviewNotes?: string | null
+  payment?: {
+    id: number
+    amount: number | string
+    method: string
+    reference?: string | null
+    receiptNumber?: string | null
+    status: string
+    createdAt: string
+    student?: {
+      id: number
+      firstName?: string | null
+      lastName?: string | null
+      matricule?: string | null
+    } | null
+  } | null
+  requestedBy?: { id: number; firstName?: string | null; lastName?: string | null } | null
+  reviewedBy?: { id: number; firstName?: string | null; lastName?: string | null } | null
+  cashDesk?: { id: number; code?: string | null; name?: string | null } | null
 }
