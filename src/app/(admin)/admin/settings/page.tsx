@@ -502,6 +502,29 @@ export default function SettingsPage() {
                 }))
               }
             />
+            {form.notificationSettings.dailyPunctualityReportEnabled && (
+              <label className="mt-3 block text-xs font-medium text-zinc-600">
+                Destinataires e-mail supplémentaires (séparés par des virgules)
+                <input
+                  type="text"
+                  value={(form.notificationSettings.dailyPunctualityReportEmails ?? []).join(', ')}
+                  onChange={(e) =>
+                    updateForm((f) => ({
+                      ...f,
+                      notificationSettings: {
+                        ...f.notificationSettings,
+                        dailyPunctualityReportEmails: e.target.value
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean),
+                      },
+                    }))
+                  }
+                  placeholder="ex. direction@ecole.cd, etudes@ecole.cd"
+                  className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                />
+              </label>
+            )}
           </div>
 
           <div className="p-5">

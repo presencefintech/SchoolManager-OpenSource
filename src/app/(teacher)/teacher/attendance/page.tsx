@@ -27,6 +27,8 @@ import {
   type GateFeedbackTone,
 } from '@/lib/teacher/gate-scan-feedback'
 import { useOnlineStatus } from '@/lib/hooks/use-online-status'
+import { requestGatePersistentStorage } from '@/lib/pwa/request-persistent-storage'
+import { PwaInstallPrompt } from '@/components/pwa/install-prompt'
 import { cn } from '@/lib/utils'
 
 type Mode = 'hardware' | 'manual'
@@ -151,16 +153,29 @@ export default function TeacherAttendancePage() {
   }, [refreshRosterMeta])
 
   useEffect(() => {
+    void requestGatePersistentStorage()
     void refreshPending()
     void refreshRosterMeta()
     void runRosterSync()
     void runFlush()
+
     const onOnline = () => {
       void runRosterSync()
       void runFlush()
     }
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      if (!navigator.onLine) return
+      void runRosterSync()
+      void runFlush()
+    }
+
     window.addEventListener('online', onOnline)
-    return () => window.removeEventListener('online', onOnline)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', onOnline)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [refreshPending, refreshRosterMeta, runFlush, runRosterSync])
 
   const handleScan = useCallback(
@@ -239,6 +254,9 @@ export default function TeacherAttendancePage() {
         <p className="mt-1 text-sm text-slate-500">
           PWA installable · offline prolongé (IndexedDB) · sync auto à la reconnexion.
         </p>
+        <div className="mt-2">
+          <PwaInstallPrompt />
+        </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
           <span
             className={cn(
