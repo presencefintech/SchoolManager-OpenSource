@@ -2,8 +2,11 @@ import { get, set } from 'idb-keyval'
 import { apiClient } from '@/lib/api/client'
 
 const ROSTER_KEY = 'teacher-gate-roster-v1'
-/** Re-sync périodique même si ETag inchangé côté client (ms). */
-const STALE_AFTER_MS = 6 * 60 * 60 * 1000
+/**
+ * Re-sync périodique quand on est en ligne (ETag → 304 si inchangé).
+ * Hors ligne, le cache IndexedDB reste utilisable plusieurs jours (pas d’éviction logique).
+ */
+const STALE_AFTER_MS = 12 * 60 * 60 * 1000
 
 export type GateRosterStudent = {
   id: number

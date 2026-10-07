@@ -1,4 +1,8 @@
 import { apiClient } from '@/lib/api/client'
+import {
+  parseContentDispositionFilename,
+  triggerBlobDownload,
+} from '@/lib/download-blob'
 import type { AttendanceHistoryResponse } from './presences.api'
 
 export type DirectorSectionAssignment = {
@@ -94,6 +98,52 @@ export type DirectorTodaySheet = {
   submittedAt: string | null
 }
 
+export type DirectorPunctualityClassRank = {
+  classId: number
+  className: string
+  enrolled: number
+  present: number
+  late: number
+  onTime: number
+  punctualityRate: number
+}
+
+export type DirectorPunctualityLatecomer = {
+  studentId: number
+  studentName: string
+  classId: number | null
+  className: string | null
+  scannedAt: string
+  scannedAtLabel: string
+}
+
+export type DirectorPunctualityReport = {
+  schoolId: number
+  schoolName: string
+  sessionDate: string
+  sessionDateLabel: string
+  generatedAt: string
+  totals: {
+    totalStudents: number
+    present: number
+    late: number
+    onTime: number
+    absent: number
+    attendanceRate: number
+    punctualityRate: number
+  }
+  classRanking: DirectorPunctualityClassRank[]
+  latecomers: DirectorPunctualityLatecomer[]
+}
+
+export type DirectorPunctualityDeliverResult = {
+  report: DirectorPunctualityReport
+  fileName: string
+  relativeUrl: string
+  byteSize: number
+  emailsSent: number
+}
+
 export const directorsApi = {
   summary: () =>
     apiClient
@@ -182,4 +232,33 @@ export const directorsApi = {
         '/admin/director/presence/sheets'
       )
       .then((r) => r.data.data),
+
+  punctualityReport: (params?: { date?: string }) =>
+    apiClient
+      .get<{ success: boolean; data: DirectorPunctualityReport }>(
+        '/admin/director/presence/punctuality-report',
+        { params }
+      )
+      .then((r) => r.data.data),
+
+  punctualityReportDeliver: (params?: { date?: string }) =>
+    apiClient
+      .get<{ success: boolean; data: DirectorPunctualityDeliverResult }>(
+        '/admin/director/presence/punctuality-report',
+        { params: { ...params, deliver: true } }
+      )
+      .then((r) => r.data.data),
+
+  downloadPunctualityReportPdf: async (params?: { date?: string }) => {
+    const res = await apiClient.get<Blob>(
+      '/admin/director/presence/punctuality-report/pdf',
+      { params, responseType: 'blob', timeout: 60_000 }
+    )
+    const filename = parseContentDispositionFilename(
+      res.headers['content-disposition'] as string | undefined,
+      `rapport-ponctualite-${params?.date ?? 'jour'}.pdf`
+    )
+    triggerBlobDownload(res.data, filename)
+    return filename
+  },
 }

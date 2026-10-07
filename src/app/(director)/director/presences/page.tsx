@@ -15,11 +15,14 @@ import {
   PresenceStatusPill,
 } from '@/components/director/director-ui'
 import { AttendanceHistoryPanel } from '@/components/admin/presences/AttendanceHistoryPanel'
+import { PunctualityReportPanel } from '@/components/director/punctuality-report-panel'
 
-type Tab = 'live' | 'history' | 'heatmap'
+type Tab = 'live' | 'history' | 'heatmap' | 'punctuality'
 
 function parseTab(raw: string | null): Tab {
-  if (raw === 'history' || raw === 'heatmap' || raw === 'live') return raw
+  if (raw === 'history' || raw === 'heatmap' || raw === 'live' || raw === 'punctuality') {
+    return raw
+  }
   return 'live'
 }
 
@@ -181,7 +184,7 @@ function DirectorPresencesPageContent() {
         subtitle="Consultation lecture seule — classes de vos sections"
         actions={
           <div className="inline-flex rounded-xl border border-zinc-200 p-0.5 bg-zinc-50">
-            {(['live', 'history', 'heatmap'] as const).map((t) => (
+            {(['live', 'history', 'heatmap', 'punctuality'] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -193,7 +196,13 @@ function DirectorPresencesPageContent() {
                     : 'text-zinc-500 hover:text-zinc-800'
                 )}
               >
-                {t === 'live' ? 'Live' : t === 'history' ? 'Historique' : 'Heatmap'}
+                {t === 'live'
+                  ? 'Live'
+                  : t === 'history'
+                    ? 'Historique'
+                    : t === 'heatmap'
+                      ? 'Heatmap'
+                      : 'Ponctualité'}
               </button>
             ))}
           </div>
@@ -229,38 +238,42 @@ function DirectorPresencesPageContent() {
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <label className="flex items-center gap-2 text-xs font-medium text-zinc-600">
-            <Filter size={13} className="text-zinc-400" />
-            Filtrer par classe
-          </label>
-          <select
-            value={classId}
-            onChange={(e) => setClassId(e.target.value)}
-            className="sm:max-w-xs w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
-          >
-            <option value="">Toutes mes classes</option>
-            {classes.map((c) => (
-              <option key={c.id} value={String(c.id)}>
-                {c.name} ({c.level})
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => liveQuery.refetch()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 sm:ml-auto"
-          >
-            <RefreshCw
-              size={12}
-              className={cn(liveQuery.isFetching && 'animate-spin')}
-            />
-            Actualiser
-          </button>
-        </div>
+        {tab !== 'punctuality' && (
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <label className="flex items-center gap-2 text-xs font-medium text-zinc-600">
+              <Filter size={13} className="text-zinc-400" />
+              Filtrer par classe
+            </label>
+            <select
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              className="sm:max-w-xs w-full px-3 py-2 rounded-xl border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            >
+              <option value="">Toutes mes classes</option>
+              {classes.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.name} ({c.level})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => liveQuery.refetch()}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 sm:ml-auto"
+            >
+              <RefreshCw
+                size={12}
+                className={cn(liveQuery.isFetching && 'animate-spin')}
+              />
+              Actualiser
+            </button>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-zinc-200 p-5 sm:p-6">
-          {tab === 'heatmap' ? (
+          {tab === 'punctuality' ? (
+            <PunctualityReportPanel />
+          ) : tab === 'heatmap' ? (
             <HeatmapChart classId={classFilter} />
           ) : tab === 'history' ? (
             <AttendanceHistoryPanel
