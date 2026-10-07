@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { StudentFeeLedgerTable } from '@/components/finance/student-fee-ledger-table'
 import { cn } from '@/lib/utils'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-schedule'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import type { FeeScheduleLineDto, StudentFinancialRow } from '@/types/finance'
@@ -45,12 +45,22 @@ function situationTone(status: string): string {
   }
 }
 
-function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
+function FeeLinesMiniTable({
+  lines,
+  currency,
+}: {
+  lines: FeeScheduleLineDto[]
+  currency?: string | null
+}) {
   if (lines.length === 0) {
     return <p className="text-xs text-zinc-400 py-2">Aucun frais sur l&apos;échéancier</p>
   }
 
   const missing = lines.filter((l) => !l.paid && (l.amountRemaining ?? l.amount) > 0)
+  const displayCurrency =
+    (currency || lines.find((l) => l.currency)?.currency || 'USD').toUpperCase() === 'CDF'
+      ? 'CDF'
+      : (currency || lines.find((l) => l.currency)?.currency || 'USD')
 
   return (
     <div className="space-y-2">
@@ -62,7 +72,7 @@ function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
         </p>
       )}
       <StudentFeeLedgerTable
-        currency="USD"
+        currency={displayCurrency}
         lines={lines.map((line) => ({
           id: `${line.feeStructureId}-${line.monthYear ?? 'once'}-${line.categoryId}`,
           name: line.categoryName,
@@ -102,7 +112,7 @@ function ExpandedFeeSchedule({
         <p className="text-xs font-semibold text-zinc-600">Détail — qui a payé quoi / qui manque</p>
         <StudentFeeScheduleLink studentId={studentId} variant="inline" href={scheduleHref} />
       </div>
-      <FeeLinesMiniTable lines={lines} />
+      <FeeLinesMiniTable lines={lines} currency={data?.currency} />
     </div>
   )
 }
@@ -119,6 +129,7 @@ export function StudentFinancialControlRows({
   hideAmounts?: boolean
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const { format: formatSchoolAmount } = useSchoolMoney()
 
   return (
     <table className="w-full">
@@ -200,10 +211,10 @@ export function StudentFinancialControlRows({
                 {!hideAmounts && (
                   <>
                 <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-700">
-                  {formatMoney(row.totalFees ?? 0)}
+                  {formatSchoolAmount(row.totalFees ?? 0)}
                 </td>
                 <td className="px-5 py-3 text-sm text-right tabular-nums text-emerald-700">
-                  {formatMoney(row.feesPaid ?? 0)}
+                  {formatSchoolAmount(row.feesPaid ?? 0)}
                 </td>
                 <td
                   className={cn(
@@ -211,15 +222,19 @@ export function StudentFinancialControlRows({
                     (row.balance ?? 0) > 0.01 ? 'text-red-600' : (row.balance ?? 0) < -0.01 ? 'text-sky-700' : 'text-zinc-700',
                   )}
                 >
-                  {formatMoney(row.balance ?? 0)}
+                  {formatSchoolAmount(row.balance ?? 0)}
                   {row.ledgerCoherent === false && (
-                    <p className="text-[10px] font-normal text-amber-600">écart {formatMoney(row.ledgerDrift ?? 0)}</p>
+                    <p className="text-[10px] font-normal text-amber-600">
+                      écart {formatSchoolAmount(row.ledgerDrift ?? 0)}
+                    </p>
                   )}
                 </td>
                 <td className="px-5 py-3 text-sm text-right tabular-nums font-semibold text-zinc-800">
                   {row.riskScore != null ? row.riskScore : '—'}
                   {row.expectedLoss != null && row.expectedLoss > 0 && (
-                    <p className="text-[10px] font-normal text-zinc-400">ECL {formatMoney(row.expectedLoss)}</p>
+                    <p className="text-[10px] font-normal text-zinc-400">
+                      ECL {formatSchoolAmount(row.expectedLoss)}
+                    </p>
                   )}
                 </td>
                 <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-600">

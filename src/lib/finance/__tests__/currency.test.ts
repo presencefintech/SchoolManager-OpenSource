@@ -5,11 +5,17 @@ describe('finance/currency', () => {
   it('formate en USD par défaut', () => {
     expect(DEFAULT_FINANCE_CURRENCY).toBe('USD')
     expect(formatMoney(330)).toContain('330')
-    expect(formatMoney(330)).toMatch(/\$|USD/)
+    expect(formatMoney(330)).toMatch(/\$US|USD/)
+  })
+
+  it('formate CDF sans symbole $US', () => {
+    expect(formatMoney(50000, 'CDF')).toBe('50.000 CDF')
+    expect(formatMoney(50000, 'CDF')).not.toMatch(/\$US|USD/)
+    expect(formatMoney(25, 'usd')).toMatch(/\$US/)
   })
 
   it('formate les insights monétaires en USD', () => {
-    expect(formatInsightValue('totalCollecte', 330)).toMatch(/\$|USD/)
+    expect(formatInsightValue('totalCollecte', 330)).toMatch(/\$US|USD/)
     expect(formatInsightValue('efficaciteRecouvrement', 2.7)).toBe('2,7%')
     expect(formatInsightValue('nombreEleves', 69)).toBe('69')
   })

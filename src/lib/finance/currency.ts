@@ -40,8 +40,8 @@ const COUNT_INSIGHT_KEYS = new Set([
 ])
 
 /**
- * Formate un montant avec la devise métier (USD par défaut).
- * Les montants API sont stockés en USD ; ne pas afficher en FCFA sans conversion.
+ * Formate un montant avec la devise métier (USD ou CDF).
+ * CDF : `50.000 CDF` (francs entiers). USD : `100 $US`.
  */
 export function formatMoney(
   amount: number,
@@ -49,18 +49,30 @@ export function formatMoney(
   options?: { maximumFractionDigits?: number; notation?: 'standard' | 'compact' },
 ): string {
   const safe = Number.isFinite(Number(amount)) ? Number(amount) : 0
-  const digits = options?.maximumFractionDigits ?? (currency === 'USD' ? 2 : 0)
+  const raw = String(currency || 'USD').toUpperCase()
+  const code = raw === 'FC' ? 'CDF' : raw
+
+  if (code === 'CDF') {
+    const whole = Math.round(safe)
+    return `${whole.toLocaleString('de-DE')} CDF`
+  }
+
+  const digits = options?.maximumFractionDigits ?? (code === 'USD' ? 2 : 0)
 
   try {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency,
+      currency: code === 'USD' ? 'USD' : code,
+      currencyDisplay: 'code',
       maximumFractionDigits: digits,
-      minimumFractionDigits: currency === 'USD' ? 0 : digits,
+      minimumFractionDigits: code === 'USD' ? 0 : digits,
       notation: options?.notation ?? 'standard',
-    }).format(safe)
+    })
+      .format(safe)
+      .replace(/\bUSD\b/g, '$US')
+      .trim()
   } catch {
-    const suffix = currency === 'USD' ? ' $' : ` ${currency}`
+    const suffix = code === 'USD' ? ' $US' : ` ${code}`
     return `${safe.toLocaleString('fr-FR', { maximumFractionDigits: digits })}${suffix}`
   }
 }
