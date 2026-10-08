@@ -1224,6 +1224,8 @@ export interface CreateFeeStructurePayload {
   sessionId: number
   categoryId: number
   amount: number
+  /** Devise du barème — USD ou CDF (défaut côté API = devise d'affichage école). */
+  currency?: 'USD' | 'CDF'
   classId?: number | null
   description?: string
   assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'

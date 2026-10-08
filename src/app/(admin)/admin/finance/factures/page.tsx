@@ -359,6 +359,7 @@ export default function FacturesPage() {
   const emptyFeeForm = (): Omit<CreateFeeStructurePayload, 'sessionId'> => ({
     categoryId: 0,
     amount: 0,
+    currency: 'USD',
     description: '',
     assignmentMode: 'AUTOMATIC',
     effectiveFrom: null,
@@ -396,6 +397,7 @@ export default function FacturesPage() {
     setFeeForm({
       categoryId: fs.categoryId ?? 0,
       amount: fs.amount,
+      currency: fs.currency === 'CDF' ? 'CDF' : 'USD',
       classId: fs.classId ?? null,
       description: fs.description ?? '',
       assignmentMode: fs.assignmentMode ?? 'AUTOMATIC',
@@ -411,6 +413,7 @@ export default function FacturesPage() {
       setFeeForm({
         categoryId: fresh.categoryId ?? fs.categoryId ?? 0,
         amount: fresh.amount,
+        currency: fresh.currency === 'CDF' ? 'CDF' : 'USD',
         classId: fresh.classId ?? null,
         description: fresh.description ?? '',
         assignmentMode: fresh.assignmentMode ?? 'AUTOMATIC',
@@ -445,6 +448,7 @@ export default function FacturesPage() {
         }
         const payload: UpdateFeeStructurePayload = {
           amount: feeForm.amount,
+          currency: feeForm.currency === 'CDF' ? 'CDF' : 'USD',
           description: feeForm.description?.trim() || null,
           assignmentMode: feeForm.assignmentMode ?? 'AUTOMATIC',
           effectiveFrom: feeForm.effectiveFrom || null,
@@ -462,20 +466,25 @@ export default function FacturesPage() {
         setFeeError('Sélectionnez une catégorie de frais.')
         return
       }
+      const feeCurrency = feeForm.currency === 'CDF' ? 'CDF' : 'USD'
       const created = await createFee({
         sessionId: selectedSessionId,
         categoryId: feeForm.categoryId,
         amount: feeForm.amount,
+        currency: feeCurrency,
         classId: feeForm.classId ?? null,
         description: feeForm.description?.trim() || undefined,
         assignmentMode: feeForm.assignmentMode ?? 'AUTOMATIC',
         ...(feeForm.effectiveFrom ? { effectiveFrom: feeForm.effectiveFrom } : {}),
         ...(feeForm.effectiveTo ? { effectiveTo: feeForm.effectiveTo } : {}),
-      }) as { restored?: boolean; impact?: { enrolledCount?: number; yearTotal?: number } }
+      }) as {
+        restored?: boolean
+        impact?: { enrolledCount?: number; yearTotal?: number; currency?: string }
+      }
       toast.success(
         created?.restored ? 'Barème réactivé' : 'Barème créé',
         created?.impact
-          ? `${created.impact.enrolledCount ?? 0} élève(s) · ${formatMoney(created.impact.yearTotal ?? feeForm.amount)} / élève / an`
+          ? `${created.impact.enrolledCount ?? 0} élève(s) · ${formatMoney(created.impact.yearTotal ?? feeForm.amount, created.impact.currency ?? feeCurrency)} / élève / an`
           : undefined,
       )
       setFeeSuccess(true)
@@ -749,7 +758,9 @@ export default function FacturesPage() {
                       {fs.assignmentMode === 'EXPLICIT' ? 'Optionnel' : 'Auto'}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-zinc-600">{formatMoney(Number(fs.amount))}</td>
+                  <td className="px-5 py-3 text-zinc-600 tabular-nums">
+                    {formatMoney(Number(fs.amount), fs.currency === 'CDF' ? 'CDF' : 'USD')}
+                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
