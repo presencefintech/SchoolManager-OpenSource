@@ -8,6 +8,7 @@ const TABS = [
   { href: '/admin/grades/overview', label: 'Vue d’ensemble' },
   { href: '/admin/grades/gradebook', label: 'Cahier de notes' },
   { href: '/admin/grades/periods', label: 'Périodes' },
+  { href: '/admin/deliberations', label: 'Délibérations' },
   { href: '/admin/grades/audit-logs', label: 'Journal d’audit' },
 ] as const
 

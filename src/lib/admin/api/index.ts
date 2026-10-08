@@ -34,4 +34,11 @@ export type { ImportType, ImportJobStatus, ImportJobResult } from './import.api'
 export { adminBillingApi } from './billing.api'
 export { presenceDiagnosticsApi } from './presence-diagnostics.api'
 export { adminGradesApi } from './grades.api'
+export { adminDeliberationsApi } from './deliberations.api'
+export type {
+  DeliberateBatchResult,
+  DeliberationBulletinRow,
+  GradeAnomalyReport,
+  BulkJobProgress,
+} from './deliberations.api'
 export { adminLessonPlansApi, adminTeacherNeedsApi } from './lesson-plans.api'
