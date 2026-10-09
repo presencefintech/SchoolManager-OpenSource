@@ -52,12 +52,14 @@ export function FeeStructureComposer({
   onOpenExisting: (id: number) => void
 }) {
   const selectedCategory = categories.find((c) => c.id === feeForm.categoryId)
+  const feeCurrency = (feeForm.currency === 'CDF' ? 'CDF' : 'USD') as 'USD' | 'CDF'
   const previewPayload =
     editingFeeId == null && selectedSessionId && feeForm.categoryId && feeForm.amount > 0
       ? {
           sessionId: selectedSessionId,
           categoryId: feeForm.categoryId,
           amount: feeForm.amount,
+          currency: feeCurrency,
           classId: feeForm.classId ?? null,
           assignmentMode: feeForm.assignmentMode ?? 'AUTOMATIC',
         }
@@ -145,14 +147,33 @@ export function FeeStructureComposer({
           </div>
 
           <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1">Devise *</label>
+            <select
+              value={feeCurrency}
+              onChange={(e) =>
+                onFeeFormChange({
+                  ...feeForm,
+                  currency: e.target.value as 'USD' | 'CDF',
+                })
+              }
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            >
+              <option value="USD">Dollar américain (USD)</option>
+              <option value="CDF">Francs congolais (CDF)</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">
-              {isMonthly ? 'Montant d’un mois (USD) *' : 'Montant (USD) *'}
+              {isMonthly
+                ? `Montant d’un mois (${feeCurrency}) *`
+                : `Montant (${feeCurrency}) *`}
             </label>
             <input
               type="number"
               required
-              min={0.01}
-              step="0.01"
+              min={feeCurrency === 'CDF' ? 1 : 0.01}
+              step={feeCurrency === 'CDF' ? 1 : 0.01}
               value={feeForm.amount || ''}
               onChange={(e) => onFeeFormChange({ ...feeForm, amount: Number(e.target.value) })}
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
@@ -160,6 +181,11 @@ export function FeeStructureComposer({
             {isMonthly && (
               <p className="mt-1 text-[11px] text-zinc-400">
                 Saisissez le mois, pas l’année — le système multiplie par les mois de scolarité.
+              </p>
+            )}
+            {feeCurrency === 'CDF' && (
+              <p className="mt-1 text-[11px] text-zinc-400">
+                Montant en francs entiers (ex. 50&nbsp;000). Le ledger élève reste converti en USD au taux du jour.
               </p>
             )}
           </div>
