@@ -8,9 +8,10 @@ describe('finance/currency', () => {
     expect(formatMoney(330)).toMatch(/\$US|USD/)
   })
 
-  it('formate CDF sans symbole $US', () => {
-    expect(formatMoney(50000, 'CDF')).toBe('50.000 CDF')
-    expect(formatMoney(50000, 'CDF')).not.toMatch(/\$US|USD/)
+  it('formate CDF en FC (symbole local, jamais le code ISO ni $US)', () => {
+    expect(formatMoney(50000, 'CDF')).toBe('50.000 FC')
+    expect(formatMoney(50000, 'FC')).toBe('50.000 FC')
+    expect(formatMoney(50000, 'CDF')).not.toMatch(/CDF|\$US|USD/)
     expect(formatMoney(25, 'usd')).toMatch(/\$US/)
   })
 

@@ -66,6 +66,8 @@ export type SchoolFeatureKey =
   | 'finance_reports'
   | 'ai_tutor'
   | 'printing'
+  | 'bulletin_printing'
+  | 'bulletin_zip_export'
 
 export type SchoolFeaturesMap = Partial<Record<SchoolFeatureKey, boolean>> & {
   [key: string]: boolean | undefined
