@@ -107,7 +107,7 @@ export function useTeacherGateRealtime() {
       if (p.classId == null || !Number.isFinite(p.classId)) continue
       map.set(p.classId, (map.get(p.classId) ?? 0) + 1)
     }
-    return [...map.entries()]
+    return Array.from(map.entries())
       .map(([classId, count]) => ({ classId, count }))
       .sort((a, b) => b.count - a.count)
   }, [passages])

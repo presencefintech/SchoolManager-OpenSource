@@ -93,7 +93,7 @@ export default function AdminGradesOverviewPage() {
       prev.grades += item._count?.grades ?? 0
       map.set(item.classId, prev)
     }
-    return [...map.values()].sort((a, b) => a.className.localeCompare(b.className))
+    return Array.from(map.values()).sort((a, b) => a.className.localeCompare(b.className))
   }, [evaluationsQuery.data])
 
   const loading =

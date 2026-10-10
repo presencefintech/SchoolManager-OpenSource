@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api/client'
+import type { LessonPlanSteps } from '@/lib/teacher/api/lesson-plans.api'
 
 export type LessonPlanStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED'
 
@@ -12,10 +13,18 @@ export type AdminLessonPlanItem = {
   academicYear?: string | null
   teacherId: number
   classId: number
-  teacher?: { id: number; user?: { firstName?: string | null; lastName?: string | null } | null } | null
+  objectives?: string | null
+  materials?: string | null
+  steps?: LessonPlanSteps | null
+  feedback?: string | null
+  teacher?: {
+    id: number
+    user?: { firstName?: string | null; lastName?: string | null } | null
+  } | null
   class?: { id: number; name: string } | null
   submittedAt?: string | null
   updatedAt?: string
+  approvedAt?: string | null
 }
 
 function unwrapList(payload: unknown): AdminLessonPlanItem[] {

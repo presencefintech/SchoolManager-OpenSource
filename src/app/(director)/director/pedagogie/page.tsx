@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { GraduationCap, RefreshCw, Plus, X, CheckCircle2, Star } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -154,14 +155,22 @@ export default function DirectorPedagogiePage() {
         title="Supervision pédagogique"
         subtitle="Visites de classe et suivi des enseignants de votre périmètre"
         actions={
-          <button
-            type="button"
-            onClick={() => listQuery.refetch()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50"
-          >
-            <RefreshCw size={14} className={cn(listQuery.isFetching && 'animate-spin')} />
-            Actualiser
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/director/pedagogie/fiches"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+            >
+              Fiches de préparation
+            </Link>
+            <button
+              type="button"
+              onClick={() => listQuery.refetch()}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50"
+            >
+              <RefreshCw size={14} className={cn(listQuery.isFetching && 'animate-spin')} />
+              Actualiser
+            </button>
+          </div>
         }
       />
 

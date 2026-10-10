@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { teacherLessonPlansApi } from '@/lib/teacher/api/lesson-plans.api'
 import { teacherGradesApi } from '@/lib/teacher/api/grades.api'
+import { createLessonPlanSchema } from '@/lib/teacher/schemas/lesson-plan.schema'
 import { TERM_LABELS, type SchoolTerm } from '@/types/teacher-grades'
 
 const TERMS = Object.keys(TERM_LABELS) as SchoolTerm[]
@@ -27,19 +28,18 @@ export default function NewTeacherLessonPlanPage() {
   const [error, setError] = useState<string | null>(null)
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      teacherLessonPlansApi.create({
-        classId: classId as number,
-        subject: subject.trim(),
-        term,
-        weekNumber,
-        title: title.trim(),
-        objectives: objectives.trim() || undefined,
-        materials: materials.trim() || undefined,
-      }),
+    mutationFn: (body: {
+      classId: number
+      subject: string
+      term: SchoolTerm
+      weekNumber: number
+      title: string
+      objectives?: string
+      materials?: string
+    }) => teacherLessonPlansApi.create(body),
     onSuccess: async (plan) => {
       await queryClient.invalidateQueries({ queryKey: ['teacher', 'lesson-plans'] })
-      router.replace(`/teacher/lesson-plans/${plan.id}`)
+      router.replace(`/teacher/preparations/${plan.id}`)
     },
     onError: (err: unknown) => {
       const message =
@@ -52,11 +52,20 @@ export default function NewTeacherLessonPlanPage() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!classId || !subject.trim() || !title.trim()) {
-      setError('Classe, matière et titre sont obligatoires.')
+    const parsed = createLessonPlanSchema.safeParse({
+      classId: typeof classId === 'number' ? classId : 0,
+      subject: subject.trim(),
+      term,
+      weekNumber,
+      title: title.trim(),
+      objectives: objectives.trim() || undefined,
+      materials: materials.trim() || undefined,
+    })
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Classe, matière et titre sont obligatoires.')
       return
     }
-    createMutation.mutate()
+    createMutation.mutate(parsed.data)
   }
 
   const classes = contextQuery.data?.classes ?? []
@@ -150,7 +159,7 @@ export default function NewTeacherLessonPlanPage() {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Objectifs (optionnel)</span>
+          <span className="mb-1 block text-slate-500">Objectifs opérationnels (optionnel)</span>
           <textarea
             rows={3}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
@@ -160,7 +169,7 @@ export default function NewTeacherLessonPlanPage() {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Matériel (optionnel)</span>
+          <span className="mb-1 block text-slate-500">Matériel didactique (optionnel)</span>
           <textarea
             rows={2}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"

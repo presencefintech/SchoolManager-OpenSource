@@ -190,6 +190,8 @@ export interface StaffMember {
   isActive?: boolean
   createdAt: string
   lastLogin: string | null
+  /** Profil Teacher lié (lorsque le rôle est TEACHER). */
+  teacherProfileId?: number | null
   account?: StaffAccountView
 }
 
