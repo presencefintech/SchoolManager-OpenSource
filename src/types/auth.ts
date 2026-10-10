@@ -47,8 +47,8 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   ADMIN: ['/admin'],
   SUPER_ADMIN: ['/super-admin'],
   FINANCE: ['/finances'],
-  /** Préfet (DIRECTOR) : portail direction + délibérations admin. */
-  DIRECTOR: ['/director', '/admin/deliberations'],
+  /** Préfet (DIRECTOR) : portail direction + délibérations / fiche élève (orientation, certificats). */
+  DIRECTOR: ['/director', '/admin/deliberations', '/admin/students'],
   TEACHER: ['/teacher'],
   IT: [
     '/admin/inbox',

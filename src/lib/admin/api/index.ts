@@ -1,6 +1,13 @@
 export { dashboardApi } from './dashboard.api'
 export { staffApi } from './staff.api'
 export { studentsApi } from './students.api'
+export { studentOrientationApi } from './student-orientation.api'
+export type {
+  CareerProfileResponse,
+  LeavingCertificateData,
+  OrientationRecommendation,
+  StudentCareerProfileView,
+} from './student-orientation.api'
 export { enrollmentsApi } from './enrollments.api'
 export { presencesApi } from './presences.api'
 export { classesApi } from './classes.api'
