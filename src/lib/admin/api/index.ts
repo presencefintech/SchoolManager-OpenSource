@@ -42,3 +42,9 @@ export type {
   BulkJobProgress,
 } from './deliberations.api'
 export { adminLessonPlansApi, adminTeacherNeedsApi } from './lesson-plans.api'
+export { adminAcademicAuditApi } from './audit.api'
+export type {
+  AcademicAuditLogItem,
+  AcademicAuditListParams,
+  AcademicAuditIntegrityStatus,
+} from './audit.api'
