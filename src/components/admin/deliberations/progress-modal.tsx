@@ -12,6 +12,8 @@ type Props = {
   open: boolean
   progress: BulkJobProgress | null
   className?: string
+  /** Mode affichage : délibération vs export ZIP. */
+  mode?: 'deliberation' | 'zip'
   onClose?: () => void
 }
 
@@ -19,6 +21,7 @@ export function DeliberationProgressModal({
   open,
   progress,
   className,
+  mode = 'deliberation',
   onClose,
 }: Props) {
   if (!open) return null
@@ -29,6 +32,7 @@ export function DeliberationProgressModal({
   const failed = status === 'failed'
   const canClose = done || failed
   const label = progressStatusLabel(status, done, failed)
+  const isZip = mode === 'zip' || progress?.jobName === 'bulletin-zip'
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-sm">
@@ -45,12 +49,18 @@ export function DeliberationProgressModal({
               id="delib-progress-title"
               className="text-base font-semibold text-slate-900"
             >
-              {className
-                ? `Délibération — ${className}`
-                : 'Délibération de classe'}
+              {isZip
+                ? className
+                  ? `Export ZIP — ${className}`
+                  : 'Export ZIP des bulletins'
+                : className
+                  ? `Délibération — ${className}`
+                  : 'Délibération de classe'}
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Merci de patienter pendant le calcul des résultats
+              {isZip
+                ? 'Génération asynchrone de l’archive — le téléchargement démarrera automatiquement'
+                : 'Merci de patienter pendant le calcul des résultats'}
             </p>
           </div>
           {canClose && onClose ? (
@@ -114,8 +124,18 @@ export function DeliberationProgressModal({
 
           {failed ? (
             <p className="text-sm text-rose-800 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2.5">
-              Le traitement n’a pas pu aboutir. Vérifiez que les notes de la
-              classe sont complètes, puis réessayez.
+              {isZip
+                ? 'La génération de l’archive a échoué. Vérifiez l’activation SuperAdmin et les notes, puis réessayez.'
+                : 'Le traitement n’a pas pu aboutir. Vérifiez que les notes de la classe sont complètes, puis réessayez.'}
+            </p>
+          ) : null}
+
+          {done && isZip && progress?.result?.filename ? (
+            <p className="text-sm text-emerald-800 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2.5">
+              Archive prête : <strong>{progress.result.filename}</strong>
+              {progress.result.count != null
+                ? ` (${progress.result.count} bulletin(s))`
+                : null}
             </p>
           ) : null}
         </div>
