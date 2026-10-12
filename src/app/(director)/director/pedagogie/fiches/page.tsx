@@ -9,7 +9,12 @@ import {
   type AdminLessonPlanItem,
   type LessonPlanStatus,
 } from '@/lib/admin/api/lesson-plans.api'
-import { reviewLessonPlanSchema, STEP_FIELD_LABELS } from '@/lib/teacher/schemas/lesson-plan.schema'
+import { normalizeStepItem } from '@/lib/teacher/api/lesson-plans.api'
+import {
+  LESSON_PLAN_PHASES,
+  reviewLessonPlanSchema,
+  STEP_FIELD_LABELS,
+} from '@/lib/teacher/schemas/lesson-plan.schema'
 import { TERM_LABELS, type SchoolTerm } from '@/types/teacher-grades'
 import { DirectorPageHeader, DirectorEmptyState } from '@/components/director/director-ui'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -229,13 +234,14 @@ export default function DirectorLessonPlansReviewPage() {
                 <p className="mt-1 text-sm text-zinc-500">
                   {teacherName(selected)}
                   {selected.class?.name ? ` · ${selected.class.name}` : ''} · {selected.subject}
+                  {selected.subBranch ? ` · ${selected.subBranch}` : ''}
                 </p>
               </div>
 
               {selected.objectives && (
                 <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Objectifs opérationnels
+                    Objectif opérationnel
                   </h3>
                   <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">
                     {selected.objectives}
@@ -254,22 +260,55 @@ export default function DirectorLessonPlansReviewPage() {
                 </section>
               )}
 
-              {selected.steps && (
-                <section className="space-y-3">
+              {selected.bibliographicReferences && (
+                <section>
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Étapes pédagogiques
+                    Référence(s) bibliographique(s)
                   </h3>
-                  {(
-                    Object.keys(STEP_FIELD_LABELS) as Array<keyof typeof STEP_FIELD_LABELS>
-                  ).map((key) => {
-                    const value = selected.steps?.[key]
-                    if (!value) return null
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-700">
+                    {selected.bibliographicReferences}
+                  </p>
+                </section>
+              )}
+
+              {selected.steps && (
+                <section className="space-y-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-400">
+                    Partie pédagogique
+                  </h3>
+                  {LESSON_PLAN_PHASES.map((phase) => {
+                    const stepEntries = phase.steps
+                      .map((key) => ({ key, item: normalizeStepItem(selected.steps?.[key]) }))
+                      .filter(({ item }) => item.content || item.method)
+                    const phaseDuration = selected.steps?.[phase.durationKey]
+                    if (stepEntries.length === 0 && !phaseDuration) return null
                     return (
-                      <div key={key}>
-                        <p className="text-sm font-medium text-zinc-800">
-                          {STEP_FIELD_LABELS[key]}
-                        </p>
-                        <p className="mt-0.5 whitespace-pre-wrap text-sm text-zinc-600">{value}</p>
+                      <div key={phase.key} className="rounded-lg border border-zinc-100 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-zinc-800">{phase.label}</p>
+                          {phaseDuration ? (
+                            <span className="text-xs text-zinc-400">{phaseDuration} min</span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 space-y-2">
+                          {stepEntries.map(({ key, item }) => (
+                            <div key={key}>
+                              <p className="text-sm font-medium text-zinc-800">
+                                {STEP_FIELD_LABELS[key]}
+                              </p>
+                              {item.content && (
+                                <p className="mt-0.5 whitespace-pre-wrap text-sm text-zinc-600">
+                                  {item.content}
+                                </p>
+                              )}
+                              {item.method && (
+                                <p className="mt-0.5 text-xs text-zinc-400">
+                                  Méthode / procédé : {item.method}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )
                   })}

@@ -20,22 +20,26 @@ export default function NewTeacherLessonPlanPage() {
 
   const [classId, setClassId] = useState<number | ''>('')
   const [subject, setSubject] = useState('')
+  const [subBranch, setSubBranch] = useState('')
   const [term, setTerm] = useState<SchoolTerm>('FIRST_TERM')
   const [weekNumber, setWeekNumber] = useState(1)
   const [title, setTitle] = useState('')
   const [objectives, setObjectives] = useState('')
   const [materials, setMaterials] = useState('')
+  const [bibliographicReferences, setBibliographicReferences] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const createMutation = useMutation({
     mutationFn: (body: {
       classId: number
       subject: string
+      subBranch?: string
       term: SchoolTerm
       weekNumber: number
       title: string
       objectives?: string
       materials?: string
+      bibliographicReferences?: string
     }) => teacherLessonPlansApi.create(body),
     onSuccess: async (plan) => {
       await queryClient.invalidateQueries({ queryKey: ['teacher', 'lesson-plans'] })
@@ -55,11 +59,13 @@ export default function NewTeacherLessonPlanPage() {
     const parsed = createLessonPlanSchema.safeParse({
       classId: typeof classId === 'number' ? classId : 0,
       subject: subject.trim(),
+      subBranch: subBranch.trim() || undefined,
       term,
       weekNumber,
       title: title.trim(),
       objectives: objectives.trim() || undefined,
       materials: materials.trim() || undefined,
+      bibliographicReferences: bibliographicReferences.trim() || undefined,
     })
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Classe, matière et titre sont obligatoires.')
@@ -118,6 +124,16 @@ export default function NewTeacherLessonPlanPage() {
           </datalist>
         </label>
 
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-500">Sous-branche (type de leçon, optionnel)</span>
+          <input
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+            value={subBranch}
+            onChange={(e) => setSubBranch(e.target.value)}
+            placeholder="Ex. Grammaire, Vocabulaire, Exercices…"
+          />
+        </label>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-slate-500">Période</span>
@@ -159,7 +175,9 @@ export default function NewTeacherLessonPlanPage() {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Objectifs opérationnels (optionnel)</span>
+          <span className="mb-1 block text-slate-500">
+            Objectif opérationnel (optionnel) — « à la fin de la leçon, l&apos;élève doit être capable de… »
+          </span>
           <textarea
             rows={3}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
@@ -175,6 +193,17 @@ export default function NewTeacherLessonPlanPage() {
             className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
             value={materials}
             onChange={(e) => setMaterials(e.target.value)}
+          />
+        </label>
+
+        <label className="block text-sm">
+          <span className="mb-1 block text-slate-500">Référence(s) bibliographique(s) (optionnel)</span>
+          <textarea
+            rows={2}
+            className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
+            value={bibliographicReferences}
+            onChange={(e) => setBibliographicReferences(e.target.value)}
+            placeholder="Ex. Pédagogie générale, Ibeki, 2001, p.96"
           />
         </label>
 

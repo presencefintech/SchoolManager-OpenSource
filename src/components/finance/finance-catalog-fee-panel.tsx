@@ -7,6 +7,7 @@ import {
   useStudentFeePeriodStatus,
 } from '@/lib/hooks/use-finance'
 import { validateManualCatalogPeriod } from '@/components/admin/finance/manual-catalog-fee-panel'
+import { formatMoney } from '@/lib/finance/currency'
 import type { FeeStructureListItem } from '@/lib/finance/fee-structure.utils'
 import type { StudentFeePeriodStatusDto } from '@/types/finance'
 
@@ -145,7 +146,7 @@ export function FinanceCatalogFeePanel({
               <option key={fs.id} value={fs.id}>
                 {fs.categoryName ?? fs.label}
                 {fs.billingPeriod ? ` (${fs.billingPeriod})` : ''}
-                {fs.amount > 0 ? ` — ${fs.amount}` : ''}
+                {fs.amount > 0 ? ` — ${formatMoney(fs.amount, fs.currency)}` : ''}
               </option>
             ))}
           </select>
@@ -218,8 +219,8 @@ export function FinanceCatalogFeePanel({
         />
         {selected?.amount != null && selected.amount > 0 && (
           <p className="mt-1 text-[11px] text-zinc-500">
-            Montant barème : {selected.amount}
-            {selected.currency ? ` ${selected.currency}` : ''} — ajustable si paiement partiel.
+            Montant barème : {formatMoney(selected.amount, selected.currency)} — ajustable si paiement
+            partiel.
           </p>
         )}
       </div>

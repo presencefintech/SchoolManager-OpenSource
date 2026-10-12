@@ -39,7 +39,7 @@ import { labelBiometricStatus } from '@/lib/business-labels'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { formatStudentDisplayName } from '@/lib/admin/normalizers'
 import { formatRdcFullName } from '@/lib/utils/student-name.util'
-import { fmtMoney } from '@/components/admin/finance/verification-ui'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
@@ -1011,6 +1011,7 @@ export default function StudentDetailPage() {
 }
 
 function StudentDetailPageContent() {
+  const { format: fmtMoney } = useSchoolMoney()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()

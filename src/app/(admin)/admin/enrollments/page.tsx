@@ -25,7 +25,7 @@ import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import type { EnrollmentListItem } from '@/types/admin'
-import { fmtMoney } from '@/components/admin/finance/verification-ui'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 // Fenêtres ouvertes au clic (~2 000 lignes + champ téléphone) : hors du JS initial de la page
 const EnrollmentCreateModal = dynamic(
@@ -239,6 +239,7 @@ export default function EnrollmentsPage() {
 }
 
 function EnrollmentsPageContent() {
+  const { format: fmtMoney } = useSchoolMoney()
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()
