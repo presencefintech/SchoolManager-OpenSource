@@ -11,7 +11,7 @@ import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { PendingVerificationItem } from '@/types/admin'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 
@@ -33,6 +33,7 @@ function VerifyStepModal({
   payment: PendingVerificationItem
   onClose: () => void
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { mutateAsync, isPending } = useVerifyPaymentStep()
   const { mutateAsync: verifyExt, isPending: verifyingExt } = useVerifyExternal()
   const qc = useQueryClient()
@@ -195,6 +196,7 @@ function VerifyStepModal({
 }
 
 export default function VerificationsPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { data, isLoading, refetch } = usePendingPayments()
   const [selected, setSelected] = useState<PendingVerificationItem | null>(null)
 

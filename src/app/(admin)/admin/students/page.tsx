@@ -14,7 +14,7 @@ import {
   useStudents, useStudentDashboard, useClasses,
   useStudentApplications, useApproveApplication, useRejectApplication, useDebtors,
 } from '@/lib/hooks/use-admin'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
@@ -50,6 +50,7 @@ const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
 type Tab = 'list' | 'applications' | 'debtors'
 
 export default function StudentsPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const router = useRouter()
   const toast = useToast()
   const { user } = useAuth()

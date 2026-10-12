@@ -11,7 +11,7 @@ import {
   useFinanceLedger, useFinancePresenceSecurity, useFraudRiskAnalysis, useFinanceCashierAudit,
 } from '@/lib/hooks/use-admin'
 import type { AuditLogEntry } from '@/types/admin'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
@@ -26,6 +26,7 @@ function EmptyState({ icon: Icon, message }: { icon: React.ElementType; message:
 }
 
 export default function AuditPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: alerts = [], isLoading: alertsLoading, isError: alertsError } = useFinanceFraudAlerts()
   const { data: logs = [] } = useFinanceAuditLogs()
   const { mutate: triggerAudit, isPending: auditing } = useTriggerManualAudit()

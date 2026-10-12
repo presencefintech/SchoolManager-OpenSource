@@ -23,7 +23,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { triggerBlobDownload } from '@/lib/download-blob'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import {
   CreateSealBatchModal,
   SealBatchDetailPanel,
@@ -74,6 +74,7 @@ function HeroMetric({ label, value, sub }: { label: string; value: string; sub?:
 }
 
 export default function AdminSealBatchesPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const toast = useToast()
   const { user } = useAuth()
   const canManage = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'

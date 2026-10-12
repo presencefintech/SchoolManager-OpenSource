@@ -25,7 +25,7 @@ import {
 } from '@/components/finance/fee-attribution-picker'
 import { buildPaymentFeeLines } from '@/lib/finance/fee-schedule.utils'
 import { defaultProofTypeForMethod, labelPaymentProofType } from '@/lib/finance/payment-proof'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { exportRowsToCsv } from '@/lib/finance/export-csv'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -479,6 +479,7 @@ function LinkOrphanModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function PaiementsPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const toast = useToast()
   const { data: pending = [], refetch: refetchPending } = usePendingVerifications()
   const { data: mobilePending = [], refetch: refetchMobile } = useMobilePending()

@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useCreateExpensesBatch } from '@/lib/hooks/use-finance'
 import { financeBudgetApi } from '@/lib/admin/api/finance-budget.api'
 import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { ExpenseKind } from '@/types/finance'
 
@@ -43,6 +44,7 @@ type Props = {
 
 export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
   const createBatch = useCreateExpensesBatch()
+  const { displayCurrency } = useSchoolMoney()
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const [occurredAt, setOccurredAt] = useState(defaultDate || todayIsoDate())
@@ -104,7 +106,7 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
         budgetCategoryId: budgetCategoryId ? Number(budgetCategoryId) : undefined,
         lines: prepared,
       })
-      setOk(`${result.count} dépense(s) enregistrée(s) · ${formatMoney(result.total, 'USD')}.`)
+      setOk(`${result.count} dépense(s) enregistrée(s) · ${formatMoney(result.total, displayCurrency)}.`)
       setLines([newLine()])
       onSaved?.()
     } catch (err) {
@@ -262,7 +264,7 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
           <Plus size={14} /> Ajouter une ligne
         </button>
         <p className="text-sm font-semibold tabular-nums text-zinc-900">
-          Total : {formatMoney(total, 'USD')}
+          Total : {formatMoney(total, displayCurrency)}
         </p>
         <button
           type="submit"

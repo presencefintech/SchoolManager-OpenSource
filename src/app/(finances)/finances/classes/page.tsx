@@ -15,7 +15,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
@@ -25,6 +25,7 @@ function Sk({ className }: { className?: string }) {
 }
 
 function ClassDetail({ classId }: { classId: number }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: detail } = useFinanceClassDetail(classId)
   const { data: status, isLoading: loadingStatus } = useClassFinancialStatus(classId)
   const { data: audit, isLoading: loadingAudit } = useClassAudit(classId)

@@ -11,7 +11,7 @@ import {
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -24,6 +24,7 @@ function downloadBlob(blob: Blob, filename: string) {
 }
 
 export default function CloturePage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: preview, isLoading, refetch } = useClosingPreview()
   const { data: session } = useCurrentSession()
   const { mutateAsync: finalize, isPending: finalizing } = useFinalizeClosing()

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { useFinanceAiInsights } from '@/lib/hooks/use-admin'
 import { useFinanceRoleAiInsights } from '@/lib/hooks/use-finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 import type {
   FinanceAiAgingBuckets,
@@ -96,6 +96,7 @@ function BenchmarkStrip({ data }: { data: FinanceAiInsightBundle }) {
 }
 
 function ScenarioCards({ data }: { data: FinanceAiInsightBundle }) {
+  const { format: formatMoney } = useSchoolMoney()
   const s = data.forecast.scenarios
   if (!s.base && !s.optimistic && !s.pessimistic) return null
   return (
@@ -156,6 +157,7 @@ function ForecastSparkline({
 }
 
 function AgingBars({ aging, totalDebt }: { aging: FinanceAiAgingBuckets; totalDebt: number }) {
+  const { format: formatMoney } = useSchoolMoney()
   const base = totalDebt > 0 ? totalDebt : 1
   return (
     <div className="space-y-2">
@@ -197,6 +199,7 @@ function AgingBars({ aging, totalDebt }: { aging: FinanceAiAgingBuckets; totalDe
 }
 
 function PortfolioKpis({ data }: { data: FinanceAiInsightBundle }) {
+  const { format: formatMoney } = useSchoolMoney()
   const p = data.portfolio
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
@@ -229,6 +232,7 @@ export function FinanceAiInsightsPanel({
   enabled?: boolean
   source?: 'admin' | 'finance'
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const [horizon, setHorizon] = useState<FinanceAiHorizon>(30)
   const adminQuery = useFinanceAiInsights(horizon, {
     enabled: enabled && source === 'admin',

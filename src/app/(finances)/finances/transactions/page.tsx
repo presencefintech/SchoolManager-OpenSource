@@ -13,7 +13,7 @@ import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedul
 import { PrintReceiptButton } from '@/components/finance/student-dashboard/receipts/PrintReceiptButton'
 import { exportRowsToCsv } from '@/lib/finance/export-csv'
 import { fadeUp } from '@/lib/animations'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -74,6 +74,7 @@ const QUICK_FILTERS = [
 ] as const
 
 export default function TransactionsPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const today = new Date().toISOString().slice(0, 10)
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)
   const [draft, setDraft] = useState({

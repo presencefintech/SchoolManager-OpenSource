@@ -12,7 +12,7 @@ import {
   type ScholarshipItem,
   type SponsorType,
 } from '@/lib/admin/api/finance-scholarship.api'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { FinancePageHeader, FinancePageShell, FinancePanel, FinanceEmptyState } from '@/components/finance/finance-page-shell'
 
 const SPONSOR_TYPE_LABEL: Record<SponsorType, string> = {
@@ -106,6 +106,7 @@ function SponsorsPanel({ onCreated }: { onCreated: () => void }) {
 }
 
 function ScholarshipsPanel() {
+  const { format: formatMoney } = useSchoolMoney()
   const qc = useQueryClient()
   const [studentId, setStudentId] = useState(0)
   const [sponsorId, setSponsorId] = useState<number | ''>('')

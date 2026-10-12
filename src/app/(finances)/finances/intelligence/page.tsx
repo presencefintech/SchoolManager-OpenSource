@@ -24,7 +24,7 @@ import {
 } from '@/lib/hooks/use-finance'
 import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 import type { FinanceAiCollectionAction } from '@/lib/admin/finance-ai.utils'
 
@@ -35,6 +35,7 @@ const PRIORITY_CLS = {
 } as const
 
 function ActionRow({ action }: { action: FinanceAiCollectionAction }) {
+  const { format: formatMoney } = useSchoolMoney()
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-zinc-100 bg-white px-3 py-2.5">
       <div className="min-w-0 flex-1">
@@ -71,6 +72,7 @@ function ActionRow({ action }: { action: FinanceAiCollectionAction }) {
 }
 
 export default function FinanceIntelligencePage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: health } = useFinanceRoleHealthCheck()
   const { data: strategic } = useFinanceRoleStrategic()
   const { data: efficiency } = useFinanceRoleEfficiency()

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Users } from 'lucide-react'
 import { useStudentSiblings } from '@/lib/hooks/use-finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 
 /** Fratrie — un parent paie plusieurs enfants dans la même file (RDC). */
@@ -14,6 +14,7 @@ export function GuichetSiblingsStrip({
   studentId: number
   onSelect?: (id: number) => void
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: siblings = [], isLoading } = useStudentSiblings(studentId)
 
   if (isLoading) {

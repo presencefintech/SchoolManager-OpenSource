@@ -10,7 +10,7 @@ import {
   useExportStudentsFinancialPrint,
   useFinanceClasses,
 } from '@/lib/hooks/use-finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { downloadBlob } from '@/lib/finance/download-blob'
 import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
 import type { StudentFinancialSort, StudentFinancialStatus } from '@/types/finance'
@@ -25,6 +25,7 @@ export default function SuiviFinancierPage() {
 }
 
 function SuiviFinancierContent() {
+  const { format: formatMoney, displayCurrency } = useSchoolMoney()
   const searchParams = useSearchParams()
   const statusParam = searchParams.get('status')
   const initialStatus = (
@@ -121,7 +122,7 @@ function SuiviFinancierContent() {
     if (result.type === 'csv') {
       downloadBlob(result.blob, `suivi-financier-${new Date().toISOString().slice(0, 10)}.csv`)
     } else {
-      openStudentsFinancialPrintReport(result.report)
+      openStudentsFinancialPrintReport(result.report, displayCurrency)
     }
   }
 

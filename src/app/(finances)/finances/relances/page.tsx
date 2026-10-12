@@ -18,7 +18,7 @@ import {
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 import { fadeUp, stagger } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import type { DebtReminderPolicy, DebtReminderTriggerResult } from '@/types/finance'
 import { cn } from '@/lib/utils'
 
@@ -39,6 +39,7 @@ function StatusPill({ status }: { status: string }) {
 }
 
 export default function RelancesPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: policy, isLoading: loadingPolicy } = useDebtReminderPolicy()
   const { data: health, isLoading: loadingHealth, refetch: refetchHealth } = useDebtReminderHealth()
   const { data: journal, isLoading: loadingJournal, refetch: refetchJournal } = useDebtReminderJournal({ limit: 40 })
