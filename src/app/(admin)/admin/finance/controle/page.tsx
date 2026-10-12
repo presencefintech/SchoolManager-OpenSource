@@ -10,7 +10,7 @@ import {
   useExportStudentsFinancialPrint,
 } from '@/lib/hooks/use-finance'
 import { useClasses, usePendingVerifications } from '@/lib/hooks/use-admin'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { downloadBlob } from '@/lib/finance/download-blob'
 import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
 import { FinanceAdminSubNav } from '@/components/admin/finance/finance-admin-subnav'
@@ -77,6 +77,7 @@ function ValidationsStrip() {
 }
 
 function ControleContent() {
+  const { format: formatMoney, displayCurrency } = useSchoolMoney()
   const { user } = useAuth()
   const deskOnly = isItDesk(user?.role)
   const searchParams = useSearchParams()
@@ -149,7 +150,7 @@ function ControleContent() {
     if (result.type === 'csv') {
       downloadBlob(result.blob, `situation-financiere-${new Date().toISOString().slice(0, 10)}.csv`)
     } else {
-      openStudentsFinancialPrintReport(result.report)
+      openStudentsFinancialPrintReport(result.report, displayCurrency)
     }
   }
 

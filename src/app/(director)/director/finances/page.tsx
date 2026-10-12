@@ -10,6 +10,7 @@ import { directorFinanceApi } from '@/lib/admin/api/director-finance.api'
 import { StudentFinancialControlRows } from '@/components/finance/student-financial-control-rows'
 import { CashJournalReport } from '@/components/finance/cash-journal-report'
 import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { DirectorPageHeader, DirectorEmptyState, DirectorKpiCard } from '@/components/director/director-ui'
 import type { StudentFinancialStatus } from '@/types/finance'
 
@@ -38,6 +39,7 @@ const STATUS_LABEL: Record<StudentFinancialStatus, string> = {
 }
 
 export default function DirectorFinancesPage() {
+  const { displayCurrency } = useSchoolMoney()
   const classesQuery = useQuery({
     queryKey: ['director', 'classes'],
     queryFn: () => directorsApi.myClasses(),
@@ -74,7 +76,7 @@ export default function DirectorFinancesPage() {
     setExporting(true)
     try {
       const report = await directorFinanceApi.exportSituationPrint(filters)
-      openStudentsFinancialPrintReport(report)
+      openStudentsFinancialPrintReport(report, displayCurrency)
     } finally {
       setExporting(false)
     }

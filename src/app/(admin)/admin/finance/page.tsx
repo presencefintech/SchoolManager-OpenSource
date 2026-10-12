@@ -23,7 +23,8 @@ import {
   resolveFinanceDashboardDisplay,
   formatInsightLabel,
 } from '@/lib/admin/finance-dashboard.utils'
-import { formatMoney, formatInsightValue } from '@/lib/finance/currency'
+import { formatInsightValue, isMoneyInsightKey } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { LazyFinanceEfficiencyBarChart } from '@/components/charts/lazy'
 import { KycStatusBadge } from '@/components/admin/students/student-finance-badges'
 import {
@@ -185,6 +186,7 @@ function QuickLink({ href, icon: Icon, label, count, gradient, vibrant }: {
 
 
 export default function FinanceDashboardPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const [dashboardPeriod, setDashboardPeriod] = useState<'day' | 'month'>('month')
   const { data: kpis, isLoading, isError, error, isSuccess: coreReady } = useFinanceDashboard()
   const secondary = { enabled: coreReady }
@@ -789,7 +791,9 @@ export default function FinanceDashboardPage() {
                               ? `${Number(ins[k]) >= 0 ? '+' : ''}${Number(ins[k]).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}%`
                               : k === 'scoreSante' && typeof ins[k] === 'number'
                                 ? `${Number(ins[k])}/100`
-                                : formatInsightValue(k, ins[k])}
+                                : isMoneyInsightKey(k) && typeof ins[k] === 'number'
+                                  ? formatMoney(Number(ins[k]))
+                                  : formatInsightValue(k, ins[k])}
                           </span>
                         </div>
                       ))}

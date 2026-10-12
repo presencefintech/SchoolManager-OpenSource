@@ -13,7 +13,7 @@ import { FinanceStudentSearchField } from '@/components/finance/student-search-f
 import { fadeUp, stagger } from '@/lib/animations'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { RiskEntry, StudentWallet } from '@/types/finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatRdcFullName, formatStudentFullName } from '@/lib/utils/student-name.util'
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -30,6 +30,7 @@ function Sk({ className }: { className?: string }) {
 }
 
 export default function DebiteursPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const [minDebt, setMinDebt] = useState(10)
   const [minDebtInput, setMinDebtInput] = useState('10')
   const [searchedId, setSearchedId] = useState(0)

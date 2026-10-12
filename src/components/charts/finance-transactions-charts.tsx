@@ -4,12 +4,13 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 export interface PaymentCategoryDatum { name: string; value: number; count: number; color: string }
 export interface PaymentMethodDatum { name: string; amount: number; count: number }
 
 export function PaymentCategoryDonutChart({ data, total }: { data: PaymentCategoryDatum[]; total: number }) {
+  const { format: formatMoney } = useSchoolMoney()
   const chartData = data.filter((d) => d.value > 0)
 
   if (!chartData.length) {
@@ -52,6 +53,7 @@ export function PaymentCategoryDonutChart({ data, total }: { data: PaymentCatego
 }
 
 export function PaymentMethodBarChart({ data }: { data: PaymentMethodDatum[] }) {
+  const { format: formatMoney } = useSchoolMoney()
   const chartData = data.filter((d) => d.amount > 0)
 
   if (!chartData.length) {

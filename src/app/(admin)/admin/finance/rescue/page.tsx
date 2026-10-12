@@ -17,7 +17,7 @@ import {
   useSyncStudentLedger,
 } from '@/lib/hooks/use-admin'
 import { StudentSearchField } from '@/components/admin/shared/student-search-field'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
 import { useAuth } from '@/providers/auth-provider'
@@ -44,12 +44,16 @@ function personName(p?: { firstName?: string | null; lastName?: string | null } 
   return [p.firstName, p.lastName].filter(Boolean).join(' ').trim() || '—'
 }
 
-function amountOf(value: number | string | undefined | null) {
+function amountOf(
+  value: number | string | undefined | null,
+  formatMoney: (n: number) => string,
+) {
   const n = typeof value === 'string' ? Number(value) : value
   return Number.isFinite(n) ? formatMoney(Number(n)) : '—'
 }
 
 export default function FinanceRescuePage() {
+  const { format: formatMoney } = useSchoolMoney()
   const toast = useToast()
   const { user } = useAuth()
   const [tab, setTab] = useState<Tab>('voids')
@@ -262,7 +266,7 @@ export default function FinanceRescuePage() {
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-zinc-900 truncate">
                             {personName(row.payment?.student)} ·{' '}
-                            {amountOf(row.payment?.amount)}
+                            {amountOf(row.payment?.amount, formatMoney)}
                           </p>
                           <p className="text-xs text-zinc-500 mt-0.5 truncate">
                             Reçu #{row.paymentId}
@@ -305,7 +309,7 @@ export default function FinanceRescuePage() {
                   <div className="flex justify-between gap-2">
                     <dt className="text-zinc-500">Montant</dt>
                     <dd className="font-semibold tabular-nums">
-                      {amountOf(selected.payment?.amount)}
+                      {amountOf(selected.payment?.amount, formatMoney)}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-2">

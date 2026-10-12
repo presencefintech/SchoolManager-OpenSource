@@ -20,7 +20,7 @@ import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { ClassDetail } from '@/types/admin'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
 
@@ -227,6 +227,7 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
 type Tab = 'eleves' | 'stats' | 'audit'
 
 export default function ClassDetailPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { id } = useParams<{ id: string }>()
   const classId = Number(id)
   const router = useRouter()

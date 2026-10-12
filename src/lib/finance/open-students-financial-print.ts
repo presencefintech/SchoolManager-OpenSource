@@ -12,7 +12,10 @@ function esc(value: unknown): string {
 }
 
 /** Ouvre une vue imprimable du registre filtré (montants uniquement si le rôle y a droit). */
-export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintReport) {
+export function openStudentsFinancialPrintReport(
+  report: StudentsFinancialPrintReport,
+  currency?: string,
+) {
   // Pas de `noopener` dans windowFeatures : window.open renverrait alors null.
   const w = window.open('', '_blank', 'width=900,height=700')
   if (!w) return
@@ -40,9 +43,9 @@ export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintR
         <td>${esc(r.classe)}</td>
         <td>${esc(r.section)}</td>
         <td>${esc(r.option)}</td>
-        <td class="num">${formatMoney(r.fraisTotaux ?? 0)}</td>
-        <td class="num">${formatMoney(r.dejaPaye ?? 0)}</td>
-        <td class="num">${formatMoney(r.solde ?? 0)}</td>
+        <td class="num">${formatMoney(r.fraisTotaux ?? 0, currency)}</td>
+        <td class="num">${formatMoney(r.dejaPaye ?? 0, currency)}</td>
+        <td class="num">${formatMoney(r.solde ?? 0, currency)}</td>
         <td>${esc(r.statut)}</td>
       </tr>`)
     .join('')
@@ -75,8 +78,8 @@ export function openStudentsFinancialPrintReport(report: StudentsFinancialPrintR
     <div>Élèves<strong>${report.summary.total}</strong></div>
     <div>Débiteurs<strong>${report.summary.debtors}</strong></div>
     <div>En ordre<strong>${report.summary.paid}</strong></div>
-    ${!hideAmounts ? `<div>Solde total<strong>${formatMoney(report.summary.totalBalance ?? 0)}</strong></div>` : ''}
-    ${!hideAmounts && report.summary.totalExpectedLoss != null ? `<div>ECL<strong>${formatMoney(report.summary.totalExpectedLoss)}</strong></div>` : ''}
+    ${!hideAmounts ? `<div>Solde total<strong>${formatMoney(report.summary.totalBalance ?? 0, currency)}</strong></div>` : ''}
+    ${!hideAmounts && report.summary.totalExpectedLoss != null ? `<div>ECL<strong>${formatMoney(report.summary.totalExpectedLoss, currency)}</strong></div>` : ''}
   </div>
   <table>
     <thead><tr>${report.columns.map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, Download, Fingerprint, Lock, Plus, Search, ShieldCheck, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { formatPaymentMethodLabel } from '@/lib/admin/finance-dashboard.utils'
 import { formatRdcFullName, type StudentIdentityFields } from '@/lib/utils/student-name.util'
 import { useFinancialSealBatchDetail, useVerifySealBatch } from '@/lib/hooks/use-admin'
@@ -48,6 +48,7 @@ export function SealBatchDetailPanel({
   onExportPdf?: (batchId: number) => void
   exporting?: boolean
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: detail, isLoading } = useFinancialSealBatchDetail(batchId)
   const verify = useVerifySealBatch()
   const [copied, setCopied] = useState(false)
@@ -278,6 +279,7 @@ export function CreateSealBatchModal({
   isPending?: boolean
   onSubmit: (payload: CreateSealBatchPayload) => Promise<void>
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [note, setNote] = useState('')
   const [search, setSearch] = useState('')
@@ -495,6 +497,7 @@ export function SealBatchListItem({
   selected: boolean
   onSelect: () => void
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   return (
     <button
       type="button"

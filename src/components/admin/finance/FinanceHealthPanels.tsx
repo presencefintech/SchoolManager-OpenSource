@@ -10,7 +10,7 @@ import {
   FileText,
   TrendingUp,
 } from 'lucide-react'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 import type {
   FinanceDetailedReportView,
@@ -58,6 +58,7 @@ function MethodBar({
   total: number
   tone: string
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const pct = total > 0 ? (amount / total) * 100 : 0
   return (
     <div className="space-y-1">
@@ -75,6 +76,7 @@ function MethodBar({
 }
 
 export function FinanceHealthPanel({ health }: { health: FinanceHealthView }) {
+  const { format: formatMoney } = useSchoolMoney()
   const momUp = health.monthOverMonthPct >= 0
 
   return (
@@ -184,6 +186,7 @@ export function FinanceHealthPanel({ health }: { health: FinanceHealthView }) {
 }
 
 export function FinanceDetailedReportPanel({ report }: { report: FinanceDetailedReportView }) {
+  const { format: formatMoney } = useSchoolMoney()
   const total = report.summary.total
 
   return (

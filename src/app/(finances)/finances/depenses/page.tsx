@@ -10,7 +10,7 @@ import {
 } from '@/lib/hooks/use-finance'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { ExpenseLinesForm } from '@/components/finance/expense-lines-form'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import type { ExpenseStatus, FinanceExpense } from '@/types/finance'
@@ -38,6 +38,7 @@ function statusClass(s: ExpenseStatus) {
 }
 
 export default function DepensesPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const [status, setStatus] = useState<string>('')
   const [kind, setKind] = useState<string>('')
   const [showForm, setShowForm] = useState(true)
