@@ -44,14 +44,100 @@ export const moratoriumDrawerSchema = z.object({
 
 export type MoratoriumDrawerForm = z.infer<typeof moratoriumDrawerSchema>
 
+const BLOOD_GROUPS = ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const
+
+const optionalText = (max: number, min = 0) =>
+  z
+    .string()
+    .max(max)
+    .refine(
+      (v) => v.trim() === '' || v.trim().length >= min,
+      min > 0 ? { message: `Minimum ${min} caractères` } : undefined,
+    )
+    .optional()
+    .or(z.literal(''))
+
+/** Formulaire complet profil administratif RDC (PATCH admin-profile). */
 export const adminProfileSchema = z.object({
-  nationality: z.string().min(2, 'Nationalité requise').max(80).optional().or(z.literal('')),
-  placeOfBirth: z.string().min(2, 'Lieu requis').max(120).optional().or(z.literal('')),
-  bloodGroup: z.string().max(10).optional().or(z.literal('')),
-  allergies: z.string().max(500).optional().or(z.literal('')),
-  medicalNotes: z.string().max(1000).optional().or(z.literal('')),
-  emergencyContactName: z.string().max(120).optional().or(z.literal('')),
-  emergencyContactPhone: z.string().max(20).optional().or(z.literal('')),
+  lastName: z.string().min(2, 'Nom requis').max(80),
+  postnom: optionalText(80, 2),
+  firstName: z.string().min(2, 'Prénom requis').max(80),
+  prenom: optionalText(80, 2),
+  gender: z.enum(['', 'M', 'F', 'MALE', 'FEMALE']).optional(),
+  dateOfBirth: z.string().optional().or(z.literal('')),
+  placeOfBirth: optionalText(120, 2),
+  nationality: optionalText(80, 2),
+  address: optionalText(250),
+  email: z
+    .string()
+    .max(120)
+    .refine((v) => v.trim() === '' || z.string().email().safeParse(v.trim()).success, {
+      message: 'Email élève invalide',
+    })
+    .optional()
+    .or(z.literal('')),
+  phone: optionalText(20, 6),
+  academicYear: z
+    .string()
+    .refine((v) => v.trim() === '' || /^\d{4}-\d{4}$/.test(v.trim()), {
+      message: 'Format requis: 2026-2027',
+    })
+    .optional()
+    .or(z.literal('')),
+  classId: z.preprocess(
+    (v) => (v === '' || v == null ? undefined : Number(v)),
+    z.number().int().positive().optional(),
+  ),
+  emergencyContactName: optionalText(120, 2),
+  emergencyContactPhone: optionalText(20, 6),
+  parentEmail: z
+    .string()
+    .max(120)
+    .refine((v) => v.trim() === '' || z.string().email().safeParse(v.trim()).success, {
+      message: 'Email parent invalide',
+    })
+    .optional()
+    .or(z.literal('')),
+  bloodGroup: z.enum(BLOOD_GROUPS).optional(),
+  allergies: optionalText(500),
+  medicalNotes: optionalText(1000),
 })
 
 export type AdminProfileForm = z.infer<typeof adminProfileSchema>
+
+/** Convertit le formulaire en payload PATCH (chaînes vides → null pour effacer). */
+export function adminProfileToPayload(data: AdminProfileForm): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  const put = (key: string, value: unknown, emptyAsNull = true) => {
+    if (value === undefined) return
+    if (typeof value === 'string') {
+      const t = value.trim()
+      out[key] = t === '' ? (emptyAsNull ? null : undefined) : t
+      if (out[key] === undefined) delete out[key]
+      return
+    }
+    out[key] = value
+  }
+
+  put('lastName', data.lastName, false)
+  put('postnom', data.postnom)
+  put('firstName', data.firstName, false)
+  put('prenom', data.prenom)
+  put('gender', data.gender)
+  put('dateOfBirth', data.dateOfBirth)
+  put('placeOfBirth', data.placeOfBirth)
+  put('nationality', data.nationality)
+  put('address', data.address)
+  put('email', data.email)
+  put('phone', data.phone)
+  put('academicYear', data.academicYear)
+  if (data.classId != null && Number.isFinite(data.classId)) out.classId = data.classId
+  put('emergencyContactName', data.emergencyContactName)
+  put('emergencyContactPhone', data.emergencyContactPhone)
+  put('parentEmail', data.parentEmail)
+  put('bloodGroup', data.bloodGroup)
+  put('allergies', data.allergies)
+  put('medicalNotes', data.medicalNotes)
+
+  return out
+}

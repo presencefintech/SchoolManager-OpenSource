@@ -170,7 +170,14 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
   const cls = profile.class as { name?: string; id?: number } | undefined
   const presences = (history.presences ?? profile.presences) as Array<{ scannedAt?: string; status?: string }> | undefined
   const parentsLink = profile.parentsLink as Array<{
-    parent?: { firstName?: string; lastName?: string; prenom?: string; postnom?: string; phone?: string }
+    parent?: {
+      firstName?: string
+      lastName?: string
+      prenom?: string
+      postnom?: string
+      phone?: string
+      email?: string | null
+    }
   }> | undefined
   const parent = parentsLink?.[0]?.parent
 
@@ -180,14 +187,18 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
 
   const school = profile.school as { name?: string } | undefined
 
-  const parentName = parent
+  const linkedParentName = parent
     ? formatRdcFullName({
         firstName: parent.firstName,
         lastName: parent.lastName,
         prenom: parent.prenom,
         postnom: parent.postnom,
       }) || undefined
-    : (profile.parentName as string | undefined)
+    : undefined
+  const parentName =
+    linkedParentName ||
+    (profile.emergencyContactName as string | undefined) ||
+    (profile.parentName as string | undefined)
 
   return {
     id: Number(profile.id),
@@ -197,14 +208,20 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
     prenom: (profile.prenom as string | null | undefined) ?? null,
     matricule: profile.matricule as string | undefined,
     status: String(profile.status ?? ''),
-    email: profile.email as string | undefined,
-    phone: profile.phone as string | undefined,
+    email: (profile.email as string | undefined) || undefined,
+    phone: (profile.phone as string | undefined) || undefined,
     dateOfBirth: profile.dateOfBirth ? String(profile.dateOfBirth) : undefined,
     gender: profile.gender as string | undefined,
-    address: profile.address as string | undefined,
+    address: (profile.address as string | undefined) || undefined,
     parentName,
-    parentPhone: (parent?.phone ?? profile.parentPhone) as string | undefined,
-    parentEmail: profile.parentEmail as string | undefined,
+    parentPhone:
+      (parent?.phone as string | undefined) ||
+      (profile.emergencyContactPhone as string | undefined) ||
+      (profile.parentPhone as string | undefined),
+    parentEmail:
+      (parent?.email as string | undefined) ||
+      (profile.parentEmail as string | undefined) ||
+      undefined,
     className: cls?.name ?? (profile.className as string | undefined),
     classId: profile.classId != null ? Number(profile.classId) : cls?.id,
     schoolId: Number(profile.schoolId ?? 0),
