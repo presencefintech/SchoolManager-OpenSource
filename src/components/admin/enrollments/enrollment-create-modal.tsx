@@ -508,19 +508,10 @@ export function EnrollmentCreateModal({
       } else {
         toast.success(
           'Inscription créée',
-          'Dossier enregistré. Remettez la fiche d’inscription au parent.',
+          'Dossier enregistré. La fiche d’inscription reste disponible sur la fiche élève.',
         )
       }
 
-      if (studentId) {
-        try {
-          const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(studentId)
-          triggerBlobDownload(blob, filename)
-          toast.success('Fiche d’inscription', 'PDF prêt à imprimer pour le parent.')
-        } catch {
-          // L’inscription a réussi ; la fiche reste disponible sur la fiche élève.
-        }
-      }
       if (result.explicitFeePack?.assigned?.length) {
         toast.success(
           'Frais optionnels',
@@ -589,8 +580,9 @@ export function EnrollmentCreateModal({
                 <Field label="Postnom" required error={errors.postnom?.message}>
                   <input {...register('postnom')} className={inputCls} />
                 </Field>
-                <Field label="Prénom" required error={errors.firstName?.message}>
+                <Field label="Prénom" error={errors.firstName?.message}>
                   <input {...register('firstName')} className={inputCls} autoComplete="given-name" />
+                  <p className="text-[11px] text-zinc-400 mt-1">Optionnel</p>
                 </Field>
                 <Field label="Prénom administratif" error={errors.prenom?.message}>
                   <input {...register('prenom')} placeholder="Optionnel — si différent du prénom ci-dessus" className={inputCls} />

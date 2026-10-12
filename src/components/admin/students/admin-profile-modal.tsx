@@ -73,7 +73,11 @@ export function AdminProfileModal({
   const toast = useToast()
   const updateMutation = useUpdateAdministrativeProfile()
   const { data: classesData } = useClasses({ isActive: true })
-  const classes = (classesData ?? []).map((c) => ({ id: c.id, name: c.name }))
+  const classes = (classesData ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    displayLabel: c.displayLabel ?? c.name,
+  }))
 
   const {
     register,
@@ -114,9 +118,12 @@ export function AdminProfileModal({
 
   async function onSubmit(data: AdminProfileForm) {
     try {
+      const hadMedical = Boolean(
+        student.bloodGroup || student.allergies || student.medicalNotes,
+      )
       await updateMutation.mutateAsync({
         studentId: student.id,
-        payload: adminProfileToPayload(data),
+        payload: adminProfileToPayload(data, { clearMedical: hadMedical }),
       })
       toast.success('Profil mis à jour', 'Les informations administratives ont été enregistrées.')
       onClose()
@@ -157,8 +164,9 @@ export function AdminProfileModal({
               <Field label="Postnom" error={errors.postnom?.message}>
                 <input {...register('postnom')} className={cn(inputClass, 'uppercase')} />
               </Field>
-              <Field label="Prénom *" error={errors.firstName?.message}>
+              <Field label="Prénom" error={errors.firstName?.message}>
                 <input {...register('firstName')} className={inputClass} />
+                <p className="text-[11px] text-zinc-400 mt-1">Optionnel</p>
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -202,7 +210,7 @@ export function AdminProfileModal({
                   <option value="">— Conservée —</option>
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {c.displayLabel ?? c.name}
                     </option>
                   ))}
                 </select>

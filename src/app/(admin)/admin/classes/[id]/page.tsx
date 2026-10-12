@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2 } from 'lucide-react'
+import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2, FileArchive, Loader2 } from 'lucide-react'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -232,6 +232,7 @@ export default function ClassDetailPage() {
   const { mutateAsync: deleteClass, isPending: deleting } = useDeleteClass()
   const toast = useToast()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [exportingFiches, setExportingFiches] = useState(false)
 
   function handleExport() {
     classesApi.exportClass(classId).then(blob => {
@@ -264,6 +265,24 @@ export default function ClassDetailPage() {
       a.click()
       URL.revokeObjectURL(url)
     })
+  }
+
+  async function handleClassFichesZip() {
+    setExportingFiches(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadClassFichesZip(classId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Fiches d’inscription', `${filename} téléchargé.`)
+    } catch (err) {
+      toast.error('Export fiches impossible', getApiErrorMessage(err))
+    } finally {
+      setExportingFiches(false)
+    }
   }
 
   if (isLoading) {
@@ -336,6 +355,15 @@ export default function ClassDetailPage() {
             <button onClick={handleClassCertificates} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <BookOpen size={12} />
               Attestations
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleClassFichesZip()}
+              disabled={exportingFiches}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-50"
+            >
+              {exportingFiches ? <Loader2 size={12} className="animate-spin" /> : <FileArchive size={12} />}
+              Fiches ZIP
             </button>
             {!deskOnly && (
             <button onClick={() => toggle(classId)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">

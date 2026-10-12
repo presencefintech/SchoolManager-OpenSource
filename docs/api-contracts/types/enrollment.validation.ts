@@ -98,15 +98,15 @@ export const EnrollSessionSchema = z.object({
 
 /** Profil administratif / médical — PATCH /admin/enrollments/{studentId}/admin-profile */
 export const AdminAdministrativeProfileSchema = z.object({
-  placeOfBirth: z.string().min(2).max(120).optional(),
-  nationality: z.string().min(2).max(80).optional(),
-  emergencyContactName: z.string().min(2).max(120).optional(),
-  emergencyContactPhone: z.string().min(6).max(20).optional(),
-  bloodGroup: z.string().max(10).optional(),
-  allergies: z.string().max(500).optional(),
-  medicalNotes: z.string().max(1000).optional(),
-  paymentNotes: z.string().max(500).optional(),
-  scholarshipPercent: z.coerce.number().min(0).max(100).optional(),
+  placeOfBirth: z.string().min(2).max(120).optional().nullable(),
+  nationality: z.string().min(2).max(80).optional().nullable(),
+  emergencyContactName: z.string().min(2).max(120).optional().nullable(),
+  emergencyContactPhone: z.string().min(6).max(20).optional().nullable(),
+  bloodGroup: z.string().max(10).optional().nullable(),
+  allergies: z.string().max(500).optional().nullable(),
+  medicalNotes: z.string().max(1000).optional().nullable(),
+  paymentNotes: z.string().max(500).optional().nullable(),
+  scholarshipPercent: z.coerce.number().min(0).max(100).optional().nullable(),
 });
 
 /** Clôture vérification — POST …/verifications/{verificationId}/mark-processed */
