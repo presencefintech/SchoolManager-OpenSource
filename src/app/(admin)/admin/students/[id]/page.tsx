@@ -1547,59 +1547,103 @@ function StudentDetailPageContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2"><User size={14} /> Informations</h2>
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5 space-y-5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold text-zinc-700 flex items-center gap-2">
+                  <User size={14} /> Dossier élève
+                </h2>
                 <button
                   type="button"
                   onClick={() => setShowAdminProfile(true)}
                   className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-800"
                 >
-                  <FileEdit size={12} /> Profil administratif
+                  <FileEdit size={12} /> Mettre à jour
                 </button>
               </div>
-              <InfoRow label="Nom complet" value={formatRdcFullName(student)} />
-              <InfoRow label="Nom" value={identity.nom} />
-              <InfoRow label="Postnom" value={identity.postnom} />
-              <InfoRow label="Prénom" value={identity.prenom} />
-              <InfoRow label="Prénom d'usage" value={identity.prenomUsage} skipEmpty />
-              <InfoRow label="Classe" value={student.className} />
-              <InfoRow label="Email" value={student.email} />
-              <InfoRow label="Téléphone" value={student.phone} />
-              <InfoRow label="Date de naissance" value={student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString('fr-FR') : undefined} />
-              <InfoRow label="Adresse" value={student.address} />
-              <InfoRow label="Parent/Tuteur" value={student.parentName} />
-              <InfoRow label="Tél. parent" value={student.parentPhone} />
-              <InfoRow label="Email parent" value={student.parentEmail} />
-              <InfoRow
-                label="Genre"
-                value={
-                  student.gender === 'M' || student.gender === 'MALE'
-                    ? 'Masculin'
-                    : student.gender === 'F' || student.gender === 'FEMALE'
-                      ? 'Féminin'
-                      : student.gender
-                }
-              />
-              <InfoRow label="Lieu de naissance" value={student.placeOfBirth} />
-              <InfoRow label="Nationalité" value={student.nationality} />
-              <InfoRow label="Année scolaire" value={student.academicYear ?? enrollmentDetail?.academicYear} />
-              <InfoRow
-                label="Biométrie"
-                value={labelBiometricStatus(student.biometricStatus ?? enrollmentDetail?.biometricStatus)}
-                action={
-                  <button
-                    type="button"
-                    onClick={() => setShowBiometricsUpdate(true)}
-                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800 flex-shrink-0"
-                  >
-                    Mettre à jour
-                  </button>
-                }
-              />
-              <InfoRow label="Groupe sanguin" value={student.bloodGroup} />
-              <InfoRow label="Allergies" value={student.allergies} />
-              <InfoRow label="Notes médicales" value={student.medicalNotes} />
+
+              <section>
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 mb-1">
+                  État civil &amp; identité
+                </h3>
+                <InfoRow label="Nom complet" value={formatRdcFullName(student)} />
+                <InfoRow label="Nom" value={identity.nom} />
+                <InfoRow label="Postnom" value={identity.postnom} />
+                <InfoRow label="Prénom" value={identity.prenom} />
+                <InfoRow label="Prénom d'usage" value={identity.prenomUsage} skipEmpty />
+                <InfoRow
+                  label="Genre"
+                  value={
+                    student.gender === 'M' || student.gender === 'MALE'
+                      ? 'Masculin'
+                      : student.gender === 'F' || student.gender === 'FEMALE'
+                        ? 'Féminin'
+                        : student.gender
+                  }
+                />
+                <InfoRow
+                  label="Date de naissance"
+                  value={
+                    student.dateOfBirth
+                      ? new Date(student.dateOfBirth).toLocaleDateString('fr-FR')
+                      : undefined
+                  }
+                />
+                <InfoRow label="Lieu de naissance" value={student.placeOfBirth} />
+                <InfoRow label="Nationalité" value={student.nationality} />
+                <InfoRow label="Adresse" value={student.address} />
+              </section>
+
+              <section>
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 mb-1">
+                  Scolarité &amp; année
+                </h3>
+                <InfoRow label="Classe" value={student.className} />
+                <InfoRow
+                  label="Année scolaire"
+                  value={student.academicYear ?? enrollmentDetail?.academicYear}
+                />
+                <InfoRow label="Email élève" value={student.email} />
+                <InfoRow label="Téléphone" value={student.phone} />
+              </section>
+
+              <section>
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 mb-1">
+                  Parent / tuteur
+                </h3>
+                <InfoRow
+                  label="Parent/Tuteur"
+                  value={student.parentName ?? student.emergencyContactName}
+                />
+                <InfoRow
+                  label="Tél. parent"
+                  value={student.parentPhone ?? student.emergencyContactPhone}
+                />
+                <InfoRow label="Email parent" value={student.parentEmail} />
+              </section>
+
+              <section>
+                <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400 mb-1">
+                  Biométrie &amp; santé
+                </h3>
+                <InfoRow
+                  label="Biométrie"
+                  value={labelBiometricStatus(
+                    student.biometricStatus ?? enrollmentDetail?.biometricStatus,
+                  )}
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => setShowBiometricsUpdate(true)}
+                      className="text-xs font-medium text-emerald-700 hover:text-emerald-800 flex-shrink-0"
+                    >
+                      Mettre à jour
+                    </button>
+                  }
+                />
+                <InfoRow label="Groupe sanguin" value={student.bloodGroup} />
+                <InfoRow label="Allergies" value={student.allergies} />
+                <InfoRow label="Notes médicales" value={student.medicalNotes} />
+              </section>
             </div>
 
             <PhotoDocumentsCard
