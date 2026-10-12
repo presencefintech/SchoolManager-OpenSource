@@ -9,7 +9,7 @@ import {
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
   Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3, Smartphone, Upload,
-  Menu, X, BadgeCheck, NotebookPen, Calculator, Lock, ScrollText, LifeBuoy, Award,
+  Menu, X, BadgeCheck, NotebookPen, Calculator, Lock, ScrollText, LifeBuoy, Award, PackagePlus,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -54,10 +54,12 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Cahier de notes', href: '/admin/grades/gradebook', icon: BookOpen },
           { label: 'Périodes', href: '/admin/grades/periods', icon: Lock },
           { label: 'Délibérations', href: '/admin/deliberations', icon: Award },
-          { label: 'Journal d’audit', href: '/admin/grades/audit-logs', icon: ScrollText },
+          { label: 'Journal d’audit', href: '/admin/academic-audit', icon: ScrollText },
+          { label: 'Audit notes (détail)', href: '/admin/grades/audit-logs', icon: ScrollText },
         ],
       },
       { label: 'Enseignants', href: '/admin/teachers', icon: School },
+      { label: 'Besoins matériels', href: '/admin/needs', icon: PackagePlus },
       { label: 'Personnel', href: '/admin/staff', icon: Users },
     ],
   },

@@ -57,8 +57,8 @@ describe('relances du guichet', () => {
       { studentId: 3, whatsappUrl: null, smsUrl: null, preferredChannel: 'sms' as const },
     ]
     const all = toggleVisibleSelection([1, 2], new Set())
-    expect([...all].sort()).toEqual([1, 2])
-    expect([...toggleVisibleSelection([1, 2], all)]).toEqual([])
+    expect(Array.from(all).sort()).toEqual([1, 2])
+    expect(Array.from(toggleVisibleSelection([1, 2], all))).toEqual([])
     const plan = planSelectedReminders(visible, all, new Map([[2, 'sms']]))
     expect(plan.reachable.map((item) => item.channel)).toEqual(['whatsapp', 'sms'])
     expect(plan.reachable[1].url.startsWith('sms:+243822222222?body=')).toBe(true)

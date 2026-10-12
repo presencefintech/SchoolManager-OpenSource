@@ -148,7 +148,28 @@ export type BulkJobProgress = {
   updatedAt: string
   startedAt?: string
   finishedAt?: string
+  result?: {
+    filename?: string
+    count?: number
+    downloadPath?: string
+  }
 }
+
+export type ZipExportAsyncResult = {
+  mode: 'async'
+  jobId: string
+  queued: boolean
+  progressPath: string | null
+  downloadPath: string | null
+}
+
+export type ZipExportSyncResult = {
+  mode: 'sync'
+  filename: string
+  count: number
+}
+
+export type ZipExportResult = ZipExportAsyncResult | ZipExportSyncResult
 
 export type DeliberateBatchBody = {
   schoolId: number
@@ -186,21 +207,82 @@ export const adminDeliberationsApi = {
       })
       .then((r) => unwrap<BulletinCapabilities>(r.data)),
 
-  /** Télécharge le ZIP serveur (HTML A4 par élève). */
-  exportClassZip: async (body: Omit<DeliberateBatchBody, 'validate' | 'async'>) => {
-    const res = await apiClient.post('/admin/deliberations/export/zip', body, {
+  /**
+   * Lance l’export ZIP classe.
+   * - 202 JSON → job BullMQ async (progress + download)
+   * - 200 ZIP → sync (fallback Redis off)
+   */
+  exportClassZip: async (
+    body: Omit<DeliberateBatchBody, 'validate'> & { async?: boolean },
+  ): Promise<ZipExportResult> => {
+    const res = await apiClient.post('/admin/deliberations/export/zip', {
+      ...body,
+      async: body.async !== false,
+    }, {
       responseType: 'blob',
-      timeout: 120_000,
+      timeout: 180_000,
+      validateStatus: (status) => status === 200 || status === 202 || status >= 400,
     })
+
+    const blob = res.data as Blob
+    const isJson =
+      blob.type.includes('application/json') ||
+      res.status === 202 ||
+      (res.headers['content-type'] as string | undefined)?.includes('json')
+
+    if (isJson) {
+      const text = await blob.text()
+      let parsed: {
+        message?: string
+        data?: ZipExportAsyncResult & { mode?: string }
+      }
+      try {
+        parsed = JSON.parse(text) as typeof parsed
+      } catch {
+        throw new Error('Réponse export ZIP invalide')
+      }
+      if (res.status >= 400) {
+        throw new Error(parsed.message ?? 'Export ZIP refusé')
+      }
+      const data = (parsed.data ?? parsed) as ZipExportAsyncResult
+      if (data.mode === 'async' && data.jobId) {
+        return {
+          mode: 'async',
+          jobId: data.jobId,
+          queued: data.queued ?? true,
+          progressPath: data.progressPath ?? null,
+          downloadPath: data.downloadPath ?? null,
+        }
+      }
+      throw new Error(parsed.message ?? 'Export ZIP non disponible')
+    }
+
+    if (res.status >= 400) {
+      throw new Error('Export ZIP refusé')
+    }
+
     const disposition = res.headers['content-disposition'] as string | undefined
     const match = disposition?.match(/filename="?([^";]+)"?/i)
     const filename =
-      match?.[1] ??
-      `bulletins_${body.academicYear}_${body.term}.zip`
+      match?.[1] ?? `bulletins_${body.academicYear}_${body.term}.zip`
+    triggerBlobDownload(blob, filename)
+    return {
+      mode: 'sync',
+      filename,
+      count: Number(res.headers['x-bulletin-count'] ?? 0),
+    }
+  },
+
+  /** Télécharge l’artefact ZIP d’un job terminé. */
+  downloadZipArtifact: async (jobId: string) => {
+    const res = await apiClient.get(
+      `/admin/deliberations/jobs/${encodeURIComponent(jobId)}/download`,
+      { responseType: 'blob', timeout: 120_000 },
+    )
     const blob = res.data as Blob
     if (blob.type.includes('application/json')) {
       const text = await blob.text()
-      let message = 'Export ZIP refusé'
+      let message = 'Téléchargement ZIP impossible'
       try {
         const parsed = JSON.parse(text) as { message?: string }
         if (parsed.message) message = parsed.message
@@ -209,6 +291,9 @@ export const adminDeliberationsApi = {
       }
       throw new Error(message)
     }
+    const disposition = res.headers['content-disposition'] as string | undefined
+    const match = disposition?.match(/filename="?([^";]+)"?/i)
+    const filename = match?.[1] ?? `bulletins_${jobId}.zip`
     triggerBlobDownload(blob, filename)
     return {
       filename,

@@ -87,6 +87,9 @@ export function DeliberationsWorkspace() {
 
   const [progressOpen, setProgressOpen] = useState(false)
   const [progress, setProgress] = useState<BulkJobProgress | null>(null)
+  const [progressMode, setProgressMode] = useState<'deliberation' | 'zip'>(
+    'deliberation',
+  )
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const contextQuery = useQuery({
@@ -169,8 +172,15 @@ export function DeliberationsWorkspace() {
   )
 
   const pollJob = useCallback(
-    (jobId: string) => {
+    (
+      jobId: string,
+      options?: {
+        mode?: 'deliberation' | 'zip'
+        onCompleted?: (progress: BulkJobProgress) => Promise<void> | void
+      },
+    ) => {
       stopPolling()
+      setProgressMode(options?.mode ?? 'deliberation')
       setProgressOpen(true)
       setProgress(null)
 
@@ -180,24 +190,33 @@ export function DeliberationsWorkspace() {
           setProgress(p)
           if (p.status === 'completed') {
             stopPolling()
-            const snapshot = await loadSyncSnapshot()
-            setSuccess(
-              snapshot.anomalyReport.flaggedCount > 0
-                ? `Délibération terminée. ${snapshot.anomalyReport.flaggedCount} dossier(s) nécessitent un contrôle de cohérence avant validation.`
-                : `Délibération terminée pour ${snapshot.processed} élève(s). Vous pouvez procéder à la validation officielle.`,
-            )
+            if (options?.onCompleted) {
+              await options.onCompleted(p)
+            } else {
+              const snapshot = await loadSyncSnapshot()
+              setSuccess(
+                snapshot.anomalyReport.flaggedCount > 0
+                  ? `Délibération terminée. ${snapshot.anomalyReport.flaggedCount} dossier(s) nécessitent un contrôle de cohérence avant validation.`
+                  : `Délibération terminée pour ${snapshot.processed} élève(s). Vous pouvez procéder à la validation officielle.`,
+              )
+            }
             setBusy(false)
+            setZipBusy(false)
           } else if (p.status === 'failed') {
             stopPolling()
             setError(
-              'Le traitement de la classe n’a pas pu aboutir. Vérifiez les notes puis réessayez.',
+              options?.mode === 'zip'
+                ? 'La génération de l’archive ZIP a échoué. Vérifiez les notes et les droits SuperAdmin, puis réessayez.'
+                : 'Le traitement de la classe n’a pas pu aboutir. Vérifiez les notes puis réessayez.',
             )
             setBusy(false)
+            setZipBusy(false)
           }
         } catch (e) {
           stopPolling()
           setError(getApiErrorMessage(e))
           setBusy(false)
+          setZipBusy(false)
         }
       }
 
@@ -376,17 +395,41 @@ export function DeliberationsWorkspace() {
         classId: Number(classId),
         academicYear,
         term,
+        async: true,
       })
-      setSuccess(
-        result.count > 0
-          ? `Archive ZIP téléchargée (${result.count} bulletin(s)).`
-          : 'Archive ZIP téléchargée.',
-      )
+
+      if (result.mode === 'async' && result.jobId) {
+        pollJob(result.jobId, {
+          mode: 'zip',
+          onCompleted: async () => {
+            const downloaded = await adminDeliberationsApi.downloadZipArtifact(
+              result.jobId,
+            )
+            setSuccess(
+              downloaded.count > 0
+                ? `Archive ZIP téléchargée (${downloaded.count} bulletin(s)).`
+                : `Archive ZIP téléchargée (${downloaded.filename}).`,
+            )
+            setProgressOpen(false)
+            void capabilitiesQuery.refetch()
+          },
+        })
+        return
+      }
+
+      if (result.mode === 'sync') {
+        setSuccess(
+          result.count > 0
+            ? `Archive ZIP téléchargée (${result.count} bulletin(s)).`
+            : 'Archive ZIP téléchargée.',
+        )
+      }
       void capabilitiesQuery.refetch()
+      setZipBusy(false)
     } catch (e) {
       setError(getApiErrorMessage(e))
-    } finally {
       setZipBusy(false)
+      setProgressOpen(false)
     }
   }
 
@@ -663,6 +706,7 @@ export function DeliberationsWorkspace() {
         open={progressOpen}
         progress={progress}
         className={selectedClass?.name}
+        mode={progressMode}
         onClose={() => {
           if (
             progress?.status === 'completed' ||

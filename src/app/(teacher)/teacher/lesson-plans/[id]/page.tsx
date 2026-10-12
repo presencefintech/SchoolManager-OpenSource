@@ -8,23 +8,23 @@ import {
   type LessonPlanSteps,
   type LessonPlanStatus,
 } from '@/lib/teacher/api/lesson-plans.api'
+import {
+  STEP_FIELD_LABELS,
+  updateLessonPlanSchema,
+} from '@/lib/teacher/schemas/lesson-plan.schema'
 import { TERM_LABELS, type SchoolTerm } from '@/types/teacher-grades'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const STATUS_LABELS: Record<LessonPlanStatus, string> = {
   DRAFT: 'Brouillon',
-  SUBMITTED: 'Soumise',
-  APPROVED: 'Approuvée',
-  REJECTED: 'À corriger',
+  SUBMITTED: 'Soumis',
+  APPROVED: 'Approuvé',
+  REJECTED: 'À revoir',
 }
 
-const STEP_FIELDS: Array<{ key: keyof LessonPlanSteps; label: string }> = [
-  { key: 'revision', label: 'Révision' },
-  { key: 'motivation', label: 'Motivation' },
-  { key: 'development', label: 'Développement' },
-  { key: 'synthesis', label: 'Synthèse' },
-  { key: 'application', label: 'Application' },
-]
+const STEP_FIELDS = (
+  Object.keys(STEP_FIELD_LABELS) as Array<keyof typeof STEP_FIELD_LABELS>
+).map((key) => ({ key, label: STEP_FIELD_LABELS[key] }))
 
 export default function TeacherLessonPlanDetailPage() {
   const params = useParams<{ id: string }>()
@@ -60,14 +60,19 @@ export default function TeacherLessonPlanDetailPage() {
     planQuery.data?.status === 'DRAFT' || planQuery.data?.status === 'REJECTED'
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      teacherLessonPlansApi.update(id, {
+    mutationFn: () => {
+      const parsed = updateLessonPlanSchema.safeParse({
         title: title.trim(),
         subject: subject.trim(),
         objectives: objectives.trim() || undefined,
         materials: materials.trim() || undefined,
         steps,
-      }),
+      })
+      if (!parsed.success) {
+        throw new Error(parsed.error.issues[0]?.message ?? 'Données invalides.')
+      }
+      return teacherLessonPlansApi.update(id, parsed.data)
+    },
     onSuccess: async () => {
       setMessage('Fiche enregistrée.')
       setError(null)
@@ -76,8 +81,10 @@ export default function TeacherLessonPlanDetailPage() {
     },
     onError: (err: unknown) => {
       const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || 'Impossible d\'enregistrer la fiche.'
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { message?: string } } })?.response?.data
+              ?.message || "Impossible d'enregistrer la fiche."
       setError(msg)
       setMessage(null)
     },
@@ -120,7 +127,7 @@ export default function TeacherLessonPlanDetailPage() {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
         Fiche introuvable ou inaccessible.
-        <button type="button" className="ml-3 underline" onClick={() => router.push('/teacher/lesson-plans')}>
+        <button type="button" className="ml-3 underline" onClick={() => router.push('/teacher/preparations')}>
           Retour à la liste
         </button>
       </div>
@@ -152,7 +159,7 @@ export default function TeacherLessonPlanDetailPage() {
         </div>
         <button
           type="button"
-          onClick={() => router.push('/teacher/lesson-plans')}
+          onClick={() => router.push('/teacher/preparations')}
           className="text-sm text-slate-500 hover:underline"
         >
           ← Liste
@@ -182,7 +189,7 @@ export default function TeacherLessonPlanDetailPage() {
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Objectifs</span>
+          <span className="mb-1 block text-slate-500">Objectifs opérationnels</span>
           <textarea
             disabled={!editable}
             rows={3}
@@ -192,7 +199,7 @@ export default function TeacherLessonPlanDetailPage() {
           />
         </label>
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Matériel</span>
+          <span className="mb-1 block text-slate-500">Matériel didactique</span>
           <textarea
             disabled={!editable}
             rows={2}

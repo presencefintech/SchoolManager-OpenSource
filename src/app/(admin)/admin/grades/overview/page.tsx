@@ -93,7 +93,7 @@ export default function AdminGradesOverviewPage() {
       prev.grades += item._count?.grades ?? 0
       map.set(item.classId, prev)
     }
-    return [...map.values()].sort((a, b) => a.className.localeCompare(b.className))
+    return Array.from(map.values()).sort((a, b) => a.className.localeCompare(b.className))
   }, [evaluationsQuery.data])
 
   const loading =
@@ -136,7 +136,7 @@ export default function AdminGradesOverviewPage() {
         quickLinks={[
           { href: '/admin/grades/gradebook', label: 'Cahier de notes', icon: BookOpen },
           { href: '/admin/grades/periods', label: 'Verrouillage', icon: Lock },
-          { href: '/admin/grades/audit-logs', label: 'Audit', icon: ClipboardList },
+          { href: '/admin/academic-audit', label: 'Audit', icon: ClipboardList },
         ]}
         metrics={[
           {
@@ -286,7 +286,7 @@ export default function AdminGradesOverviewPage() {
                   ))}
                 </ul>
                 <Link
-                  href="/admin/grades/audit-logs"
+                  href="/admin/academic-audit"
                   className="mt-3 inline-block text-xs font-semibold text-amber-800 underline underline-offset-2"
                 >
                   Voir le journal complet

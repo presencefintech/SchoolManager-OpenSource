@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft, User, CheckCircle2, XCircle, Clock, ShieldAlert,
   FileCheck, Loader2, FileEdit, Camera, Upload, Trash2, FileImage, CreditCard,
-  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, Contact,
+  FileDown, Printer, Wallet, FileMinus, Mail, DoorOpen, Contact, Briefcase,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -44,6 +44,7 @@ import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
 import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
+import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
 
 function RevokeIssuedDocumentPanel() {
   const toast = useToast()
@@ -1523,6 +1524,16 @@ function StudentDetailPageContent() {
             </button>
             <button
               type="button"
+              onClick={() =>
+                document.getElementById('administrative-career')?.scrollIntoView({ behavior: 'smooth' })
+              }
+              className={deskDocButtonClass()}
+            >
+              <Briefcase size={12} />
+              Orientation
+            </button>
+            <button
+              type="button"
               onClick={() => setShowExitPass(true)}
               disabled={student.status !== 'ACTIVE'}
               className={deskDocButtonClass()}
@@ -1602,6 +1613,13 @@ function StudentDetailPageContent() {
 
             <PickupAdultsPanel studentId={studentId} />
             <StudentGuardiansPanel studentId={studentId} />
+            <StudentAdministrativeCareerPanel
+              studentId={studentId}
+              studentName={formatRdcFullName(student)}
+              schoolName={
+                branding?.name?.trim() || student.schoolName?.trim() || 'Établissement scolaire'
+              }
+            />
             <RevokeIssuedDocumentPanel />
 
             {enrollmentDetail?.enrollments && enrollmentDetail.enrollments.length > 0 && (
