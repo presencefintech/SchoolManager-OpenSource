@@ -3,6 +3,7 @@
 import { Lock, PauseCircle, Fingerprint, Percent } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { labelPaymentLocked, labelBiometricStatus, labelMoratorium } from '@/lib/business-labels'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 export function StudentFinanceBadges({
   debtAmount,
@@ -19,10 +20,11 @@ export function StudentFinanceBadges({
   scholarshipPercent?: number
   className?: string
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const badges: { key: string; label: string; cls: string; icon?: React.ElementType }[] = []
 
   if ((debtAmount ?? 0) > 0) {
-    badges.push({ key: 'debt', label: `Dette ${debtAmount!.toLocaleString('fr-FR')}`, cls: 'bg-red-50 text-red-700' })
+    badges.push({ key: 'debt', label: `Dette ${formatMoney(debtAmount!)}`, cls: 'bg-red-50 text-red-700' })
   }
   if (isPaymentLocked) {
     badges.push({ key: 'lock', label: labelPaymentLocked(true), cls: 'bg-amber-50 text-amber-800', icon: Lock })
