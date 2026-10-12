@@ -190,11 +190,9 @@ export interface StaffMember {
   isActive?: boolean
   createdAt: string
   lastLogin: string | null
-  /** Profil Teacher lié (lorsque le rôle est TEACHER). */
+  /** Profil Teacher lié (lorsque le rôle est TEACHER). Teacher.id — identifiant que la classe enregistre. Absent si le profil n’existe pas encore. */
   teacherProfileId?: number | null
   account?: StaffAccountView
-  /** Teacher.id — identifiant que la classe enregistre. Absent si le profil n’existe pas encore. */
-  teacherProfileId?: number | null
 }
 
 export interface CreateStaffPayload {
