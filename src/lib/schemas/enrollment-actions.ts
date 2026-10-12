@@ -61,13 +61,14 @@ const optionalText = (max: number, min = 0) =>
 export const adminProfileSchema = z.object({
   lastName: z.string().min(2, 'Nom requis').max(80),
   postnom: optionalText(80, 2),
-  firstName: z.string().min(2, 'Prénom requis').max(80),
+  /** Prénom optionnel (Nom + Postnom suffisent). */
+  firstName: optionalText(80, 2),
   prenom: optionalText(80, 2),
   gender: z.enum(['', 'M', 'F', 'MALE', 'FEMALE']).optional(),
   dateOfBirth: z.string().optional().or(z.literal('')),
-  placeOfBirth: optionalText(120, 2),
-  nationality: optionalText(80, 2),
-  address: optionalText(250),
+  placeOfBirth: z.preprocess((v) => (v == null ? '' : v), optionalText(120, 2)),
+  nationality: z.preprocess((v) => (v == null ? '' : v), optionalText(80, 2)),
+  address: z.preprocess((v) => (v == null ? '' : v), optionalText(250)),
   email: z
     .string()
     .max(120)
@@ -98,15 +99,26 @@ export const adminProfileSchema = z.object({
     })
     .optional()
     .or(z.literal('')),
-  bloodGroup: z.enum(BLOOD_GROUPS).optional(),
-  allergies: optionalText(500),
-  medicalNotes: optionalText(1000),
+  bloodGroup: z.preprocess(
+    (v) => (v == null ? '' : v),
+    z.union([z.enum(BLOOD_GROUPS), z.literal('')]).optional(),
+  ),
+  allergies: z.preprocess((v) => (v == null ? '' : v), optionalText(500)),
+  medicalNotes: z.preprocess((v) => (v == null ? '' : v), optionalText(1000)),
 })
 
 export type AdminProfileForm = z.infer<typeof adminProfileSchema>
 
-/** Convertit le formulaire en payload PATCH (chaînes vides → null pour effacer). */
-export function adminProfileToPayload(data: AdminProfileForm): Record<string, unknown> {
+/**
+ * Convertit le formulaire en payload PATCH.
+ * Chaînes vides → null (effacer côté API). Les champs santé vides sont omis
+ * s’ils n’avaient pas de valeur à effacer — évite `Expected string, received null`
+ * sur les schémas Zod `.optional()` sans `.nullable()`.
+ */
+export function adminProfileToPayload(
+  data: AdminProfileForm,
+  opts?: { clearMedical?: boolean },
+): Record<string, unknown> {
   const out: Record<string, unknown> = {}
   const put = (key: string, value: unknown, emptyAsNull = true) => {
     if (value === undefined) return
@@ -121,7 +133,8 @@ export function adminProfileToPayload(data: AdminProfileForm): Record<string, un
 
   put('lastName', data.lastName, false)
   put('postnom', data.postnom)
-  put('firstName', data.firstName, false)
+  // Prénom optionnel : chaîne vide autorisée (pas d’omission forcée)
+  if (typeof data.firstName === 'string') out.firstName = data.firstName.trim()
   put('prenom', data.prenom)
   put('gender', data.gender)
   put('dateOfBirth', data.dateOfBirth)
@@ -135,9 +148,19 @@ export function adminProfileToPayload(data: AdminProfileForm): Record<string, un
   put('emergencyContactName', data.emergencyContactName)
   put('emergencyContactPhone', data.emergencyContactPhone)
   put('parentEmail', data.parentEmail)
-  put('bloodGroup', data.bloodGroup)
-  put('allergies', data.allergies)
-  put('medicalNotes', data.medicalNotes)
+
+  // Santé : n’envoyer que des valeurs non vides (null cassait la validation Zod backend)
+  const blood = typeof data.bloodGroup === 'string' ? data.bloodGroup.trim() : ''
+  if (blood) out.bloodGroup = blood
+  else if (opts?.clearMedical) out.bloodGroup = null
+
+  const allergies = typeof data.allergies === 'string' ? data.allergies.trim() : ''
+  if (allergies) out.allergies = allergies
+  else if (opts?.clearMedical) out.allergies = null
+
+  const medicalNotes = typeof data.medicalNotes === 'string' ? data.medicalNotes.trim() : ''
+  if (medicalNotes) out.medicalNotes = medicalNotes
+  else if (opts?.clearMedical) out.medicalNotes = null
 
   return out
 }

@@ -185,6 +185,25 @@ export const studentsApi = {
     apiClient
       .post<{ success: boolean; data: StudentGuardian }>(`/admin/students/${studentId}/guardians`, body)
       .then((r) => r.data.data as StudentGuardian),
+
+  /** Transfert / réaffectation de classe (même école). */
+  transferClass: (
+    studentId: number,
+    body: { newClassId: number; mode?: 'TRANSFER' | 'CORRECTION'; reason?: string },
+  ) =>
+    apiClient
+      .patch<{
+        success: boolean
+        data: {
+          id: number
+          classId: number | null
+          previousClassId?: number | null
+          newClassId: number
+          mode: string
+        }
+        message?: string
+      }>(`/admin/students/${studentId}/transfer`, body)
+      .then((r) => r.data),
 }
 
 export type StudentGuardian = {

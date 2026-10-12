@@ -45,6 +45,7 @@ import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFe
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
 import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
 import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
+import { StudentClassTransferPanel } from '@/components/admin/students/StudentClassTransferPanel'
 
 function RevokeIssuedDocumentPanel() {
   const toast = useToast()
@@ -1658,6 +1659,11 @@ function StudentDetailPageContent() {
 
             <PickupAdultsPanel studentId={studentId} />
             <StudentGuardiansPanel studentId={studentId} />
+            <StudentClassTransferPanel
+              studentId={studentId}
+              currentClassId={student.classId}
+              currentClassName={student.className}
+            />
             <StudentAdministrativeCareerPanel
               studentId={studentId}
               studentName={formatRdcFullName(student)}

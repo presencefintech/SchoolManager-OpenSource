@@ -438,7 +438,8 @@ export interface EnrollmentDetail {
 }
 
 export interface CreateEnrollmentPayload {
-  firstName: string
+  /** Optionnel — Nom + Postnom suffisent (RDC). */
+  firstName?: string
   lastName: string
   postnom: string
   prenom?: string
@@ -691,6 +692,8 @@ export interface PresenceReasonCodeEntry {
 export interface ClassListItem {
   id: number
   name: string
+  /** Libellé dédupliqué (name + option/level sans doublon). */
+  displayLabel?: string
   level?: string
   capacity?: number
   studentCount?: number

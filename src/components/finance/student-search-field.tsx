@@ -6,6 +6,7 @@ import { useFinanceClasses, useFinanceStudentSearch } from '@/lib/hooks/use-fina
 import type { FinanceStudentResult } from '@/types/finance'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
+import { formatClassLabel } from '@/lib/academic/class-identity'
 
 type ClassRow = {
   id: number
@@ -30,8 +31,12 @@ const selectCls =
   'w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-emerald-400/40'
 
 function pedagogyLine(s: FinanceStudentResult): string | null {
-  const parts = [s.sectionName, s.optionName, s.className].filter(Boolean)
-  return parts.length ? parts.join(' · ') : s.className
+  const label = formatClassLabel({
+    name: s.className,
+    sectionName: s.sectionName,
+    optionName: s.optionName,
+  })
+  return label && label !== '—' ? label : s.className
 }
 
 function classSectionId(c: ClassRow): number | undefined {

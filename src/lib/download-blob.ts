@@ -22,10 +22,12 @@ export async function readBlobErrorMessage(blob: Blob): Promise<string> {
 
 export function isExportContentType(
   contentType: string | undefined,
-  format: 'pdf' | 'csv',
+  format: 'pdf' | 'csv' | 'zip',
 ): boolean {
   const ct = (contentType ?? '').toLowerCase()
-  return format === 'pdf' ? ct.includes('application/pdf') : ct.includes('text/csv')
+  if (format === 'pdf') return ct.includes('application/pdf')
+  if (format === 'csv') return ct.includes('text/csv')
+  return ct.includes('application/zip') || ct.includes('application/x-zip')
 }
 
 export function parseContentDispositionFilename(
