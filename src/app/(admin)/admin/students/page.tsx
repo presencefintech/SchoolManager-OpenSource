@@ -12,13 +12,14 @@ import { cn } from '@/lib/utils'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
   useStudents, useStudentDashboard, useClasses,
-  useStudentApplications, useApproveApplication, useRejectApplication, useDebtors,
+  useStudentApplications, useApproveApplication, useRejectApplication, useDebtors, useArchiveStudent,
 } from '@/lib/hooks/use-admin'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
 import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
@@ -68,6 +69,8 @@ export default function StudentsPage() {
   const [appFilter, setAppFilter] = useState<string>('PENDING')
   const [rejectId, setRejectId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [archiveTarget, setArchiveTarget] = useState<StudentListItem | null>(null)
+  const archiveMutation = useArchiveStudent()
 
   const limit = 20
   const { data: dashboard } = useStudentDashboard()
@@ -116,6 +119,17 @@ export default function StudentsPage() {
 
   async function handleApprove(id: number) {
     await approveMutation.mutateAsync(id)
+  }
+
+  async function handleArchive() {
+    if (!archiveTarget) return
+    try {
+      await archiveMutation.mutateAsync(archiveTarget.id)
+      toast.success('Élève archivé', 'Restaurable depuis « Doublons & corbeille ».')
+      setArchiveTarget(null)
+    } catch (error) {
+      toast.error('Archivage impossible', getApiErrorMessage(error))
+    }
   }
 
   async function handleReject() {
@@ -345,6 +359,16 @@ export default function StudentsPage() {
                                     label: 'Autorisation de sortie',
                                     onClick: () => router.push(`/admin/students/${s.id}?doc=pass`),
                                   },
+                                  ...(!deskOnly
+                                    ? [
+                                        {
+                                          id: 'archive',
+                                          label: 'Archiver (doublon / erreur)',
+                                          danger: true,
+                                          onClick: () => setArchiveTarget(s),
+                                        },
+                                      ]
+                                    : []),
                                 ]}
                               />
                             </td>
@@ -549,6 +573,17 @@ export default function StudentsPage() {
           </motion.div>
         </div>
       )}
+      <ConfirmDialog
+        open={archiveTarget != null}
+        title="Archiver cet élève ?"
+        description="La fiche disparaît des listes mais reste conservée (paiements, présences). Pour regrouper deux fiches d’un même élève, utilisez plutôt la fusion."
+        impact={archiveTarget ? [`Élève : ${formatStudentFullName(archiveTarget)}`] : []}
+        confirmLabel="Archiver"
+        variant="danger"
+        loading={archiveMutation.isPending}
+        onConfirm={handleArchive}
+        onCancel={() => setArchiveTarget(null)}
+      />
     </div>
   )
 }

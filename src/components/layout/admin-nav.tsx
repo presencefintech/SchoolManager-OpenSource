@@ -37,6 +37,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Gestion',
     links: [
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
+      { label: 'Doublons & corbeille', href: '/admin/students/merge', icon: Layers3 },
       { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
       { label: 'Cartes parent', href: '/admin/desk?gap=pickup', icon: Contact },
       { label: 'Boîte d\'entrée', href: '/admin/inbox', icon: Inbox },

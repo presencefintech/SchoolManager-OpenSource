@@ -37,7 +37,19 @@ export { adminCloudinaryApi } from './cloudinary.api'
 export { pickupApi } from './pickup.api'
 export { preEnrollmentApi, schoolAcademicApi } from './pre-enrollment.api'
 export type { PickupAdult, PickupAdultPayload, PickupHousehold, PickupChild } from './pickup.api'
-export type { ImportType, ImportJobStatus, ImportJobResult } from './import.api'
+export type {
+  ImportType,
+  ImportJobStatus,
+  ImportJobResult,
+  ImportReportEntry,
+  StudentDecision,
+  StudentRowLevel,
+  StudentRowAnalysis,
+  StudentImportAnalysis,
+  StudentDuplicateMatch,
+  StudentFieldChange,
+  StudentRowIssue,
+} from './import.api'
 export { adminBillingApi } from './billing.api'
 export { presenceDiagnosticsApi } from './presence-diagnostics.api'
 export { adminGradesApi } from './grades.api'

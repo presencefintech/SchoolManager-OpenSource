@@ -130,6 +130,40 @@ export const studentsApi = {
     apiClient.post<{ success: boolean }>(`/admin/students/${id}/security-action`, { action, reason })
       .then(r => r.data),
 
+  /** Archive un élève (suppression logique, restaurable depuis la corbeille). */
+  archive: (id: number) =>
+    apiClient.delete<{ success: boolean }>(`/admin/students/${id}`).then(r => r.data),
+
+  restore: (id: number) =>
+    apiClient.post<{ success: boolean }>(`/admin/students/${id}/restore`).then(r => r.data),
+
+  listArchived: (params?: { page?: number; limit?: number }) =>
+    apiClient
+      .get<{ success: boolean; data: { items: ArchivedStudent[]; meta: { total: number; page: number; limit: number; totalPages: number } } }>(
+        '/admin/students/archived',
+        { params },
+      )
+      .then(r => r.data.data),
+
+  findDuplicates: (threshold?: number) =>
+    apiClient
+      .get<{ success: boolean; data: DuplicateScan }>('/admin/students/duplicates', {
+        params: threshold ? { threshold } : undefined,
+      })
+      .then(r => r.data.data),
+
+  previewMerge: (targetId: number, sourceId: number) =>
+    apiClient
+      .get<{ success: boolean; data: MergePreview }>('/admin/students/merge/preview', {
+        params: { targetId, sourceId },
+      })
+      .then(r => r.data.data),
+
+  merge: (targetId: number, sourceId: number) =>
+    apiClient
+      .post<{ success: boolean; data: MergeResult }>('/admin/students/merge', { targetId, sourceId }, { timeout: 60_000 })
+      .then(r => r.data.data),
+
   logPiiAccess: (id: number, reason: string) =>
     apiClient.post<{ success: boolean }>(`/admin/students/${id}/log-pii-access`, { reason })
       .then(r => r.data),
@@ -215,4 +249,58 @@ export type StudentGuardian = {
   isPrimary?: boolean
   notifyEnabled?: boolean
   email?: string | null
+}
+
+export interface DuplicateCandidate {
+  id: number
+  matricule: string
+  lastName: string
+  postnom: string | null
+  firstName: string
+  gender: string | null
+  dateOfBirth: string | null
+  classId: number | null
+  emergencyContactPhone: string | null
+  status: string
+  createdAt: string
+  class?: { name: string } | null
+}
+
+export interface DuplicatePair {
+  score: number
+  reason: 'EXACT_NAME' | 'SIMILAR_NAME' | 'SAME_PHONE_AND_BIRTH'
+  a: DuplicateCandidate
+  b: DuplicateCandidate
+}
+
+export interface DuplicateScan {
+  pairs: DuplicatePair[]
+  scanned: number
+  threshold: number
+}
+
+export interface MergePreview {
+  target: DuplicateCandidate
+  source: DuplicateCandidate
+  /** Nombre de lignes rattachées à la fiche secondaire, par table. */
+  willMove: Record<string, number>
+}
+
+export interface MergeResult {
+  targetId: number
+  sourceId: number
+  summary: Record<string, { moved: number; skippedConflicts: number }>
+}
+
+export interface ArchivedStudent {
+  id: number
+  matricule: string
+  lastName: string
+  postnom: string | null
+  firstName: string
+  gender: string | null
+  dateOfBirth: string | null
+  classId: number | null
+  class?: { name: string } | null
+  deletedAt: string
 }
