@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -581,9 +580,8 @@ export function EnrollmentCreateModal({
                 <Field label="Postnom" required error={errors.postnom?.message}>
                   <input {...register('postnom')} className={inputCls} />
                 </Field>
-                <Field label="Prénom" error={errors.firstName?.message}>
+                <Field label="Prénom" required error={errors.firstName?.message}>
                   <input {...register('firstName')} className={inputCls} autoComplete="given-name" />
-                  <p className="text-[11px] text-zinc-400 mt-1">Optionnel</p>
                 </Field>
                 <Field label="Prénom administratif" error={errors.prenom?.message}>
                   <input {...register('prenom')} placeholder="Optionnel — si différent du prénom ci-dessus" className={inputCls} />
@@ -718,9 +716,9 @@ export function EnrollmentCreateModal({
                   ) : (
                     <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                       Aucune année scolaire ouverte.{' '}
-                      <Link href="/admin/classes" className="font-medium underline underline-offset-2">
+                      <a href="/admin/classes" className="font-medium underline underline-offset-2">
                         Ouvrir l’année dans Classes
-                      </Link>
+                      </a>
                       {' '}avant d’inscrire.
                     </p>
                   )}

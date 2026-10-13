@@ -44,8 +44,8 @@ const COUNT_INSIGHT_KEYS = new Set([
 ])
 
 /**
- * Formate un montant avec la devise métier (USD ou CDF/FC).
- * CDF (ISO) → symbole local `FC` : `50.000 FC`. USD : `100 $US`.
+ * Formate un montant avec la devise métier (USD ou CDF).
+ * CDF : `50.000 CDF` (francs entiers). USD : `100 $US`.
  */
 export function formatMoney(
   amount: number,
@@ -53,25 +53,11 @@ export function formatMoney(
   options?: { maximumFractionDigits?: number; notation?: 'standard' | 'compact' },
 ): string {
   const safe = Number.isFinite(Number(amount)) ? Number(amount) : 0
-  const raw = String(currency || 'USD').toUpperCase()
-  const code = raw === 'FC' ? 'CDF' : raw
+  const code = String(currency || 'USD').toUpperCase()
 
   if (code === 'CDF') {
     const whole = Math.round(safe)
-    let grouped: string
-    try {
-      grouped = new Intl.NumberFormat('fr-CD', {
-        maximumFractionDigits: 0,
-        minimumFractionDigits: 0,
-        notation: options?.notation ?? 'standard',
-      }).format(whole)
-    } catch {
-      grouped = whole.toLocaleString('de-DE', {
-        notation: options?.notation ?? 'standard',
-      })
-    }
-    const withDots = grouped.replace(/[\u00a0\u202f\s]/g, '.').replace(/^\.+|\.+$/g, '')
-    return `${withDots || String(whole)} FC`
+    return `${whole.toLocaleString('de-DE')} CDF`
   }
 
   const digits = options?.maximumFractionDigits ?? (code === 'USD' ? 2 : 0)

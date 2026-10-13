@@ -475,6 +475,7 @@ function ClassDetail({ cls, currency }: { cls: ClassYearFeeClass; currency: stri
             </p>
             <p className="mt-1 text-xl font-semibold tracking-tight">{cls.className}</p>
             <p className="mt-0.5 text-xs text-slate-400">
+              {cls.level ? `${cls.level} · ` : ''}
               {cls.studentCount} élève{cls.studentCount > 1 ? 's' : ''} · {cls.debtorCount} débiteur
               {cls.debtorCount > 1 ? 's' : ''}
             </p>
