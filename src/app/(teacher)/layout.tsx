@@ -24,7 +24,7 @@ const NAV_LINKS = [
   { label: 'Tableau de bord', href: '/teacher/dashboard', icon: LayoutDashboard },
   { label: 'Pointage', href: '/teacher/attendance', icon: ScanBarcode },
   { label: 'Cahier de notes', href: '/teacher/grades', icon: ClipboardList },
-  { label: 'Fiches de préparation', href: '/teacher/preparations', icon: NotebookPen },
+  { label: 'Fiches de préparation', href: '/teacher/lesson-plans', icon: NotebookPen },
   { label: 'Besoins matériels', href: '/teacher/needs', icon: PackagePlus },
 ]
 

@@ -111,49 +111,23 @@ export function classIdentityKey(
   return `${parsed.cycle}|${parsed.grade}|${parsed.group}|${parsed.stream}`
 }
 
-/**
- * Libellé UI unique — n’ajoute pas level/option/section déjà présents dans `name`
- * (évite « 1ère AI · 1ère AI » ou « 1ère AI · AI »).
- */
+/** Libellé d’affichage compact (sélecteur finance / inscriptions). */
 export function formatClassLabel(input: {
   name?: string | null
-  level?: string | null
   sectionName?: string | null
   optionName?: string | null
+  section?: { name?: string | null } | null
+  option?: { name?: string | null } | null
 }): string {
   const name = String(input.name ?? '').trim()
-  const candidates = [input.level, input.sectionName, input.optionName]
-    .map((p) => String(p ?? '').trim())
-    .filter(Boolean)
-
-  if (!name) {
-    const seen = new Set<string>()
-    const unique: string[] = []
-    for (const c of candidates) {
-      const key = foldClassText(c)
-      if (!key || seen.has(key)) continue
-      seen.add(key)
-      unique.push(c)
-    }
-    return unique.join(' · ') || '—'
+  const section = String(input.sectionName ?? input.section?.name ?? '').trim()
+  const option = String(input.optionName ?? input.option?.name ?? '').trim()
+  const parts = [name]
+  if (section) parts.push(section)
+  if (option && option.toLowerCase() !== 'générale' && option.toLowerCase() !== 'generale') {
+    parts.push(option)
   }
-
-  const foldedName = foldClassText(name)
-  const extras: string[] = []
-  const seenExtra = new Set<string>()
-
-  for (const part of candidates) {
-    const folded = foldClassText(part)
-    if (!folded || folded === foldedName) continue
-    if (foldedName.includes(folded)) continue
-    const tokens = folded.split(/\s+/).filter(Boolean)
-    if (tokens.length > 0 && tokens.every((t) => foldedName.includes(t))) continue
-    if (seenExtra.has(folded)) continue
-    seenExtra.add(folded)
-    extras.push(part)
-  }
-
-  return extras.length > 0 ? `${name} · ${extras.join(' · ')}` : name
+  return parts.filter(Boolean).join(' · ') || '—'
 }
 
 export function dedupeClassList<T extends {

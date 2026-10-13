@@ -18,15 +18,7 @@ export const enrollmentCreateSchema = z
   .object({
     lastName: z.string().min(2, 'Nom requis (min. 2 caractères)').max(80),
     postnom: z.string().min(2, 'Postnom requis (min. 2 caractères)').max(80),
-    /** Prénom optionnel — Nom + Postnom suffisent (RDC). */
-    firstName: z
-      .string()
-      .max(80)
-      .optional()
-      .or(z.literal(''))
-      .refine((v) => !v?.trim() || v.trim().length >= 2, {
-        message: 'Prénom trop court (min. 2 caractères)',
-      }),
+    firstName: z.string().min(2, 'Prénom requis (min. 2 caractères)').max(80),
     /** Prénom administratif RDC — optionnel (repli backend sur firstName) */
     prenom: z.string().min(2).max(80).optional().or(z.literal('')),
     gender: z.enum(['M', 'F', 'MALE', 'FEMALE'], { required_error: 'Genre requis' }),
@@ -141,7 +133,7 @@ function trimOptional(value: string | undefined): string | undefined {
 /** Mappe le formulaire validé vers le payload API (sans cast unsafe). */
 export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnrollmentPayload {
   return {
-    firstName: data.firstName?.trim() ?? '',
+    firstName: data.firstName.trim(),
     lastName: data.lastName.trim(),
     postnom: data.postnom.trim(),
     ...(trimOptional(data.prenom) ? { prenom: trimOptional(data.prenom) } : {}),

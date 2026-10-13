@@ -392,17 +392,6 @@ export const enrollmentsApi = {
       `attestations-classe-${classId}.pdf`,
     ),
 
-  /** ZIP des fiches d’inscription (élèves ACTIVE de la classe). */
-  downloadClassFichesZip: (classId: number) =>
-    fetchStudentCardsExport(
-      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/fiches/zip`, {
-        responseType: 'blob',
-        timeout: 180_000,
-      }),
-      `fiches-inscription-classe-${classId}.zip`,
-      'zip',
-    ),
-
   revokeIssuedDocument: (payload: { documentRef: string; reason?: string }) =>
     apiClient
       .post<{ success: boolean; data: { documentRef: string; revokedAt: string } }>(
@@ -412,15 +401,14 @@ export const enrollmentsApi = {
       .then((r) => r.data.data),
 }
 
-async function fetchStudentCardsExport(
+async function fetchStudentCardsPdf(
   request: Promise<{ data: Blob; headers: Record<string, unknown> }>,
   fallbackFilename: string,
-  format: 'pdf' | 'zip' = 'pdf',
 ): Promise<{ blob: Blob; filename: string }> {
   try {
     const res = await request
     const contentType = res.headers['content-type'] as string | undefined
-    if (!isExportContentType(contentType, format)) {
+    if (!isExportContentType(contentType, 'pdf')) {
       throw new Error(await readBlobErrorMessage(res.data))
     }
     return {
@@ -436,13 +424,6 @@ async function fetchStudentCardsExport(
     }
     throw error
   }
-}
-
-async function fetchStudentCardsPdf(
-  request: Promise<{ data: Blob; headers: Record<string, unknown> }>,
-  fallbackFilename: string,
-): Promise<{ blob: Blob; filename: string }> {
-  return fetchStudentCardsExport(request, fallbackFilename, 'pdf')
 }
 
 export type { SessionEnrollment }

@@ -126,10 +126,10 @@ function TeacherGradesPageInner() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Grille de cotation</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Cahier de notes</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Saisie TJ / examen, validation au barème, navigation clavier et enregistrement
-            automatique des brouillons.
+            Parité mobile — création d’évaluations, saisie clavier, absences, commentaires,
+            soumission du trimestre.
           </p>
         </div>
         <button

@@ -9,7 +9,6 @@ import { useToast } from '@/providers/toast-provider'
 import type { School, SchoolLifecycleStatus } from '@/types/super-admin'
 import { lifecycleStatusLabel, subscriptionTierLabel } from '@/lib/i18n/display-labels'
 import { SchoolModulesConsole } from '@/components/super-admin/school-modules-console'
-import { SchoolBulletinPermissionToggle } from '@/components/super-admin/SchoolBulletinPermissionToggle'
 
 export function StatusBadge({ status }: { status?: SchoolLifecycleStatus | string }) {
   const s = status ?? 'ACTIVE'
@@ -128,8 +127,6 @@ export function SchoolSaasDrawer({
 
         <div className="space-y-6 px-5 py-5">
           <CapacityBar count={studentCount} capacity={school.studentCapacity} />
-
-          <SchoolBulletinPermissionToggle schoolId={school.id} />
 
           <SchoolModulesConsole schoolId={school.id} />
 

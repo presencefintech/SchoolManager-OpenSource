@@ -14,8 +14,7 @@ function cdfToUsd(amountCdf: number, rate: number): number {
 /** USD / CDF / EUR — sinon base comptable USD (jamais CDF par défaut). */
 export function normalizeMoneyCurrency(code?: string | null): FinanceCurrencyCode {
   const c = (code ?? '').trim().toUpperCase()
-  if (c === 'FC' || c === 'CDF') return 'CDF'
-  if (c === 'USD' || c === 'EUR') return c
+  if (c === 'USD' || c === 'CDF' || c === 'EUR') return c
   return DEFAULT_FINANCE_CURRENCY
 }
 

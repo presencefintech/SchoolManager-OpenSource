@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2, FileArchive, Loader2 } from 'lucide-react'
+import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2 } from 'lucide-react'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -20,7 +20,7 @@ import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { ClassDetail } from '@/types/admin'
-import { useSchoolMoney } from '@/lib/finance/use-school-money'
+import { formatMoney } from '@/lib/finance/currency'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
 
@@ -123,27 +123,14 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
   )
 }
 
-function teacherOptionId(member: { id: number; teacherProfileId?: number | null }): number {
-  return member.teacherProfileId && member.teacherProfileId > 0 ? member.teacherProfileId : member.id
-}
-
 function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) {
   const { mutateAsync, isPending } = useUpdateClass()
   const { data: staff = [] } = useStaff()
-  const teachers = staff.filter((m) => m.role === 'TEACHER')
+  const teachers = staff.filter((m: any) => m.role === 'TEACHER')
   const [name, setName] = useState(cls.name)
   const [capacity, setCapacity] = useState(cls.capacity ?? '')
   const [teacherId, setTeacherId] = useState<number | ''>(cls.teacherId ?? '')
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (teacherId === '' || teachers.length === 0) return
-    const current = Number(teacherId)
-    const match = teachers.find((t) => t.teacherProfileId === current || t.id === current)
-    if (!match) return
-    const next = teacherOptionId(match)
-    if (next !== current) setTeacherId(next)
-  }, [teachers, teacherId])
 
   const { data: conflicts = [] } = useClassConflicts(teacherId ? Number(teacherId) : undefined)
   const hasConflicts = teacherId !== '' && Number(teacherId) !== cls.teacherId && conflicts.length > 0
@@ -198,8 +185,8 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
             >
               <option value="">Aucun</option>
-              {teachers.map((t) => (
-                <option key={t.id} value={teacherOptionId(t)}>{t.firstName} {t.lastName}</option>
+              {teachers.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
               ))}
             </select>
             {hasConflicts && (
@@ -227,7 +214,6 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
 type Tab = 'eleves' | 'stats' | 'audit'
 
 export default function ClassDetailPage() {
-  const { format: formatMoney } = useSchoolMoney()
   const { id } = useParams<{ id: string }>()
   const classId = Number(id)
   const router = useRouter()
@@ -246,7 +232,6 @@ export default function ClassDetailPage() {
   const { mutateAsync: deleteClass, isPending: deleting } = useDeleteClass()
   const toast = useToast()
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [exportingFiches, setExportingFiches] = useState(false)
 
   function handleExport() {
     classesApi.exportClass(classId).then(blob => {
@@ -279,24 +264,6 @@ export default function ClassDetailPage() {
       a.click()
       URL.revokeObjectURL(url)
     })
-  }
-
-  async function handleClassFichesZip() {
-    setExportingFiches(true)
-    try {
-      const { blob, filename } = await enrollmentsApi.downloadClassFichesZip(classId)
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(url)
-      toast.success('Fiches d’inscription', `${filename} téléchargé.`)
-    } catch (err) {
-      toast.error('Export fiches impossible', getApiErrorMessage(err))
-    } finally {
-      setExportingFiches(false)
-    }
   }
 
   if (isLoading) {
@@ -337,9 +304,6 @@ export default function ClassDetailPage() {
                 {cls.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
-            {cls.teacherName && (
-              <p className="text-sm text-zinc-600 mt-1">Titulaire : {cls.teacherName}</p>
-            )}
             {cls.description && <p className="text-sm text-zinc-500 mt-1">{cls.description}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -372,15 +336,6 @@ export default function ClassDetailPage() {
             <button onClick={handleClassCertificates} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <BookOpen size={12} />
               Attestations
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleClassFichesZip()}
-              disabled={exportingFiches}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors disabled:opacity-50"
-            >
-              {exportingFiches ? <Loader2 size={12} className="animate-spin" /> : <FileArchive size={12} />}
-              Fiches ZIP
             </button>
             {!deskOnly && (
             <button onClick={() => toggle(classId)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { teacherLessonPlansApi } from '@/lib/teacher/api/lesson-plans.api'
 import { teacherGradesApi } from '@/lib/teacher/api/grades.api'
-import { createLessonPlanSchema } from '@/lib/teacher/schemas/lesson-plan.schema'
 import { TERM_LABELS, type SchoolTerm } from '@/types/teacher-grades'
 
 const TERMS = Object.keys(TERM_LABELS) as SchoolTerm[]
@@ -20,30 +19,27 @@ export default function NewTeacherLessonPlanPage() {
 
   const [classId, setClassId] = useState<number | ''>('')
   const [subject, setSubject] = useState('')
-  const [subBranch, setSubBranch] = useState('')
   const [term, setTerm] = useState<SchoolTerm>('FIRST_TERM')
   const [weekNumber, setWeekNumber] = useState(1)
   const [title, setTitle] = useState('')
   const [objectives, setObjectives] = useState('')
   const [materials, setMaterials] = useState('')
-  const [bibliographicReferences, setBibliographicReferences] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const createMutation = useMutation({
-    mutationFn: (body: {
-      classId: number
-      subject: string
-      subBranch?: string
-      term: SchoolTerm
-      weekNumber: number
-      title: string
-      objectives?: string
-      materials?: string
-      bibliographicReferences?: string
-    }) => teacherLessonPlansApi.create(body),
+    mutationFn: () =>
+      teacherLessonPlansApi.create({
+        classId: classId as number,
+        subject: subject.trim(),
+        term,
+        weekNumber,
+        title: title.trim(),
+        objectives: objectives.trim() || undefined,
+        materials: materials.trim() || undefined,
+      }),
     onSuccess: async (plan) => {
       await queryClient.invalidateQueries({ queryKey: ['teacher', 'lesson-plans'] })
-      router.replace(`/teacher/preparations/${plan.id}`)
+      router.replace(`/teacher/lesson-plans/${plan.id}`)
     },
     onError: (err: unknown) => {
       const message =
@@ -56,22 +52,11 @@ export default function NewTeacherLessonPlanPage() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    const parsed = createLessonPlanSchema.safeParse({
-      classId: typeof classId === 'number' ? classId : 0,
-      subject: subject.trim(),
-      subBranch: subBranch.trim() || undefined,
-      term,
-      weekNumber,
-      title: title.trim(),
-      objectives: objectives.trim() || undefined,
-      materials: materials.trim() || undefined,
-      bibliographicReferences: bibliographicReferences.trim() || undefined,
-    })
-    if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Classe, matière et titre sont obligatoires.')
+    if (!classId || !subject.trim() || !title.trim()) {
+      setError('Classe, matière et titre sont obligatoires.')
       return
     }
-    createMutation.mutate(parsed.data)
+    createMutation.mutate()
   }
 
   const classes = contextQuery.data?.classes ?? []
@@ -124,16 +109,6 @@ export default function NewTeacherLessonPlanPage() {
           </datalist>
         </label>
 
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Sous-branche (type de leçon, optionnel)</span>
-          <input
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
-            value={subBranch}
-            onChange={(e) => setSubBranch(e.target.value)}
-            placeholder="Ex. Grammaire, Vocabulaire, Exercices…"
-          />
-        </label>
-
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block text-slate-500">Période</span>
@@ -175,9 +150,7 @@ export default function NewTeacherLessonPlanPage() {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">
-            Objectif opérationnel (optionnel) — « à la fin de la leçon, l&apos;élève doit être capable de… »
-          </span>
+          <span className="mb-1 block text-slate-500">Objectifs (optionnel)</span>
           <textarea
             rows={3}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
@@ -187,23 +160,12 @@ export default function NewTeacherLessonPlanPage() {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Matériel didactique (optionnel)</span>
+          <span className="mb-1 block text-slate-500">Matériel (optionnel)</span>
           <textarea
             rows={2}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
             value={materials}
             onChange={(e) => setMaterials(e.target.value)}
-          />
-        </label>
-
-        <label className="block text-sm">
-          <span className="mb-1 block text-slate-500">Référence(s) bibliographique(s) (optionnel)</span>
-          <textarea
-            rows={2}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700 dark:bg-slate-950"
-            value={bibliographicReferences}
-            onChange={(e) => setBibliographicReferences(e.target.value)}
-            placeholder="Ex. Pédagogie générale, Ibeki, 2001, p.96"
           />
         </label>
 

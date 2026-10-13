@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api/client'
 import type { ClassListItem, ClassDetail, ClassStats, ClassAuditEntry, CreateClassPayload, RolloverPayload } from '@/types/admin'
-import { dedupeClassList, formatClassLabel } from '@/lib/academic/class-identity'
+import { dedupeClassList } from '@/lib/academic/class-identity'
 
 // Note: ClassController utilise res.json(result) directement (sans ApiResponse wrapper).
 // Seuls create/update wrappent dans { status, data }.
@@ -24,26 +24,17 @@ export const classesApi = {
     }).then(r => {
       const d = r.data
       const raw: any[] = Array.isArray(d) ? d : d?.data ?? d?.classes ?? []
-      const mapped = raw.map((c) => {
-        const sectionName = c.section?.name ?? c.sectionName
-        const optionName = c.option?.name ?? c.optionName
-        const level = c.level ?? undefined
-        const name = String(c.name ?? '')
-        return {
-          ...c,
-          name,
-          displayLabel: formatClassLabel({ name, level, sectionName, optionName }),
-          studentCount: c.studentCount ?? c._count?.students ?? 0,
-          capacity: c.capacity ?? c.maxStudents ?? undefined,
-          teacherName: c.teacherName ?? (c.teacher?.user ? `${c.teacher.user.firstName} ${c.teacher.user.lastName}` : undefined),
-          sectionId: c.sectionId ?? c.section?.id,
-          optionId: c.optionId ?? c.option?.id,
-          sectionName,
-          optionName,
-          level,
-          academicYear: c.academicYear,
-        }
-      }) as ClassListItem[]
+      const mapped = raw.map(c => ({
+        ...c,
+        studentCount: c.studentCount ?? c._count?.students ?? 0,
+        capacity: c.capacity ?? c.maxStudents ?? undefined,
+        teacherName: c.teacherName ?? (c.teacher?.user ? `${c.teacher.user.firstName} ${c.teacher.user.lastName}` : undefined),
+        sectionId: c.sectionId ?? c.section?.id,
+        optionId: c.optionId ?? c.option?.id,
+        sectionName: c.section?.name ?? c.sectionName,
+        optionName: c.option?.name ?? c.optionName,
+        academicYear: c.academicYear,
+      })) as ClassListItem[]
       return dedupeClassList(mapped)
     })
   },
@@ -52,22 +43,7 @@ export const classesApi = {
     apiClient.post('/admin/classes', payload).then(r => (r.data?.data ?? r.data) as ClassDetail),
 
   getById: (id: number) =>
-    apiClient.get(`/admin/classes/${id}`).then(r => {
-      const c = (r.data?.data ?? r.data) as ClassDetail & {
-        teacher?: { user?: { firstName?: string | null; lastName?: string | null } }
-        _count?: { students?: number }
-        maxStudents?: number
-      }
-      const fromRelation = c.teacher?.user
-        ? `${c.teacher.user.firstName ?? ''} ${c.teacher.user.lastName ?? ''}`.trim()
-        : ''
-      return {
-        ...c,
-        studentCount: c.studentCount ?? c._count?.students ?? 0,
-        capacity: c.capacity ?? c.maxStudents,
-        teacherName: c.teacherName?.trim() || fromRelation || undefined,
-      } as ClassDetail
-    }),
+    apiClient.get(`/admin/classes/${id}`).then(r => (r.data?.data ?? r.data) as ClassDetail),
 
   update: (id: number, payload: Partial<CreateClassPayload>) =>
     apiClient.put(`/admin/classes/${id}`, payload).then(r => (r.data?.data ?? r.data) as ClassDetail),
