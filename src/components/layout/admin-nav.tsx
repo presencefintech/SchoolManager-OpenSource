@@ -8,7 +8,7 @@ import {
   LogOut, LayoutDashboard, GraduationCap, Users, UserPlus,
   ShieldAlert, BookOpen, Activity, Wallet, Mail, School,
   Settings, CreditCard, FileText, Clock, Shield, Building2, Network,
-  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3, Smartphone, Upload,
+  Bell, Monitor, FolderOpen, Gavel, ChevronDown, RotateCcw, Fingerprint, UserCircle, QrCode, BarChart3, Megaphone, CalendarClock, Inbox, ClipboardList, Contact, Layers3, Smartphone, Upload, Ticket,
   Menu, X, BadgeCheck, NotebookPen, Calculator, Lock, ScrollText, LifeBuoy, Award, PackagePlus,
 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,7 @@ const NAV_SECTIONS: NavSection[] = [
     links: [
       { label: 'Tableau de bord', href: '/admin/dashboard', icon: LayoutDashboard },
       { label: 'Présences', href: '/admin/presences', icon: Activity },
+      { label: 'Billets discipline', href: '/admin/discipline/gate-passes', icon: Ticket },
     ],
   },
   {

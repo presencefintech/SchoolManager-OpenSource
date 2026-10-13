@@ -31,12 +31,14 @@ import { AttendanceSheetExportButtons } from '@/components/admin/presences/Atten
 import { useToast } from '@/providers/toast-provider'
 import { getApiErrorMessage } from '@/lib/api/client'
 
-type RowStatus = 'PRESENT' | 'ABSENT' | 'LATE'
+type RowStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED' | 'UNIFORM_VIOLATION'
 
 const ROW_STATUS_OPTIONS: { value: RowStatus; label: string; active: string }[] = [
   { value: 'PRESENT', label: 'Présent', active: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
   { value: 'LATE', label: 'Retard', active: 'bg-amber-600 text-white border-amber-600 shadow-sm' },
   { value: 'ABSENT', label: 'Absent', active: 'bg-red-600 text-white border-red-600 shadow-sm' },
+  { value: 'EXCUSED', label: 'Excusé', active: 'bg-sky-600 text-white border-sky-600 shadow-sm' },
+  { value: 'UNIFORM_VIOLATION', label: 'Tenue', active: 'bg-violet-600 text-white border-violet-600 shadow-sm' },
 ]
 
 const selectCls =

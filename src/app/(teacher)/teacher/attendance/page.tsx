@@ -1,7 +1,8 @@
 'use client'
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, History, Keyboard, ScanBarcode } from 'lucide-react'
+import Link from 'next/link'
+import { AlertTriangle, CheckCircle2, ClipboardList, History, Keyboard, ScanBarcode } from 'lucide-react'
 import {
   HardwareScanField,
   type HardwareScanFieldHandle,
@@ -254,7 +255,14 @@ export default function TeacherAttendancePage() {
         <p className="mt-1 text-sm text-slate-500">
           PWA installable · offline prolongé (IndexedDB) · sync auto à la reconnexion.
         </p>
-        <div className="mt-2">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Link
+            href="/teacher/attendance/register"
+            className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-100"
+          >
+            <ClipboardList className="h-4 w-4" />
+            Registre quotidien (cahier)
+          </Link>
           <PwaInstallPrompt />
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
