@@ -1,4 +1,13 @@
-export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'FINANCE' | 'DIRECTOR' | 'IT' | 'TEACHER' | 'PARENT'
+export type UserRole =
+  | 'ADMIN'
+  | 'SUPER_ADMIN'
+  | 'FINANCE'
+  | 'DIRECTOR'
+  | 'IT'
+  | 'TEACHER'
+  | 'PARENT'
+  | 'PROMOTER'
+  | 'SUPER_ADMIN_NETWORK'
 
 export interface AuthUser {
   id: number
@@ -35,6 +44,8 @@ export const ROLE_HOME: Record<UserRole, string> = {
   IT: '/admin/desk',
   TEACHER: '/teacher/dashboard',
   PARENT: '/parent/dashboard',
+  PROMOTER: '/admin/network',
+  SUPER_ADMIN_NETWORK: '/admin/network',
 }
 
 /**
@@ -54,6 +65,8 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   DIRECTOR: ['/director', '/admin/deliberations'],
   TEACHER: ['/teacher'],
   PARENT: ['/parent'],
+  PROMOTER: ['/admin'],
+  SUPER_ADMIN_NETWORK: ['/admin'],
   IT: [
     '/admin/inbox',
     '/admin/desk',
