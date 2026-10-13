@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip,
   ResponsiveContainer, Cell, LabelList, ReferenceLine,
 } from 'recharts'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 /** Palette inspirée Power BI */
 const PBI = {
@@ -42,6 +42,7 @@ function PowerBiTooltip({ active, payload }: {
   active?: boolean
   payload?: Array<{ payload: EfficiencyLevelDatum }>
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   if (!active || !payload?.[0]) return null
   const row = payload[0].payload
   const color = efficiencyColor(row.efficiency)

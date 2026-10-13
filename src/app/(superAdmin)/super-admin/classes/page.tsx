@@ -506,7 +506,7 @@ export default function ClassesPage() {
   const { data: classList, isLoading: classLoading } = useClasses(schoolId, { page, limit: 20, name: debouncedSearch || undefined })
   const { data: capacityAlerts } = useCapacityAlerts(schoolId)
 
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const handleSearch = (v: string) => {
     setSearch(v)
     clearTimeout(searchTimerRef.current)

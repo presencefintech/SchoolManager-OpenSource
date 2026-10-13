@@ -13,6 +13,7 @@ import {
   parseEnrollmentApproved,
   parseNewEnrollmentRequest,
   parsePaymentConfirmedAdmin,
+  parsePaymentCorrectionAdmin,
   parsePaymentFailedAdmin,
   parseCashActivity,
 } from '@/lib/admin/admin-platform-realtime.types'
@@ -142,6 +143,16 @@ export function useEmpireRealtime() {
     [qc, refreshFinance, touch],
   )
 
+  const onPaymentCorrection = useCallback(
+    (raw: unknown) => {
+      const item = parsePaymentCorrectionAdmin(raw)
+      if (item) setRecentPayments((prev) => pushUnique(prev, item, MAX_PLATFORM_ITEMS))
+      refreshFinance()
+      touch()
+    },
+    [refreshFinance, touch],
+  )
+
   const onPaymentFailed = useCallback(
     (raw: unknown) => {
       const item = parsePaymentFailedAdmin(raw)
@@ -224,6 +235,7 @@ export function useEmpireRealtime() {
         socket.on('attendance.sheet.submitted', refreshAttendance)
         socket.on('attendance.sheet.draft-updated', refreshAttendance)
         socket.on('payment.confirmed.admin', onPaymentConfirmed)
+        socket.on('payment.correction.admin', onPaymentCorrection)
         socket.on('payment.failed.admin', onPaymentFailed)
         socket.on('cash.activity', onCashActivity)
         socket.on('enrollment_approved', onEnrollmentApproved)
@@ -251,6 +263,7 @@ export function useEmpireRealtime() {
     onEnrollmentApproved,
     onNewEnrollmentRequest,
     onPaymentConfirmed,
+    onPaymentCorrection,
     onPaymentFailed,
     onCashActivity,
     onStatisticsUpdated,

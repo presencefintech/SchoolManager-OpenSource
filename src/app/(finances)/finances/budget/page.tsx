@@ -5,10 +5,11 @@ import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { useFinanceAcademicSessionId } from '@/lib/hooks/use-finance'
 import { financeBudgetApi } from '@/lib/admin/api/finance-budget.api'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { FinancePageHeader, FinancePageShell, FinancePanel, FinanceEmptyState } from '@/components/finance/finance-page-shell'
 
 export default function FinanceBudgetPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { sessionId, isLoading: sessionLoading } = useFinanceAcademicSessionId()
 
   const varianceQuery = useQuery({

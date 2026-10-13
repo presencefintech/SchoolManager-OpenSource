@@ -4,6 +4,7 @@ import { financeQueryKeys } from '@/lib/finance/query-keys'
 import { resolveAcademicSessionId } from '@/lib/finance/collection-analytics.utils'
 import type { CashDesk, CashSession, GuichetDashboard, CollectionAnalyticsSummary, SchoolCashOps } from '@/types/finance'
 import type { FinanceFraudAlert, FinanceIntegrityScan } from '@/types/admin'
+import type { CashJournalParams } from '@/lib/finance/cash-journal'
 
 // ── Dashboard & Analytics ──────────────────────────────────────────────────
 
@@ -22,6 +23,25 @@ export function useGuichetDashboard() {
     queryFn: financeRoleApi.getGuichetDashboard,
     staleTime: 30_000,
     refetchInterval: 120_000,
+  })
+}
+
+export function useCashJournal(params: CashJournalParams) {
+  return useQuery({
+    queryKey: ['finance', 'cash-journal', params],
+    queryFn: () => financeRoleApi.getCashJournal(params),
+    staleTime: 30_000,
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useUpdateCashJournalVisibility() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: financeRoleApi.updateCashJournalVisibility,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['finance', 'cash-journal'] })
+    },
   })
 }
 

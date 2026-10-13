@@ -7,9 +7,9 @@ import { AUTH_COOKIE, getBackendUrl } from '@/lib/auth/session-cookies'
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ type: string }> | { type: string } },
+  { params }: { params: Promise<{ type: string }> },
 ) {
-  const resolvedParams = params instanceof Promise ? await params : params
+  const resolvedParams = await params
   const { type } = resolvedParams
 
   let formData: FormData

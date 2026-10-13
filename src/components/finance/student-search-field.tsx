@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { useFinanceClasses, useFinanceStudentSearch } from '@/lib/hooks/use-finance'
 import type { FinanceStudentResult } from '@/types/finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 import { formatClassLabel } from '@/lib/academic/class-identity'
 
@@ -62,6 +62,7 @@ export function FinanceStudentSearchField({
   required,
   className,
 }: FinanceStudentSearchFieldProps) {
+  const { format: formatMoney } = useSchoolMoney()
   const [query, setQuery] = useState('')
   const [debounced, setDebounced] = useState('')
   const [selected, setSelected] = useState<FinanceStudentResult | null>(null)

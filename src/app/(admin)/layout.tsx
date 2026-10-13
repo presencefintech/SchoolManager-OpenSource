@@ -18,7 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex min-h-screen">
         <AdminNav />
         <main className="flex-1 min-w-0 pt-14 lg:pt-0 lg:ml-64 min-h-screen bg-canvas">
-          <div className="sticky top-0 z-20 bg-canvas/90 backdrop-blur border-b border-line px-6 py-3">
+          <div className="pf-chrome sticky top-0 z-20 border-b border-line bg-canvas/90 px-4 py-2.5 backdrop-blur sm:px-6">
             <AdminGlobalSearch />
           </div>
           <EmailVerificationBanner />

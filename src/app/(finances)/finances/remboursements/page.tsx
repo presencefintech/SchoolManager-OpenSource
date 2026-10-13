@@ -29,7 +29,7 @@ import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { RefundRequest } from '@/types/finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { useToast } from '@/providers/toast-provider'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +43,7 @@ const FILTER_OPTIONS = [
 ]
 
 function CreateRefundModal({ onClose }: { onClose: () => void }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { mutateAsync, isPending } = useCreateRefund()
   const [studentId, setStudentId] = useState(0)
   const [form, setForm] = useState({ paymentId: 0, amount: '', reason: '' })
@@ -198,6 +199,7 @@ function CreateRefundModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function RemboursementsPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const toast = useToast()
   const [statusFilter, setStatusFilter] = useState('')
   const [showCreate, setShowCreate] = useState(false)

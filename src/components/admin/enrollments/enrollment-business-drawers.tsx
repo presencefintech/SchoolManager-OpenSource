@@ -31,6 +31,7 @@ import { newIdempotencyKey } from '@/lib/idempotency'
 import { adminPdfApi } from '@/lib/admin/api/pdf.api'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 function DrawerShell({
   open,
@@ -101,6 +102,7 @@ export function EnrollSessionDrawer({
   onClose: () => void
 }) {
   const toast = useToast()
+  const { displayCurrency } = useSchoolMoney()
   const { data: sessions = [], isLoading: loadingSessions } = useAcademicSessions()
   const { data: classesData } = useClasses({ isActive: true })
   const classes = classesData ?? []
@@ -339,7 +341,7 @@ export function EnrollSessionDrawer({
                           {fs.label}
                         </span>
                         <span className="tabular-nums font-medium">
-                          {fmtMoney(fs.amount, feePreview?.currency ?? 'USD')}
+                          {fmtMoney(fs.amount, feePreview?.currency ?? displayCurrency)}
                         </span>
                       </label>
                     </li>
@@ -386,6 +388,7 @@ export function RentreePackDrawer({
   onClose: () => void
 }) {
   const toast = useToast()
+  const { displayCurrency } = useSchoolMoney()
   const { data: sessions = [], isLoading: loadingSessions } = useAcademicSessions()
   const { data: classesData } = useClasses({ isActive: true })
   const classes = classesData ?? []
@@ -648,7 +651,7 @@ export function RentreePackDrawer({
                           {fs.label}
                         </span>
                         <span className="tabular-nums font-medium">
-                          {fmtMoney(fs.amount, feePreview?.currency ?? 'USD')}
+                          {fmtMoney(fs.amount, feePreview?.currency ?? displayCurrency)}
                         </span>
                       </label>
                     </li>
@@ -728,6 +731,7 @@ export function MoratoriumDrawer({
   onClose: () => void
 }) {
   const toast = useToast()
+  const { format: fmtMoney } = useSchoolMoney()
   const createMutation = useCreateMoratorium()
   const { allowedTypes, defaultType, isLoading: loadingPolicy } = useAllowedMoratoriumTypes({ enabled: open })
 

@@ -19,7 +19,7 @@ import {
 } from '@/lib/admin/finance-dashboard.utils'
 import { GuichetOnlinePaymentsBanner } from '@/components/finance/guichet-online-payments-banner'
 import { CashLiveTape } from '@/components/finance/cash-live-tape'
-import { CashPaceStrip } from '@/components/finance/cash-pace-strip'
+import { CashJournalReport } from '@/components/finance/cash-journal-report'
 import { ClassCollectionRank } from '@/components/finance/class-collection-rank'
 import { FinanceAiInsightsPanel } from '@/components/admin/finance/FinanceAiInsightsPanel'
 import { useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
@@ -33,7 +33,11 @@ import type {
   GuichetDashboard,
   CollectionAnalyticsSummary,
 } from '@/types/finance'
-import { PaymentCategoryDonutChart, PaymentMethodBarChart, PaymentMethodCountBarChart } from '@/components/charts/finance-transactions-charts'
+import {
+  LazyPaymentCategoryDonutChart as PaymentCategoryDonutChart,
+  LazyPaymentMethodBarChart as PaymentMethodBarChart,
+  LazyPaymentMethodCountBarChart as PaymentMethodCountBarChart,
+} from '@/components/charts/lazy'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
 
@@ -135,11 +139,11 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg, sparkData, gaugeVal
   hex?: string
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-zinc-200/70 p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2">{label}</p>
-          <p className="text-3xl font-bold text-zinc-900 tabular-nums leading-none">{value}</p>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="pf-money text-2xl font-semibold leading-none text-slate-900">{value}</p>
           {sub && <p className="text-xs text-zinc-400 mt-1.5">{sub}</p>}
           {gaugeValue !== undefined && <MiniGauge value={gaugeValue} hex={hex} />}
         </div>
@@ -227,56 +231,57 @@ export default function FinanceDashboardPage() {
     : ''
 
   return (
-    <div className="min-h-full bg-[#f5f7fb] px-8 py-8 space-y-6">
-      {/* Hero */}
+    <div className="mx-auto min-h-full max-w-7xl space-y-4 px-4 py-5 sm:px-6 lg:px-8">
       <motion.div
-        className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 px-6 py-6 text-white shadow-lg"
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
+        className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800"
+        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}
       >
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100/90">Finance Premium · Guichet</p>
-            <h1 className="mt-1 text-2xl font-bold">Tableau de bord</h1>
-            <p className="mt-1 text-sm text-emerald-100/90 capitalize" suppressHydrationWarning>{today}</p>
+        <div className="h-1 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-600" />
+        <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Finance · Guichet</p>
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900">Tableau de bord</h1>
+            <p className="text-xs capitalize text-slate-500" suppressHydrationWarning>{today}</p>
             {!isLoading && g && (
-              <p className="mt-3 text-sm font-medium text-white/95">
-                {formatMoney(Number(g?.collectionsToday?.total) || todayTotal)} encaissés aujourd&apos;hui
+              <p className="mt-1 text-sm text-slate-700">
+                <span className="pf-money font-semibold text-slate-900">{formatMoney(Number(g?.collectionsToday?.total) || todayTotal)}</span>
+                {' '}encaissés aujourd&apos;hui
                 {' · '}
-                {g?.collectionsToday?.count ?? 0} transaction(s)
+                <span className="pf-money">{g?.collectionsToday?.count ?? 0}</span> transaction(s)
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <LiveIndicator status={realtimeStatus} lastUpdate={lastUpdate ?? (dataUpdatedAt ? new Date(dataUpdatedAt) : null)} />
             {g?.closingFinalizedToday && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+              <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
                 <CalendarCheck size={13} /> Clôture finalisée
               </div>
             )}
             {g?.openCashSession && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+              <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
                 <Banknote size={13} /> Session ouverte
               </div>
             )}
             <button
               type="button"
               onClick={() => refetch()}
-              className="rounded-xl border border-white/20 bg-white/10 p-2 text-white/90 backdrop-blur-sm hover:bg-white/20"
+              className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+              aria-label="Actualiser"
             >
               <RefreshCw size={14} />
             </button>
           </div>
         </div>
-        <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 border-t border-slate-100 px-3 py-2.5 sm:grid-cols-3 lg:grid-cols-5">
           {QUICK_LINKS.map(({ href, label, icon: Icon, tone }) => (
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 py-2.5 text-xs font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
             >
-              <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${tone}`}>
-                <Icon size={14} />
+              <span className={`flex h-6 w-6 items-center justify-center rounded-md ${tone}`}>
+                <Icon size={13} />
               </span>
               {label}
             </Link>
@@ -329,6 +334,8 @@ export default function FinanceDashboardPage() {
         <FinanceAiInsightsPanel enabled={coreReady} source="finance" />
       </div>
 
+      <CashJournalReport />
+
       {/* KPIs guichet */}
       {isLoading ? (
         <div className="grid grid-cols-3 gap-4">
@@ -338,7 +345,6 @@ export default function FinanceDashboardPage() {
         <>
           <div>
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">Aujourd&apos;hui</p>
-            <CashPaceStrip pace={g?.cashPace} className="mb-3" />
             <motion.div className="grid grid-cols-3 gap-4" variants={stagger} initial="hidden" animate="show">
               <motion.div variants={fadeUp}>
                 <KpiCard
@@ -486,7 +492,9 @@ export default function FinanceDashboardPage() {
           )}
         </div>
         {!coreReady || collectionLoading || collectionFetching ? (
-          <div className="px-5 py-10 text-center text-sm text-zinc-400">Chargement des analytics…</div>
+          <div className="grid grid-cols-2 gap-3 px-4 py-4 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16" />)}
+          </div>
         ) : !hasAcademicSession ? (
           <div className="px-5 py-10 text-center">
             <CalendarCheck size={28} className="mx-auto text-zinc-300 mb-2" />

@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Chaque lundi : détecte les nouvelles failles publiées même sans nouveau commit
+  schedule:
+    - cron: '0 6 * * 1'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -36,3 +39,17 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Échoue si une dépendance livrée en production a une faille haute ou critique
+      - name: Audit des dépendances
+        run: npm audit --omit=dev --audit-level=high

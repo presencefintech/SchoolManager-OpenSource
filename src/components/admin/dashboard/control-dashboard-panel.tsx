@@ -4,7 +4,7 @@ import { Server, Gauge, Shield, Fingerprint, Zap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useControlStats } from '@/lib/hooks/use-admin'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
-import { ScanFlowChart } from '@/components/admin/dashboard/admin-dashboard-charts'
+import { LazyScanFlowChart as ScanFlowChart } from '@/components/charts/lazy'
 
 function Sk({ className }: { className?: string }) {
   return <div className={cn('rounded-lg bg-slate-100 animate-pulse', className)} />

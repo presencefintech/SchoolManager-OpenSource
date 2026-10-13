@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -20,7 +20,7 @@ import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { StudentMultiSelect } from '@/components/admin/shared/student-multi-select'
 import type { ClassDetail } from '@/types/admin'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
 
@@ -123,14 +123,27 @@ function TransferModal({ classId, onClose }: { classId: number; onClose: () => v
   )
 }
 
+function teacherOptionId(member: { id: number; teacherProfileId?: number | null }): number {
+  return member.teacherProfileId && member.teacherProfileId > 0 ? member.teacherProfileId : member.id
+}
+
 function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) {
   const { mutateAsync, isPending } = useUpdateClass()
   const { data: staff = [] } = useStaff()
-  const teachers = staff.filter((m: any) => m.role === 'TEACHER')
+  const teachers = staff.filter((m) => m.role === 'TEACHER')
   const [name, setName] = useState(cls.name)
   const [capacity, setCapacity] = useState(cls.capacity ?? '')
   const [teacherId, setTeacherId] = useState<number | ''>(cls.teacherId ?? '')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (teacherId === '' || teachers.length === 0) return
+    const current = Number(teacherId)
+    const match = teachers.find((t) => t.teacherProfileId === current || t.id === current)
+    if (!match) return
+    const next = teacherOptionId(match)
+    if (next !== current) setTeacherId(next)
+  }, [teachers, teacherId])
 
   const { data: conflicts = [] } = useClassConflicts(teacherId ? Number(teacherId) : undefined)
   const hasConflicts = teacherId !== '' && Number(teacherId) !== cls.teacherId && conflicts.length > 0
@@ -185,8 +198,8 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
               className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
             >
               <option value="">Aucun</option>
-              {teachers.map((t: any) => (
-                <option key={t.id} value={t.id}>{t.firstName} {t.lastName}</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={teacherOptionId(t)}>{t.firstName} {t.lastName}</option>
               ))}
             </select>
             {hasConflicts && (
@@ -214,6 +227,7 @@ function EditModal({ cls, onClose }: { cls: ClassDetail; onClose: () => void }) 
 type Tab = 'eleves' | 'stats' | 'audit'
 
 export default function ClassDetailPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const { id } = useParams<{ id: string }>()
   const classId = Number(id)
   const router = useRouter()
@@ -323,6 +337,9 @@ export default function ClassDetailPage() {
                 {cls.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
+            {cls.teacherName && (
+              <p className="text-sm text-zinc-600 mt-1">Titulaire : {cls.teacherName}</p>
+            )}
             {cls.description && <p className="text-sm text-zinc-500 mt-1">{cls.description}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

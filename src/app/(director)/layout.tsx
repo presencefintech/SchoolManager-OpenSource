@@ -87,7 +87,7 @@ function DirectorNav() {
   return (
     <>
       {/* Barre mobile — hamburger + logo, masquée en desktop */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-zinc-200/80">
+      <div className="pf-chrome lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-14 bg-white border-b border-slate-200">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -115,7 +115,7 @@ function DirectorNav() {
 
       <aside
         className={cn(
-          'fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden',
+          'pf-chrome fixed top-0 left-0 h-screen w-64 z-50 flex flex-col overflow-hidden',
           'bg-white lg:bg-white/92 lg:backdrop-blur-md',
           'border-r border-zinc-200/80',
           'shadow-[1px_0_16px_rgba(0,0,0,0.05)]',

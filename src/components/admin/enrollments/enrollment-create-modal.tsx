@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -717,9 +718,9 @@ export function EnrollmentCreateModal({
                   ) : (
                     <p className="text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
                       Aucune année scolaire ouverte.{' '}
-                      <a href="/admin/classes" className="font-medium underline underline-offset-2">
+                      <Link href="/admin/classes" className="font-medium underline underline-offset-2">
                         Ouvrir l’année dans Classes
-                      </a>
+                      </Link>
                       {' '}avant d’inscrire.
                     </p>
                   )}

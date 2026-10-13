@@ -8,9 +8,10 @@ import { getApiErrorMessage } from '@/lib/api/client'
 import { useAcademicSessions } from '@/lib/hooks/admin/enrollments'
 import { financeBudgetApi } from '@/lib/admin/api/finance-budget.api'
 import { FinanceAdminSubNav } from '@/components/admin/finance/finance-admin-subnav'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 function BudgetContent() {
+  const { format: formatMoney } = useSchoolMoney()
   const qc = useQueryClient()
   const sessionsQuery = useAcademicSessions()
   const sessions = useMemo(() => sessionsQuery.data ?? [], [sessionsQuery.data])

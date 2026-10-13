@@ -17,6 +17,7 @@ import {
 } from '@/lib/finance/fee-schedule.utils'
 import { FeeAttributionSourceBadge, FeeScheduleStatusBadge } from '@/components/finance/student-dashboard/FeesTable/fees-table.columns'
 import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
 import type { FeeScheduleLineDto } from '@/types/finance'
 
@@ -45,6 +46,7 @@ export function FeeAttributionPanel({
   api = 'finance',
   compact = false,
 }: FeeAttributionPanelProps) {
+  const { format: formatTotalMoney } = useSchoolMoney()
   const financeQuery = useStudentFeeSchedule(studentId, sessionId, {
     enabled: api === 'finance',
   })
@@ -274,7 +276,7 @@ export function FeeAttributionPanel({
             {value.lines.length} mois sélectionné{value.lines.length > 1 ? 's' : ''}
           </span>
           <span className="font-semibold tabular-nums text-emerald-800">
-            Total {formatMoney(value.totalAmount)}
+            Total {formatTotalMoney(value.totalAmount)}
           </span>
         </div>
       )}

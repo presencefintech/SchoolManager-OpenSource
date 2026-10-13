@@ -10,7 +10,6 @@ import type {
   FinanceIntegrityScan,
   FinanceIntegrityScanDetail,
 } from '@/types/admin'
-import { formatMoney } from '@/lib/finance/currency'
 
 export type { EnterpriseDashboardDTO }
 
@@ -125,7 +124,7 @@ export function normalizeFraudAlertsResponse(raw: unknown): FinanceFraudAlert[] 
       type: method,
       severity: String(itemSeverity),
       description: audit?.suspicious
-        ? `Transaction ${method.replace(/_/g, ' ')} suspecte — ${formatMoney(Number(row.amount ?? 0))}`
+        ? `Transaction ${method.replace(/_/g, ' ')} suspecte`
         : `Anomalie détectée sur le flux de paiement #${row.id ?? index + 1}`,
       amount: row.amount != null ? Number(row.amount) : undefined,
       createdAt: String(row.createdAt ?? new Date().toISOString()),

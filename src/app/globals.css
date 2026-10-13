@@ -4,12 +4,12 @@
 
 @layer base {
   :root {
-    --pf-canvas: 232 236 244;
+    --pf-canvas: 248 250 252;
     --pf-surface: 255 255 255;
-    --pf-surface-2: 244 244 245;
-    --pf-fg: 24 24 27;
-    --pf-muted: 113 113 122;
-    --pf-border: 228 228 231;
+    --pf-surface-2: 241 245 249;
+    --pf-fg: 15 23 42;
+    --pf-muted: 100 116 139;
+    --pf-border: 226 232 240;
     --pf-accent: 5 150 105;
     --pf-accent-soft: 209 250 229;
     --pf-radius: 0.75rem;
@@ -18,11 +18,11 @@
 
   html.dark {
     --pf-canvas: 9 9 11;
-    --pf-surface: 24 24 27;
-    --pf-surface-2: 39 39 42;
-    --pf-fg: 244 244 245;
-    --pf-muted: 161 161 170;
-    --pf-border: 63 63 70;
+    --pf-surface: 15 23 42;
+    --pf-surface-2: 30 41 59;
+    --pf-fg: 248 250 252;
+    --pf-muted: 148 163 184;
+    --pf-border: 30 41 59;
     --pf-accent-soft: 6 78 59;
     color-scheme: dark;
   }
@@ -67,6 +67,12 @@
 
   body {
     @apply antialiased bg-canvas text-ink;
+    background-image: radial-gradient(rgb(15 23 42 / 0.045) 0.65px, transparent 0.65px);
+    background-size: 18px 18px;
+  }
+
+  html.dark body {
+    background-image: radial-gradient(rgb(248 250 252 / 0.05) 0.65px, transparent 0.65px);
   }
 
   ::-webkit-scrollbar {
@@ -110,6 +116,8 @@ html.dark .text-slate-800 {
 html.dark .text-zinc-600,
 html.dark .text-zinc-500,
 html.dark .text-zinc-400,
+html.dark .text-slate-700,
+html.dark .text-slate-600,
 html.dark .text-slate-500,
 html.dark .text-slate-400 {
   color: rgb(var(--pf-muted)) !important;
@@ -202,18 +210,96 @@ html.dark .hover\:bg-slate-50:hover {
   background-color: rgb(var(--pf-surface-2)) !important;
 }
 
+/* Documents comptables : A4. La carte élève garde son format via @page student-card. */
 @media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  @page student-card {
+    size: 85.6mm 54mm;
+    margin: 0;
+  }
+
   html.dark body {
     background: white !important;
     color: black !important;
   }
+
+  body {
+    background-image: none !important;
+  }
+
+  .pf-chrome {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
+main > .min-h-screen {
+  min-height: 100%;
+  background-color: transparent;
+}
+
+.pf-money {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.02em;
+}
+
+.pf-usd { color: rgb(15 23 42); }
+.pf-cdf { color: rgb(6 95 70); }
+html.dark .pf-usd { color: rgb(248 250 252); }
+html.dark .pf-cdf { color: rgb(110 231 183); }
+
+.pf-ledger thead th {
+  vertical-align: bottom;
+}
+
+.pf-ledger tbody tr:nth-child(even) {
+  background-color: rgb(248 250 252 / 0.9);
+}
+
+.pf-ledger tbody tr:hover {
+  background-color: rgb(241 245 249 / 0.9);
+}
+
+html.dark .pf-ledger tbody tr:nth-child(even) {
+  background-color: rgb(30 41 59 / 0.45);
+}
+
+html.dark .pf-ledger tbody tr:hover {
+  background-color: rgb(51 65 85 / 0.45);
+}
+
+.pf-skeleton {
+  background: linear-gradient(90deg, rgb(226 232 240) 0%, rgb(248 250 252) 45%, rgb(226 232 240) 100%);
+  background-size: 200% 100%;
+  animation: pf-skeleton 1.15s ease-in-out infinite;
+}
+
+html.dark .pf-skeleton {
+  background: linear-gradient(90deg, rgb(30 41 59) 0%, rgb(51 65 85) 45%, rgb(30 41 59) 100%);
+  background-size: 200% 100%;
+}
+
+@keyframes pf-skeleton {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 /* ─── Carte élève — impression CR80 haute résolution ─────────────── */
 @media print {
-  @page {
-    size: 85.6mm 54mm;
-    margin: 0;
+  body.student-card-printing .student-card {
+    page: student-card;
   }
 
   body.student-card-printing * {

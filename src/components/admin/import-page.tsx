@@ -16,6 +16,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { triggerBlobDownload } from '@/lib/download-blob'
+import { StudentImportWizard } from '@/components/admin/student-import-wizard'
 
 const IMPORT_TYPES: {
   id: ImportType
@@ -27,9 +28,9 @@ const IMPORT_TYPES: {
   {
     id: 'students',
     label: 'Élèves',
-    desc: 'Liste d’inscription : nom, postnom, prénom, classe',
-    required: ['nom', 'postnom', 'prenom', 'classe'],
-    optional: ['matricule', 'genre', 'dateNaissance', 'montantTotal', 'montantPaye', 'telephoneParent'],
+    desc: 'Liste d’inscription : nom et classe suffisent. Analyse à voyants avant import',
+    required: ['nom', 'classe'],
+    optional: ['postnom', 'prenom', 'genre', 'dateNaissance', 'lieuNaissance', 'telephone', 'remarque', 'matricule', 'montantTotal', 'montantPaye'],
   },
   {
     id: 'parents',
@@ -269,6 +270,14 @@ export function ImportPage() {
         </button>
       </div>
 
+      {type === 'students' ? (
+        <StudentImportWizard
+          schoolId={isSuperAdmin && selectedSchoolId ? selectedSchoolId : undefined}
+          canUpload={canUpload}
+          studentsHref={isSuperAdmin ? '/super-admin/students' : '/admin/students'}
+        />
+      ) : (
+      <>
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
@@ -448,6 +457,8 @@ export function ImportPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </>
+      )}
     </div>
   )
 }

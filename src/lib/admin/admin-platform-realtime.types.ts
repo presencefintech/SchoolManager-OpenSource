@@ -25,6 +25,30 @@ export function parsePaymentConfirmedAdmin(raw: unknown): AdminPaymentRealtimeIt
   }
 }
 
+export function parsePaymentCorrectionAdmin(raw: unknown): AdminPaymentRealtimeItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const p = raw as Record<string, unknown>
+  const paymentId = Number(p.paymentId)
+  if (!Number.isFinite(paymentId)) return null
+  const timestamp = typeof p.timestamp === 'string' ? p.timestamp : new Date().toISOString()
+  const receipt =
+    typeof p.originalReceiptNumber === 'string' ? p.originalReceiptNumber : `#${paymentId}`
+  return {
+    id: `pay-corr-${paymentId}-${timestamp}`,
+    type: 'correction',
+    paymentId,
+    studentName: typeof p.studentName === 'string' ? p.studentName : undefined,
+    amount: p.amount != null ? Number(p.amount) : undefined,
+    currency: typeof p.currency === 'string' ? p.currency : 'USD',
+    reason: typeof p.reason === 'string' ? p.reason : undefined,
+    message:
+      typeof p.message === 'string'
+        ? p.message
+        : `Rectification du Reçu #${receipt}`,
+    timestamp,
+  }
+}
+
 export function parsePaymentFailedAdmin(raw: unknown): AdminPaymentRealtimeItem | null {
   if (!raw || typeof raw !== 'object') return null
   const p = raw as Record<string, unknown>

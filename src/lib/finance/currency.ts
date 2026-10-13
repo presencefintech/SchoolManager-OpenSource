@@ -18,6 +18,10 @@ const MONEY_INSIGHT_KEYS = new Set([
   'avgPerStudent',
 ])
 
+export function isMoneyInsightKey(key: string): boolean {
+  return MONEY_INSIGHT_KEYS.has(key)
+}
+
 const PERCENT_INSIGHT_KEYS = new Set([
   'efficaciteRecouvrement',
   'efficiency',

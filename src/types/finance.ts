@@ -1156,6 +1156,15 @@ export interface ProcessPaymentResponse {
   status?: string
   amount?: number
   reference?: string
+  tender?: {
+    tenderCurrency: string
+    amountPaidUSD: string
+    amountPaidCDF: string
+    changeUsd: string
+    changeCdf: string
+    exchangeRate: string
+    label: string | null
+  }
 }
 
 export type StudentFinancialStatus =

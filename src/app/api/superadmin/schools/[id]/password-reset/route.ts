@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { proxySchoolSupport } from '../_proxy'
 
-type Ctx = { params: Promise<{ id: string }> | { id: string } }
+type Ctx = { params: Promise<{ id: string }> }
 
 /** PATCH /api/superadmin/schools/[id]/password-reset */
 export async function PATCH(req: NextRequest, ctx: Ctx) {

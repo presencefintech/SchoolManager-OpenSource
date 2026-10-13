@@ -52,7 +52,22 @@ export const classesApi = {
     apiClient.post('/admin/classes', payload).then(r => (r.data?.data ?? r.data) as ClassDetail),
 
   getById: (id: number) =>
-    apiClient.get(`/admin/classes/${id}`).then(r => (r.data?.data ?? r.data) as ClassDetail),
+    apiClient.get(`/admin/classes/${id}`).then(r => {
+      const c = (r.data?.data ?? r.data) as ClassDetail & {
+        teacher?: { user?: { firstName?: string | null; lastName?: string | null } }
+        _count?: { students?: number }
+        maxStudents?: number
+      }
+      const fromRelation = c.teacher?.user
+        ? `${c.teacher.user.firstName ?? ''} ${c.teacher.user.lastName ?? ''}`.trim()
+        : ''
+      return {
+        ...c,
+        studentCount: c.studentCount ?? c._count?.students ?? 0,
+        capacity: c.capacity ?? c.maxStudents,
+        teacherName: c.teacherName?.trim() || fromRelation || undefined,
+      } as ClassDetail
+    }),
 
   update: (id: number, payload: Partial<CreateClassPayload>) =>
     apiClient.put(`/admin/classes/${id}`, payload).then(r => (r.data?.data ?? r.data) as ClassDetail),

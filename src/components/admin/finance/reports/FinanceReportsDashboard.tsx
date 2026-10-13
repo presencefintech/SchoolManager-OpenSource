@@ -432,7 +432,7 @@ export function FinanceReportsDashboard() {
               title="Répartition par type de frais"
               icon={Sparkles}
               rows={feeRows}
-              formatValue={(n) => formatMoney(n, 'USD')}
+              formatValue={(n) => formatMoney(n, displayCurrency)}
               emptyLabel="Aucune ligne de frais associée."
             />
           </motion.div>

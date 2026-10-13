@@ -220,3 +220,63 @@ export function useDeleteCloudinaryFile() {
     onSuccess: (_, { studentId }) => qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] }),
   })
 }
+
+// ── Archivage, corbeille & fusion ─────────────────────────────────
+function invalidateStudentCaches(qc: ReturnType<typeof useQueryClient>) {
+  qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+  qc.invalidateQueries({ queryKey: ['admin', 'enrollments'] })
+  qc.invalidateQueries({ queryKey: ['admin', 'classes'] })
+}
+
+export function useDuplicateStudents(threshold?: number) {
+  return useQuery({
+    queryKey: ['admin', 'students', 'duplicates', threshold ?? 'default'],
+    queryFn: () => studentsApi.findDuplicates(threshold),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useArchivedStudents(params?: { page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ['admin', 'students', 'archived', params],
+    queryFn: () => studentsApi.listArchived(params),
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useMergePreview(targetId: number | null, sourceId: number | null) {
+  return useQuery({
+    queryKey: ['admin', 'students', 'merge-preview', targetId, sourceId],
+    queryFn: () => studentsApi.previewMerge(targetId as number, sourceId as number),
+    enabled: targetId != null && sourceId != null && targetId !== sourceId,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function useArchiveStudent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => studentsApi.archive(id),
+    onSuccess: () => invalidateStudentCaches(qc),
+  })
+}
+
+export function useRestoreStudent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => studentsApi.restore(id),
+    onSuccess: () => invalidateStudentCaches(qc),
+  })
+}
+
+export function useMergeStudents() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ targetId, sourceId }: { targetId: number; sourceId: number }) =>
+      studentsApi.merge(targetId, sourceId),
+    onSuccess: () => invalidateStudentCaches(qc),
+  })
+}

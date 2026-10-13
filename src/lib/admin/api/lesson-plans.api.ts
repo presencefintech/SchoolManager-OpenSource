@@ -7,6 +7,7 @@ export type AdminLessonPlanItem = {
   id: number
   title: string
   subject: string
+  subBranch?: string | null
   status: LessonPlanStatus
   term: string
   weekNumber: number
@@ -15,6 +16,7 @@ export type AdminLessonPlanItem = {
   classId: number
   objectives?: string | null
   materials?: string | null
+  bibliographicReferences?: string | null
   steps?: LessonPlanSteps | null
   feedback?: string | null
   teacher?: {

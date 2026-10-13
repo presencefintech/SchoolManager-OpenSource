@@ -17,11 +17,11 @@ import { useAuth } from '@/providers/auth-provider'
 import { useAdminRealtimeStatus } from '@/lib/admin/hooks/admin-realtime-provider'
 import { useToast } from '@/providers/toast-provider'
 import {
-  WeeklyAttendanceChart,
-  HourlyScansChart,
-  AttendanceDonutChart,
-  ClassEnrollmentChart,
-} from '@/components/admin/dashboard/admin-dashboard-charts'
+  LazyWeeklyAttendanceChart as WeeklyAttendanceChart,
+  LazyHourlyScansChart as HourlyScansChart,
+  LazyAttendanceDonutChart as AttendanceDonutChart,
+  LazyClassEnrollmentChart as ClassEnrollmentChart,
+} from '@/components/charts/lazy'
 import { AttendanceReadinessPanel } from '@/components/admin/dashboard/attendance-readiness-panel'
 import { AttendanceSettingsBanner } from '@/components/admin/dashboard/attendance-settings-banner'
 import { ControlDashboardPanel } from '@/components/admin/dashboard/control-dashboard-panel'
@@ -32,6 +32,7 @@ import { ActiveQrSessionsPanel } from '@/components/admin/dashboard/active-qr-se
 import { SyncBatchesPanel } from '@/components/admin/dashboard/sync-batches-panel'
 import { AdminPlatformEventsPanel } from '@/components/admin/dashboard/admin-platform-events-panel'
 import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
+import { CashJournalReport } from '@/components/finance/cash-journal-report'
 
 const LIVE_FEED_PARAMS = { limit: 25 } as const
 const ACTIVE_CLASSES_PARAMS = { isActive: true } as const
@@ -454,6 +455,7 @@ export function AdminDashboardView() {
         )}
 
         <StudentPaymentStatusWidget href="/admin/finance/controle" />
+        <CashJournalReport />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard

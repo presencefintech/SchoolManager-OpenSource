@@ -255,7 +255,7 @@ function GenerateInvoiceModal({ onClose }: { onClose: () => void }) {
                   <option value="">— Choisir —</option>
                   {feeStructures.map((fs) => (
                     <option key={fs.id} value={fs.id}>
-                      {fs.label} · {formatMoney(Number(fs.amount))}
+                      {fs.label} · {formatMoney(Number(fs.amount), fs.currency === 'CDF' ? 'CDF' : 'USD')}
                     </option>
                   ))}
                 </select>

@@ -2,7 +2,7 @@
 
 import { ArrowRight, CheckCircle2, Circle, Scale } from 'lucide-react'
 import { useStudentWallet } from '@/lib/hooks/use-finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { RefundDetailBlock } from '@/components/finance/refund-page-ui'
 import type { StudentWallet } from '@/types/finance'
 import { cn } from '@/lib/utils'
@@ -41,6 +41,7 @@ export function RefundAccountingImpact({
   amount: number
   status: string
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: walletData, isLoading } = useStudentWallet(studentId)
   const wallet = walletData as StudentWallet | undefined
   const refundAmount = Number(amount) || 0

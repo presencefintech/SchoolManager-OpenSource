@@ -112,6 +112,8 @@ export function AdminPlatformEventsPanel() {
                 <li key={p.id} className="flex items-start gap-2 text-xs rounded-lg border border-slate-100 px-3 py-2">
                   {p.type === 'confirmed' ? (
                     <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 flex-shrink-0" />
+                  ) : p.type === 'correction' ? (
+                    <AlertCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
                   ) : (
                     <AlertCircle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
                   )}
@@ -124,6 +126,13 @@ export function AdminPlatformEventsPanel() {
                         <p className="text-slate-500">
                           {fmtAmount(p.amount, p.currency, format) ?? '—'}{p.provider ? ` · ${p.provider}` : ''}
                         </p>
+                      </>
+                    ) : p.type === 'correction' ? (
+                      <>
+                        <p className="font-medium text-amber-900 truncate">
+                          Correction · {p.studentName ?? `Paiement #${p.paymentId}`}
+                        </p>
+                        <p className="text-slate-500 truncate">{p.message ?? p.reason ?? 'Avoir guichet'}</p>
                       </>
                     ) : (
                       <>

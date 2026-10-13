@@ -13,8 +13,89 @@ export interface ImportJobResult {
   totalRows: number
   imported: number
   failed: number
-  errors: { row: number; field: string; message: string }[]
+  /** Lignes volontairement ignorées (doublons) — import élèves. */
+  skipped?: number
+  /** Lignes importées avec au moins un avertissement — import élèves. */
+  warnings?: number
+  /** Rapport du lot : erreurs, avertissements et lignes ignorées (champ severity pour les élèves). */
+  errors: ImportReportEntry[]
   fileName: string
+}
+
+export interface ImportReportEntry {
+  row: number
+  field: string
+  message: string
+  code?: string
+  severity?: 'error' | 'warning' | 'skipped'
+}
+
+// ── Pré-validation élèves (voyants) ─────────────────────────────────
+
+export type StudentRowLevel = 'green' | 'orange' | 'red'
+export type StudentDecision = 'skip' | 'fill' | 'update' | 'create'
+
+export interface StudentRowIssue {
+  field: string
+  message: string
+  code: 'REQUIRED' | 'INVALID' | 'NOT_FOUND' | 'CONFLICT' | 'MISSING' | 'CHECK' | 'REMARK'
+}
+
+export interface StudentFieldChange {
+  field: string
+  label: string
+  existing: string | null
+  incoming: string | null
+  kind: 'new' | 'different' | 'same'
+}
+
+export interface StudentDuplicateMatch {
+  source: 'database' | 'file'
+  studentId: number | null
+  fileRow: number | null
+  matricule: string | null
+  fullName: string
+  className: string | null
+  score: number
+  reason: 'SAME_MATRICULE' | 'EXACT_NAME' | 'SIMILAR_NAME' | 'SAME_PHONE_AND_BIRTH'
+  strict: boolean
+  changes: StudentFieldChange[]
+}
+
+export interface StudentRowAnalysis {
+  row: number
+  level: StudentRowLevel
+  errors: StudentRowIssue[]
+  warnings: StudentRowIssue[]
+  student: {
+    lastName: string
+    postnom: string | null
+    firstName: string | null
+    gender: string | null
+    dateOfBirth: string | null
+    placeOfBirth: string | null
+    phone: string | null
+    className: string
+  }
+  match: StudentDuplicateMatch | null
+  allowedDecisions: StudentDecision[]
+  defaultDecision: StudentDecision
+}
+
+export interface StudentImportAnalysis {
+  type: 'students'
+  fileName: string
+  fileHash: string
+  columns: string[]
+  rows: StudentRowAnalysis[]
+  summary: {
+    total: number
+    green: number
+    greenWithWarnings: number
+    orange: number
+    red: number
+    importable: number
+  }
 }
 
 export const importApi = {
@@ -22,9 +103,14 @@ export const importApi = {
     type: ImportType,
     file: File,
     schoolId?: number,
+    studentOptions?: { decisions: Record<number, StudentDecision>; fileHash: string },
   ): Promise<{ jobId: string; type: ImportType; totalRows: number; fileName: string }> => {
     const fd = new FormData()
     fd.append('file', file)
+    if (studentOptions) {
+      fd.append('fileHash', studentOptions.fileHash)
+      fd.append('decisions', JSON.stringify(studentOptions.decisions))
+    }
     const r = await apiClient.post(`/admin/import/${type}`, fd, {
       params: schoolId ? { schoolId } : undefined,
       timeout: 120_000,
@@ -43,6 +129,16 @@ export const importApi = {
       `modele-${type}.xlsx`,
     )
     return { blob: res.data as Blob, filename }
+  },
+
+  analyzeStudents: async (file: File, schoolId?: number): Promise<StudentImportAnalysis> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const r = await apiClient.post('/admin/import/analyze/students', fd, {
+      params: schoolId ? { schoolId } : undefined,
+      timeout: 180_000,
+    })
+    return r.data.data
   },
 
   getStatus: (jobId: string): Promise<ImportJobResult> =>

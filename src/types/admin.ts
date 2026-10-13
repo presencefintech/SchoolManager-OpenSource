@@ -120,7 +120,7 @@ export interface PresenceSyncBatchDetail extends PresenceSyncBatch {
 
 export interface AdminPaymentRealtimeItem {
   id: string
-  type: 'confirmed' | 'failed'
+  type: 'confirmed' | 'failed' | 'correction'
   paymentId: number
   studentId?: number
   studentName?: string
@@ -190,7 +190,7 @@ export interface StaffMember {
   isActive?: boolean
   createdAt: string
   lastLogin: string | null
-  /** Profil Teacher lié (lorsque le rôle est TEACHER). */
+  /** Profil Teacher lié (lorsque le rôle est TEACHER). Teacher.id — identifiant que la classe enregistre. Absent si le profil n’existe pas encore. */
   teacherProfileId?: number | null
   account?: StaffAccountView
 }

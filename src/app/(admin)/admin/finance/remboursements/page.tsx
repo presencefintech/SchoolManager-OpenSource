@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { CheckCircle2, RefreshCw, RotateCcw, Search, XCircle } from 'lucide-react'
 import { useAdminRefundRequests, useReviewRefundRequest, useAdminStudentPaymentsDetailed, useAdminRefundRequest } from '@/lib/hooks/use-admin'
 import { useFinanceStudentSearch, useStudentFinanceProfile, useFinanceClassDetail } from '@/lib/hooks/use-finance'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
 import { RefundAccountingImpact } from '@/components/finance/refund-accounting-impact'
@@ -36,6 +36,7 @@ const FILTER_OPTIONS = [
 ]
 
 export default function AdminRefundsPage() {
+  const { format: formatMoney } = useSchoolMoney()
   const toast = useToast()
   const [statusFilter, setStatusFilter] = useState('PENDING')
   const [search, setSearch] = useState('')

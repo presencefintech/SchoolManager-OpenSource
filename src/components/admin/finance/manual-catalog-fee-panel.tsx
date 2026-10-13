@@ -2,6 +2,7 @@
 
 import { AlertCircle, Calendar, Loader2 } from 'lucide-react'
 import { useFeeStructures, useAdminStudentFeePeriodStatus } from '@/lib/hooks/use-admin'
+import { formatMoney } from '@/lib/finance/currency'
 import type { StudentFeePeriodStatusDto } from '@/types/finance'
 
 const BILLING_PERIOD_LABEL: Record<string, string> = {
@@ -109,7 +110,7 @@ export function ManualCatalogFeePanel({
               <option key={fs.id} value={fs.id}>
                 {fs.categoryName ?? fs.description ?? `Barème #${fs.id}`}
                 {fs.billingPeriod ? ` (${fs.billingPeriod})` : ''}
-                {fs.amount != null ? ` — ${fs.amount} USD` : ''}
+                {fs.amount != null ? ` — ${formatMoney(fs.amount, fs.currency)}` : ''}
               </option>
             ))}
           </select>
@@ -166,7 +167,7 @@ export function ManualCatalogFeePanel({
               ) : null}
               {selected?.amount != null && (
                 <p className="text-[11px] text-zinc-500">
-                  Montant barème : {selected.amount} USD — saisissez le montant réel encaissé ci-dessous.
+                  Montant barème : {formatMoney(selected.amount, selected.currency)} — saisissez le montant réel encaissé ci-dessous.
                 </p>
               )}
             </>

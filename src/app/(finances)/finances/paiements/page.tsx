@@ -31,7 +31,7 @@ import { GuichetNetworkOpsCard } from '@/components/finance/guichet-network-ops-
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { DayCashCollectionsCard } from '@/components/finance/day-cash-collections'
 import { fadeUp } from '@/lib/animations'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { labelMoratorium, labelMoratoriumType } from '@/lib/business-labels'
 import { cn } from '@/lib/utils'
 import type { CashSession, GuichetDashboard } from '@/types/finance'
@@ -58,6 +58,7 @@ function sessionExpected(session: CashSession | null | undefined): number | null
 }
 
 function CashSessionBanner() {
+  const { format: formatMoney } = useSchoolMoney()
   const {
     session,
     hasOpenSession,
@@ -172,6 +173,7 @@ function HudStat({
 }
 
 function StudentWalletStrip({ studentId }: { studentId: number }) {
+  const { format: formatMoney } = useSchoolMoney()
   const { data: wallet, isLoading } = useStudentWallet(studentId)
 
   if (isLoading) {
@@ -238,6 +240,7 @@ function MethodMixToday({
 }: {
   byMethod?: { method: string; amount: number; count: number }[]
 }) {
+  const { format: formatMoney } = useSchoolMoney()
   const rows = Array.isArray(byMethod) ? byMethod : []
   const cash = rows
     .filter((r) => String(r.method).toUpperCase() === 'CASH')
