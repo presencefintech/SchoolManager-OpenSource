@@ -34,6 +34,15 @@ const serwist = new Serwist({
         networkTimeoutSeconds: 3,
       }),
     },
+    // Espace parents : réseau d'abord (données financières fraîches), repli cache pour l'ouverture hors ligne.
+    {
+      matcher: ({ url, sameOrigin }) =>
+        sameOrigin && (url.pathname === '/parent' || url.pathname.startsWith('/parent/')),
+      handler: new NetworkFirst({
+        cacheName: 'parent-pages',
+        networkTimeoutSeconds: 4,
+      }),
+    },
     ...defaultCache,
   ],
   fallbacks: {

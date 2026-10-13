@@ -57,7 +57,11 @@ function LoginPageContent() {
   async function onSubmit(values: LoginForm) {
     setServerError('')
     try {
-      await login(values)
+      // "0033…" → "+33…" ; un téléphone doit porter son indicatif pays (un 0 initial = RDC).
+      const raw = values.identifier.trim()
+      const compact = raw.replace(/[\s.-]/g, '')
+      const identifier = !raw.includes('@') && compact.startsWith('00') ? `+${compact.slice(2)}` : raw
+      await login({ ...values, identifier })
     } catch (err) {
       setServerError(getApiErrorMessage(err))
     }
@@ -93,7 +97,7 @@ function LoginPageContent() {
         <div className="rounded-3xl border border-line bg-surface/90 backdrop-blur-sm shadow-xl shadow-slate-200/60 dark:shadow-black/40 ring-1 ring-line p-6">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-zinc-900">Connexion</h2>
-            <p className="text-sm text-zinc-400 mt-1">Espace établissement, finances, direction ou guichet</p>
+            <p className="text-sm text-zinc-400 mt-1">Parents, établissement, finances, direction ou guichet</p>
           </div>
 
           {user && !isLoading && (
@@ -141,7 +145,7 @@ function LoginPageContent() {
               role="alert"
               className="mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800"
             >
-              Ce compte n&apos;est pas éligible au portail web — utilisez l&apos;application mobile SchoolManager.
+              Ce type de compte n&apos;est pas pris en charge par le portail web.
             </div>
           )}
 
@@ -160,7 +164,7 @@ function LoginPageContent() {
                   type="text"
                   autoComplete="email"
                   autoFocus
-                  placeholder="admin@ecole.sn"
+                  placeholder="Email ou +243… / +33…"
                   className={cn(
                     'w-full pl-10 pr-3.5 py-2.5 rounded-xl border bg-white text-sm text-zinc-900 outline-none transition-all',
                     'placeholder:text-zinc-300',
@@ -174,6 +178,9 @@ function LoginPageContent() {
               {errors.identifier && (
                 <p className="text-xs text-red-500">{errors.identifier.message}</p>
               )}
+              <p className="text-xs text-zinc-400">
+                Téléphone : saisissez l&apos;indicatif du pays (ex. +243… RDC, +33… France).
+              </p>
             </div>
 
             {/* Password */}
@@ -255,6 +262,13 @@ function LoginPageContent() {
             </div>
           ))}
         </div>
+
+        <p className="mt-3 text-center text-sm text-zinc-500">
+          Première visite en tant que parent ?{' '}
+          <Link href="/activate-parent" className="font-medium text-emerald-700 underline underline-offset-2">
+            Activer mon espace parent
+          </Link>
+        </p>
 
         <p className="mt-3 text-center text-xs text-zinc-400">
           Problème de connexion ? Contactez votre administrateur système.

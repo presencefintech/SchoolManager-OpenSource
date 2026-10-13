@@ -18,6 +18,7 @@ import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
 import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
 import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
+import { ParentActivationButton } from '@/components/admin/students/ParentActivationButton'
 import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
@@ -273,6 +274,8 @@ export default function StudentsPage() {
                             </td>
                             <td className="px-5 py-3 text-sm text-zinc-400 font-mono">{s.matricule ?? '—'}</td>
                             <td className="px-5 py-3 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <ParentActivationButton studentId={s.id} studentName={formatStudentFullName(s) || `Élève #${s.id}`} />
                               <RowActionsMenu
                                 actions={[
                                   {
@@ -371,6 +374,7 @@ export default function StudentsPage() {
                                     : []),
                                 ]}
                               />
+                              </div>
                             </td>
                           </tr>
                         )

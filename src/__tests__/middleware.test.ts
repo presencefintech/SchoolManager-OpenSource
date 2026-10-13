@@ -61,8 +61,18 @@ describe('middleware', () => {
     expect(location(res)).toBeNull()
   })
 
-  it('refuse PARENT (mobile uniquement)', async () => {
+  it('renvoie PARENT vers son espace quand il sort de /parent', async () => {
     const res = await middleware(request('/admin/dashboard', { [AUTH_COOKIE.access]: token('PARENT') }))
+    expect(location(res)).toBe('/parent/dashboard')
+  })
+
+  it('autorise PARENT sur /parent/finance', async () => {
+    const res = await middleware(request('/parent/finance', { [AUTH_COOKIE.access]: token('PARENT') }))
+    expect(location(res)).toBeNull()
+  })
+
+  it('refuse un rôle inconnu', async () => {
+    const res = await middleware(request('/admin/dashboard', { [AUTH_COOKIE.access]: token('STUDENT') }))
     expect(res.headers.get('location')).toContain('/login?error=role_not_supported')
   })
 
