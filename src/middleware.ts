@@ -21,6 +21,7 @@ const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   FINANCE: '/finances',
   DIRECTOR: '/director',
   TEACHER: '/teacher',
+  PARENT: '/parent',
   IT: '/admin',
 }
 
@@ -135,7 +136,7 @@ export async function middleware(request: NextRequest) {
     return res
   }
 
-  if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && !pathname.startsWith('/verify')) {
+  if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && pathname !== '/activate-parent' && !pathname.startsWith('/verify')) {
     const stayOnAuthForm =
       pathname.startsWith('/login') ||
       pathname.startsWith('/forgot-password') ||
@@ -180,6 +181,6 @@ function attachRefreshedCookies(
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|json|txt|woff|woff2|ttf)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api|\\.well-known|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|json|webmanifest|txt|woff|woff2|ttf)$).*)',
   ],
 }

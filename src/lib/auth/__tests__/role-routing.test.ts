@@ -5,9 +5,10 @@ describe('isWebRole', () => {
     for (const role of Object.keys(ROLE_HOME)) expect(isWebRole(role)).toBe(true)
   })
 
-  it('accepte TEACHER (cahier de notes web) et refuse PARENT', () => {
+  it('accepte TEACHER et PARENT, refuse un rôle inconnu', () => {
     expect(isWebRole('TEACHER')).toBe(true)
-    expect(isWebRole('PARENT')).toBe(false)
+    expect(isWebRole('PARENT')).toBe(true)
+    expect(isWebRole('STUDENT')).toBe(false)
   })
 })
 
@@ -24,6 +25,9 @@ describe('pathAllowedForRole', () => {
     expect(pathAllowedForRole('DIRECTOR', '/finances/caisse')).toBe(false)
     expect(pathAllowedForRole('TEACHER', '/admin/dashboard')).toBe(false)
     expect(pathAllowedForRole('TEACHER', '/teacher/grades')).toBe(true)
+    expect(pathAllowedForRole('PARENT', '/parent/finance')).toBe(true)
+    expect(pathAllowedForRole('PARENT', '/teacher/grades')).toBe(false)
+    expect(pathAllowedForRole('ADMIN', '/parent/dashboard')).toBe(false)
   })
 
   it('limite IT au sous-ensemble guichet', () => {
