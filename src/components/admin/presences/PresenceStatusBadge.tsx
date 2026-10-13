@@ -7,7 +7,9 @@ const STATUS_CFG = {
   PRESENT: { label: 'Présent', className: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20' },
   ABSENT: { label: 'Absent', className: 'bg-red-50 text-red-700 ring-red-600/20' },
   LATE: { label: 'Retard', className: 'bg-amber-50 text-amber-800 ring-amber-600/20' },
-  EXITED: { label: 'Sorti', className: 'bg-sky-50 text-sky-800 ring-sky-600/20' },
+  EXCUSED: { label: 'Excusé', className: 'bg-sky-50 text-sky-800 ring-sky-600/20' },
+  UNIFORM_VIOLATION: { label: 'Tenue', className: 'bg-violet-50 text-violet-800 ring-violet-600/20' },
+  EXITED: { label: 'Sorti', className: 'bg-indigo-50 text-indigo-800 ring-indigo-600/20' },
 } as const
 
 const DIRECTION_CFG: Record<

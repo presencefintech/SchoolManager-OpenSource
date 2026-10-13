@@ -3,30 +3,44 @@
 import { Building2 } from 'lucide-react'
 import { useNetworkContext, useStudentWallet } from '@/lib/hooks/use-finance'
 
-/** Bandeau guichet — encaissement hub pour élève inscrit sur un autre site du réseau. */
-export function GuichetCrossSiteBanner({ studentId }: { studentId: number }) {
+/** Bandeau guichet — encaissement inter-sites (élève d’un autre campus du réseau). */
+export function GuichetCrossSiteBanner({
+  studentId,
+  schoolNameFallback,
+}: {
+  studentId: number
+  /** Nom campus d’inscription (ex. résultat recherche réseau). */
+  schoolNameFallback?: string | null
+}) {
   const { data: wallet } = useStudentWallet(studentId)
   const { data: network } = useNetworkContext()
 
-  if (!wallet?.isCrossSite) return null
+  const enrollmentName =
+    wallet?.enrollmentSchoolName ?? schoolNameFallback ?? null
+  const isCross = Boolean(wallet?.isCrossSite) || Boolean(schoolNameFallback)
+
+  if (!isCross || !enrollmentName) return null
 
   const collectionName =
-    wallet.collectionSchoolName ??
+    wallet?.collectionSchoolName ??
     network?.collectionSiteName ??
-    'votre caisse hub'
+    'ce guichet'
 
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 space-y-1">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Building2 size={14} className="text-amber-700 shrink-0" />
-        <p className="text-xs font-semibold text-amber-950">Encaissement réseau</p>
+        <p className="text-xs font-semibold text-amber-950">Encaissement réseau / inter-sites</p>
+        <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950 ring-1 ring-amber-200">
+          Élève de : {enrollmentName}
+        </span>
       </div>
       <p className="text-[11px] text-amber-900/90 leading-relaxed">
-        Élève inscrit à{' '}
-        <span className="font-medium">{wallet.enrollmentSchoolName ?? 'un autre site'}</span>
-        {' '}— encaissement sur{' '}
+        Dette et reçu au branding de{' '}
+        <span className="font-medium">{enrollmentName}</span>
+        {' '}— espèces / float sur{' '}
         <span className="font-medium">{collectionName}</span>
-        . Le solde sera crédité sur le site d&apos;inscription ; la session caisse reste sur le hub.
+        . Pied de reçu : « Encaissé au guichet inter-sites : {collectionName} ».
       </p>
     </div>
   )

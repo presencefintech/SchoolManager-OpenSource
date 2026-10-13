@@ -566,13 +566,20 @@ export interface RecordPresencePayload {
   note?: string
 }
 
+export type DailyRegisterStatus =
+  | 'PRESENT'
+  | 'ABSENT'
+  | 'LATE'
+  | 'EXCUSED'
+  | 'UNIFORM_VIOLATION'
+
 export interface BulkPresencePayload {
   classId: number
   sessionDate?: string
   idempotencyKey?: string
   entries: Array<{
     studentId: number
-    status: 'PRESENT' | 'ABSENT' | 'LATE'
+    status: DailyRegisterStatus
     reasonCode?: string
     note?: string
   }>
@@ -580,7 +587,7 @@ export interface BulkPresencePayload {
 
 export interface AdminPresenceRecordResult {
   id: number
-  status: 'PRESENT' | 'ABSENT' | 'LATE'
+  status: DailyRegisterStatus | 'EXITED'
   studentName: string
   fraudScore?: number
   idempotentReplay?: boolean
@@ -590,7 +597,7 @@ export interface AdminPresenceRecordResult {
 export interface BulkPresenceRecordItem {
   studentId: number
   presenceId: number
-  status: 'PRESENT' | 'ABSENT' | 'LATE'
+  status: DailyRegisterStatus | 'EXITED'
   studentName: string
   idempotentReplay?: boolean
   isSameDayDuplicate?: boolean
@@ -673,6 +680,7 @@ export type PresenceReasonGroup =
   | 'ABSENCE_AUTHORIZED'
   | 'ABSENCE_DISCIPLINARY'
   | 'ABSENCE_UNAUTHORIZED'
+  | 'UNIFORM'
   | 'OTHER'
 
 export interface PresenceReasonCodeEntry {
@@ -680,7 +688,7 @@ export interface PresenceReasonCodeEntry {
   labelFr: string
   labelEn?: string
   dfeSymbol: string | null
-  appliesTo: readonly ('PRESENT' | 'LATE' | 'ABSENT')[]
+  appliesTo: readonly ('PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED' | 'UNIFORM_VIOLATION')[]
   group: PresenceReasonGroup
   groupLabelFr: string
   groupLabelEn?: string

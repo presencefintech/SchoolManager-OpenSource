@@ -10,6 +10,8 @@ export interface AuthUser {
   lastName: string
   role: UserRole
   schoolId: number | null
+  /** SchoolNetwork / SchoolGroup — promoteurs multi-campus. */
+  networkId?: number | null
   isEmailConfirmed?: boolean
   mustChangePassword?: boolean
 }
@@ -48,8 +50,8 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   ADMIN: ['/admin'],
   SUPER_ADMIN: ['/super-admin'],
   FINANCE: ['/finances'],
-  /** Préfet (DIRECTOR) : portail direction + délibérations / fiche élève (orientation, certificats). */
-  DIRECTOR: ['/director', '/admin/deliberations', '/admin/students'],
+  /** Préfet (DIRECTOR) : portail direction + délibérations admin. */
+  DIRECTOR: ['/director', '/admin/deliberations'],
   TEACHER: ['/teacher'],
   PARENT: ['/parent'],
   IT: [

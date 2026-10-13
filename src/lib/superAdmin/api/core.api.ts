@@ -135,6 +135,13 @@ export const coreApi = {
     }
     confirmInvite: true
     note?: string | null
+    network?: {
+      mode: 'none' | 'select' | 'create'
+      networkId?: number | null
+      name?: string | null
+      code?: string | null
+      isPaymentHub?: boolean
+    } | null
   }) =>
     apiClient
       .post<{

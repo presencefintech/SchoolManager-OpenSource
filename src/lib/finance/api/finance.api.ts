@@ -288,6 +288,67 @@ export const financeRoleApi = {
       })
   },
 
+  /** Encaissement inter-sites — float local, dette campus d’inscription. */
+  processCrossCampusPayment: (payload: {
+    studentId: number
+    targetSchoolId: number
+    feeObligationId: number
+    amount: number
+    currency: 'USD' | 'CDF'
+    paymentMethod: 'CASH' | 'MOBILE_MONEY' | 'CARD'
+    notes?: string
+    monthYear?: string
+    fees?: Array<{ feeStructureId: number; monthYear?: string; amount: number }>
+    idempotencyKey?: string
+  }) => {
+    const { idempotencyKey, ...body } = payload
+    return apiClient
+      .post('/finance/payments/cross-campus', body, {
+        headers: idempotencyKey ? { 'x-idempotency-key': idempotencyKey } : undefined,
+      })
+      .then((r) => {
+        const data = r.data.data as ProcessPaymentResponse & {
+          collectingSchoolId: number
+          collectingSchoolName: string
+          targetSchoolId: number
+          targetSchoolName: string
+          isCrossCampus: true
+        }
+        const paymentId = data.payment?.id ?? data.paymentId ?? data.id
+        return { ...data, paymentId, id: paymentId }
+      })
+  },
+
+  /** Recherche élèves tous campuses du réseau (guichet inter-sites). */
+  searchNetworkStudents: (query: string, limit = 20) =>
+    apiClient
+      .get('/network/students/search', { params: { q: query, limit } })
+      .then((r) => {
+        const d = r.data.data as {
+          students?: Array<{
+            studentId: number
+            matricule: string
+            fullName: string
+            className: string | null
+            feesBalance: number
+            schoolId: number
+            schoolName: string
+            isCrossCampus: boolean
+          }>
+        }
+        const rows = d?.students ?? []
+        return rows.map((s) => ({
+          id: s.studentId,
+          name: s.fullName,
+          matricule: s.matricule,
+          className: s.className,
+          feesBalance: s.feesBalance,
+          schoolId: s.schoolId,
+          schoolName: s.schoolName,
+          isCrossSite: s.isCrossCampus,
+        })) as import('@/types/finance').FinanceStudentResult[]
+      }),
+
   verifyPaymentStep: (payload: {
     paymentId: number
     action: 'approve' | 'reject' | 'FINANCE' | 'REJECT'

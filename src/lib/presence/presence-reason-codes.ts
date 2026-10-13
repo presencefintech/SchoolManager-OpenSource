@@ -1,4 +1,9 @@
-export type PresenceStatusValue = 'PRESENT' | 'LATE' | 'ABSENT'
+export type PresenceStatusValue =
+  | 'PRESENT'
+  | 'LATE'
+  | 'ABSENT'
+  | 'EXCUSED'
+  | 'UNIFORM_VIOLATION'
 
 import type { PresenceReasonCodeEntry, PresenceReasonGroup } from '@/types/admin'
 
@@ -10,6 +15,7 @@ export const PRESENCE_REASON_GROUP_ORDER: PresenceReasonGroup[] = [
   'ABSENCE_AUTHORIZED',
   'ABSENCE_DISCIPLINARY',
   'ABSENCE_UNAUTHORIZED',
+  'UNIFORM',
   'OTHER',
   'PRESENT',
 ]
@@ -21,6 +27,7 @@ export const PRESENCE_REASON_GROUP_LABELS: Record<PresenceReasonGroup, string> =
   ABSENCE_AUTHORIZED: 'Absence autorisée',
   ABSENCE_DISCIPLINARY: 'Mesure disciplinaire',
   ABSENCE_UNAUTHORIZED: 'Absence non autorisée',
+  UNIFORM: 'Tenue / uniforme',
   OTHER: 'Autre',
 }
 
@@ -38,7 +45,9 @@ export const PRESENCE_REASON_CATALOG_FALLBACK = [
   { code: 'ABSENCE_EXCLUDED', labelFr: 'Exclusion ou suspension', dfeSymbol: 'E', appliesTo: ['ABSENT'], group: 'ABSENCE_DISCIPLINARY', groupLabelFr: 'Mesure disciplinaire', requiresNote: false, sortOrder: 95 },
   { code: 'ABSENCE_HOLIDAY', labelFr: 'Absence vacances non autorisée', dfeSymbol: 'H', appliesTo: ['ABSENT'], group: 'ABSENCE_UNAUTHORIZED', groupLabelFr: 'Absence non autorisée', requiresNote: false, sortOrder: 96 },
   { code: 'ABSENCE_UNAUTHORIZED', labelFr: 'Absence non autorisée', dfeSymbol: 'O', appliesTo: ['ABSENT'], group: 'ABSENCE_UNAUTHORIZED', groupLabelFr: 'Absence non autorisée', requiresNote: false, sortOrder: 97 },
-  { code: 'OTHER', labelFr: 'Autre motif', dfeSymbol: null, appliesTo: ['ABSENT', 'LATE'], group: 'OTHER', groupLabelFr: 'Autre', requiresNote: true, sortOrder: 99 },
+  { code: 'EXCUSED_AUTHORIZED', labelFr: 'Absence excusée (justifiée)', dfeSymbol: 'C', appliesTo: ['EXCUSED'], group: 'ABSENCE_AUTHORIZED', groupLabelFr: 'Absence autorisée', requiresNote: false, sortOrder: 55 },
+  { code: 'UNIFORM_VIOLATION', labelFr: 'Tenue non conforme', dfeSymbol: 'V', appliesTo: ['UNIFORM_VIOLATION'], group: 'UNIFORM', groupLabelFr: 'Tenue / uniforme', requiresNote: false, sortOrder: 98 },
+  { code: 'OTHER', labelFr: 'Autre motif', dfeSymbol: null, appliesTo: ['ABSENT', 'LATE', 'EXCUSED'], group: 'OTHER', groupLabelFr: 'Autre', requiresNote: true, sortOrder: 99 },
   { code: 'PRESENT_ON_TIME', labelFr: 'Présent à l\'heure', dfeSymbol: null, appliesTo: ['PRESENT'], group: 'PRESENT', groupLabelFr: 'Présence', requiresNote: false, sortOrder: 100 },
   { code: 'PRESENT_REMOTE', labelFr: 'Enseignement à distance autorisé', dfeSymbol: 'R', appliesTo: ['PRESENT'], group: 'PRESENT', groupLabelFr: 'Présence', requiresNote: false, sortOrder: 110 },
 ] as const satisfies ReadonlyArray<{
@@ -94,6 +103,8 @@ export function defaultReasonCodeForStatus(status: PresenceStatusValue): Presenc
   if (status === 'PRESENT') return 'PRESENT_ON_TIME'
   if (status === 'LATE') return 'LATE_BEFORE_REGISTER'
   if (status === 'ABSENT') return 'ABSENCE_UNAUTHORIZED'
+  if (status === 'EXCUSED') return 'EXCUSED_AUTHORIZED'
+  if (status === 'UNIFORM_VIOLATION') return 'UNIFORM_VIOLATION'
   return ''
 }
 
@@ -110,7 +121,7 @@ export function validatePresenceReason(
   note?: string,
   catalog?: PresenceReasonCatalogEntry[] | null,
 ): string | null {
-  if (status === 'PRESENT') return null
+  if (status === 'PRESENT' || status === 'UNIFORM_VIOLATION') return null
   if (!reasonCode) return 'Sélectionnez un motif dans la liste.'
   if (!listPresenceReasonsForStatus(status, catalog).some((r) => r.code === reasonCode)) {
     return 'Ce motif n\'est pas valable pour le statut choisi.'

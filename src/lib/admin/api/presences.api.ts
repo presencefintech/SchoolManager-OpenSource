@@ -264,4 +264,62 @@ export const presencesApi = {
     apiClient
       .get<{ success: boolean; data: PresenceSyncBatchDetail }>(`/admin/presences/sync-batches/${batchId}`)
       .then((r) => r.data.data),
+
+  /** Billets d'entrée / sortie (Préfet de Discipline) */
+  listGatePasses: (params?: { studentId?: number; validOn?: string; status?: string }) =>
+    apiClient
+      .get<{ success: boolean; data: GatePassRecord[] }>('/admin/presences/gate-passes', { params })
+      .then((r) => r.data.data ?? []),
+
+  issueGatePass: (payload: {
+    studentId: number
+    passType: 'ENTRY' | 'EXIT'
+    reason: string
+    validOn?: string
+    validUntil?: string | null
+    note?: string | null
+  }) =>
+    apiClient
+      .post<{ success: boolean; data: GatePassRecord; message?: string }>(
+        '/admin/presences/gate-passes',
+        payload,
+      )
+      .then((r) => r.data.data),
+
+  revokeGatePass: (passId: number, reason?: string) =>
+    apiClient
+      .post<{ success: boolean; data: GatePassRecord }>(
+        `/admin/presences/gate-passes/${passId}/revoke`,
+        { reason },
+      )
+      .then((r) => r.data.data),
+
+  useGatePass: (passCode: string) =>
+    apiClient
+      .post<{ success: boolean; data: GatePassRecord; message?: string }>(
+        '/admin/presences/gate-passes/use',
+        { passCode },
+      )
+      .then((r) => ({ data: r.data.data, message: r.data.message })),
+}
+
+export type GatePassRecord = {
+  id: number
+  uuid: string
+  passCode: string
+  passType: 'ENTRY' | 'EXIT'
+  status: 'ISSUED' | 'USED' | 'REVOKED' | 'EXPIRED'
+  reason: string
+  validOn: string
+  validUntil?: string | null
+  note?: string | null
+  studentId: number
+  studentName?: string
+  studentMatricule?: string
+  label?: string
+  class?: { id: number; name: string } | null
+  issuedBy?: { id: number; firstName?: string | null; lastName?: string | null; role?: string } | null
+  signedAt?: string
+  usedAt?: string | null
+  revokedAt?: string | null
 }

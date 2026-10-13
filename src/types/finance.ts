@@ -975,6 +975,11 @@ export interface StudentWallet {
   totalFees?: number
   feesPaid?: number
   lastPaymentAt?: string
+  enrollmentSchoolId?: number
+  enrollmentSchoolName?: string | null
+  collectionSchoolId?: number
+  collectionSchoolName?: string | null
+  isCrossSite?: boolean
   transactions?: { id: number; amount: number; method: string; status: string; createdAt: string; reference?: string; currency?: string }[]
   recentPayments?: { id: number; amount: number; method: string; status: string; createdAt: string; reference?: string; currency?: string }[]
   moratorium?: {

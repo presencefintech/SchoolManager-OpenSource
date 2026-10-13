@@ -338,9 +338,12 @@ function PendingVerificationsCard() {
 
 export default function PaiementsPage() {
   const [studentId, setStudentId] = useState(0)
+  const [networkWideSearch, setNetworkWideSearch] = useState(false)
+  const [selectedSchoolName, setSelectedSchoolName] = useState<string | null>(null)
   const { data: dailyCash = [], refetch: refetchCash, isFetching } = useDailyCashReport()
   const { data: guichet } = useGuichetDashboard()
   const { data: network } = useNetworkContext()
+  const canUseNetworkDesk = Boolean(network?.groupName && (network.sites?.length ?? 0) > 1)
   const collectionsToday = (
     guichet as {
       collectionsToday?: {
@@ -395,32 +398,71 @@ export default function PaiementsPage() {
       </div>
 
       {network?.groupName && (network.sites?.length ?? 0) > 1 ? (
-        <div className="mb-5 rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-xs text-sky-950">
-          <p className="font-semibold">{network.groupName}</p>
-          <p className="mt-0.5 text-sky-800/80">
-            {network.canCollectCrossSite
-              ? `Recherche multi-sites · ${network.sites.length} établissements`
-              : 'Encaissement local — la caisse hub du réseau traite les autres sites'}
-            {network.isPaymentHub ? ' · vous êtes le hub' : ''}
-          </p>
+        <div className="mb-5 overflow-hidden rounded-2xl border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-emerald-50/40 px-4 py-3.5 text-xs text-sky-950 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-sky-700/80">
+                Groupe scolaire
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-sky-950">{network.groupName}</p>
+              <p className="mt-0.5 text-sky-800/80">
+                {networkWideSearch
+                  ? `Mode inter-sites actif · recherche sur ${network.sites.length} campus`
+                  : network.canCollectCrossSite || canUseNetworkDesk
+                    ? `${network.sites.length} établissements · activez « Encaissement Réseau » pour un élève d’un autre site`
+                    : 'Encaissement local — activez le mode inter-sites si autorisé'}
+                {network.isPaymentHub ? ' · caisse hub' : ''}
+              </p>
+            </div>
+            {networkWideSearch ? (
+              <span className="rounded-md bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-950 ring-1 ring-amber-200">
+                Inter-sites ON
+              </span>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
           <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-            <div className="mb-4 flex items-center gap-2">
-              <Search size={15} className="text-zinc-400" />
-              <div>
-                <h2 className="text-sm font-semibold text-zinc-900">Rechercher un élève</h2>
-                <p className="text-[11px] text-zinc-400 mt-0.5">
-                  Filtres Section · Option · Classe + solde affiché dans les résultats
-                </p>
+            <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Search size={15} className="text-zinc-400" />
+                <div>
+                  <h2 className="text-sm font-semibold text-zinc-900">Rechercher un élève</h2>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">
+                    {networkWideSearch
+                      ? 'Recherche réseau — tous les campus du groupe'
+                      : 'Filtres Section · Option · Classe + solde affiché dans les résultats'}
+                  </p>
+                </div>
               </div>
+              {canUseNetworkDesk ? (
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-sky-200 bg-sky-50/80 px-3 py-2 text-xs font-semibold text-sky-950">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-sky-300 text-sky-700 focus:ring-sky-400"
+                    checked={networkWideSearch}
+                    onChange={(e) => {
+                      setNetworkWideSearch(e.target.checked)
+                      setStudentId(0)
+                      setSelectedSchoolName(null)
+                    }}
+                  />
+                  Encaissement Réseau / Inter-Sites
+                </label>
+              ) : null}
             </div>
             <FinanceStudentSearchField
               studentId={studentId}
-              onSelect={(id) => setStudentId(id)}
+              networkWide={networkWideSearch}
+              onSelect={(id, student) => {
+                setStudentId(id)
+                setSelectedSchoolName(
+                  student?.isCrossSite ? student.schoolName ?? null : null,
+                )
+              }}
               label="Matricule, nom, prénom ou postnom"
             />
             {studentId > 0 && (
@@ -438,11 +480,17 @@ export default function PaiementsPage() {
 
           {studentId > 0 ? (
             <motion.div variants={fadeUp} initial="hidden" animate="show" className="space-y-4">
-              <GuichetCrossSiteBanner studentId={studentId} />
+              <GuichetCrossSiteBanner
+                studentId={studentId}
+                schoolNameFallback={selectedSchoolName}
+              />
               <StudentWalletStrip studentId={studentId} />
               <GuichetSiblingsStrip
                 studentId={studentId}
-                onSelect={(id) => setStudentId(id)}
+                onSelect={(id) => {
+                  setStudentId(id)
+                  setSelectedSchoolName(null)
+                }}
               />
               <StudentFinanceDashboard
                 studentId={studentId}

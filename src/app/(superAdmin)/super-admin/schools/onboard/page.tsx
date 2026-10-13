@@ -13,16 +13,21 @@ import {
   CheckCircle2,
   Loader2,
   Mail,
+  Network,
   ShieldCheck,
   UserPlus,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { WhatsAppInviteAssist } from '@/components/super-admin/whatsapp-invite-assist'
 import { useOnboardSchool } from '@/lib/hooks/use-super-admin'
+import { schoolNetworkApi } from '@/lib/superAdmin/api/school-network.api'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { useToast } from '@/providers/toast-provider'
 import { cn } from '@/lib/utils'
+
+type NetworkMode = 'none' | 'select' | 'create'
 
 const STEPS = [
   { id: 1, label: 'Établissement', icon: Building2 },
@@ -96,8 +101,19 @@ export default function SchoolOnboardPage() {
   const [step, setStep] = useState(1)
   const [school, setSchool] = useState<SchoolForm>(emptySchool)
   const [admin, setAdmin] = useState<AdminForm>(emptyAdmin)
+  const [networkMode, setNetworkMode] = useState<NetworkMode>('none')
+  const [networkId, setNetworkId] = useState<number | ''>('')
+  const [networkName, setNetworkName] = useState('')
+  const [networkCode, setNetworkCode] = useState('')
+  const [isPaymentHub, setIsPaymentHub] = useState(true)
   const [note, setNote] = useState('')
   const [confirmInvite, setConfirmInvite] = useState(false)
+
+  const { data: networks = [] } = useQuery({
+    queryKey: ['superadmin', 'school-networks'],
+    queryFn: schoolNetworkApi.listGroups,
+    staleTime: 60_000,
+  })
   const [done, setDone] = useState<{
     schoolId: number
     schoolName: string
@@ -109,7 +125,12 @@ export default function SchoolOnboardPage() {
     whatsappError?: string | null
   } | null>(null)
 
-  const step1Valid = school.name.trim().length >= 2
+  const networkStepValid =
+    networkMode === 'none' ||
+    (networkMode === 'select' && typeof networkId === 'number' && networkId > 0) ||
+    (networkMode === 'create' && networkName.trim().length >= 2)
+
+  const step1Valid = school.name.trim().length >= 2 && networkStepValid
   const step2Valid =
     admin.firstName.trim().length >= 2 &&
     admin.lastName.trim().length >= 2 &&
@@ -124,13 +145,27 @@ export default function SchoolOnboardPage() {
       schoolCity: school.city.trim() || '—',
       adminName: `${admin.firstName.trim()} ${admin.lastName.trim()}`.trim() || '—',
       adminEmail: admin.email.trim().toLowerCase() || '—',
+      networkLabel:
+        networkMode === 'none'
+          ? 'École indépendante'
+          : networkMode === 'select'
+            ? networks.find((g) => g.id === networkId)?.name ?? `Réseau #${networkId}`
+            : networkName.trim() || 'Nouveau réseau',
     }),
-    [school, admin],
+    [school, admin, networkMode, networkId, networkName, networks],
   )
 
   function goNext() {
     if (step === 1 && !step1Valid) {
-      toast.error('Indiquez au moins le nom de l’établissement')
+      if (school.name.trim().length < 2) {
+        toast.error('Indiquez au moins le nom de l’établissement')
+      } else if (networkMode === 'select' && !networkId) {
+        toast.error('Sélectionnez un réseau scolaire existant')
+      } else if (networkMode === 'create' && networkName.trim().length < 2) {
+        toast.error('Indiquez le nom du nouveau groupe scolaire')
+      } else {
+        toast.error('Complétez l’identité établissement / réseau')
+      }
       return
     }
     if (step === 2 && !step2Valid) {
@@ -165,6 +200,21 @@ export default function SchoolOnboardPage() {
         },
         confirmInvite: true,
         note: note.trim() || null,
+        network:
+          networkMode === 'none'
+            ? { mode: 'none' }
+            : networkMode === 'select'
+              ? {
+                  mode: 'select',
+                  networkId: Number(networkId),
+                  isPaymentHub,
+                }
+              : {
+                  mode: 'create',
+                  name: networkName.trim(),
+                  code: networkCode.trim() || null,
+                  isPaymentHub,
+                },
       })
       setDone({
         schoolId: result.school.id,
@@ -391,6 +441,93 @@ export default function SchoolOnboardPage() {
                     placeholder="Avenue…"
                   />
                 </Field>
+
+                <div className="mt-6 space-y-3 rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-zinc-800">
+                    <Network size={16} className="text-emerald-700" />
+                    Groupe scolaire / réseau
+                  </div>
+                  <p className="text-[11px] text-zinc-500">
+                    Ex. Groupe Les Érudits avec campus Érudits 1 et Érudits 2. Chaque campus reste
+                    un tenant indépendant, liés par un <code className="rounded bg-white px-1">networkId</code>.
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {(
+                      [
+                        ['none', 'Indépendante'],
+                        ['select', 'Rattacher'],
+                        ['create', 'Créer le réseau'],
+                      ] as const
+                    ).map(([mode, label]) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setNetworkMode(mode)}
+                        className={cn(
+                          'rounded-xl border px-3 py-2 text-xs font-medium transition',
+                          networkMode === mode
+                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                            : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {networkMode === 'select' ? (
+                    <Field label="Réseau existant" required>
+                      <select
+                        className={inputClass}
+                        value={networkId === '' ? '' : String(networkId)}
+                        onChange={(e) =>
+                          setNetworkId(e.target.value ? Number(e.target.value) : '')
+                        }
+                      >
+                        <option value="">Choisir…</option>
+                        {networks.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.name} ({g.schools.length} campus)
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                  ) : null}
+
+                  {networkMode === 'create' ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Field label="Nom du groupe" required hint="Ex. Groupe Les Érudits">
+                        <input
+                          className={inputClass}
+                          value={networkName}
+                          onChange={(e) => setNetworkName(e.target.value)}
+                          placeholder="Groupe Les Érudits"
+                        />
+                      </Field>
+                      <Field label="Code" hint="Optionnel — ex. ERUDITS">
+                        <input
+                          className={inputClass}
+                          value={networkCode}
+                          onChange={(e) => setNetworkCode(e.target.value.toUpperCase())}
+                          placeholder="ERUDITS"
+                          maxLength={32}
+                        />
+                      </Field>
+                    </div>
+                  ) : null}
+
+                  {networkMode !== 'none' ? (
+                    <label className="flex items-center gap-2 text-xs text-zinc-700">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-zinc-300"
+                        checked={isPaymentHub}
+                        onChange={(e) => setIsPaymentHub(e.target.checked)}
+                      />
+                      Définir ce campus comme caisse hub du réseau
+                    </label>
+                  ) : null}
+                </div>
               </motion.div>
             ) : null}
 
@@ -469,6 +606,10 @@ export default function SchoolOnboardPage() {
                   <div className="flex justify-between gap-4 px-4 py-3">
                     <dt className="text-zinc-500">Ville</dt>
                     <dd className="text-zinc-800 text-right">{summary.schoolCity}</dd>
+                  </div>
+                  <div className="flex justify-between gap-4 px-4 py-3">
+                    <dt className="text-zinc-500">Réseau</dt>
+                    <dd className="font-medium text-zinc-900 text-right">{summary.networkLabel}</dd>
                   </div>
                   <div className="flex justify-between gap-4 px-4 py-3">
                     <dt className="text-zinc-500">Admin</dt>

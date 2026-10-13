@@ -25,6 +25,8 @@ interface FinanceStudentSearchFieldProps {
   label?: string
   required?: boolean
   className?: string
+  /** Guichet inter-sites — recherche tous campuses du réseau. */
+  networkWide?: boolean
 }
 
 const selectCls =
@@ -61,6 +63,7 @@ export function FinanceStudentSearchField({
   label = 'Élève',
   required,
   className,
+  networkWide = false,
 }: FinanceStudentSearchFieldProps) {
   const { format: formatMoney } = useSchoolMoney()
   const [query, setQuery] = useState('')
@@ -122,12 +125,14 @@ export function FinanceStudentSearchField({
       .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   }, [classes, sectionId, optionId])
 
-  const hasStructuralFilter = sectionId !== '' || optionId !== '' || classId !== ''
+  const hasStructuralFilter =
+    !networkWide && (sectionId !== '' || optionId !== '' || classId !== '')
   const filters = {
     sectionId: sectionId === '' ? undefined : sectionId,
     optionId: optionId === '' ? undefined : optionId,
     classId: classId === '' ? undefined : classId,
     debtorsOnly: debtorsOnly || undefined,
+    networkWide,
     sort: (hasStructuralFilter || debtorsOnly) && debounced.length < 2
       ? ('balance' as const)
       : ('name' as const),
@@ -247,7 +252,8 @@ export function FinanceStudentSearchField({
     setClassId('')
   }
 
-  const showResults = debounced.length >= 2 || hasFilter
+  const minChars = networkWide ? 3 : 2
+  const showResults = debounced.length >= minChars || hasFilter
   const resultsId = useId()
 
   return (
@@ -256,6 +262,11 @@ export function FinanceStudentSearchField({
         {label}
         {required && <span className="text-red-500"> *</span>}
       </label>
+      {networkWide ? (
+        <p className="text-[11px] text-sky-800/90 rounded-lg border border-sky-100 bg-sky-50/80 px-2.5 py-1.5">
+          Mode inter-sites — recherche sur tous les campus du réseau (min. 3 caractères).
+        </p>
+      ) : null}
       {selected && studentId > 0 ? (
         <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-200 bg-emerald-50/80 px-3 py-2.5">
           <div className="min-w-0">
@@ -277,8 +288,8 @@ export function FinanceStudentSearchField({
               </p>
             ) : null}
             {selected.isCrossSite && selected.schoolName ? (
-              <p className="text-[10px] font-medium text-amber-800 mt-0.5">
-                Inscrit · {selected.schoolName}
+              <p className="mt-0.5 inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+                Élève de : {selected.schoolName}
               </p>
             ) : null}
           </div>
@@ -292,6 +303,7 @@ export function FinanceStudentSearchField({
         </div>
       ) : (
         <>
+          {!networkWide ? (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs font-semibold text-emerald-900">
@@ -382,6 +394,7 @@ export function FinanceStudentSearchField({
               ) : null}
             </div>
           </div>
+          ) : null}
 
           <div className="relative">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -392,7 +405,11 @@ export function FinanceStudentSearchField({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
               autoFocus
-              placeholder="Matricule, nom, classe, section ou réf. paiement"
+              placeholder={
+                networkWide
+                  ? 'Nom, postnom, prénom, matricule ou téléphone parent (min. 3)'
+                  : 'Matricule, nom, classe, section ou réf. paiement'
+              }
               className="w-full rounded-xl border border-zinc-200 py-2.5 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
               aria-autocomplete="list"
               aria-expanded={showResults}
@@ -473,8 +490,8 @@ export function FinanceStudentSearchField({
                               <p className="mt-0.5 text-xs text-zinc-500 truncate">{line}</p>
                             ) : null}
                             {s.isCrossSite && s.schoolName ? (
-                              <span className="mt-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
-                                {s.schoolName}
+                              <span className="mt-1 inline-block rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950">
+                                Élève de : {s.schoolName}
                               </span>
                             ) : null}
                           </div>
