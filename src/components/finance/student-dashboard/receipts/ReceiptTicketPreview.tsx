@@ -119,14 +119,15 @@ export function ReceiptTicketPreview({
         </div>
         {entities?.isCrossSite ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-[10px] text-amber-950 space-y-0.5">
-            <p className="font-bold uppercase tracking-wide text-amber-900">Réseau multi-sites</p>
-            <p>
-              <span className="font-semibold">Inscrit à :</span>{' '}
-              {entities.enrollmentSchoolName ?? '—'}
+            <p className="font-bold uppercase tracking-wide text-amber-900">
+              Élève de : {entities.enrollmentSchoolName ?? '—'}
             </p>
             <p>
-              <span className="font-semibold">Encaissé à :</span>{' '}
-              {entities.collectionSchoolName ?? '—'}
+              Guichet d&apos;encaissement :{' '}
+              <span className="font-semibold">{entities.collectionSchoolName ?? '—'}</span>
+            </p>
+            <p className="text-amber-800/90">
+              Encaissé au guichet inter-sites : {entities.collectionSchoolName ?? '—'}
             </p>
           </div>
         ) : null}

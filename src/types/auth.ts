@@ -1,4 +1,12 @@
-export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'FINANCE' | 'DIRECTOR' | 'IT' | 'TEACHER'
+export type UserRole =
+  | 'ADMIN'
+  | 'SUPER_ADMIN'
+  | 'FINANCE'
+  | 'DIRECTOR'
+  | 'IT'
+  | 'TEACHER'
+  | 'PROMOTER'
+  | 'SUPER_ADMIN_NETWORK'
 
 export interface AuthUser {
   id: number
@@ -10,6 +18,8 @@ export interface AuthUser {
   lastName: string
   role: UserRole
   schoolId: number | null
+  /** SchoolNetwork / SchoolGroup — promoteurs multi-campus. */
+  networkId?: number | null
   isEmailConfirmed?: boolean
   mustChangePassword?: boolean
 }
@@ -32,6 +42,8 @@ export const ROLE_HOME: Record<UserRole, string> = {
   DIRECTOR: '/director/dashboard',
   IT: '/admin/desk',
   TEACHER: '/teacher/dashboard',
+  PROMOTER: '/admin/network',
+  SUPER_ADMIN_NETWORK: '/admin/network',
 }
 
 /**
@@ -47,9 +59,11 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   ADMIN: ['/admin'],
   SUPER_ADMIN: ['/super-admin'],
   FINANCE: ['/finances'],
-  /** Préfet (DIRECTOR) : portail direction + délibérations / fiche élève (orientation, certificats). */
-  DIRECTOR: ['/director', '/admin/deliberations', '/admin/students'],
+  /** Préfet (DIRECTOR) : portail direction + délibérations admin. */
+  DIRECTOR: ['/director', '/admin/deliberations'],
   TEACHER: ['/teacher'],
+  PROMOTER: ['/admin'],
+  SUPER_ADMIN_NETWORK: ['/admin'],
   IT: [
     '/admin/inbox',
     '/admin/desk',

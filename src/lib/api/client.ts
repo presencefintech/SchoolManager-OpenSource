@@ -43,6 +43,7 @@ apiClient.interceptors.request.use((config) => {
       delete config.headers['x-school-id']
       return config
     }
+    // PROMOTER / SUPER_ADMIN_NETWORK : X-School-Id = campus actif (CampusSwitcher)
   } catch {
     /* ignore malformed auth_user */
   }

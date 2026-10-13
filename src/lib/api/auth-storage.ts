@@ -34,6 +34,16 @@ export function getAuthSchoolId(): string | null {
   return fromCookie && fromCookie !== 'null' && fromCookie !== '0' ? fromCookie : null
 }
 
+/** Switch campus promoteur — pose `X-School-Id` pour le tenant actif. */
+export function setAuthSchoolId(schoolId: string | number | null): void {
+  if (typeof window === 'undefined') return
+  if (schoolId == null || schoolId === '' || schoolId === 0 || schoolId === '0') {
+    localStorage.removeItem(AUTH_SCHOOL_ID_KEY)
+    return
+  }
+  localStorage.setItem(AUTH_SCHOOL_ID_KEY, String(schoolId))
+}
+
 export function getAuthRefreshToken(): string | null {
   return null
 }

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import {
   useProcessPayment,
+  useProcessCrossCampusPayment,
   useResolvedCashSession,
   useStudentFeePeriodStatus,
   useStudentFinanceProfile,
@@ -132,7 +133,10 @@ export function PaymentModal({
   onSuccess,
 }: PaymentModalProps) {
   const isCatalogMode = !selection && !!catalog && catalog.amount > 0
-  const { mutateAsync: processPayment, isPending } = useProcessPayment()
+  const { mutateAsync: processPayment, isPending: isLocalPending } = useProcessPayment()
+  const { mutateAsync: processCrossCampus, isPending: isCrossPending } =
+    useProcessCrossCampusPayment()
+  const isPending = isLocalPending || isCrossPending
   const downloadReceipt = useDownloadReceipt()
   const toast = useToast()
   const {
@@ -143,6 +147,7 @@ export function PaymentModal({
   } = useResolvedCashSession()
   const { data: profile } = useStudentFinanceProfile(open ? studentId : 0)
   const { data: wallet } = useStudentWallet(open ? studentId : 0)
+  const isCrossCampus = Boolean(wallet?.isCrossSite && wallet?.enrollmentSchoolId)
   const { data: currencyConfig } = useFinanceCurrencyConfig()
   const { data: recentPayments } = useStudentConfirmedPayments(open ? studentId : 0)
   const { data: catalogPeriodStatus } = useStudentFeePeriodStatus(
@@ -651,19 +656,51 @@ export function PaymentModal({
       }
 
       const feeLines = !isCatalogMode ? buildPaymentFeeLines(editedLines) : []
-      const result = (
+      const feeStructureId =
         isCatalogMode && catalog
-          ? await processPayment({
-              ...payloadBase,
-              feeStructureId: catalog.feeStructureId,
-              monthYear: catalog.monthYear,
-            })
-          : await processPayment({
-              ...payloadBase,
+          ? catalog.feeStructureId
+          : feeLines.length === 1
+            ? feeLines[0].feeStructureId
+            : feeLines[0]?.feeStructureId
+      const monthYear =
+        isCatalogMode && catalog
+          ? catalog.monthYear
+          : feeLines.length === 1
+            ? feeLines[0].monthYear
+            : feeLines[0]?.monthYear
+
+      const mapCrossMethod = (): 'CASH' | 'MOBILE_MONEY' | 'CARD' => {
+        if (method === 'CASH') return 'CASH'
+        if (method === 'CARD') return 'CARD'
+        return 'MOBILE_MONEY'
+      }
+
+      const result = (
+        isCrossCampus && feeStructureId && wallet?.enrollmentSchoolId
+          ? await processCrossCampus({
+              studentId,
+              targetSchoolId: wallet.enrollmentSchoolId,
+              feeObligationId: feeStructureId,
+              amount: Number(totalAmount.toFixed(2)),
+              currency: currency === 'CDF' ? 'CDF' : 'USD',
+              paymentMethod: mapCrossMethod(),
+              notes: mergedComment || undefined,
+              monthYear,
               fees: feeLines.length > 1 ? feeLines : undefined,
-              feeStructureId: feeLines.length === 1 ? feeLines[0].feeStructureId : undefined,
-              monthYear: feeLines.length === 1 ? feeLines[0].monthYear : undefined,
+              idempotencyKey,
             })
+          : isCatalogMode && catalog
+            ? await processPayment({
+                ...payloadBase,
+                feeStructureId: catalog.feeStructureId,
+                monthYear: catalog.monthYear,
+              })
+            : await processPayment({
+                ...payloadBase,
+                fees: feeLines.length > 1 ? feeLines : undefined,
+                feeStructureId: feeLines.length === 1 ? feeLines[0].feeStructureId : undefined,
+                monthYear: feeLines.length === 1 ? feeLines[0].monthYear : undefined,
+              })
       ) as ProcessPaymentResponse
 
       const paymentId = result.paymentId ?? result.id ?? result.payment?.id

@@ -30,6 +30,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     links: [
       { label: 'Tableau de bord', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Réseau scolaire', href: '/admin/network', icon: Network },
       { label: 'Présences', href: '/admin/presences', icon: Activity },
       { label: 'Billets discipline', href: '/admin/discipline/gate-passes', icon: Ticket },
     ],

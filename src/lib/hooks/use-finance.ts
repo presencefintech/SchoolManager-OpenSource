@@ -378,6 +378,24 @@ export function useProcessPayment() {
   })
 }
 
+export function useProcessCrossCampusPayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: financeRoleApi.processCrossCampusPayment,
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['finance', 'dashboard'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'daily-cash'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'cash-session'] })
+      qc.invalidateQueries({ queryKey: ['fee-schedule', variables.studentId] })
+      qc.invalidateQueries({ queryKey: financeQueryKeys.feeSchedule(variables.studentId) })
+      qc.invalidateQueries({ queryKey: ['student-wallet', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-periods', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student-payments', variables.studentId] })
+    },
+  })
+}
+
 export function usePendingPayments() {
   return useQuery({
     queryKey: ['finance', 'payments', 'pending'],
@@ -684,6 +702,8 @@ export function useFinanceStudentSearch(
     optionId?: number
     debtorsOnly?: boolean
     sort?: 'name' | 'balance'
+    /** Recherche sur tous les campuses du networkId (guichet inter-sites). */
+    networkWide?: boolean
   },
 ) {
   const classId = filters?.classId
@@ -691,15 +711,18 @@ export function useFinanceStudentSearch(
   const optionId = filters?.optionId
   const debtorsOnly = filters?.debtorsOnly === true
   const sort = filters?.sort
+  const networkWide = filters?.networkWide === true
   const hasFilter = classId != null || sectionId != null || optionId != null || debtorsOnly
   const q = query.trim()
-  const enabled = q.length >= 2 || hasFilter
+  const minChars = networkWide ? 3 : 2
+  const enabled = networkWide ? q.length >= minChars : q.length >= minChars || hasFilter
 
   return useQuery({
     queryKey: [
       'finance',
       'students',
       'search',
+      networkWide ? 'network' : 'local',
       q,
       classId ?? null,
       sectionId ?? null,
@@ -708,14 +731,16 @@ export function useFinanceStudentSearch(
       sort ?? null,
     ],
     queryFn: () =>
-      financeRoleApi.searchStudents(q, {
-        classId,
-        sectionId,
-        optionId,
-        debtorsOnly: debtorsOnly || undefined,
-        sort,
-        limit: hasFilter && q.length < 2 ? 40 : 15,
-      }),
+      networkWide
+        ? financeRoleApi.searchNetworkStudents(q, 20)
+        : financeRoleApi.searchStudents(q, {
+            classId,
+            sectionId,
+            optionId,
+            debtorsOnly: debtorsOnly || undefined,
+            sort,
+            limit: hasFilter && q.length < 2 ? 40 : 15,
+          }),
     staleTime: 30_000,
     enabled,
   })

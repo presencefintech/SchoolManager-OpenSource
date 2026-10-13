@@ -22,6 +22,8 @@ const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   DIRECTOR: '/director',
   TEACHER: '/teacher',
   IT: '/admin',
+  PROMOTER: '/admin',
+  SUPER_ADMIN_NETWORK: '/admin',
 }
 
 const REFRESH_TIMEOUT_MS = 8_000

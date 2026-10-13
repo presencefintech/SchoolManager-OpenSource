@@ -46,6 +46,7 @@ import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel
 import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
 import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
 import { StudentClassTransferPanel } from '@/components/admin/students/StudentClassTransferPanel'
+import { StudentCampusTransferPanel } from '@/components/admin/students/StudentCampusTransferPanel'
 
 function RevokeIssuedDocumentPanel() {
   const toast = useToast()
@@ -1663,6 +1664,13 @@ function StudentDetailPageContent() {
               studentId={studentId}
               currentClassId={student.classId}
               currentClassName={student.className}
+            />
+            <StudentCampusTransferPanel
+              studentId={studentId}
+              currentSchoolId={student.schoolId}
+              currentSchoolName={
+                branding?.name?.trim() || student.schoolName?.trim() || null
+              }
             />
             <StudentAdministrativeCareerPanel
               studentId={studentId}
