@@ -69,16 +69,27 @@ export function StudentCampusTransferPanel({
   }, [targetSchoolId])
 
   const mutation = useMutation({
-    mutationFn: () =>
-      networkApi.transferStudent(studentId, {
+    mutationFn: () => {
+      const idempotencyKey =
+        typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? `transfer-${crypto.randomUUID()}`
+          : `transfer-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      return networkApi.transferStudent(studentId, {
         targetSchoolId: Number(targetSchoolId),
         targetClassId: Number(targetClassId),
         reason: reason.trim() || undefined,
-      }),
+        idempotencyKey,
+      })
+    },
     onSuccess: async (res) => {
+      const feeNote = res.data.feeRemap
+        ? ` · Barème : solde ${res.data.feeRemap.previous.feesBalance} → ${res.data.feeRemap.next.feesBalance}`
+        : ''
       toast.success(
-        'Transfert inter-sites effectué',
-        `${res.data.sourceSchoolName} → ${res.data.targetSchoolName} · ${res.data.targetClassName}`,
+        res.data.replayed
+          ? 'Transfert déjà enregistré'
+          : 'Transfert inter-établissements effectué',
+        `${res.data.sourceSchoolName} → ${res.data.targetSchoolName} · ${res.data.targetClassName}${feeNote}`,
       )
       setConfirmOpen(false)
       setTargetSchoolId('')
@@ -103,10 +114,10 @@ export function StudentCampusTransferPanel({
       <div>
         <h3 className="text-sm font-semibold text-zinc-800 flex items-center gap-1.5">
           <Building2 size={14} className="text-sky-600" />
-          Transférer vers un autre campus
+          Transférer vers un autre établissement
         </h3>
         <p className="text-xs text-zinc-500 mt-1">
-          Campus actuel :{' '}
+          Établissement actuel :{' '}
           <span className="font-medium text-zinc-700">
             {currentSchoolName?.trim() ||
               (currentSchoolId ? `#${currentSchoolId}` : '—')}
@@ -116,15 +127,16 @@ export function StudentCampusTransferPanel({
           ) : null}
         </p>
         <p className="text-[11px] text-amber-800/90 mt-1.5 rounded-lg border border-amber-100 bg-amber-50/80 px-2.5 py-1.5">
-          Transfert définitif : inscription source archivée, dossier déplacé. Les paiements
-          historiques restent inchangés (audit).
+          Transfert définitif : inscription d’origine archivée, dossier déplacé. Les reçus
+          historiques restent inchangés. L’ajustement du barème d’études est appliqué
+          automatiquement à l’établissement d’accueil.
         </p>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
         <label className="block space-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-            Campus cible
+            Établissement d’accueil
           </span>
           <select
             value={targetSchoolId === '' ? '' : String(targetSchoolId)}
@@ -143,7 +155,7 @@ export function StudentCampusTransferPanel({
         </label>
         <label className="block space-y-1">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-            Classe cible
+            Classe d’accueil
           </span>
           <select
             value={targetClassId === '' ? '' : String(targetClassId)}
@@ -182,14 +194,14 @@ export function StudentCampusTransferPanel({
             'bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-50',
           )}
         >
-          Transférer vers un autre campus
+          Transférer vers un autre établissement
         </button>
       ) : (
         <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3 space-y-2">
           <p className="text-xs text-rose-900">
             Confirmer le transfert définitif vers{' '}
             <strong>
-              {campuses.find((c) => c.id === targetSchoolId)?.name ?? 'campus'}
+              {campuses.find((c) => c.id === targetSchoolId)?.name ?? 'l’établissement'}
             </strong>{' '}
             ?
           </p>
