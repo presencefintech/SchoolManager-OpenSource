@@ -2,11 +2,12 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, CheckCircle2, ClipboardList, History, Keyboard, ScanBarcode } from 'lucide-react'
+import { AlertTriangle, Camera, CheckCircle2, ClipboardList, History, Keyboard, ScanBarcode } from 'lucide-react'
 import {
   HardwareScanField,
   type HardwareScanFieldHandle,
 } from '@/components/teacher/hardware-scan-field'
+import { CameraScanField } from '@/components/teacher/camera-scan-field'
 import { LiveGatePanel } from '@/components/teacher/live-gate-panel'
 import {
   teacherAttendanceApi,
@@ -32,7 +33,7 @@ import { requestGatePersistentStorage } from '@/lib/pwa/request-persistent-stora
 import { PwaInstallPrompt } from '@/components/pwa/install-prompt'
 import { cn } from '@/lib/utils'
 
-type Mode = 'hardware' | 'manual'
+type Mode = 'hardware' | 'camera' | 'manual'
 
 function initials(name: string) {
   return name
@@ -318,6 +319,22 @@ export default function TeacherAttendancePage() {
             <button
               type="button"
               onClick={() => {
+                setMode('camera')
+                setError(null)
+              }}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium',
+                mode === 'camera'
+                  ? 'bg-teal-600 text-white'
+                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+              )}
+            >
+              <Camera className="h-4 w-4" />
+              Caméra
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setMode('manual')
                 setError(null)
               }}
@@ -333,14 +350,18 @@ export default function TeacherAttendancePage() {
             </button>
           </div>
 
-          {mode === 'hardware' ? (
+          {mode === 'hardware' || mode === 'camera' ? (
             <div
               className={cn(
                 'rounded-2xl border border-slate-200 bg-white p-5 transition dark:border-slate-800 dark:bg-slate-900',
                 flashTone && `ring-2 ${GATE_TONE_CLASSES[flashTone].ring}`,
               )}
             >
-              <HardwareScanField ref={fieldRef} busy={busy} onScan={handleScan} />
+              {mode === 'hardware' ? (
+                <HardwareScanField ref={fieldRef} busy={busy} onScan={handleScan} />
+              ) : (
+                <CameraScanField onScan={handleScan} enabled />
+              )}
             </div>
           ) : (
             <form
@@ -392,7 +413,9 @@ export default function TeacherAttendancePage() {
             <div className="rounded-2xl border border-dashed border-slate-200 bg-white/60 p-5 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40">
               {mode === 'hardware'
                 ? 'En attente du prochain badge. Enchaînez les scans sans cliquer.'
-                : 'Saisissez un matricule ou un nom pour enregistrer une présence.'}
+                : mode === 'camera'
+                  ? 'Présentez la carte de l’élève devant la caméra : le pointage part dès la lecture.'
+                  : 'Saisissez un matricule ou un nom pour enregistrer une présence.'}
             </div>
           )}
         </div>
