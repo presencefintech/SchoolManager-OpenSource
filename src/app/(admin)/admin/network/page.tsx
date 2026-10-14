@@ -96,12 +96,24 @@ export default function NetworkDashboardPage() {
               Actualiser
             </button>
             <Link
-              href="/admin/finance/reseau"
+              href="/admin/network/cfo"
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-800"
             >
               <Landmark size={13} />
-              Caisse & clearing
+              Direction Générale
               <ArrowRight size={12} />
+            </Link>
+            <Link
+              href="/admin/network/transfers"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 shadow-sm hover:bg-emerald-50"
+            >
+              Registre des transferts
+            </Link>
+            <Link
+              href="/admin/finance/reseau"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-sm hover:bg-zinc-50"
+            >
+              Caisse & rapprochement
             </Link>
           </div>
         </div>
