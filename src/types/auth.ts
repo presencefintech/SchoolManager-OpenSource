@@ -5,6 +5,7 @@ export type UserRole =
   | 'DIRECTOR'
   | 'IT'
   | 'TEACHER'
+  | 'PARENT'
   | 'PROMOTER'
   | 'SUPER_ADMIN_NETWORK'
 
@@ -42,13 +43,14 @@ export const ROLE_HOME: Record<UserRole, string> = {
   DIRECTOR: '/director/dashboard',
   IT: '/admin/desk',
   TEACHER: '/teacher/dashboard',
+  PARENT: '/parent/dashboard',
   PROMOTER: '/admin/network',
   SUPER_ADMIN_NETWORK: '/admin/network',
 }
 
 /**
  * Rôles autorisés sur le portail web (dont TEACHER pour le cahier de notes).
- * PARENT reste réservé à l’app mobile.
+ * PARENT : PWA parents (miroir de l’app mobile).
  */
 export function isWebRole(role: string): role is UserRole {
   return role in ROLE_HOME
@@ -62,6 +64,7 @@ export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   /** Préfet (DIRECTOR) : portail direction + délibérations admin. */
   DIRECTOR: ['/director', '/admin/deliberations'],
   TEACHER: ['/teacher'],
+  PARENT: ['/parent'],
   PROMOTER: ['/admin'],
   SUPER_ADMIN_NETWORK: ['/admin'],
   IT: [

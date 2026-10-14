@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authApi.logout().catch(() => {})
         clearAuthStorage()
         throw new Error(
-          'Ce compte n’est pas éligible au portail web — utilisez l’application mobile SchoolManager.',
+          'Ce type de compte n’est pas pris en charge par le portail web.',
         )
       }
       persistAuthSession(data)

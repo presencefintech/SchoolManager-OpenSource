@@ -2,11 +2,12 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Presence Guichet',
-    short_name: 'Guichet',
+    name: 'SchoolManager',
+    short_name: 'SchoolManager',
     description:
-      'Guichet de pointage Presence — installable, résilient hors ligne (file de scans + référentiel élèves)',
-    start_url: '/teacher/attendance',
+      'SchoolManager — espace parents, guichet de pointage et gestion scolaire, installable et résilient hors ligne',
+    // '/' : le middleware redirige chaque rôle vers son espace (parent, guichet…)
+    start_url: '/',
     scope: '/',
     display: 'standalone',
     orientation: 'any',
@@ -25,6 +26,18 @@ export default function manifest(): MetadataRoute.Manifest {
       },
     ],
     shortcuts: [
+      {
+        name: 'Espace parents',
+        short_name: 'Parents',
+        url: '/parent/dashboard',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
+      {
+        name: 'Payer les frais',
+        short_name: 'Payer',
+        url: '/parent/finance/pay',
+        icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
+      },
       {
         name: 'Ouvrir le guichet',
         short_name: 'Pointage',
