@@ -41,6 +41,7 @@ import { adminPdfApi } from '@/lib/admin/api/pdf.api'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { isValidInternationalPhone } from '@/lib/phone/validation'
+import { STUDENT_CATEGORY_OPTIONS } from '@/lib/finance/student-category-labels'
 
 const inputCls =
   'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400'
@@ -780,6 +781,17 @@ export function EnrollmentCreateModal({
                 <Field label="Matricule" error={errors.matricule?.message}>
                   <input {...register('matricule')} placeholder="Auto-généré si vide" className={cn(inputCls, 'font-mono text-xs')} />
                 </Field>
+                <Field label="N° Court" error={errors.numeroCourt?.message}>
+                  <input
+                    type="number"
+                    min={100}
+                    max={9999}
+                    {...register('numeroCourt')}
+                    placeholder="Auto (ex. 104)"
+                    className={cn(inputCls, 'font-mono text-xs tabular-nums')}
+                  />
+                  <p className={hintCls}>3–4 chiffres · unique école · laissé vide = attribué à la validation</p>
+                </Field>
                 <Field label="Badge NFC (optionnel)" error={errors.nfcTagId?.message}>
                   <input {...register('nfcTagId')} placeholder="Identifiant carte NFC" className={cn(inputCls, 'font-mono text-xs')} />
                 </Field>
@@ -931,6 +943,19 @@ export function EnrollmentCreateModal({
                   )}
                 </div>
               )}
+
+              <Field label="Catégorie Financière initiale" error={errors.studentCategory?.message}>
+                <select {...register('studentCategory')} className={cn(inputCls, 'pr-8')}>
+                  {STUDENT_CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className={hintCls}>
+                  Applique la grille tarifaire V2 (Nouveau, Enfant de personnel, Boursier…) dès l&apos;inscription.
+                </p>
+              </Field>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Frais totaux" error={errors.totalFees?.message}>

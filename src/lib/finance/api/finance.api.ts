@@ -631,6 +631,55 @@ export const financeRoleApi = {
         return (Array.isArray(d) ? d : (d?.items ?? [])) as FeeCategoryItem[]
       }),
 
+  /** Category Fee Engine V2 — GET /finance/fee-structures?engine=category */
+  listFeeStructuresV2: () =>
+    apiClient
+      .get('/finance/fee-structures', { params: { engine: 'category' } })
+      .then((r) => {
+        const d = (r.data?.data ?? r.data ?? {}) as import('@/types/finance').FeeCatalogV2
+        return {
+          categories: Array.isArray(d.categories) ? d.categories : [],
+          gridRules: Array.isArray(d.gridRules) ? d.gridRules : [],
+          discountPolicies: Array.isArray(d.discountPolicies) ? d.discountPolicies : [],
+        } satisfies import('@/types/finance').FeeCatalogV2
+      }),
+
+  /** Category Fee Engine V2 — upsert grille + exonérations */
+  upsertFeeCatalogV2: (payload: import('@/types/finance').UpsertFeeCatalogV2Payload) =>
+    apiClient
+      .post('/finance/fee-structures', payload)
+      .then((r) => r.data.data as import('@/types/finance').FeeCatalogV2),
+
+  /** Affecte la catégorie tarifaire et recalcule les obligations */
+  assignStudentCategory: (
+    studentId: number,
+    payload: import('@/types/finance').AssignStudentCategoryPayload,
+  ) =>
+    apiClient
+      .post(`/finance/students/${studentId}/assign-category`, payload)
+      .then((r) => r.data.data as import('@/types/finance').AssignStudentCategoryResult),
+
+  /** Ristourne manuelle V2 sur une obligation (sans toucher PaymentFee) */
+  applyObligationManualDiscount: (
+    studentId: number,
+    obligationId: number,
+    payload: import('@/types/finance').ApplyObligationManualDiscountPayload,
+  ) =>
+    apiClient
+      .post(
+        `/finance/students/${studentId}/obligations/${obligationId}/manual-discount`,
+        payload,
+      )
+      .then(
+        (r) => r.data.data as import('@/types/finance').ApplyObligationManualDiscountResult,
+      ),
+
+  /** Recalcule les obligations en masse (classe / option / élèves) */
+  bulkApplyFeeStructure: (payload: import('@/types/finance').BulkApplyFeeStructurePayload) =>
+    apiClient
+      .post('/finance/fee-structures/apply-bulk', payload)
+      .then((r) => r.data.data as import('@/types/finance').BulkApplyFeeStructureResult),
+
   /** Lecture KYC — route admin autorisée pour FINANCE (OpenAPI finance.json). */
   getPaymentProfile: () =>
     apiClient

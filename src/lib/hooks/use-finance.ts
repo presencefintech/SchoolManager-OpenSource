@@ -787,6 +787,75 @@ export function useFinanceFeeStructures(params?: { classId?: number }) {
   })
 }
 
+// ── Category Fee Engine V2 ───────────────────────────────────────────────────
+
+export function useFeeStructuresV2(opts?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['finance', 'fee-structures-v2'],
+    queryFn: () => financeRoleApi.listFeeStructuresV2(),
+    staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useUpsertFeeCatalogV2() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: import('@/types/finance').UpsertFeeCatalogV2Payload) =>
+      financeRoleApi.upsertFeeCatalogV2(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-structures-v2'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-structures-v2'] })
+    },
+  })
+}
+
+export function useAssignStudentCategory(studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: import('@/types/finance').AssignStudentCategoryPayload) =>
+      financeRoleApi.assignStudentCategory(studentId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'student', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'students', studentId] })
+    },
+  })
+}
+
+export function useBulkApplyFeeStructureV2() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: import('@/types/finance').BulkApplyFeeStructurePayload) =>
+      financeRoleApi.bulkApplyFeeStructure(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-structures-v2'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+    },
+  })
+}
+
+export function useApplyObligationManualDiscount(studentId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      obligationId,
+      payload,
+    }: {
+      obligationId: number
+      payload: import('@/types/finance').ApplyObligationManualDiscountPayload
+    }) => financeRoleApi.applyObligationManualDiscount(studentId, obligationId, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'student', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['fee-schedule', studentId] })
+    },
+  })
+}
+
 export function useFinanceCurrencyConfig() {
   return useQuery({
     queryKey: ['finance', 'currency-config'],

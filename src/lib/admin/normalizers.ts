@@ -232,6 +232,13 @@ export function normalizeStudentDetail(raw: Record<string, unknown>): StudentDet
     reminderPaused: Boolean(profile.reminderPaused),
     biometricStatus: String(profile.biometricStatus ?? 'PENDING'),
     scholarshipPercent: profile.scholarshipPercent != null ? Number(profile.scholarshipPercent) : undefined,
+    studentCategory: (profile.studentCategory as import('@/types/admin').StudentCategory | undefined) ?? undefined,
+    customCategoryLabel:
+      profile.customCategoryLabel != null
+        ? String(profile.customCategoryLabel).trim() || null
+        : undefined,
+    numeroCourt: profile.numeroCourt != null ? Number(profile.numeroCourt) : undefined,
+    paymentCode: (profile.paymentCode as string | null | undefined) ?? undefined,
     activeMoratoriumId: profile.activeMoratoriumId != null ? Number(profile.activeMoratoriumId) : undefined,
     feesBalance,
     tuitionBalance: toAmount(profile.tuitionBalance ?? feesBalance),

@@ -27,6 +27,9 @@ import type {
   ManualPaymentPayload, MobilePendingItem, Moratorium, CreateMoratoriumPayload,
   BulkMoratoriumPayload, FeeStructurePayload, CreateFeeStructurePayload, UpdateFeeStructurePayload,
   CreateFeeCategoryPayload, UpdateFeeCategoryPayload, FeeCategoryItem, LinkOrphanPayload, AdvancedSearchParams,
+  UpsertFeeCatalogV2Payload, FeeCatalogV2, AssignStudentCategoryPayload, AssignStudentCategoryResult,
+  ApplyObligationManualDiscountPayload, ApplyObligationManualDiscountResult,
+  BulkApplyFeeStructurePayload, BulkApplyFeeStructureResult,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
   PaymentOnboardingChecklist,
   MoratoriumRecoveryRate, AdminRefundRequest, ConfirmPaymentProofPayload,
@@ -496,6 +499,50 @@ export const financeApi = {
 
   softDeleteFeeStructure: (feeId: number) =>
     apiClient.delete(`/admin/finance/fee-structures/${feeId}`).then((r) => r.data),
+
+  /** Category Fee Engine V2 — GET /finance/fee-structures?engine=category */
+  listFeeStructuresV2: () =>
+    apiClient
+      .get('/finance/fee-structures', { params: { engine: 'category' } })
+      .then((r) => {
+        const d = (r.data?.data ?? r.data ?? {}) as FeeCatalogV2
+        return {
+          categories: Array.isArray(d.categories) ? d.categories : [],
+          gridRules: Array.isArray(d.gridRules) ? d.gridRules : [],
+          discountPolicies: Array.isArray(d.discountPolicies) ? d.discountPolicies : [],
+        } satisfies FeeCatalogV2
+      }),
+
+  /** Category Fee Engine V2 — upsert grille + exonérations */
+  upsertFeeCatalogV2: (payload: UpsertFeeCatalogV2Payload) =>
+    apiClient
+      .post('/finance/fee-structures', payload)
+      .then((r) => r.data.data as FeeCatalogV2),
+
+  /** Affecte la catégorie tarifaire et recalcule les obligations */
+  assignStudentCategory: (studentId: number, payload: AssignStudentCategoryPayload) =>
+    apiClient
+      .post(`/finance/students/${studentId}/assign-category`, payload)
+      .then((r) => r.data.data as AssignStudentCategoryResult),
+
+  /** Ristourne manuelle V2 sur une obligation (sans toucher PaymentFee) */
+  applyObligationManualDiscount: (
+    studentId: number,
+    obligationId: number,
+    payload: ApplyObligationManualDiscountPayload,
+  ) =>
+    apiClient
+      .post(
+        `/finance/students/${studentId}/obligations/${obligationId}/manual-discount`,
+        payload,
+      )
+      .then((r) => r.data.data as ApplyObligationManualDiscountResult),
+
+  /** Recalcule les obligations en masse (classe / option / élèves) */
+  bulkApplyFeeStructure: (payload: BulkApplyFeeStructurePayload) =>
+    apiClient
+      .post('/finance/fee-structures/apply-bulk', payload)
+      .then((r) => r.data.data as BulkApplyFeeStructureResult),
 
   /** @deprecated Utiliser createFeeStructure */
   setupFeeStructure: (payload: FeeStructurePayload) =>

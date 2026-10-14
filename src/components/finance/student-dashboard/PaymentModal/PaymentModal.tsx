@@ -25,7 +25,13 @@ import {
   useDownloadReceipt,
   useStudentWallet,
   useCashOps,
+  useFeeStructuresV2,
 } from '@/lib/hooks/use-finance'
+import {
+  formatStudentCategoryBadge,
+  policyMatchesStudentPreview,
+  toMoneyNumber,
+} from '@/lib/finance/student-category-labels'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -146,6 +152,7 @@ export function PaymentModal({
     couldNotVerify,
   } = useResolvedCashSession()
   const { data: profile } = useStudentFinanceProfile(open ? studentId : 0)
+  const { data: feeCatalogV2 } = useFeeStructuresV2({ enabled: open })
   const { data: wallet } = useStudentWallet(open ? studentId : 0)
   const isCrossCampus = Boolean(wallet?.isCrossSite && wallet?.enrollmentSchoolId)
   const { data: currencyConfig } = useFinanceCurrencyConfig()
@@ -201,6 +208,21 @@ export function PaymentModal({
     () => parseGuichetStudentIdentity(profile, studentId),
     [profile, studentId],
   )
+
+  const categoryBadge = useMemo(() => {
+    const category = identity.studentCategory ?? 'STANDARD'
+    const customLabel = identity.customCategoryLabel
+    const policy = (feeCatalogV2?.discountPolicies ?? []).find(
+      (p) =>
+        p.isActive !== false &&
+        policyMatchesStudentPreview(p, category, customLabel),
+    )
+    return formatStudentCategoryBadge(category, policy, customLabel)
+  }, [
+    identity.studentCategory,
+    identity.customCategoryLabel,
+    feeCatalogV2?.discountPolicies,
+  ])
 
   const allowedMethods = useMemo(() => {
     const deskKeys =
@@ -986,6 +1008,9 @@ export function PaymentModal({
                     </span>
                   ) : null}
                 </div>
+                <div className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                  [{categoryBadge}]
+                </div>
                 {activeMoratorium ? (
                   <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-medium text-indigo-800">
                     <PauseCircle size={12} className="shrink-0" />
@@ -1159,6 +1184,15 @@ export function PaymentModal({
                   {editedLines.map((sel) => {
                     const key = feeScheduleLineKey(sel.line)
                     const max = lineRemainingAmount(sel.line)
+                    const lineCur = (sel.line.currency === 'CDF' ? 'CDF' : currency) as FinanceCurrencyCode
+                    const gross =
+                      toMoneyNumber(sel.line.grossAmount ?? sel.line.baseAmount ?? sel.line.amount)
+                    const discount = toMoneyNumber(sel.line.discountAmount)
+                    const net = toMoneyNumber(
+                      sel.line.netAmount ??
+                        (discount > 0 ? Math.max(0, gross - discount) : sel.line.amount),
+                    )
+                    const showBreakdown = discount > 0 || sel.line.grossAmount != null || sel.line.baseAmount != null
                     return (
                       <div
                         key={key}
@@ -1170,9 +1204,22 @@ export function PaymentModal({
                               ? `${sel.line.categoryName} · ${formatFeePeriodLabel(sel.line)}`
                               : formatFeePeriodLabel(sel.line)}
                           </p>
-                          <p className="text-[10px] text-zinc-400">
-                            Max {formatMoney(max, sel.line.currency || currency)}
-                          </p>
+                          {showBreakdown ? (
+                            <p className="text-[10px] text-zinc-500 tabular-nums">
+                              Base {formatMoney(gross, lineCur)}
+                              {discount > 0 ? (
+                                <span className="text-amber-700"> − Remise {formatMoney(discount, lineCur)}</span>
+                              ) : null}
+                              {' = '}
+                              <span className="font-semibold text-emerald-700">
+                                Net {formatMoney(net, lineCur)}
+                              </span>
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-zinc-400">
+                              Max {formatMoney(max, sel.line.currency || currency)}
+                            </p>
+                          )}
                         </div>
                         <input
                           type="number"

@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
+import { StudentCategoryCard } from '@/components/admin/students/student-category-card'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
-import { useGuichetDashboard } from '@/lib/hooks/use-finance'
+import { useGuichetDashboard, useStudentFinanceProfile } from '@/lib/hooks/use-finance'
+import { parseGuichetStudentIdentity } from '@/lib/finance/guichet-student.utils'
 
 export default function StudentFinancePage() {
   const params = useParams()
@@ -14,6 +16,10 @@ export default function StudentFinancePage() {
     ?.currentAcademicSessionId ?? undefined
   const rawId = params?.studentId
   const studentId = Number(Array.isArray(rawId) ? rawId[0] : rawId)
+  const { data: profile } = useStudentFinanceProfile(
+    Number.isFinite(studentId) && studentId > 0 ? studentId : 0,
+  )
+  const identity = parseGuichetStudentIdentity(profile, studentId)
 
   if (!Number.isFinite(studentId) || studentId <= 0) {
     return (
@@ -60,10 +66,19 @@ export default function StudentFinancePage() {
           </Link>
         }
       />
-      <StudentFinanceDashboard
-        studentId={studentId}
-        sessionId={academicSessionId ?? undefined}
-      />
+      <div className="space-y-5">
+        <StudentCategoryCard
+          studentId={studentId}
+          currentCategory={identity.studentCategory}
+          currentCustomLabel={identity.customCategoryLabel}
+          scholarshipPercent={identity.scholarshipPercent}
+          sessionId={academicSessionId ?? undefined}
+        />
+        <StudentFinanceDashboard
+          studentId={studentId}
+          sessionId={academicSessionId ?? undefined}
+        />
+      </div>
     </FinancePageShell>
   )
 }

@@ -29,6 +29,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { FeeStructureComposer } from '@/components/admin/finance/fee-structure-composer'
+import { FeeGridV2Panel } from '@/components/admin/finance/fee-grid-v2-panel'
 import {
   isValidFeeCategoryCode,
   toFeeCategoryCode,
@@ -658,6 +659,12 @@ export default function FacturesPage() {
           })
         }}
       />
+
+      {selectedSessionId > 0 && (
+        <div id="grille-tarifaire-v2">
+          <FeeGridV2Panel sessionId={selectedSessionId} />
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
         <h3 className="text-sm font-semibold text-zinc-900 mb-1">Cloner le catalogue d’une session</h3>

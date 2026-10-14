@@ -15,10 +15,11 @@ export function useSections() {
 
 export function useOptions(sectionId?: number) {
   return useQuery({
-    queryKey: ['admin', 'structure', 'options', sectionId],
-    queryFn: () => structureApi.listOptions(sectionId),
+    queryKey: ['admin', 'structure', 'options', sectionId ?? 'all'],
+    queryFn: () => structureApi.listOptions(sectionId && sectionId > 0 ? sectionId : undefined),
     staleTime: 120_000,
-    enabled: sectionId != null && sectionId > 0,
+    // sectionId omis / 0 → toutes les options ; sinon filtre par section
+    enabled: sectionId == null || sectionId > 0,
     refetchOnWindowFocus: false,
   })
 }

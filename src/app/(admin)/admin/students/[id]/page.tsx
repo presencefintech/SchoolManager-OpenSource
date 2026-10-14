@@ -42,6 +42,7 @@ import { formatRdcFullName } from '@/lib/utils/student-name.util'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
+import { StudentCategoryCard } from '@/components/admin/students/student-category-card'
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
 import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
 import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
@@ -1741,6 +1742,14 @@ function StudentDetailPageContent() {
               )}
 
               <div className="border-t border-zinc-100 pt-5 space-y-5">
+                <StudentCategoryCard
+                  studentId={studentId}
+                  currentCategory={student.studentCategory}
+                  currentCustomLabel={student.customCategoryLabel}
+                  scholarshipPercent={student.scholarshipPercent}
+                  sessionId={feeAttributionSessionId}
+                  readOnly={deskOnly}
+                />
                 <StudentFeeAssignmentPanel
                   studentId={studentId}
                   sessionId={feeAttributionSessionId}

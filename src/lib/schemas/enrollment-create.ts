@@ -1,7 +1,15 @@
 import { z } from 'zod'
-import type { ClassListItem, CreateEnrollmentPayload } from '@/types/admin'
+import type { ClassListItem, CreateEnrollmentPayload, StudentCategory } from '@/types/admin'
 import { formatPhoneToE164, isValidInternationalPhone } from '@/lib/phone/validation'
 import { sectionRequiresOption, type SectionCycleRef } from '@/lib/academic/rdc-section-cycle'
+
+const studentCategoryEnum = z.enum([
+  'STANDARD',
+  'NEW_STUDENT',
+  'STAFF_CHILD',
+  'SCHOLARSHIP',
+  'SIBLING_DISCOUNT',
+]) satisfies z.ZodType<StudentCategory>
 
 const idField = (message: string) =>
   z.preprocess(
@@ -36,6 +44,12 @@ export const enrollmentCreateSchema = z
       .or(z.literal('')),
     matricule: z.string().min(10).optional().or(z.literal('')),
     status: z.enum(['ACTIVE', 'PENDING_ENROLLMENT']).default('ACTIVE'),
+    studentCategory: studentCategoryEnum.default('STANDARD'),
+    /** N° court 100–9999 — vide = auto à l’inscription */
+    numeroCourt: z.preprocess(
+      (v) => (v === '' || v == null ? undefined : Number(v)),
+      z.number().int().min(100).max(9999).optional(),
+    ),
     scholarshipPercent: z.preprocess(
       (v) => (v === '' || v == null ? undefined : Number(v)),
       z.number().min(0).max(100).optional(),
@@ -147,6 +161,8 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     nationality: trimOptional(data.nationality),
     academicYear: trimOptional(data.academicYear),
     matricule: trimOptional(data.matricule),
+    studentCategory: data.studentCategory ?? 'STANDARD',
+    ...(data.numeroCourt != null ? { numeroCourt: data.numeroCourt } : {}),
     scholarshipPercent: data.scholarshipPercent,
     totalFees: data.totalFees,
     feesPaid: data.feesPaid,
@@ -183,6 +199,8 @@ export const ENROLLMENT_CREATE_DEFAULTS: EnrollmentCreateForm = {
   academicYear: '',
   matricule: '',
   status: 'ACTIVE',
+  studentCategory: 'STANDARD',
+  numeroCourt: undefined,
   scholarshipPercent: undefined,
   totalFees: undefined,
   feesPaid: undefined,

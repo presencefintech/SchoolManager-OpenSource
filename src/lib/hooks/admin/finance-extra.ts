@@ -4,7 +4,19 @@ import { financeApi } from '@/lib/admin/api'
 import { getAuthToken } from '@/lib/api/auth-storage'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
-import type { BulkMoratoriumPayload, LinkOrphanPayload, AdvancedSearchParams, ConfirmPaymentProofPayload, FinanceCollectionEfficiencyLevel, FinanceEndOfDayClosing, FinanceIntegrityScan } from '@/types/admin'
+import type {
+  BulkMoratoriumPayload,
+  LinkOrphanPayload,
+  AdvancedSearchParams,
+  ConfirmPaymentProofPayload,
+  FinanceCollectionEfficiencyLevel,
+  FinanceEndOfDayClosing,
+  FinanceIntegrityScan,
+  UpsertFeeCatalogV2Payload,
+  AssignStudentCategoryPayload,
+  ApplyObligationManualDiscountPayload,
+  BulkApplyFeeStructurePayload,
+} from '@/types/admin'
 
 // ── Finance — hooks manquants ──────────────────────────────────────
 
@@ -505,5 +517,92 @@ export function useCreateBulkMoratoriums() {
     mutationFn: (payload: BulkMoratoriumPayload) =>
       financeApi.createBulkMoratoriums(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'finance', 'moratoriums'] }),
+  })
+}
+
+// ── Category Fee Engine V2 ───────────────────────────────────────────────────
+
+export function useFeeStructuresV2(opts?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['admin', 'finance', 'fee-structures-v2'],
+    queryFn: () => financeApi.listFeeStructuresV2(),
+    staleTime: 60_000,
+    enabled: opts?.enabled ?? true,
+  })
+}
+
+export function useUpsertFeeCatalogV2() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: UpsertFeeCatalogV2Payload) => financeApi.upsertFeeCatalogV2(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-structures-v2'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-structures-v2'] })
+      toast.success('Grille tarifaire', 'Catalogue V2 enregistré.')
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useAssignStudentCategory(studentId: number) {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: AssignStudentCategoryPayload) =>
+      financeApi.assignStudentCategory(studentId, payload),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-schedule', studentId] })
+      const total = data.obligations?.totalNet
+      toast.success(
+        'Catégorie mise à jour',
+        total != null ? `Obligations recalculées · net ${total}` : undefined,
+      )
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useBulkApplyFeeStructureV2() {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: (payload: BulkApplyFeeStructurePayload) =>
+      financeApi.bulkApplyFeeStructure(payload),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      qc.invalidateQueries({ queryKey: ['finance', 'fee-structures-v2'] })
+      toast.success('Application en masse', `${data.processed} élève(s) recalculé(s).`)
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
+  })
+}
+
+export function useApplyObligationManualDiscount(studentId: number) {
+  const qc = useQueryClient()
+  const toast = useToast()
+  return useMutation({
+    mutationFn: ({
+      obligationId,
+      payload,
+    }: {
+      obligationId: number
+      payload: ApplyObligationManualDiscountPayload
+    }) => financeApi.applyObligationManualDiscount(studentId, obligationId, payload),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'students', studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student', studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'finance', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: ['fee-schedule', studentId] })
+      toast.success(
+        'Ristourne appliquée',
+        data.totalNet != null ? `Nouveau net dû : ${data.totalNet}` : undefined,
+      )
+    },
+    onError: (err) => toast.error('Échec', getApiErrorMessage(err)),
   })
 }

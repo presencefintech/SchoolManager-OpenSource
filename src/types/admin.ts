@@ -219,6 +219,14 @@ export interface StudentStats {
   withDebt: number
 }
 
+/** Catégorie tarifaire élève — Category Fee Engine V2 */
+export type StudentCategory =
+  | 'STANDARD'
+  | 'NEW_STUDENT'
+  | 'STAFF_CHILD'
+  | 'SCHOLARSHIP'
+  | 'SIBLING_DISCOUNT'
+
 export interface StudentListItem {
   id: number
   firstName: string
@@ -270,6 +278,13 @@ export interface StudentDetail {
   reminderPaused: boolean
   biometricStatus?: string
   scholarshipPercent?: number
+  /** Catégorie tarifaire V2 (Nouveau, Enfant de personnel, Boursier…) */
+  studentCategory?: StudentCategory
+  /** Libellé dynamique école (Famille Nombreuse, Orphelin, Cas Social…) */
+  customCategoryLabel?: string | null
+  /** N° court scolaire (3–4 chiffres) */
+  numeroCourt?: number | null
+  paymentCode?: string | null
   activeMoratoriumId?: number
   feesBalance?: number
   tuitionBalance?: number
@@ -454,6 +469,10 @@ export interface CreateEnrollmentPayload {
   matricule?: string
   status?: 'ACTIVE' | 'PENDING_ENROLLMENT' | 'INACTIVE' | 'SUSPENDED'
   scholarshipPercent?: number
+  /** Catégorie tarifaire V2 (défaut STANDARD / Ancien) */
+  studentCategory?: StudentCategory
+  /** N° court 3–4 chiffres — auto-alloué si omis */
+  numeroCourt?: number | null
   totalFees?: number
   feesPaid?: number
   /** Si true (défaut), crée un Payment CASH pour feesPaid */
@@ -1275,6 +1294,156 @@ export interface UpdateFeeStructurePayload {
   assignmentMode?: 'AUTOMATIC' | 'EXPLICIT'
   effectiveFrom?: string | null
   effectiveTo?: string | null
+}
+
+export type FeeDiscountType = 'PERCENTAGE' | 'FIXED_AMOUNT'
+
+export type FeeGridRule = {
+  id: number
+  schoolId: number
+  feeCategoryId: number
+  sessionId: number | null
+  sectionId: number | null
+  optionId: number | null
+  classId: number | null
+  studentCategory: StudentCategory
+  amount: number | string
+  currency: string
+  dueDate: string | null
+  isActive: boolean
+  feeStructureId: number | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type FeeDiscountPolicy = {
+  id: number
+  schoolId: number
+  name: string
+  discountType: FeeDiscountType
+  value: number | string
+  appliesToCategory: StudentCategory
+  /** Libellé dynamique (prioritaire sur l’enum si renseigné) */
+  appliesToCustomLabel?: string | null
+  feeCategoryId: number | null
+  isActive: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export type FeeCatalogV2Category = {
+  id: number
+  name: string
+  code: string
+  description?: string | null
+  billingPeriod?: FeeBillingPeriod
+  dueDayOfMonth?: number | null
+  displayOrder?: number
+  isActive?: boolean
+}
+
+export type FeeCatalogV2 = {
+  categories: FeeCatalogV2Category[]
+  gridRules: FeeGridRule[]
+  discountPolicies: FeeDiscountPolicy[]
+}
+
+export type UpsertFeeCatalogV2Payload = {
+  categories?: Array<{
+    id?: number
+    name: string
+    code: string
+    description?: string | null
+    isActive?: boolean
+  }>
+  gridRules?: Array<{
+    id?: number
+    feeCategoryId: number
+    sessionId?: number | null
+    sectionId?: number | null
+    optionId?: number | null
+    classId?: number | null
+    classLevelId?: number | null
+    studentCategory: StudentCategory
+    amount: number | string
+    currency?: string
+    dueDate?: string | Date | null
+    feeStructureId?: number | null
+    isActive?: boolean
+  }>
+  discountPolicies?: Array<{
+    id?: number
+    name: string
+    discountType: FeeDiscountType
+    value: number | string
+    appliesToCategory: StudentCategory
+    appliesToCustomLabel?: string | null
+    feeCategoryId?: number | null
+    isActive?: boolean
+  }>
+}
+
+export type StudentFeeObligationLine = {
+  id: number
+  feeCategoryId: number
+  grossAmount: number
+  discountAmount: number
+  netAmount: number
+  currency: string
+  status: 'OPEN' | 'SUPERSEDED' | 'CANCELLED'
+  manualDiscount?: {
+    type: FeeDiscountType
+    value: number
+    reason: string
+  } | null
+}
+
+export type CalculateObligationsResult = {
+  studentId: number
+  sessionId: number
+  studentCategory: StudentCategory
+  customCategoryLabel?: string | null
+  obligations: StudentFeeObligationLine[]
+  totalNet: number
+  ledgerSynced: boolean
+}
+
+export type AssignStudentCategoryPayload = {
+  studentCategory: StudentCategory
+  customCategoryLabel?: string | null
+  academicYearId?: number
+  sessionId?: number
+}
+
+export type AssignStudentCategoryResult = {
+  studentId: number
+  studentCategory: StudentCategory
+  customCategoryLabel?: string | null
+  obligations: CalculateObligationsResult | null
+}
+
+export type ApplyObligationManualDiscountPayload = {
+  discountType: FeeDiscountType
+  value: number
+  reason: string
+  clear?: boolean
+}
+
+export type ApplyObligationManualDiscountResult = CalculateObligationsResult
+
+export type BulkApplyFeeStructurePayload = {
+  academicYearId?: number
+  sessionId?: number
+  classId?: number
+  optionId?: number
+  sectionId?: number
+  studentIds?: number[]
+}
+
+export type BulkApplyFeeStructureResult = {
+  processed: number
+  academicYearId: number
+  results: CalculateObligationsResult[]
 }
 
 export interface LinkOrphanPayload {

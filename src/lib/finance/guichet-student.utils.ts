@@ -1,5 +1,6 @@
 /** Profil élève finance — champs utiles au guichet RDC. */
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
+import type { StudentCategory } from '@/types/finance'
 
 export type GuichetStudentIdentity = {
   firstName: string
@@ -16,6 +17,9 @@ export type GuichetStudentIdentity = {
   totalPaid?: number
   totalDue?: number
   hasPostnom: boolean
+  studentCategory?: StudentCategory
+  customCategoryLabel?: string | null
+  scholarshipPercent?: number
 }
 
 export function parseGuichetStudentIdentity(
@@ -34,9 +38,13 @@ export function parseGuichetStudentIdentity(
   }
 
   const p = profile as Record<string, unknown>
+  const nestedProfile =
+    p.profile && typeof p.profile === 'object'
+      ? (p.profile as Record<string, unknown>)
+      : null
   const student = (p.student && typeof p.student === 'object'
     ? (p.student as Record<string, unknown>)
-    : p) as Record<string, unknown>
+    : nestedProfile ?? p) as Record<string, unknown>
   const stats =
     p.stats && typeof p.stats === 'object'
       ? (p.stats as Record<string, unknown>)
@@ -89,6 +97,21 @@ export function parseGuichetStudentIdentity(
   const totalPaid = Number(stats.feesPaid ?? stats.totalPaid ?? p.feesPaid)
   const totalDue = Number(stats.totalFees ?? stats.totalDue ?? p.totalFees)
 
+  const rawCategory = String(
+    student.studentCategory ?? nestedProfile?.studentCategory ?? p.studentCategory ?? '',
+  ).trim()
+  const studentCategory = (rawCategory || undefined) as StudentCategory | undefined
+  const rawCustomLabel = String(
+    student.customCategoryLabel ??
+      nestedProfile?.customCategoryLabel ??
+      p.customCategoryLabel ??
+      '',
+  ).trim()
+  const customCategoryLabel = rawCustomLabel || null
+  const scholarshipPercent = Number(
+    student.scholarshipPercent ?? nestedProfile?.scholarshipPercent ?? p.scholarshipPercent,
+  )
+
   return {
     firstName: prenom || firstName,
     lastName,
@@ -104,5 +127,8 @@ export function parseGuichetStudentIdentity(
     totalPaid: Number.isFinite(totalPaid) ? totalPaid : undefined,
     totalDue: Number.isFinite(totalDue) ? totalDue : undefined,
     hasPostnom: Boolean(postnom),
+    studentCategory,
+    customCategoryLabel,
+    scholarshipPercent: Number.isFinite(scholarshipPercent) ? scholarshipPercent : undefined,
   }
 }
