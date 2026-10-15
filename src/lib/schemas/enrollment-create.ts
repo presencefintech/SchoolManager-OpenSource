@@ -164,7 +164,7 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     studentCategory: data.studentCategory ?? 'STANDARD',
     ...(data.numeroCourt != null ? { numeroCourt: data.numeroCourt } : {}),
     scholarshipPercent: data.scholarshipPercent,
-    totalFees: data.totalFees,
+    // LOT 2 — totalFees opaque retiré du payload ; ledger = obligations V2 côté serveur
     feesPaid: data.feesPaid,
     collectDeposit: data.collectDeposit !== false,
     paymentNotes: trimOptional(data.paymentNotes),

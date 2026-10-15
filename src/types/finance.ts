@@ -1247,6 +1247,8 @@ export interface PaymentFeeLinePayload {
   feeStructureId: number
   monthYear?: MonthYear
   amount: number
+  /** Snapshot V2 — settlement OPEN / PARTIAL / PAID */
+  obligationId?: number
 }
 
 export interface FeeScheduleSummaryDto {

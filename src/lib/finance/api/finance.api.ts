@@ -266,6 +266,7 @@ export const financeRoleApi = {
       feeStructureId: number
       monthYear?: string
       amount: number
+      obligationId?: number
     }>
     proofType?: string
     manualJustification?: string
@@ -658,6 +659,45 @@ export const financeRoleApi = {
     apiClient
       .post(`/finance/students/${studentId}/assign-category`, payload)
       .then((r) => r.data.data as import('@/types/finance').AssignStudentCategoryResult),
+
+  /** LOT 3 — obligations V2 actives (OPEN / PARTIAL / PAID) pour guichet */
+  listStudentObligations: (studentId: number, sessionId?: number) =>
+    apiClient
+      .get(`/finance/students/${studentId}/obligations`, {
+        params: sessionId != null ? { sessionId } : undefined,
+      })
+      .then((r) => {
+        const d = (r.data?.data ?? r.data ?? {}) as {
+          studentId: number
+          sessionId: number | null
+          obligations: Array<{
+            id: number
+            feeCategoryId: number
+            categoryCode: string
+            categoryName: string
+            feeStructureId: number | null
+            grossAmount: number
+            discountAmount: number
+            netAmount: number
+            paidAmount: number
+            remaining: number
+            currency: string
+            status: string
+            dueDate: string | null
+          }>
+          totalNet: number
+          totalPaid: number
+          totalRemaining: number
+        }
+        return {
+          studentId: d.studentId ?? studentId,
+          sessionId: d.sessionId ?? null,
+          obligations: Array.isArray(d.obligations) ? d.obligations : [],
+          totalNet: Number(d.totalNet ?? 0),
+          totalPaid: Number(d.totalPaid ?? 0),
+          totalRemaining: Number(d.totalRemaining ?? 0),
+        }
+      }),
 
   /** Ristourne manuelle V2 sur une obligation (sans toucher PaymentFee) */
   applyObligationManualDiscount: (

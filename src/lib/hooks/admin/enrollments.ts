@@ -128,6 +128,9 @@ export function useEnrollmentFeePreview(
     sessionId?: number
     studentId?: number
     explicitFeeStructureIds?: number[]
+    studentCategory?: string
+    scholarshipPercent?: number
+    customCategoryLabel?: string
   },
 ) {
   const explicitKey = (options?.explicitFeeStructureIds ?? []).slice().sort((a, b) => a - b).join(',')
@@ -140,6 +143,9 @@ export function useEnrollmentFeePreview(
       options?.sessionId ?? null,
       options?.studentId ?? null,
       explicitKey,
+      options?.studentCategory ?? null,
+      options?.scholarshipPercent ?? null,
+      options?.customCategoryLabel ?? null,
     ],
     queryFn: () =>
       enrollmentsApi.getFeePreview({
@@ -147,6 +153,9 @@ export function useEnrollmentFeePreview(
         sessionId: options?.sessionId,
         studentId: options?.studentId,
         explicitFeeStructureIds: options?.explicitFeeStructureIds,
+        studentCategory: options?.studentCategory,
+        scholarshipPercent: options?.scholarshipPercent,
+        customCategoryLabel: options?.customCategoryLabel,
       }),
     enabled: !!classId && classId > 0,
     staleTime: 60_000,

@@ -161,8 +161,19 @@ export const enrollmentsApi = {
     sessionId?: number
     studentId?: number
     explicitFeeStructureIds?: number[]
+    studentCategory?: string
+    scholarshipPercent?: number
+    customCategoryLabel?: string
   }) => {
-    const { classId, sessionId, studentId, explicitFeeStructureIds } = params
+    const {
+      classId,
+      sessionId,
+      studentId,
+      explicitFeeStructureIds,
+      studentCategory,
+      scholarshipPercent,
+      customCategoryLabel,
+    } = params
     return apiClient
       .get<{ success: boolean; data: import('@/types/admin').EnrollmentFeePreview }>(
         '/admin/enrollments/fee-preview',
@@ -173,6 +184,13 @@ export const enrollmentsApi = {
             ...(studentId != null ? { studentId } : {}),
             ...(explicitFeeStructureIds?.length
               ? { explicitFeeStructureIds: explicitFeeStructureIds.join(',') }
+              : {}),
+            ...(studentCategory ? { studentCategory } : {}),
+            ...(scholarshipPercent != null && !Number.isNaN(scholarshipPercent)
+              ? { scholarshipPercent }
+              : {}),
+            ...(customCategoryLabel != null && customCategoryLabel !== ''
+              ? { customCategoryLabel }
               : {}),
           },
         },

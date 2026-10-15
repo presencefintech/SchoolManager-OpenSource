@@ -43,6 +43,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { isValidInternationalPhone } from '@/lib/phone/validation'
 import { STUDENT_CATEGORY_OPTIONS } from '@/lib/finance/student-category-labels'
+import { EnrollmentFeePreviewCard } from '@/components/admin/enrollments/enrollment-fee-preview-card'
 
 const inputCls =
   'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400'
@@ -223,6 +224,8 @@ export function EnrollmentCreateModal({
   const emergencyContactPhone = watch('emergencyContactPhone')
   const emergencyContactName = watch('emergencyContactName')
   const autoAssignExplicitFees = watch('autoAssignExplicitFees')
+  const studentCategory = watch('studentCategory')
+  const scholarshipPercent = watch('scholarshipPercent')
   const watchedExplicitFeeStructureIds = watch('explicitFeeStructureIds')
   const explicitFeeStructureIds = useMemo(
     () => watchedExplicitFeeStructureIds ?? [],
@@ -283,20 +286,25 @@ export function EnrollmentCreateModal({
     {
       sessionId: currentSession?.id,
       explicitFeeStructureIds: previewExplicitIds.length ? previewExplicitIds : undefined,
+      studentCategory: studentCategory || undefined,
+      scholarshipPercent:
+        scholarshipPercent != null && !Number.isNaN(Number(scholarshipPercent))
+          ? Number(scholarshipPercent)
+          : undefined,
     },
   )
   const lastFeeSyncKeyRef = useRef('')
 
   useEffect(() => {
     if (!feePreview || !classId || classId <= 0) return
-    const syncKey = `${classId}:${previewExplicitIds.slice().sort((a, b) => a - b).join(',')}:${feePreview.totalFees}`
+    const syncKey = `${classId}:${previewExplicitIds.slice().sort((a, b) => a - b).join(',')}:${studentCategory ?? ''}:${scholarshipPercent ?? ''}:${feePreview.totalFees}`
     if (lastFeeSyncKeyRef.current === syncKey) return
     lastFeeSyncKeyRef.current = syncKey
     setValue('totalFees', feePreview.totalFees, { shouldValidate: true })
     if (feePreview.academicYear) {
       setValue('academicYear', feePreview.academicYear, { shouldValidate: false })
     }
-  }, [feePreview, classId, previewExplicitIds, setValue])
+  }, [feePreview, classId, previewExplicitIds, studentCategory, scholarshipPercent, setValue])
 
   const phoneIsValid = isValidInternationalPhone(emergencyContactPhone)
   const { data: parentLookup, isFetching: lookingUpParent } = useParentLookupByPhone(
@@ -869,49 +877,34 @@ export function EnrollmentCreateModal({
               title="Frais & acompte"
               hint="Barème de la classe, frais optionnels et acompte en caisse."
             >
+              <Field label="Catégorie Financière initiale" error={errors.studentCategory?.message}>
+                <select {...register('studentCategory')} className={cn(inputCls, 'pr-8')}>
+                  {STUDENT_CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <p className={hintCls}>
+                  Applique la grille tarifaire V2 (Nouveau, Enfant de personnel, Boursier…) dès l&apos;inscription.
+                </p>
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Field label="Acompte (déjà payé)" error={errors.feesPaid?.message}>
+                  <input type="number" min={0} step="0.01" {...register('feesPaid')} className={inputCls} />
+                </Field>
+                <Field label="Bourse (%)" error={errors.scholarshipPercent?.message}>
+                  <input type="number" min={0} max={100} {...register('scholarshipPercent')} className={inputCls} />
+                </Field>
+              </div>
+
               {classId > 0 && (
-                <div className="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2.5 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-medium text-zinc-600">
-                      Frais {feePreview?.academicYear ?? '—'}
-                      {feePreview?.currency ? ` · ${feePreview.currency}` : ''}
-                      {feePreview?.mode ? ` · ${feePreview.mode}` : ''}
-                    </p>
-                    {feePreviewLoading && <Loader2 size={12} className="animate-spin text-zinc-400" />}
-                  </div>
-                  {feePreview?.feeLines?.length ? (
-                    <ul className="space-y-1">
-                      {feePreview.feeLines.map((line) => (
-                        <li
-                          key={`${line.feeStructureId}-${line.source ?? 'auto'}`}
-                          className="flex items-center justify-between gap-2 text-[11px] text-zinc-700"
-                        >
-                          <span>
-                            {line.categoryName}
-                            <span className="text-zinc-400"> · {line.billingPeriod}</span>
-                            {line.source && line.source !== 'AUTOMATIC' && (
-                              <span className="ml-1 rounded bg-amber-50 px-1 text-[9px] font-medium uppercase text-amber-700">
-                                {line.source === 'PROPOSED' ? 'optionnel' : line.source}
-                              </span>
-                            )}
-                          </span>
-                          <span className="tabular-nums font-medium">
-                            {line.amount.toLocaleString('fr-FR', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    !feePreviewLoading && (
-                      <p className="text-[11px] text-amber-700">
-                        Aucun barème pour cette classe — configurez les frais ou saisissez le total manuellement.
-                      </p>
-                    )
-                  )}
-                </div>
+                <EnrollmentFeePreviewCard
+                  preview={feePreview}
+                  loading={feePreviewLoading}
+                  emptyHint="Aucun barème pour cette classe — configurez la grille tarifaire V2 (total non saisissable)."
+                />
               )}
 
               {classId > 0 && explicitCatalog.length > 0 && (
@@ -974,31 +967,20 @@ export function EnrollmentCreateModal({
                 </div>
               )}
 
-              <Field label="Catégorie Financière initiale" error={errors.studentCategory?.message}>
-                <select {...register('studentCategory')} className={cn(inputCls, 'pr-8')}>
-                  {STUDENT_CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <p className={hintCls}>
-                  Applique la grille tarifaire V2 (Nouveau, Enfant de personnel, Boursier…) dès l&apos;inscription.
+              <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5 flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-[11px] font-medium text-emerald-900">Net payable (lecture seule)</p>
+                  <p className={hintCls}>Quote Category Fee Engine V2 — non modifiable.</p>
+                </div>
+                <p className="text-sm font-semibold tabular-nums text-emerald-900">
+                  {(feePreview?.breakdown?.netPayable ?? feePreview?.totalFees ?? totalFees ?? 0).toLocaleString('fr-FR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                  {feePreview?.currency ? ` ${feePreview.currency}` : ''}
                 </p>
-              </Field>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Field label="Frais totaux" error={errors.totalFees?.message}>
-                  <input type="number" min={0} step="0.01" {...register('totalFees')} className={inputCls} />
-                </Field>
-                <Field label="Acompte (déjà payé)" error={errors.feesPaid?.message}>
-                  <input type="number" min={0} step="0.01" {...register('feesPaid')} className={inputCls} />
-                </Field>
-                <Field label="Bourse (%)" error={errors.scholarshipPercent?.message}>
-                  <input type="number" min={0} max={100} {...register('scholarshipPercent')} className={inputCls} />
-                </Field>
               </div>
-              {balance != null && totalFees != null && totalFees > 0 && (
+              {balance != null && (feePreview?.totalFees ?? totalFees ?? 0) > 0 && (
                 <p className={hintCls}>
                   Solde initial estimé : <strong className="text-zinc-700">{balance.toLocaleString('fr-FR')}</strong>
                 </p>
