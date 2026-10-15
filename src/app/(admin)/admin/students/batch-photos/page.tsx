@@ -20,6 +20,7 @@ export default function BatchPhotosPage() {
   const mutation = useBatchStudentPhotos()
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
+  const [enrollBiometrics, setEnrollBiometrics] = useState(true)
   const [result, setResult] = useState<BatchPhotosResult | null>(null)
 
   const totalSizeMb = useMemo(
@@ -64,11 +65,14 @@ export default function BatchPhotosPage() {
       return
     }
     try {
-      const data = await mutation.mutateAsync(files)
+      const data = await mutation.mutateAsync({ files, enrollBiometrics })
       setResult(data)
+      const bio = data.biometricEnrolledCount
+        ? ` · ${data.biometricEnrolledCount} FACE`
+        : ''
       toast.success(
         'Import terminé',
-        `${data.matchedCount} associée(s) · ${data.unmatchedCount} non reconnue(s)`,
+        `${data.matchedCount} associée(s) · ${data.unmatchedCount} non reconnue(s)${bio}`,
       )
       if (data.matchedCount > 0) setFiles([])
     } catch (err) {
@@ -157,6 +161,19 @@ export default function BatchPhotosPage() {
                 </li>
               ))}
             </ul>
+            <label className="flex items-start gap-2 mb-4 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={enrollBiometrics}
+                onChange={(e) => setEnrollBiometrics(e.target.checked)}
+                className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <span className="text-xs text-zinc-600">
+                <span className="font-medium text-zinc-800">Enrôler la biométrie FACE</span>
+                {' '}après matching (visage détecté → <span className="font-mono">READY</span>).
+                Échec visage = photo OK, biométrie signalée à part.
+              </span>
+            </label>
             <button
               type="button"
               disabled={mutation.isPending}
@@ -178,9 +195,9 @@ export default function BatchPhotosPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 { label: 'Associées', value: result.matchedCount, icon: CheckCircle2, color: 'emerald' },
+                { label: 'Biométrie FACE', value: result.biometricEnrolledCount ?? 0, icon: CheckCircle2, color: 'emerald' },
                 { label: 'Non reconnues', value: result.unmatchedCount, icon: AlertTriangle, color: 'amber' },
                 { label: 'Échecs', value: result.failedCount, icon: XCircle, color: 'red' },
-                { label: 'Traitées', value: result.processedCount, icon: ImagePlus, color: 'zinc' },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div
                   key={label}
@@ -256,6 +273,20 @@ function ResultGrid({
                 <p className="text-[11px] text-zinc-500">
                   via {r.matchKind === 'numeroCourt' ? 'N° Court' : 'matricule'}
                   {r.matchKey ? ` · ${r.matchKey}` : ''}
+                </p>
+              )}
+              {r.biometricStatus && (
+                <p
+                  className={cn(
+                    'text-[11px] mt-0.5',
+                    r.biometricStatus === 'READY' && 'text-emerald-700',
+                    r.biometricStatus === 'FAILED' && 'text-amber-700',
+                    r.biometricStatus === 'UNAVAILABLE' && 'text-zinc-500',
+                    r.biometricStatus === 'SKIPPED' && 'text-zinc-400',
+                  )}
+                >
+                  FACE · {r.biometricStatus}
+                  {r.biometricReason ? ` — ${r.biometricReason}` : ''}
                 </p>
               )}
               {r.reason && <p className="text-[11px] text-amber-700 mt-0.5">{r.reason}</p>}

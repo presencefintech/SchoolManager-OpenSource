@@ -66,6 +66,7 @@ function DeskHomeContent() {
         quickLinks={[
           { href: '/admin/inbox', label: 'Boîte d’entrée', icon: Inbox },
           { href: '/admin/enrollments', label: 'Inscrire', icon: UserPlus },
+          { href: '/admin/students/batch-photos', label: 'Import photos', icon: Camera },
           { href: '/admin/finance/controle', label: 'Dettes / en ordre', icon: ClipboardList },
           { href: '/admin/cards', label: 'Cartes', icon: CreditCard },
         ]}
@@ -81,6 +82,25 @@ function DeskHomeContent() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-5">
         <StudentPaymentStatusWidget href="/admin/finance/controle" />
         <CashJournalReport />
+
+        {missingPhoto > 0 && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-amber-900">
+              <Camera size={16} className="shrink-0" />
+              <span>
+                <strong className="font-semibold">{missingPhoto}</strong> dossier(s) sans photo —
+                importez un lot nommé <span className="font-mono text-xs">104.jpg</span> / matricule.
+              </span>
+            </div>
+            <Link
+              href="/admin/students/batch-photos"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-xs font-medium text-white hover:bg-emerald-700"
+            >
+              Import batch photos
+            </Link>
+          </div>
+        )}
+
         <form
           className="bg-white rounded-xl border border-zinc-200 p-4 flex gap-2"
           onSubmit={(e) => {
