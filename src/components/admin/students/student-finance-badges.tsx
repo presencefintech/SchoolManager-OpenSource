@@ -42,11 +42,17 @@ export function StudentFinanceBadges({
   if (!badges.length) return null
 
   return (
-    <div className={cn('flex flex-wrap gap-1', className)}>
+    <div className={cn('flex flex-wrap items-center gap-2', className)}>
       {badges.map(({ key, label, cls, icon: Icon }) => (
-        <span key={key} className={cn('inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full', cls)}>
-          {Icon && <Icon size={9} />}
-          {label}
+        <span
+          key={key}
+          className={cn(
+            'inline-flex max-w-full items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full',
+            cls,
+          )}
+        >
+          {Icon && <Icon size={9} className="shrink-0" />}
+          <span className="truncate">{label}</span>
         </span>
       ))}
     </div>

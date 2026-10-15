@@ -48,6 +48,8 @@ import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardi
 import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
 import { StudentClassTransferPanel } from '@/components/admin/students/StudentClassTransferPanel'
 import { StudentCampusTransferPanel } from '@/components/admin/students/StudentCampusTransferPanel'
+import { StudentPhotoCapture } from '@/components/students/StudentPhotoCapture'
+import { NumeroCourtBadge } from '@/components/students/NumeroCourtBadge'
 
 function RevokeIssuedDocumentPanel() {
   const toast = useToast()
@@ -292,8 +294,8 @@ function ExitCertificateModal({ studentId, onClose }: { studentId: number; onClo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Certificat de radiation</h2>
         <p className="text-xs text-zinc-500 mb-5">
           Document officiel de guichet (identité RDC, scolarité, n° de pièce). Impression seule —
@@ -426,8 +428,8 @@ function ParentSummonsModal({ studentId, onClose }: { studentId: number; onClose
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Convocation parent</h2>
         <p className="text-xs text-zinc-500 mb-5">
           Impression seule — ce document n&apos;envoie pas de SMS ni de notification.
@@ -582,8 +584,8 @@ function ExitPassModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Autorisation de sortie</h2>
         <p className="text-xs text-zinc-500 mb-5">
           {youngChild
@@ -822,9 +824,11 @@ function BiometricsUpdateModal({ studentId, onClose }: { studentId: number; onCl
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
-        <h2 className="text-lg font-semibold text-zinc-900 mb-5">Mettre à jour la biométrie</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-zinc-900 mb-5 break-words">
+          Mettre à jour la biométrie
+        </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1">Photo du visage</label>
@@ -866,11 +870,19 @@ function PhotoDocumentsCard({ studentId, firstName, lastName, photoUrl, birthCer
   const { mutate: uploadDocument, isPending: uploadingDocument } = useUploadStudentDocument()
   const { mutateAsync: deleteFile, isPending: deleting } = useDeleteCloudinaryFile()
   const [deleteTarget, setDeleteTarget] = useState<{ publicId: string; label: string } | null>(null)
+  const [webcamOpen, setWebcamOpen] = useState(false)
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
+    uploadPhoto({ studentId, file }, {
+      onSuccess: () => toast.success('Photo mise à jour'),
+      onError: (err) => toast.error('Upload impossible', getApiErrorMessage(err)),
+    })
+  }
+
+  function handleWebcamCapture(file: File) {
     uploadPhoto({ studentId, file }, {
       onSuccess: () => toast.success('Photo mise à jour'),
       onError: (err) => toast.error('Upload impossible', getApiErrorMessage(err)),
@@ -914,11 +926,22 @@ function PhotoDocumentsCard({ studentId, firstName, lastName, photoUrl, birthCer
           <StudentCardPhoto photoUrl={photoUrl ?? null} firstName={firstName} lastName={lastName} />
         </div>
         <div className="flex-1 min-w-0 space-y-2">
-          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 cursor-pointer">
-            <Upload size={11} />
-            {uploadingPhoto ? 'Envoi...' : 'Changer la photo'}
-            <input type="file" accept="image/*" className="hidden" disabled={uploadingPhoto} onChange={handlePhotoChange} />
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 cursor-pointer">
+              <Upload size={11} />
+              {uploadingPhoto ? 'Envoi...' : 'Changer la photo'}
+              <input type="file" accept="image/*" className="hidden" disabled={uploadingPhoto} onChange={handlePhotoChange} />
+            </label>
+            <button
+              type="button"
+              disabled={uploadingPhoto}
+              onClick={() => setWebcamOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-xs text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+            >
+              <Camera size={11} />
+              Webcam
+            </button>
+          </div>
           {photoUrl && (() => {
             const publicId = extractCloudinaryPublicId(photoUrl)
             return publicId ? (
@@ -933,6 +956,13 @@ function PhotoDocumentsCard({ studentId, firstName, lastName, photoUrl, birthCer
           })()}
         </div>
       </div>
+
+      <StudentPhotoCapture
+        open={webcamOpen}
+        onClose={() => setWebcamOpen(false)}
+        title="Photo élève"
+        onCapture={handleWebcamCapture}
+      />
 
       <div className="mt-4 pt-4 border-t border-zinc-50 space-y-3">
         {documents.map((doc) => {
@@ -1108,6 +1138,7 @@ function StudentDetailPageContent() {
       postnom: student.postnom,
       prenom: student.prenom,
       matricule: student.matricule,
+      numeroCourt: student.numeroCourt ?? null,
       photoUrl: student.photoUrl,
       qrPayload: buildStudentQrPayload(student.id, student.matricule),
       schoolName: branding?.name?.trim() || student.schoolName?.trim() || 'Établissement scolaire',
@@ -1348,15 +1379,15 @@ function StudentDetailPageContent() {
         className="bg-white border-b border-zinc-200"
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
       >
-        <div className="max-w-4xl mx-auto px-8 py-5">
-          <div className="flex items-start gap-4">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+          <div className="flex items-start gap-3 sm:gap-4">
             <button
               onClick={() => router.back()}
-              className="mt-1 p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors"
+              className="mt-1 p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 transition-colors shrink-0"
             >
               <ArrowLeft size={16} />
             </button>
-            <div className="h-16 w-16 rounded-2xl overflow-hidden flex-shrink-0 ring-1 ring-zinc-200">
+            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl overflow-hidden flex-shrink-0 ring-1 ring-zinc-200">
               <StudentCardPhoto
                 photoUrl={student.photoUrl ?? null}
                 firstName={student.prenom || student.firstName}
@@ -1364,8 +1395,10 @@ function StudentDetailPageContent() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-semibold tracking-tight text-zinc-900">{studentDisplayName}</h1>
-              <p className="text-sm text-zinc-500 mt-0.5">
+              <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 break-words">
+                {studentDisplayName}
+              </h1>
+              <p className="text-sm text-zinc-500 mt-0.5 break-words">
                 {[
                   student.className || 'Classe à compléter',
                   student.academicYear || enrollmentDetail?.academicYear || 'Année à compléter',
@@ -1382,17 +1415,20 @@ function StudentDetailPageContent() {
                   <span className="text-zinc-400">Tuteur à compléter</span>
                 )}
               </p>
-              {student.matricule && (
-                <p className="text-xs font-mono text-zinc-400 mt-1">{student.matricule}</p>
-              )}
+              <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                {student.matricule && (
+                  <p className="text-xs font-mono text-zinc-400">{student.matricule}</p>
+                )}
+                <NumeroCourtBadge numeroCourt={student.numeroCourt} />
+              </div>
               {(student.bloodGroup || student.allergies) && (
-                <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800 ring-1 ring-red-100">
+                <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-800 ring-1 ring-red-100 break-words">
                   Urgence
                   {student.bloodGroup ? ` · Groupe ${student.bloodGroup}` : ''}
                   {student.allergies ? ` · ${student.allergies}` : ''}
                 </p>
               )}
-              <div className="flex flex-wrap gap-1.5 mt-3">
+              <div className="flex flex-wrap items-center gap-2 mt-3">
                 <GlancePill
                   label={sc.label}
                   tone={student.status === 'ACTIVE' ? 'ok' : student.status === 'SUSPENDED' ? 'bad' : 'neutral'}

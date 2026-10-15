@@ -238,6 +238,56 @@ export const studentsApi = {
         message?: string
       }>(`/admin/students/${studentId}/transfer`, body)
       .then((r) => r.data),
+
+  /**
+   * POST /admin/students/batch-photos
+   * Images et/ou ZIP nommés `{numeroCourt}.jpg` / `{matricule}.jpg`.
+   */
+  batchPhotos: (files: File[]) => {
+    const fd = new FormData()
+    for (const file of files) {
+      fd.append('photos', file)
+    }
+    return apiClient
+      .post<{ success: boolean; data: BatchPhotosResult; message?: string }>(
+        '/admin/students/batch-photos',
+        fd,
+        {
+          timeout: 180_000,
+          transformRequest: [
+            (data: unknown, headers: Record<string, unknown>) => {
+              if (typeof FormData !== 'undefined' && data instanceof FormData) {
+                delete headers['Content-Type']
+              }
+              return data
+            },
+          ],
+        },
+      )
+      .then((r) => r.data.data)
+  },
+}
+
+export type BatchPhotoMatchKind = 'numeroCourt' | 'matricule'
+
+export type BatchPhotoFileResult = {
+  fileName: string
+  status: 'matched' | 'unmatched' | 'failed'
+  matchKind?: BatchPhotoMatchKind
+  matchKey?: string
+  studentId?: number
+  studentName?: string
+  photoUrl?: string
+  reason?: string
+}
+
+export type BatchPhotosResult = {
+  matchedCount: number
+  failedCount: number
+  unmatchedCount: number
+  processedCount: number
+  unmatchedFiles: string[]
+  results: BatchPhotoFileResult[]
 }
 
 export type StudentGuardian = {

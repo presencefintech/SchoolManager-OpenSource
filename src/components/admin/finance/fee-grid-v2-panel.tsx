@@ -253,19 +253,19 @@ export function FeeGridV2Panel({
 
   return (
     <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-zinc-100 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Grid3X3 size={14} className="text-emerald-600" />
-            <h3 className="text-sm font-semibold text-zinc-900">
+      <div className="px-4 py-4 sm:px-5 border-b border-zinc-100 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <Grid3X3 size={14} className="text-emerald-600 shrink-0" />
+            <h3 className="text-sm font-semibold text-zinc-900 break-words">
               Grille Tarifaire V2 par Catégorie &amp; Section
             </h3>
           </div>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <p className="text-xs text-zinc-500 mt-0.5 break-words">
             Montants par option et catégorie élève (Nouveau, Ancien / Standard, Enfant de personnel, Boursier…).
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 shrink-0">
           <button
             type="button"
             onClick={() => void handleBulkApply()}
@@ -338,8 +338,8 @@ export function FeeGridV2Panel({
           Créez d&apos;abord une catégorie de frais (onglet ci-dessus), puis définissez la grille V2.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b border-zinc-100 bg-zinc-50/60">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 sticky left-0 bg-zinc-50/95">
@@ -408,7 +408,7 @@ export function FeeGridV2Panel({
             {activePolicies.map((p) => (
               <div
                 key={p.key}
-                className="grid grid-cols-1 md:grid-cols-[1fr_6rem_5rem_1fr_1fr_auto] gap-2 items-end rounded-xl border border-zinc-100 bg-zinc-50/50 p-3"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_6rem_5rem_minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-end rounded-xl border border-zinc-100 bg-zinc-50/50 p-3"
               >
                 <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">
                   Nom

@@ -190,24 +190,24 @@ export function StudentFinanceDashboard({
         </nav>
       ) : null}
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h2
             className={
               compactHeader
                 ? 'text-base font-semibold text-zinc-900'
-                : 'text-2xl font-semibold text-zinc-900'
+                : 'text-xl sm:text-2xl font-semibold text-zinc-900'
             }
           >
             Échéancier financier
           </h2>
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-zinc-500 break-words">
             Session {data.sessionLabel}
             {' · '}
             {data.billingStartMonth} → {data.billingEndMonth}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => refetch()}

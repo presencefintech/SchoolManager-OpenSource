@@ -42,29 +42,39 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" role="dialog" aria-modal="true">
-        <h3 className="text-base font-semibold text-zinc-900">{title}</h3>
-        <p className="text-sm text-zinc-600 mt-2">{description}</p>
-        {impact.length > 0 && (
-          <ul className="mt-3 space-y-1 text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3 border border-zinc-100">
-            {impact.map((line) => (
-              <li key={line}>· {line}</li>
-            ))}
-          </ul>
-        )}
-        {onReasonChange && (
-          <div className="mt-3">
-            <label className="block text-xs font-medium text-zinc-600 mb-1">{reasonLabel ?? 'Motif'}</label>
-            <textarea
-              value={reason ?? ''}
-              onChange={(e) => onReasonChange(e.target.value)}
-              rows={3}
-              placeholder={reasonPlaceholder}
-              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
-            />
-          </div>
-        )}
-        <div className="flex gap-2 mt-5">
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="p-4 sm:p-6 overflow-y-auto min-h-0 flex-1 space-y-3">
+          <h3 className="text-base font-semibold text-zinc-900 break-words">{title}</h3>
+          <p className="text-sm text-zinc-600 break-words">{description}</p>
+          {impact.length > 0 && (
+            <ul className="space-y-1 text-xs text-zinc-500 bg-zinc-50 rounded-lg p-3 border border-zinc-100">
+              {impact.map((line) => (
+                <li key={line} className="break-words">
+                  · {line}
+                </li>
+              ))}
+            </ul>
+          )}
+          {onReasonChange && (
+            <div>
+              <label className="block text-xs font-medium text-zinc-600 mb-1">
+                {reasonLabel ?? 'Motif'}
+              </label>
+              <textarea
+                value={reason ?? ''}
+                onChange={(e) => onReasonChange(e.target.value)}
+                rows={3}
+                placeholder={reasonPlaceholder}
+                className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col-reverse sm:flex-row gap-2 p-4 sm:p-6 pt-0 sm:pt-0 border-t border-zinc-100 shrink-0">
           <button
             type="button"
             onClick={onCancel}

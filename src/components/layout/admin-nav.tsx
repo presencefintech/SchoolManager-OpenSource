@@ -39,6 +39,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Gestion',
     links: [
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
+      { label: 'Import photos', href: '/admin/students/batch-photos', icon: Upload },
       { label: 'Doublons & corbeille', href: '/admin/students/merge', icon: Layers3 },
       { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
       { label: 'Cartes parent', href: '/admin/desk?gap=pickup', icon: Contact },
@@ -122,6 +123,7 @@ const IT_NAV_SECTIONS: NavSection[] = [
       { label: 'Inscriptions', href: '/admin/enrollments', icon: UserPlus },
       { label: 'Pré-inscriptions', href: '/admin/pre-enrollments', icon: UserCircle },
       { label: 'Élèves', href: '/admin/students', icon: GraduationCap },
+      { label: 'Import photos', href: '/admin/students/batch-photos', icon: Upload },
       { label: 'Cartes élèves', href: '/admin/cards', icon: CreditCard },
       { label: 'Cartes parent', href: '/admin/desk?gap=pickup', icon: Contact },
       { label: 'Classes', href: '/admin/classes', icon: BookOpen },

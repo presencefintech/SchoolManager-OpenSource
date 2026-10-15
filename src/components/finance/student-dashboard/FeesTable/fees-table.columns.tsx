@@ -110,21 +110,21 @@ export function createFeesTableColumns(currency: FinanceCurrencyCode): ColumnDef
       accessorKey: 'categoryName',
       header: 'Catégorie',
       cell: ({ row }) => (
-        <div>
+        <div className="min-w-0 max-w-[240px]">
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-medium text-zinc-900">{row.original.categoryName}</p>
+            <p className="font-medium text-zinc-900 truncate">{row.original.categoryName}</p>
             <FeeAttributionSourceBadge
               source={row.original.attributionSource}
               reason={row.original.attributionReason}
             />
           </div>
           {row.original.categoryCode ? (
-            <p className="text-xs text-zinc-400 font-mono">{row.original.categoryCode}</p>
+            <p className="text-xs text-zinc-400 font-mono truncate">{row.original.categoryCode}</p>
           ) : null}
           {row.original.attributionReason &&
             row.original.attributionSource &&
             row.original.attributionSource !== 'AUTOMATIC' && (
-              <p className="text-[10px] text-zinc-400 mt-0.5 truncate max-w-[220px]">
+              <p className="text-[10px] text-zinc-400 mt-0.5 truncate">
                 {row.original.attributionReason}
               </p>
             )}

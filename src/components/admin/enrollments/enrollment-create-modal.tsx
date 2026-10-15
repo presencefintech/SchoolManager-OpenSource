@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { Loader2, X, UserPlus, GraduationCap, Heart, Wallet, Info, Plus, Users, FileText } from 'lucide-react'
+import { Camera, Loader2, X, UserPlus, GraduationCap, Heart, Wallet, Info, Plus, Users, FileText } from 'lucide-react'
+import { StudentPhotoCapture } from '@/components/students/StudentPhotoCapture'
 import { cn } from '@/lib/utils'
 import {
   enrollmentCreateSchema,
@@ -188,6 +189,8 @@ export function EnrollmentCreateModal({
   const [inlineCreate, setInlineCreate] = useState<InlineCreate>(null)
   const [inlineName, setInlineName] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null)
+  const [webcamOpen, setWebcamOpen] = useState(false)
   const [birthCertFile, setBirthCertFile] = useState<File | null>(null)
   const [enrollmentFormFile, setEnrollmentFormFile] = useState<File | null>(null)
   const [uploadingDocs, setUploadingDocs] = useState(false)
@@ -805,13 +808,40 @@ export function EnrollmentCreateModal({
             >
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Field label="Photo élève">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className={cn(inputCls, 'text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-50 file:px-2 file:py-1 file:text-emerald-700')}
-                    onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-                  />
-                  {photoFile && <p className={hintCls}>{photoFile.name}</p>}
+                  <div className="flex items-start gap-3">
+                    {photoPreviewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={photoPreviewUrl}
+                        alt=""
+                        className="w-14 h-14 rounded-xl object-cover ring-1 ring-zinc-200 flex-shrink-0"
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className={cn(inputCls, 'text-xs file:mr-2 file:rounded-md file:border-0 file:bg-emerald-50 file:px-2 file:py-1 file:text-emerald-700')}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null
+                          setPhotoFile(f)
+                          setPhotoPreviewUrl((prev) => {
+                            if (prev) URL.revokeObjectURL(prev)
+                            return f ? URL.createObjectURL(f) : null
+                          })
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setWebcamOpen(true)}
+                        className="inline-flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-800 font-medium"
+                      >
+                        <Camera size={12} />
+                        Capturer via webcam
+                      </button>
+                      {photoFile && <p className={hintCls}>{photoFile.name}</p>}
+                    </div>
+                  </div>
                 </Field>
                 <Field label="Acte de naissance">
                   <input
@@ -1091,6 +1121,19 @@ export function EnrollmentCreateModal({
           </div>
         </form>
       </motion.div>
+
+      <StudentPhotoCapture
+        open={webcamOpen}
+        onClose={() => setWebcamOpen(false)}
+        title="Photo élève — inscription"
+        onCapture={(file) => {
+          setPhotoFile(file)
+          setPhotoPreviewUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev)
+            return URL.createObjectURL(file)
+          })
+        }}
+      />
     </div>
   )
 }

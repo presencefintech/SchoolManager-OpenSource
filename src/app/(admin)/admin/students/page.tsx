@@ -1,13 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   GraduationCap, CheckCircle, XCircle, Clock,
-  ChevronLeft, ChevronRight, User, AlertTriangle, Wallet,
+  ChevronLeft, ChevronRight, User, AlertTriangle, Wallet, ImagePlus,
 } from 'lucide-react'
+import { NumeroCourtBadge } from '@/components/students/NumeroCourtBadge'
 import { cn } from '@/lib/utils'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
@@ -51,9 +52,10 @@ const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
 
 type Tab = 'list' | 'applications' | 'debtors'
 
-export default function StudentsPage() {
+function StudentsPageInner() {
   const { format: formatMoney } = useSchoolMoney()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   const { user } = useAuth()
   const deskOnly = isItDesk(user?.role)
@@ -63,10 +65,22 @@ export default function StudentsPage() {
     applied: filters,
     setField: setFilterField,
     apply: applyFilters,
+    applyValues,
     reset: resetFilters,
     removeFilter,
   } = useMultiCriteriaSearch(STUDENT_FILTER_DEFAULTS)
   const [page, setPage] = useState(1)
+
+  // Click-to-search depuis badge N° Court : `/admin/students?q=104` (soft nav)
+  const urlQ = (searchParams.get('q') ?? searchParams.get('search') ?? '').trim()
+  useEffect(() => {
+    if (!urlQ) return
+    if (String(filters.search ?? '') === urlQ) return
+    applyValues({ ...STUDENT_FILTER_DEFAULTS, search: urlQ })
+    setPage(1)
+    setTab('list')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync URL → filters only when q changes
+  }, [urlQ])
   const [appFilter, setAppFilter] = useState<string>('PENDING')
   const [rejectId, setRejectId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState('')
@@ -146,8 +160,17 @@ export default function StudentsPage() {
         className="bg-white border-b border-zinc-200"
         initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
       >
-        <div className="max-w-6xl mx-auto px-8 py-6">
+        <div className="max-w-6xl mx-auto px-8 py-6 flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-2xl font-semibold text-zinc-900">Élèves</h1>
+          {!deskOnly && (
+            <Link
+              href="/admin/students/batch-photos"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+            >
+              <ImagePlus size={13} />
+              Import batch photos
+            </Link>
+          )}
         </div>
       </motion.div>
 
@@ -199,7 +222,7 @@ export default function StudentsPage() {
           <div className="space-y-4">
             <AdminMultiCriteriaSearch
               title="Rechercher un élève"
-              primaryPlaceholder="Nom, prénom, matricule…"
+              primaryPlaceholder="Nom, N° Court, matricule, téléphone…"
               values={filterDraft}
               onChange={(id, value) => setFilterField(id as keyof typeof STUDENT_FILTER_DEFAULTS, value)}
               onApply={handleApplyFilters}
@@ -254,9 +277,12 @@ export default function StudentsPage() {
                                   <User size={12} className="text-emerald-600" />
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-zinc-900">
-                                    {formatStudentFullName(s) || `Élève #${s.id}`}
-                                  </p>
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <p className="text-sm font-medium text-zinc-900">
+                                      {formatStudentFullName(s) || `Élève #${s.id}`}
+                                    </p>
+                                    <NumeroCourtBadge numeroCourt={s.numeroCourt} size="sm" navigateOnClick={false} />
+                                  </div>
                                   <StudentFinanceBadges
                                     className="mt-0.5"
                                     debtAmount={s.debtAmount}
@@ -589,5 +615,13 @@ export default function StudentsPage() {
         onCancel={() => setArchiveTarget(null)}
       />
     </div>
+  )
+}
+
+export default function StudentsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50 animate-pulse" />}>
+      <StudentsPageInner />
+    </Suspense>
   )
 }

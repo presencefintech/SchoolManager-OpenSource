@@ -307,8 +307,8 @@ export function PaymentDeclarationsDesk({ variant }: { variant: 'finance' | 'adm
               : 'Aucune déclaration dans ce filtre.'}
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b border-zinc-100 text-left text-[11px] uppercase tracking-wide text-zinc-400">
                   <th className="px-5 py-3">Élève</th>
@@ -321,8 +321,10 @@ export function PaymentDeclarationsDesk({ variant }: { variant: 'finance' | 'adm
               <tbody>
                 {items.map((row) => (
                   <tr key={row.id} className="border-b border-zinc-50 hover:bg-zinc-50/60">
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-zinc-900">{row.studentName ?? `Élève #${row.studentId}`}</p>
+                    <td className="px-5 py-3.5 max-w-[220px]">
+                      <p className="font-medium text-zinc-900 truncate">
+                        {row.studentName ?? `Élève #${row.studentId}`}
+                      </p>
                       {row.fraudAlert && (
                         <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
                           <AlertTriangle size={10} />

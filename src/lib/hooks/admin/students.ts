@@ -201,7 +201,16 @@ export function useUploadStudentPhoto() {
     onSuccess: (_, { studentId }) => qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] }),
   })
 }
-
+/** Import batch photos — matching {numeroCourt|matricule}.ext */
+export function useBatchStudentPhotos() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (files: File[]) => studentsApi.batchPhotos(files),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+    },
+  })
+}
 export function useUploadStudentDocument() {
   const qc = useQueryClient()
   return useMutation({

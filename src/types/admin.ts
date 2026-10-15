@@ -234,6 +234,8 @@ export interface StudentListItem {
   postnom?: string | null
   prenom?: string | null
   matricule?: string
+  /** N° court scolaire (1–9999) */
+  numeroCourt?: number | null
   status: string
   className?: string
   email?: string

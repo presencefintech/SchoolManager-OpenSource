@@ -60,9 +60,9 @@ export function FeesTable({ lines, currency, onPayLine }: FeesTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-200/60 bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+    <div className="w-full overflow-hidden rounded-xl border border-zinc-200/60 bg-white">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="border-b border-zinc-100 bg-zinc-50/50">

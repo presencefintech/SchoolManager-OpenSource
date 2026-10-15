@@ -9,6 +9,7 @@ export type GuichetStudentIdentity = {
   postnom?: string
   fullName: string
   matricule: string
+  numeroCourt?: number | null
   className: string
   photoUrl?: string
   parentPhone?: string
@@ -112,6 +113,12 @@ export function parseGuichetStudentIdentity(
     student.scholarshipPercent ?? nestedProfile?.scholarshipPercent ?? p.scholarshipPercent,
   )
 
+  const rawNumero = student.numeroCourt ?? nestedProfile?.numeroCourt ?? p.numeroCourt
+  const numeroCourt =
+    rawNumero != null && rawNumero !== '' && Number.isFinite(Number(rawNumero))
+      ? Number(rawNumero)
+      : null
+
   return {
     firstName: prenom || firstName,
     lastName,
@@ -119,6 +126,7 @@ export function parseGuichetStudentIdentity(
     postnom,
     fullName,
     matricule: String(student.matricule ?? p.matricule ?? '').trim(),
+    numeroCourt,
     className,
     photoUrl,
     parentPhone,
