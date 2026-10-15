@@ -98,6 +98,19 @@ export function isItDesk(role?: UserRole | null): boolean {
   return role === 'IT'
 }
 
+/**
+ * IT = guichet ops élèves hors montants finance.
+ * Photos, batch, cartes, inscriptions = autorisés ; soldes / caisse = verrouillés.
+ */
+export function canItManageStudentOps(role?: UserRole | null): boolean {
+  return role === 'IT' || role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'DIRECTOR'
+}
+
+/** Montants / ledger / attribution frais chiffrée — fermé pour IT. */
+export function isFinanceLockedForRole(role?: UserRole | null): boolean {
+  return role === 'IT'
+}
+
 /** Field-level security : montants ledger = ADMIN / FINANCE / SUPER_ADMIN, ou capacité école. */
 export function canSeeFinanceAmounts(
   role?: UserRole | null,

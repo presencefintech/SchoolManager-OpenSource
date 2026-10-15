@@ -243,11 +243,12 @@ export const studentsApi = {
    * POST /admin/students/batch-photos
    * Images et/ou ZIP nommés `{numeroCourt}.jpg` / `{matricule}.jpg`.
    */
-  batchPhotos: (files: File[]) => {
+  batchPhotos: (files: File[], options?: { enrollBiometrics?: boolean }) => {
     const fd = new FormData()
     for (const file of files) {
       fd.append('photos', file)
     }
+    fd.append('enrollBiometrics', options?.enrollBiometrics === false ? 'false' : 'true')
     return apiClient
       .post<{ success: boolean; data: BatchPhotosResult; message?: string }>(
         '/admin/students/batch-photos',
@@ -270,6 +271,8 @@ export const studentsApi = {
 
 export type BatchPhotoMatchKind = 'numeroCourt' | 'matricule'
 
+export type BatchPhotoBiometricStatus = 'READY' | 'SKIPPED' | 'FAILED' | 'UNAVAILABLE'
+
 export type BatchPhotoFileResult = {
   fileName: string
   status: 'matched' | 'unmatched' | 'failed'
@@ -279,6 +282,8 @@ export type BatchPhotoFileResult = {
   studentName?: string
   photoUrl?: string
   reason?: string
+  biometricStatus?: BatchPhotoBiometricStatus
+  biometricReason?: string
 }
 
 export type BatchPhotosResult = {
@@ -286,6 +291,7 @@ export type BatchPhotosResult = {
   failedCount: number
   unmatchedCount: number
   processedCount: number
+  biometricEnrolledCount?: number
   unmatchedFiles: string[]
   results: BatchPhotoFileResult[]
 }

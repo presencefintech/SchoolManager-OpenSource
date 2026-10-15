@@ -201,11 +201,17 @@ export function useUploadStudentPhoto() {
     onSuccess: (_, { studentId }) => qc.invalidateQueries({ queryKey: ['admin', 'students', studentId] }),
   })
 }
-/** Import batch photos — matching {numeroCourt|matricule}.ext */
+/** Import batch photos — matching {numeroCourt|matricule}.ext (+ biométrie FACE optionnelle) */
 export function useBatchStudentPhotos() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (files: File[]) => studentsApi.batchPhotos(files),
+    mutationFn: ({
+      files,
+      enrollBiometrics,
+    }: {
+      files: File[]
+      enrollBiometrics?: boolean
+    }) => studentsApi.batchPhotos(files, { enrollBiometrics }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['admin', 'students'] })
     },

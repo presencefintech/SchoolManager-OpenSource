@@ -24,7 +24,7 @@ import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useToast } from '@/providers/toast-provider'
 import { useAuth } from '@/providers/auth-provider'
-import { isItDesk } from '@/types/auth'
+import { isItDesk, canItManageStudentOps } from '@/types/auth'
 import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { triggerBlobDownload } from '@/lib/download-blob'
@@ -59,6 +59,7 @@ function StudentsPageInner() {
   const toast = useToast()
   const { user } = useAuth()
   const deskOnly = isItDesk(user?.role)
+  const canMediaOps = canItManageStudentOps(user?.role)
   const [tab, setTab] = useState<Tab>('list')
   const {
     draft: filterDraft,
@@ -162,7 +163,7 @@ function StudentsPageInner() {
       >
         <div className="max-w-6xl mx-auto px-8 py-6 flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-2xl font-semibold text-zinc-900">Élèves</h1>
-          {!deskOnly && (
+          {canMediaOps && (
             <Link
               href="/admin/students/batch-photos"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
