@@ -275,8 +275,8 @@ export function ClassYearFeeDashboardView({ source }: { source: ClassYearFeeSour
                 />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
+              <div className="w-full overflow-x-auto">
+                <table className="min-w-[700px] w-full text-left text-sm">
                   <thead className="bg-zinc-50 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                     <tr>
                       <th className="px-4 py-3">Classe</th>

@@ -88,6 +88,7 @@ import { DualCurrencyStrip } from '@/components/finance/student-dashboard/Paymen
 import { ParentAmountFlash } from '@/components/finance/student-dashboard/PaymentModal/ParentAmountFlash'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { StudentCardPhoto } from '@/components/student-card/student-card-photo'
+import { NumeroCourtBadge } from '@/components/students/NumeroCourtBadge'
 import {
   validateManualCatalogPeriod,
   type FinanceCatalogSelection,
@@ -836,28 +837,28 @@ export function PaymentModal({
 
   return (
     <>
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm">
       <div
         ref={dialogRef}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[92vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[85vh] flex flex-col"
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-modal-title"
       >
-        <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-violet-500" />
+        <div className="h-1 shrink-0 bg-gradient-to-r from-emerald-500 via-teal-500 to-violet-500" />
 
-        <div className="flex items-start justify-between px-6 pt-5 pb-2 shrink-0">
-          <div>
+        <div className="flex items-start justify-between gap-3 px-4 sm:px-6 pt-4 sm:pt-5 pb-2 shrink-0">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 id="payment-modal-title" className="text-base font-semibold text-zinc-900">
+              <h2 id="payment-modal-title" className="text-base font-semibold text-zinc-900 break-words">
                 {modalTitle}
               </h2>
-              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 shrink-0">
                 Guichet RDC · FC/USD
               </span>
             </div>
             {!successPaymentId && (
-              <p className="text-xs text-zinc-500 mt-1">
+              <p className="text-xs text-zinc-500 mt-1 break-words">
                 {isCatalogMode
                   ? 'Hors échéancier · preuve & anti-doublon'
                   : structureCount > 1
@@ -871,7 +872,7 @@ export function PaymentModal({
             type="button"
             onClick={handleClose}
             disabled={isPending}
-            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 shrink-0"
             aria-label="Fermer"
           >
             <X size={18} />
@@ -879,7 +880,7 @@ export function PaymentModal({
         </div>
 
         {successPaymentId ? (
-          <div className="px-6 pb-6 space-y-4 overflow-y-auto">
+          <div className="px-4 sm:px-6 pb-6 space-y-4 overflow-y-auto min-h-0 flex-1">
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-5 text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
                 <CheckCircle2 size={22} className="text-emerald-600" />
@@ -968,7 +969,7 @@ export function PaymentModal({
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="px-6 pb-6 space-y-4 overflow-y-auto"
+            className="px-4 sm:px-6 pb-6 space-y-4 overflow-y-auto min-h-0 flex-1"
           >
             {/* Élève identité */}
             <div className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5">
@@ -980,7 +981,14 @@ export function PaymentModal({
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-zinc-900 truncate">{identity.fullName}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{identity.fullName}</p>
+                  <NumeroCourtBadge
+                    numeroCourt={identity.numeroCourt}
+                    size="sm"
+                    navigateOnClick={false}
+                  />
+                </div>
                 <p className="text-[11px] text-zinc-500 truncate">
                   {[identity.matricule, identity.className].filter(Boolean).join(' · ') ||
                     `#${studentId}`}
@@ -1008,21 +1016,25 @@ export function PaymentModal({
                     </span>
                   ) : null}
                 </div>
-                <div className="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                  [{categoryBadge}]
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex max-w-full items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                    <span className="truncate">[{categoryBadge}]</span>
+                  </span>
+                  {activeMoratorium ? (
+                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-medium text-indigo-800">
+                      <PauseCircle size={12} className="shrink-0" />
+                      <span className="truncate">
+                        {labelMoratorium(true)}
+                        {activeMoratorium.type
+                          ? ` · ${labelMoratoriumType(activeMoratorium.type)}`
+                          : ''}
+                        {activeMoratorium.endDate
+                          ? ` · jusqu’au ${new Date(activeMoratorium.endDate).toLocaleDateString('fr-CD')}`
+                          : ''}
+                      </span>
+                    </span>
+                  ) : null}
                 </div>
-                {activeMoratorium ? (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1 text-[10px] font-medium text-indigo-800">
-                    <PauseCircle size={12} className="shrink-0" />
-                    {labelMoratorium(true)}
-                    {activeMoratorium.type
-                      ? ` · ${labelMoratoriumType(activeMoratorium.type)}`
-                      : ''}
-                    {activeMoratorium.endDate
-                      ? ` · jusqu’au ${new Date(activeMoratorium.endDate).toLocaleDateString('fr-CD')}`
-                      : ''}
-                  </div>
-                ) : null}
               </div>
             </div>
 

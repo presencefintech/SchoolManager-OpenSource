@@ -126,8 +126,8 @@ export function StudentFeeLedgerTable({
         </p>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+      <div className="w-full overflow-x-auto">
+        <table className="min-w-[640px] w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50/80 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
               <th className="px-5 py-3 text-left">Nature du frais</th>

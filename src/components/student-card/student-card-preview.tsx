@@ -528,6 +528,32 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               </CardText>
             </div>
 
+            {data.numeroCourt != null && data.numeroCourt >= 1 && data.numeroCourt <= 9999 ? (
+              <div
+                style={{
+                  marginTop: mm(0.55),
+                  alignSelf: 'flex-start',
+                  padding: `${mm(0.4)}px ${mm(0.9)}px`,
+                  backgroundColor: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  borderRadius: 999,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 8,
+                    fontWeight: 700,
+                    fontFamily: 'Consolas, Monaco, monospace',
+                    color: '#047857',
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  N° Court : {data.numeroCourt}
+                </span>
+              </div>
+            ) : null}
+
             {classLine ? (
               <DetailRow label="Classe" value={classLine} fontSize={typography.detailValue} />
             ) : null}

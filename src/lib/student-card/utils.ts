@@ -49,6 +49,7 @@ export function buildStudentCardData(input: {
   postnom?: string | null
   prenom?: string | null
   matricule?: string | null
+  numeroCourt?: number | null
   photoUrl?: string | null
   qrPayload: string
   schoolName: string
@@ -78,6 +79,7 @@ export function buildStudentCardData(input: {
     prenom: identity.prenom,
     rdcFullName: identity.fullName,
     matricule: input.matricule ?? null,
+    numeroCourt: input.numeroCourt ?? null,
     className: input.className ?? null,
     section: input.section ?? null,
     option: input.option ?? null,
@@ -148,6 +150,7 @@ export function mapDashboardToStudentCard(
     postnom: profile.postnom,
     prenom: profile.prenom,
     matricule: profile.matricule,
+    numeroCourt: (profile as { numeroCourt?: number | null }).numeroCourt ?? null,
     photoUrl: profile.photoUrl,
     qrPayload: resolveCardQrPayload(profile.id, profile.matricule),
     schoolName: context?.schoolName ?? profile.school?.name ?? 'Établissement',

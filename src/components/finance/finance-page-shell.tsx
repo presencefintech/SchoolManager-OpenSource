@@ -83,12 +83,12 @@ export function FinancePanel({
       )}
     >
       {title && (
-        <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
-          <div className="flex items-center gap-2">
-            {Icon && <Icon size={15} className="text-zinc-400" />}
-            <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+        <div className="flex flex-col gap-2 border-b border-zinc-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-5 sm:py-4">
+          <div className="flex items-center gap-2 min-w-0">
+            {Icon && <Icon size={15} className="text-zinc-400 shrink-0" />}
+            <h2 className="text-sm font-semibold text-zinc-900 truncate">{title}</h2>
           </div>
-          {headerRight}
+          {headerRight ? <div className="shrink-0">{headerRight}</div> : null}
         </div>
       )}
       {children}

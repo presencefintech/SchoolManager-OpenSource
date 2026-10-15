@@ -121,7 +121,8 @@ export function StudentFinancialControlRows({
   const [expandedId, setExpandedId] = useState<number | null>(null)
 
   return (
-    <table className="w-full">
+    <div className="w-full overflow-x-auto">
+    <table className="w-full min-w-[780px]">
       <thead>
         <tr className="border-b border-zinc-100 bg-zinc-50/80">
           <th className="w-8 px-2 py-3" />
@@ -181,18 +182,18 @@ export function StudentFinancialControlRows({
                   </button>
                   )}
                 </td>
-                <td className="px-5 py-3">
-                  <Link href={studentHref(row.id)} className="block group">
-                    <p className="text-sm font-medium text-zinc-900 group-hover:text-emerald-700">
+                <td className="px-5 py-3 max-w-[220px]">
+                  <Link href={studentHref(row.id)} className="block group min-w-0">
+                    <p className="text-sm font-medium text-zinc-900 group-hover:text-emerald-700 truncate">
                       {row.fullName}
                     </p>
-                    <p className="text-xs text-zinc-400">{row.matricule}</p>
+                    <p className="text-xs text-zinc-400 truncate font-mono">{row.matricule}</p>
                   </Link>
                 </td>
-                <td className="px-5 py-3 text-sm text-zinc-600">
-                  {row.className ?? '—'}
+                <td className="px-5 py-3 text-sm text-zinc-600 max-w-[160px]">
+                  <span className="block truncate">{row.className ?? '—'}</span>
                   {(row.sectionName || row.optionName) && (
-                    <p className="text-[10px] text-zinc-400">
+                    <p className="text-[10px] text-zinc-400 truncate">
                       {[row.sectionName, row.optionName].filter(Boolean).join(' · ')}
                     </p>
                   )}
@@ -261,5 +262,6 @@ export function StudentFinancialControlRows({
         })}
       </tbody>
     </table>
+    </div>
   )
 }

@@ -116,6 +116,7 @@ export function normalizeStudentListItem(raw: Record<string, unknown>): StudentL
     postnom,
     prenom,
     matricule: (raw.matricule as string | undefined) ?? undefined,
+    numeroCourt: raw.numeroCourt != null ? Number(raw.numeroCourt) : null,
     status: String(raw.status ?? ''),
     className: cls?.name ?? (raw.className as string | undefined),
     email: raw.email as string | undefined,

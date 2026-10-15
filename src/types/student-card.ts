@@ -16,6 +16,8 @@ export interface StudentCardData {
   /** Nom complet RDC pour export PDF (Nom Postnom Prénom) */
   rdcFullName?: string
   matricule: string | null
+  /** N° court scolaire (1–9999) — affiché sur badge / carte */
+  numeroCourt?: number | null
   className: string | null
   section: string | null
   option: string | null

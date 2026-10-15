@@ -214,19 +214,23 @@ export function StudentCategoryCard({
 
   return (
     <div className={cn('rounded-2xl border border-zinc-100 bg-white shadow-sm overflow-hidden', className)}>
-      <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2">
-        <Tag size={14} className="text-emerald-600" />
-        <div>
-          <h3 className="text-sm font-semibold text-zinc-900">Catégorie Financière &amp; Exonérations</h3>
+      <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2 min-w-0">
+        <Tag size={14} className="text-emerald-600 shrink-0" />
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-zinc-900 truncate">
+            Catégorie Financière &amp; Exonérations
+          </h3>
           <p className="text-[11px] text-zinc-500">Tarification RDC selon le statut de l&apos;élève</p>
         </div>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
-            {displayLabel}
-            {policyHint && !dirty ? ` · ${policyHint}` : ''}
+          <span className="inline-flex max-w-full items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-100">
+            <span className="truncate">
+              {displayLabel}
+              {policyHint && !dirty ? ` · ${policyHint}` : ''}
+            </span>
           </span>
           {initialLabel ? (
             <span className="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800 ring-1 ring-sky-100">
@@ -285,8 +289,8 @@ export function StudentCategoryCard({
                 {preview.map((line) => {
                   const cur = (line.currency === 'CDF' ? 'CDF' : 'USD') as FinanceCurrencyCode
                   return (
-                    <div key={line.feeCategoryId} className="flex justify-between gap-2 text-xs text-zinc-700">
-                      <span className="truncate">{line.label}</span>
+                    <div key={line.feeCategoryId} className="flex justify-between gap-2 text-xs text-zinc-700 min-w-0">
+                      <span className="truncate min-w-0">{line.label}</span>
                       <span className="tabular-nums shrink-0">
                         {formatMoney(line.gross, cur)}
                         {line.discount > 0 ? (
