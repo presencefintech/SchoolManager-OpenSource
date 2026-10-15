@@ -53,7 +53,7 @@ export function ActiveQrSessionsPanel() {
         <div className="flex items-center gap-2">
           <QrCode size={16} className="text-violet-600" />
           <h3 className="text-sm font-semibold text-slate-800">Sessions QR actives</h3>
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">
+          <span className="text-[10px] font-medium px-2 py-0.6 rounded-full bg-violet-50 text-violet-700">
             {data?.count ?? 0}
           </span>
         </div>
