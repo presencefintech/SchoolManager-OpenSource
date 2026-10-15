@@ -180,12 +180,17 @@ export function selectAllRemainingMonths(
 
 export function buildPaymentFeeLines(
   selections: FeeLineSelection[],
+  obligationByFeeStructureId?: Map<number, number>,
 ): PaymentFeeLinePayload[] {
-  return selections.map(({ line, amount }) => ({
-    feeStructureId: line.feeStructureId,
-    monthYear: line.monthYear ?? undefined,
-    amount,
-  }))
+  return selections.map(({ line, amount }) => {
+    const obligationId = obligationByFeeStructureId?.get(line.feeStructureId)
+    return {
+      feeStructureId: line.feeStructureId,
+      monthYear: line.monthYear ?? undefined,
+      amount,
+      ...(obligationId != null ? { obligationId } : {}),
+    }
+  })
 }
 
 export function selectionTotalAmount(selections: FeeLineSelection[]): number {

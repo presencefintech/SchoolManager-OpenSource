@@ -26,6 +26,7 @@ import {
   useStudentWallet,
   useCashOps,
   useFeeStructuresV2,
+  useStudentObligations,
 } from '@/lib/hooks/use-finance'
 import {
   formatStudentCategoryBadge,
@@ -154,6 +155,11 @@ export function PaymentModal({
   } = useResolvedCashSession()
   const { data: profile } = useStudentFinanceProfile(open ? studentId : 0)
   const { data: feeCatalogV2 } = useFeeStructuresV2({ enabled: open })
+  const { data: obligationsPayload } = useStudentObligations(
+    open ? studentId : 0,
+    academicSessionId,
+    open,
+  )
   const { data: wallet } = useStudentWallet(open ? studentId : 0)
   const isCrossCampus = Boolean(wallet?.isCrossSite && wallet?.enrollmentSchoolId)
   const { data: currencyConfig } = useFinanceCurrencyConfig()
@@ -418,6 +424,24 @@ export function PaymentModal({
     })
   }, [selection, lineAmounts])
 
+  const activeObligations = useMemo(
+    () =>
+      (obligationsPayload?.obligations ?? []).filter(
+        (o) => o.status === 'OPEN' || o.status === 'PARTIAL',
+      ),
+    [obligationsPayload?.obligations],
+  )
+
+  const obligationByFeeStructureId = useMemo(() => {
+    const map = new Map<number, number>()
+    for (const o of activeObligations) {
+      if (o.feeStructureId != null && !map.has(o.feeStructureId)) {
+        map.set(o.feeStructureId, o.id)
+      }
+    }
+    return map
+  }, [activeObligations])
+
   const totalAmount = useMemo(() => {
     if (isCatalogMode) return Math.max(0, Number(catalogAmount) || 0)
     return editedLines.reduce((s, l) => s + l.amount, 0)
@@ -678,7 +702,9 @@ export function PaymentModal({
           : {}),
       }
 
-      const feeLines = !isCatalogMode ? buildPaymentFeeLines(editedLines) : []
+      const feeLines = !isCatalogMode
+        ? buildPaymentFeeLines(editedLines, obligationByFeeStructureId)
+        : []
       const feeStructureId =
         isCatalogMode && catalog
           ? catalog.feeStructureId
@@ -691,6 +717,10 @@ export function PaymentModal({
           : feeLines.length === 1
             ? feeLines[0].monthYear
             : feeLines[0]?.monthYear
+      const catalogObligationId =
+        isCatalogMode && catalog?.feeStructureId != null
+          ? obligationByFeeStructureId.get(catalog.feeStructureId)
+          : undefined
 
       const mapCrossMethod = (): 'CASH' | 'MOBILE_MONEY' | 'CARD' => {
         if (method === 'CASH') return 'CASH'
@@ -717,10 +747,27 @@ export function PaymentModal({
                 ...payloadBase,
                 feeStructureId: catalog.feeStructureId,
                 monthYear: catalog.monthYear,
+                ...(catalogObligationId != null && catalog.feeStructureId
+                  ? {
+                      fees: [
+                        {
+                          feeStructureId: catalog.feeStructureId,
+                          monthYear: catalog.monthYear,
+                          amount: Number(totalAmount.toFixed(2)),
+                          obligationId: catalogObligationId,
+                        },
+                      ],
+                    }
+                  : {}),
               })
             : await processPayment({
                 ...payloadBase,
-                fees: feeLines.length > 1 ? feeLines : undefined,
+                fees:
+                  feeLines.length > 1
+                    ? feeLines
+                    : feeLines.length === 1 && feeLines[0].obligationId != null
+                      ? feeLines
+                      : undefined,
                 feeStructureId: feeLines.length === 1 ? feeLines[0].feeStructureId : undefined,
                 monthYear: feeLines.length === 1 ? feeLines[0].monthYear : undefined,
               })
@@ -1139,6 +1186,36 @@ export function PaymentModal({
                 )}
               </div>
             </div>
+
+            {activeObligations.length > 0 && (
+              <div className="rounded-xl border border-sky-100 bg-sky-50/50 px-3 py-2.5 space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+                  Obligations V2 actives
+                </p>
+                <ul className="space-y-1 max-h-28 overflow-y-auto">
+                  {activeObligations.map((o) => (
+                    <li
+                      key={o.id}
+                      className="flex items-center justify-between gap-2 text-[11px] text-zinc-700"
+                    >
+                      <span className="min-w-0 truncate">
+                        {o.status === 'PARTIAL' ? '🟡' : '🔴'} {o.categoryName}
+                        {o.status === 'PARTIAL' ? (
+                          <span className="text-amber-800">
+                            {' '}
+                            · {formatMoney(o.paidAmount, currency)} /{' '}
+                            {formatMoney(o.netAmount, currency)}
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="tabular-nums font-medium shrink-0">
+                        {formatMoney(o.remaining, currency)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Montants */}
             {isCatalogMode ? (

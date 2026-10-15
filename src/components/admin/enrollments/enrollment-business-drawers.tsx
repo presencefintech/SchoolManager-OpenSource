@@ -32,6 +32,7 @@ import { adminPdfApi } from '@/lib/admin/api/pdf.api'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { fmtMoney } from '@/components/admin/finance/verification-ui'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
+import { EnrollmentFeePreviewCard } from '@/components/admin/enrollments/enrollment-fee-preview-card'
 
 function DrawerShell({
   open,
@@ -257,47 +258,15 @@ export function EnrollSessionDrawer({
           </select>
         </div>
 
-        <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5 space-y-1">
-          <div className="flex items-center justify-between text-[11px] text-zinc-600">
-            <span>
-              Quote {feePreview?.academicYear ?? '—'}
-              {feePreview?.mode ? ` · ${feePreview.mode}` : ''}
-            </span>
-            {feeLoading && <Loader2 size={12} className="animate-spin" />}
-          </div>
-          {feePreview?.feeLines?.length ? (
-            <ul className="space-y-1">
-              {feePreview.feeLines.map((line) => (
-                <li
-                  key={`${line.feeStructureId}-${line.source ?? 'auto'}`}
-                  className="flex justify-between text-[11px] text-zinc-700"
-                >
-                  <span>
-                    {line.categoryName}
-                    {line.source && line.source !== 'AUTOMATIC' && (
-                      <span className="ml-1 rounded bg-amber-50 px-1 text-[9px] font-medium uppercase text-amber-700">
-                        {line.source === 'PROPOSED' ? 'optionnel' : line.source}
-                      </span>
-                    )}
-                  </span>
-                  <span className="tabular-nums font-medium">
-                    {fmtMoney(line.amount, feePreview.currency)}
-                  </span>
-                </li>
-              ))}
-              <li className="flex justify-between text-xs font-semibold text-zinc-900 border-t border-zinc-200 pt-1 mt-1">
-                <span>Total</span>
-                <span>{fmtMoney(feePreview.totalFees, feePreview.currency)}</span>
-              </li>
-            </ul>
-          ) : (
-            !feeLoading && (
-              <p className="text-[11px] text-amber-700">
-                {effectiveClassId ? 'Aucun barème pour cette classe.' : 'Choisissez une classe pour voir la quote.'}
-              </p>
-            )
-          )}
-        </div>
+        <EnrollmentFeePreviewCard
+          preview={feePreview}
+          loading={feeLoading}
+          emptyHint={
+            effectiveClassId
+              ? 'Aucun barème pour cette classe.'
+              : 'Choisissez une classe pour voir la quote.'
+          }
+        />
 
         {explicitCatalog.length > 0 && (
           <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
@@ -571,43 +540,11 @@ export function RentreePackDrawer({
           </select>
         </div>
 
-        <div className="rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5 space-y-1">
-          <div className="flex items-center justify-between text-[11px] text-zinc-600">
-            <span>
-              Quote {feePreview?.academicYear ?? '—'}
-              {feePreview?.mode ? ` · ${feePreview.mode}` : ''}
-            </span>
-            {feeLoading && <Loader2 size={12} className="animate-spin" />}
-          </div>
-          {feePreview?.feeLines?.length ? (
-            <ul className="space-y-1">
-              {feePreview.feeLines.map((line) => (
-                <li
-                  key={`${line.feeStructureId}-${line.source ?? 'auto'}`}
-                  className="flex justify-between text-[11px] text-zinc-700"
-                >
-                  <span>
-                    {line.categoryName}
-                    {line.source && line.source !== 'AUTOMATIC' && (
-                      <span className="ml-1 rounded bg-amber-50 px-1 text-[9px] font-medium uppercase text-amber-700">
-                        {line.source === 'PROPOSED' ? 'optionnel' : line.source}
-                      </span>
-                    )}
-                  </span>
-                  <span className="tabular-nums font-medium">
-                    {fmtMoney(line.amount, feePreview.currency)}
-                  </span>
-                </li>
-              ))}
-              <li className="flex justify-between text-xs font-semibold text-zinc-900 border-t border-zinc-200 pt-1 mt-1">
-                <span>Total</span>
-                <span>{fmtMoney(feePreview.totalFees, feePreview.currency)}</span>
-              </li>
-            </ul>
-          ) : (
-            !feeLoading && <p className="text-[11px] text-amber-700">Aucun barème pour cette classe.</p>
-          )}
-        </div>
+        <EnrollmentFeePreviewCard
+          preview={feePreview}
+          loading={feeLoading}
+          emptyHint="Aucun barème pour cette classe."
+        />
 
         {explicitCatalog.length > 0 && (
           <div className="rounded-xl border border-amber-100 bg-amber-50/40 px-3 py-2.5 space-y-2">
