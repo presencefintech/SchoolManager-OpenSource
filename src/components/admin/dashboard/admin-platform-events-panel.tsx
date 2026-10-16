@@ -36,7 +36,7 @@ export function AdminPlatformEventsPanel() {
     <div className="rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-2">
-          <Wallet size={16} className="text-indigo-600" />
+          <Wallet size={16} className="text-emerald-600" />
           <h3 className="text-sm font-semibold text-slate-800">Événements plateforme</h3>
           <span
             className={cn(
@@ -48,13 +48,13 @@ export function AdminPlatformEventsPanel() {
           </span>
         </div>
         <div className="flex gap-3 text-[11px]">
-          <Link href="/admin/finance/caisse" className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-0.5">
+          <Link href="/admin/finance/caisse" className="text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-0.5">
             Caisse <ArrowRight size={11} />
           </Link>
-          <Link href="/admin/finance/paiements" className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-0.5">
+          <Link href="/admin/finance/paiements" className="text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-0.5">
             Paiements <ArrowRight size={11} />
           </Link>
-          <Link href="/admin/enrollments" className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center gap-0.5">
+          <Link href="/admin/enrollments" className="text-emerald-600 hover:text-emerald-700 font-medium inline-flex items-center gap-0.5">
             Inscriptions <ArrowRight size={11} />
           </Link>
         </div>

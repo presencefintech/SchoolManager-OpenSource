@@ -149,7 +149,7 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const inputCls = 'w-full rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40'
+  const inputCls = 'w-full rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -255,7 +255,7 @@ function CreatePreEnrollmentModal({ onClose }: { onClose: () => void }) {
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="rounded-xl border border-zinc-200 px-4 py-2 text-sm text-zinc-600">Annuler</button>
-            <button type="submit" disabled={create.isPending} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+            <button type="submit" disabled={create.isPending} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
               {create.isPending ? 'Enregistrement…' : 'Créer la demande'}
             </button>
           </div>
@@ -366,7 +366,7 @@ function PreEnrollmentsPageContent() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700"
           >
             <Plus size={14} />
             Nouvelle demande
@@ -422,7 +422,7 @@ function PreEnrollmentsPageContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un candidat…"
-            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
           />
         </div>
       </div>
@@ -454,7 +454,7 @@ function PreEnrollmentsPageContent() {
                     onClick={() => setSelectedId(item.id)}
                     className={cn(
                       'cursor-pointer hover:bg-zinc-50 transition-colors',
-                      selectedId === item.id && 'bg-indigo-50/40',
+                      selectedId === item.id && 'bg-emerald-50/40',
                     )}
                   >
                     <td className="px-5 py-3">
@@ -524,7 +524,7 @@ function PreEnrollmentsPageContent() {
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
                     rows={2}
-                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400/40"
                     placeholder="Obligatoire pour un rejet"
                   />
                   <div className="flex flex-wrap gap-2">

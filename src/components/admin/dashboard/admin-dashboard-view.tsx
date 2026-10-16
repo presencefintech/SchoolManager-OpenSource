@@ -446,7 +446,7 @@ export function AdminDashboardView() {
             <button
               type="button"
               onClick={() => refetchControl()}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"
             >
               <RefreshCw size={13} />
               Réessayer
@@ -560,7 +560,7 @@ export function AdminDashboardView() {
                   <button
                     type="button"
                     onClick={() => refetchFeed()}
-                    className="mt-2 text-xs font-medium text-indigo-600"
+                    className="mt-2 text-xs font-medium text-emerald-600"
                   >
                     Réessayer
                   </button>
@@ -600,7 +600,7 @@ export function AdminDashboardView() {
             subtitle="Top 8"
             className="lg:col-span-5"
             action={
-              <Link href="/admin/classes" className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+              <Link href="/admin/classes" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
                 Voir tout →
               </Link>
             }
@@ -629,7 +629,7 @@ export function AdminDashboardView() {
               ) : (
                 <p className="text-xs text-slate-400 text-center py-6">Aucune alerte</p>
               )}
-              <Link href="/admin/fraud" className="mt-3 flex items-center justify-center gap-1 text-xs text-indigo-600 font-medium">
+              <Link href="/admin/fraud" className="mt-3 flex items-center justify-center gap-1 text-xs text-emerald-600 font-medium">
                 Centre fraude <ArrowRight size={12} />
               </Link>
             </Panel>

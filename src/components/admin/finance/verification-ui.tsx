@@ -138,7 +138,7 @@ export function VerificationDetailDrawer({
   resending?: boolean
 }) {
   return (
-    <div className="fixed inset-0 z-[80] flex justify-end bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[80] flex justify-end bg-black/40 backdrop-blur-sm">
       <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
           <div>

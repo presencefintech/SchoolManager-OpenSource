@@ -198,6 +198,7 @@ export function EnrollmentCreateModal({
 
   const prevSectionRef = useRef(0)
   const prevOptionRef = useRef(0)
+  const prevClassForFeesRef = useRef(0)
 
   const {
     register,
@@ -349,6 +350,7 @@ export function EnrollmentCreateModal({
       setEnrollmentFormFile(null)
       prevSectionRef.current = 0
       prevOptionRef.current = 0
+      prevClassForFeesRef.current = 0
       lastAutofillPhoneRef.current = ''
       lastFeeSyncKeyRef.current = ''
     }
@@ -392,6 +394,17 @@ export function EnrollmentCreateModal({
       setValue('academicYear', cls.academicYear)
     }
   }, [classId, classes, academicYear, setValue])
+
+  useEffect(() => {
+    if (!open) return
+    if (prevClassForFeesRef.current !== classId && prevClassForFeesRef.current !== 0) {
+      // Les barèmes optionnels sélectionnés (ids) ne s'appliquent qu'à l'ancienne classe —
+      // les garder provoquerait un "skip" côté serveur (hors session / classe différente).
+      setValue('explicitFeeStructureIds', [], { shouldValidate: true })
+      setValue('autoAssignExplicitFees', false)
+    }
+    prevClassForFeesRef.current = classId ?? 0
+  }, [classId, open, setValue])
 
   async function handleCreateSection() {
     const name = inlineName.trim()

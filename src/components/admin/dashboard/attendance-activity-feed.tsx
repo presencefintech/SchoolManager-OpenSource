@@ -99,7 +99,7 @@ export function AttendanceActivityFeed() {
 
       <Link
         href="/admin/presences"
-        className="flex items-center justify-center gap-1 px-4 py-2.5 text-xs font-medium text-indigo-600 border-t border-slate-100 hover:bg-slate-50"
+        className="flex items-center justify-center gap-1 px-4 py-2.5 text-xs font-medium text-emerald-600 border-t border-slate-100 hover:bg-slate-50"
       >
         Voir présences <ArrowRight size={12} />
       </Link>
