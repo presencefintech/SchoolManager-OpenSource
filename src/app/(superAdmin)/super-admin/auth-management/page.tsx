@@ -438,8 +438,11 @@ export default function AuthManagementPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0">
-                          <span className="text-xs text-zinc-300 tabular-nums hidden sm:block">
-                            {new Date(s.expiresAt).toLocaleDateString('fr-FR')}
+                          <span
+                            className="text-xs text-zinc-300 tabular-nums hidden sm:block"
+                            title={`Expire le ${new Date(s.expiresAt).toLocaleDateString('fr-FR')}`}
+                          >
+                            {new Date(s.createdAt).toLocaleDateString('fr-FR')}
                           </span>
                           <button
                             onClick={() => handleSessionLogout(s.userId)}
