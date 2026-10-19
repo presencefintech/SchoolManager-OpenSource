@@ -29,11 +29,13 @@ export function ParentActivationButton({ studentId, studentName }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+        className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-emerald-600 px-2 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700 lg:px-3"
         title={`Activer le compte parent de ${studentName}`}
+        aria-label={`Activer le compte parent de ${studentName}`}
       >
         <UserPlus size={13} />
-        Activer parent
+        {/* Libellé masqué sur écran étroit : l'icône + l'infobulle suffisent, la colonne reste compacte */}
+        <span className="hidden lg:inline">Activer parent</span>
       </button>
       {open && <ParentActivationModal studentId={studentId} studentName={studentName} onClose={() => setOpen(false)} />}
     </>
