@@ -5,6 +5,7 @@ import { Undo2, Loader2 } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeRoleApi } from '@/lib/finance/api/finance.api'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
+import { printRectification } from '@/lib/finance/print-rectification'
 import type { PaymentFeeLine, StudentPaymentDetail } from '@/lib/finance/payment-history.utils'
 import { cn } from '@/lib/utils'
 
@@ -32,20 +33,6 @@ function isSameLocalDay(iso: string): boolean {
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
   )
-}
-
-function printRectification(pdfBase64?: string | null, filename?: string | null) {
-  if (!pdfBase64) return
-  const bytes = Uint8Array.from(atob(pdfBase64), (char) => char.charCodeAt(0))
-  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }))
-  const popup = window.open(url)
-  if (!popup) {
-    const link = document.createElement('a')
-    link.href = url
-    link.download = filename || 'recu-rectificatif.pdf'
-    link.click()
-  }
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 /**

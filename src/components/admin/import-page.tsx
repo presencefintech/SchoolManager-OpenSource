@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { StudentImportWizard } from '@/components/admin/student-import-wizard'
+import { ImportPackPanel } from '@/components/admin/import-pack-panel'
 
 const IMPORT_TYPES: {
   id: ImportType
@@ -165,6 +166,11 @@ export function ImportPage() {
           Préférez le modèle Excel (.xlsx). Un CSV Excel français (point-virgule) est aussi accepté.
         </p>
       </div>
+
+      <ImportPackPanel
+        schoolId={isSuperAdmin && selectedSchoolId ? selectedSchoolId : undefined}
+        canUpload={canUpload}
+      />
 
       <div className="grid grid-cols-4 gap-3">
         {IMPORT_TYPES.map(t => {
