@@ -32,7 +32,7 @@ export default function ParentPasswordPage() {
     }
   }
 
-  const field = 'w-full rounded-xl border border-line bg-canvas px-3 py-2.5'
+  const field = 'w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-base sm:text-sm'
 
   return (
     <>

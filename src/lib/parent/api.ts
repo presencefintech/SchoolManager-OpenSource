@@ -55,6 +55,7 @@ export interface ParentStudent {
   matricule?: string
   photo?: string
   className?: string
+  classId?: number
   balance?: number
   paid?: number
   isSecure?: boolean
@@ -68,6 +69,7 @@ export interface DashboardStudent {
   lastName?: string
   rdcFullName?: string
   photo?: string
+  classId?: number
   balance?: number
   debt?: number
   paid?: number

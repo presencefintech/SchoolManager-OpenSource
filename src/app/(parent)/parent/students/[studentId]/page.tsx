@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, CalendarCheck, QrCode, ShieldCheck, Wallet } from 'lucide-react'
+import { BookOpen, CalendarCheck, QrCode, School, ShieldCheck, Wallet } from 'lucide-react'
 import { parentApi, formatMoney, studentDisplayName } from '@/lib/parent/api'
 import { parentKeys, useSelectedStudent } from '@/lib/parent/hooks'
 import { Avatar, Card, EmptyState, ErrorState, ListSkeleton, PageHeader, Pill, statusTone } from '@/components/parent/ui'
@@ -48,7 +48,8 @@ export default function StudentDetailPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+        <QuickLink href={`/parent/students/${studentId}/class`} icon={School} label="Classe" />
         <QuickLink href={`/parent/students/${studentId}/attendance`} icon={CalendarCheck} label="Présences" />
         <QuickLink href={`/parent/students/${studentId}/pass`} icon={QrCode} label="Pass" />
         <QuickLink href={`/parent/finance?student=${studentId}`} icon={Wallet} label="Finance" />

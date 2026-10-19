@@ -54,7 +54,7 @@ export default function SchoolCirclePage() {
   const child = (data.children ?? data.students ?? []).find((c) => (c.id ?? c.studentId) === studentId)
   const adults: PickupAdult[] = child?.adults ?? []
   const error = [absence, late, addAdult, revoke].find((m) => m.isError)?.error
-  const field = 'w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm'
+  const field = 'w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-base sm:text-sm'
 
   return (
     <div className="space-y-5">
