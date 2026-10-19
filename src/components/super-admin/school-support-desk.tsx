@@ -865,7 +865,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
               </button>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-zinc-100">
+            <div className="overflow-x-auto rounded-2xl border border-zinc-100">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-zinc-50/90 text-[10px] uppercase tracking-[0.08em] text-zinc-400">

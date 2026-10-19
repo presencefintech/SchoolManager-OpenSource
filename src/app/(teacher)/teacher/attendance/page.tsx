@@ -264,6 +264,19 @@ export default function TeacherAttendancePage() {
             <ClipboardList className="h-4 w-4" />
             Registre quotidien (cahier)
           </Link>
+          <Link
+            href="/teacher/attendance/sheet"
+            className="inline-flex items-center gap-2 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-50"
+          >
+            <ClipboardList className="h-4 w-4" />
+            Cahier d’appel (brouillon · scellé)
+          </Link>
+          <Link
+            href="/teacher/attendance/history"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Historique
+          </Link>
           <PwaInstallPrompt />
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">

@@ -4,28 +4,45 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
+  Bell,
+  BookCheck,
   BookOpen,
+  CalendarDays,
   ClipboardList,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   Menu,
+  Newspaper,
   NotebookPen,
   PackagePlus,
   ScanBarcode,
+  School,
+  UserCheck,
+  UserRound,
   X,
 } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
+import { teacherMobileApi } from '@/lib/teacher/api/mobile.api'
 
 const NAV_LINKS = [
   { label: 'Tableau de bord', href: '/teacher/dashboard', icon: LayoutDashboard },
+  { label: 'Briefing du jour', href: '/teacher/briefing', icon: Newspaper },
+  { label: 'Emploi du temps', href: '/teacher/schedule', icon: CalendarDays },
+  { label: 'Mes classes', href: '/teacher/classes', icon: School },
   { label: 'Pointage', href: '/teacher/attendance', icon: ScanBarcode },
+  { label: 'Remise des élèves', href: '/teacher/pickup', icon: UserCheck },
+  { label: 'Devoirs', href: '/teacher/assignments', icon: BookCheck },
+  { label: 'QCM', href: '/teacher/quizzes', icon: ListChecks },
   { label: 'Cahier de notes', href: '/teacher/grades', icon: ClipboardList },
   { label: 'Fiches de préparation', href: '/teacher/lesson-plans', icon: NotebookPen },
   { label: 'Besoins matériels', href: '/teacher/needs', icon: PackagePlus },
+  { label: 'Notifications', href: '/teacher/notifications', icon: Bell },
+  { label: 'Mon profil', href: '/teacher/profile', icon: UserRound },
 ]
 
 function TeacherNav() {
@@ -33,6 +50,12 @@ function TeacherNav() {
   const { user, logout } = useAuth()
   const queryClient = useQueryClient()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const unread = useQuery({
+    queryKey: ['teacher', 'mobile', 'unread'],
+    queryFn: teacherMobileApi.unreadCount,
+    refetchInterval: 60_000,
+    retry: false,
+  })
 
   useEffect(() => {
     setMobileOpen(false)
@@ -44,7 +67,7 @@ function TeacherNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 lg:hidden">
+      <header className="sticky top-0 z-40 pt-[env(safe-area-inset-top)] border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2 font-semibold">
             <BookOpen className="h-5 w-5 text-teal-600" />
@@ -58,7 +81,7 @@ function TeacherNav() {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-200 bg-white p-4 transition dark:border-slate-800 dark:bg-slate-950 lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto border-r border-slate-200 bg-white p-4 transition dark:border-slate-800 dark:bg-slate-950 lg:static lg:shrink-0 lg:translate-x-0',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
@@ -83,6 +106,11 @@ function TeacherNav() {
               >
                 <Icon className="h-4 w-4" />
                 {link.label}
+                {link.href === '/teacher/notifications' && (unread.data ?? 0) > 0 && (
+                  <span className="ml-auto rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    {unread.data}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -130,9 +158,9 @@ function TeacherNav() {
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
-      <div className="mx-auto flex min-h-screen max-w-[1600px]">
+      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
         <TeacherNav />
-        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
+        <main className="min-w-0 flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:p-6 lg:p-8">
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>

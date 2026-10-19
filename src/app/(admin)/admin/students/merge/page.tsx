@@ -293,7 +293,7 @@ function ArchivedTab() {
         {isLoading ? 'Chargement…' : `${data?.meta.total ?? 0} fiche(s) archivée(s).`} Les fiches archivées n’apparaissent
         plus dans les listes mais conservent leur historique.
       </p>
-      <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden">
+      <div className="rounded-2xl border border-zinc-200 bg-white overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-xs text-zinc-500">
             <tr>

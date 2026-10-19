@@ -327,7 +327,7 @@ export function StudentImportWizard({
                     <summary className={cn('cursor-pointer px-3 py-2 text-sm font-medium', cls)}>
                       {title} ({list.length})
                     </summary>
-                    <div className="max-h-64 overflow-y-auto">
+                    <div className="max-h-64 overflow-auto">
                       <table className="w-full text-xs">
                         <tbody className="divide-y divide-zinc-50">
                           {list.slice(0, 500).map((e, i) => (
@@ -499,7 +499,7 @@ export function StudentImportWizard({
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-zinc-200 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-xs text-zinc-500">
             <tr>

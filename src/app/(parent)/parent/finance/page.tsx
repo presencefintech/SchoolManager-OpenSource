@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { CalendarClock, FileText, Hourglass, Receipt } from 'lucide-react'
+import { CalendarClock, FileText, Hourglass, Receipt, FileCheck2 } from 'lucide-react'
 import { parentApi, formatMoney } from '@/lib/parent/api'
 import { parentKeys, useSelectedStudent } from '@/lib/parent/hooks'
 import {
@@ -98,11 +98,12 @@ export default function ParentFinancePage() {
             </Card>
           )}
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             <ActionLink href="/parent/finance/pay" icon={Receipt} label="Payer les frais" />
             <ActionLink href="/parent/finance/schedule" icon={CalendarClock} label="Échéancier" />
             <ActionLink href="/parent/finance/moratorium" icon={Hourglass} label="Moratoire" />
             <ActionLink href="/parent/finance/invoices" icon={FileText} label="Factures" />
+            <ActionLink href="/parent/finance/declarations" icon={FileCheck2} label="Déclarations" />
           </div>
 
           <section aria-label="Historique des paiements">
@@ -142,9 +143,9 @@ export default function ParentFinancePage() {
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs text-zinc-500">{label}</p>
-      <p className={`text-base font-bold ${tone ?? ''}`}>{value}</p>
+      <p className={`break-words text-sm font-bold sm:text-base ${tone ?? ''}`}>{value}</p>
     </div>
   )
 }

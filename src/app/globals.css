@@ -75,6 +75,18 @@
     background-image: radial-gradient(rgb(248 250 252 / 0.05) 0.65px, transparent 0.65px);
   }
 
+  /* Mobile : jamais de scroll horizontal de la page, médias bornés à leur conteneur */
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+  img,
+  video,
+  svg {
+    max-width: 100%;
+  }
+
   ::-webkit-scrollbar {
     @apply w-1.5;
   }

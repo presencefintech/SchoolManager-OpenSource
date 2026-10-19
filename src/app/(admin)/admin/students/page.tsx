@@ -295,12 +295,12 @@ function StudentsPageInner() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-5 py-3 text-sm text-zinc-500">{s.className ?? '—'}</td>
+                            <td className="px-5 py-3 text-sm text-zinc-500 whitespace-nowrap">{s.className ?? '—'}</td>
                             <td className="px-5 py-3">
-                              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', sc.cls)}>{sc.label}</span>
+                              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap', sc.cls)}>{sc.label}</span>
                             </td>
-                            <td className="px-5 py-3 text-sm text-zinc-400 font-mono">{s.matricule ?? '—'}</td>
-                            <td className="px-5 py-3 text-right">
+                            <td className="px-5 py-3 text-sm text-zinc-400 font-mono whitespace-nowrap">{s.matricule ?? '—'}</td>
+                            <td className="px-5 py-3 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-2">
                                 <ParentActivationButton studentId={s.id} studentName={formatStudentFullName(s) || `Élève #${s.id}`} />
                               <RowActionsMenu
