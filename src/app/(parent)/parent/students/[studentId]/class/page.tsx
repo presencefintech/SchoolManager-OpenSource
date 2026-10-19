@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Phone } from 'lucide-react'
 import { asList, parentApi, studentDisplayName } from '@/lib/parent/api'
-import { useParentDashboard, useSelectedStudent } from '@/lib/parent/hooks'
+import { useSelectedStudent } from '@/lib/parent/hooks'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { Card, EmptyState, ErrorState, ListSkeleton, PageHeader } from '@/components/parent/ui'
 
@@ -40,10 +40,16 @@ export default function ParentClassHubPage() {
   const params = useParams<{ studentId: string }>()
   const studentId = Number(params.studentId)
   const { students } = useSelectedStudent()
-  const dashboard = useParentDashboard()
+  // L'identifiant de classe n'est exposé que par le cercle de l'école (comme dans l'app mobile).
+  const circle = useQuery({ queryKey: ['parent', 'school-circle'], queryFn: parentApi.schoolCircle, staleTime: 60_000 })
 
   const student = students.find((s) => s.id === studentId)
-  const classId = student?.classId ?? dashboard.data?.students?.find((s) => s.id === studentId)?.classId
+  const circleChild = [...(circle.data?.children ?? []), ...(circle.data?.students ?? [])].find(
+    (c) => Number(c.studentId ?? c.id) === studentId,
+  )
+  const rawClassId = Number(circleChild?.classId)
+  const classId = Number.isFinite(rawClassId) && rawClassId > 0 ? rawClassId : undefined
+  const homeroom = (circleChild?.teacher ?? null) as Record<string, unknown> | null
 
   const details = useQuery({
     queryKey: ['parent', 'class', classId, 'details'],
@@ -71,13 +77,26 @@ export default function ParentClassHubPage() {
       <PageHeader title={student?.className ? `Classe ${student.className}` : 'Classe'} subtitle="Informations pratiques et contacts de la classe." />
 
       {classId == null ? (
-        dashboard.isLoading ? (
+        circle.isLoading ? (
           <ListSkeleton rows={3} />
         ) : (
           <EmptyState title="Classe introuvable" hint="La classe de cet enfant n'est pas encore renseignée." />
         )
       ) : (
         <>
+          {homeroom && str(homeroom.name) && (
+            <Card className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs uppercase text-zinc-500">{str(homeroom.roleLabel) || 'Titulaire'}</p>
+                <p className="truncate font-medium">{str(homeroom.name)}</p>
+              </div>
+              {str(homeroom.phone) && (
+                <a href={`tel:${str(homeroom.phone)}`} className="inline-flex items-center gap-1 text-sm text-teal-700 hover:underline">
+                  <Phone className="h-4 w-4" /> {str(homeroom.phone)}
+                </a>
+              )}
+            </Card>
+          )}
           {details.isLoading ? <ListSkeleton rows={2} /> : details.isError ? <ErrorState message={getApiErrorMessage(details.error)} onRetry={() => void details.refetch()} /> : <InfoCard title="Informations" data={details.data} />}
           {logistics.isLoading ? null : logistics.isError ? null : <InfoCard title="Logistique" data={logistics.data} />}
 
