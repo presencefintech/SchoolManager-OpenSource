@@ -128,7 +128,7 @@ export function AttendanceReadinessPanel() {
           <ScoreRing score={data.score} ready={data.ready} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <Rocket size={16} className="text-indigo-600" />
+              <Rocket size={16} className="text-emerald-600" />
               <h2 className="text-sm font-semibold text-slate-900">Préparation au pointage</h2>
               <span
                 className={cn(
@@ -181,7 +181,7 @@ export function AttendanceReadinessPanel() {
               type="button"
               onClick={handleProvision}
               disabled={provision.isPending}
-              className="w-full px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="w-full px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
             >
               {provision.isPending ? 'Initialisation…' : 'Initialiser les paramètres'}
             </button>

@@ -432,8 +432,8 @@ export default function NotificationsPage() {
             <motion.div variants={fadeUp} initial="hidden" animate="show"
               className="bg-white rounded-2xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-6">
               <div className="flex items-center gap-2 mb-5">
-                <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center">
-                  <User size={14} className="text-indigo-600" />
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <User size={14} className="text-emerald-600" />
                 </div>
                 <h2 className="text-sm font-semibold text-zinc-900">Message direct</h2>
               </div>
@@ -480,7 +480,7 @@ export default function NotificationsPage() {
                 )}
 
                 <button type="submit" disabled={sendDirect.isPending}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
                   <Send size={14} />
                   {sendDirect.isPending ? 'Envoi…' : 'Envoyer'}
                 </button>

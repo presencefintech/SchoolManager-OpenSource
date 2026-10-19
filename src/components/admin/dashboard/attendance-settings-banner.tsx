@@ -103,7 +103,7 @@ export function AttendanceSettingsBanner() {
         )}
         <Link
           href="/admin/settings"
-          className="font-medium text-indigo-600 hover:text-indigo-700 whitespace-nowrap"
+          className="font-medium text-emerald-600 hover:text-emerald-700 whitespace-nowrap"
         >
           Modifier →
         </Link>

@@ -501,6 +501,11 @@ export type EnrollmentFeePreviewLine = {
   currency: string
   source?: 'AUTOMATIC' | 'ASSIGN' | 'OVERRIDE' | 'EXEMPT' | 'PROPOSED'
   assignmentMode?: string
+  /** LOT 3 — brut avant remise catégorie */
+  grossAmount?: number
+  /** LOT 3 — remise appliquée */
+  discountAmount?: number
+  discountLabel?: string
 }
 
 export type EnrollmentFeePreview = {
@@ -508,8 +513,17 @@ export type EnrollmentFeePreview = {
   academicYear: string
   currency: string
   totalFees: number
-  mode?: 'catalog' | 'student_effective'
+  totalGross?: number
+  totalDiscount?: number
+  mode?: 'catalog' | 'student_effective' | 'category_v2'
   asOf?: string
+  studentCategory?: string
+  breakdown?: {
+    baseClassFees: number
+    addOns: number
+    discounts: number
+    netPayable: number
+  }
   feeLines: EnrollmentFeePreviewLine[]
 }
 

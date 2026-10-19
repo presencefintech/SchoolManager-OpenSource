@@ -32,12 +32,12 @@ export function DashboardActionWidgets() {
       <div className="rounded-xl border border-slate-200/80 bg-white/90 p-4 shadow-[0_1px_3px_rgba(15,23,42,0.06)]">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
-            <ClipboardList size={16} className="text-indigo-600" />
+            <ClipboardList size={16} className="text-emerald-600" />
             <h3 className="text-sm font-semibold text-slate-800">Cahiers du jour</h3>
           </div>
           <Link
             href="/admin/presences?tab=sheets"
-            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-0.5"
+            className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-0.5"
           >
             Ouvrir <ArrowRight size={11} />
           </Link>
@@ -81,7 +81,7 @@ export function DashboardActionWidgets() {
           </div>
           <Link
             href="/admin/attendance-notifications?status=FAILED"
-            className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-0.5"
+            className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-0.5"
           >
             Tout voir <ArrowRight size={11} />
           </Link>

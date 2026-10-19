@@ -359,6 +359,15 @@ export function useAddCashSessionMovement() {
 
 // ── Paiements ──────────────────────────────────────────────────────────────
 
+export function useStudentObligations(studentId: number, sessionId?: number, enabled = true) {
+  return useQuery({
+    queryKey: ['finance', 'student-obligations', studentId, sessionId ?? null],
+    queryFn: () => financeRoleApi.listStudentObligations(studentId, sessionId),
+    enabled: enabled && studentId > 0,
+    staleTime: 20_000,
+  })
+}
+
 export function useProcessPayment() {
   const qc = useQueryClient()
   return useMutation({
@@ -374,6 +383,8 @@ export function useProcessPayment() {
       qc.invalidateQueries({ queryKey: ['finance', 'student', variables.studentId] })
       qc.invalidateQueries({ queryKey: ['finance', 'fee-periods', variables.studentId] })
       qc.invalidateQueries({ queryKey: ['finance', 'student-payments', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['finance', 'student-obligations', variables.studentId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'student-obligations', variables.studentId] })
     },
   })
 }

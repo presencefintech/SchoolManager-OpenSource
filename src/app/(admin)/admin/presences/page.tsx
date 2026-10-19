@@ -319,7 +319,7 @@ function PresencesPageContent() {
             <button
               type="button"
               onClick={() => openBulkSheet()}
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-2 text-sm font-medium text-indigo-800 transition-colors hover:bg-indigo-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-2 text-sm font-medium text-emerald-800 transition-colors hover:bg-emerald-50"
             >
               <ClipboardList size={15} />
               Cahier d&apos;appel

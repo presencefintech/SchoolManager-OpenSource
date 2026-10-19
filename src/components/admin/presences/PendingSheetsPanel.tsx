@@ -148,11 +148,11 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
   return (
     <>
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
-        <div className="border-b border-zinc-100 bg-gradient-to-r from-indigo-50/40 via-white to-white px-6 py-5">
+        <div className="border-b border-zinc-100 bg-gradient-to-r from-emerald-50/40 via-white to-white px-6 py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                   <ClipboardList size={18} />
                 </span>
                 <div>
@@ -171,7 +171,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
                   className={cn(
                     'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                     viewMode === 'workflow'
-                      ? 'bg-indigo-600 text-white'
+                      ? 'bg-emerald-600 text-white'
                       : 'text-zinc-600 hover:bg-zinc-50',
                   )}
                 >
@@ -262,7 +262,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
                     'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
                     filterByDate
                       ? 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
-                      : 'border-indigo-200 bg-indigo-50 text-indigo-700',
+                      : 'border-emerald-200 bg-emerald-50 text-emerald-700',
                   )}
                 >
                   {filterByDate ? 'Toutes les dates' : 'Filtrer par date'}
@@ -408,7 +408,7 @@ export function PendingSheetsPanel({ classId, onOpenSheet }: Props) {
                             type="button"
                             disabled={seal.isPending}
                             onClick={() => setSealTarget(row)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                           >
                             <Lock size={12} />
                             Clôturer

@@ -180,7 +180,7 @@ function MergeDialog({
           <button
             onClick={confirm}
             disabled={mergeMutation.isPending || isLoading}
-            className="flex-1 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-medium"
+            className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300 text-white text-sm font-medium"
           >
             {mergeMutation.isPending ? 'Fusion…' : 'Confirmer la fusion'}
           </button>
@@ -247,7 +247,7 @@ function DuplicatesTab() {
                 <StudentCard s={p.a} />
                 <button
                   onClick={() => setMerge({ target: p.a, source: p.b })}
-                  className="w-full px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium"
+                  className="w-full px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium"
                 >
                   Garder cette fiche, fusionner l’autre
                 </button>
@@ -256,7 +256,7 @@ function DuplicatesTab() {
                 <StudentCard s={p.b} />
                 <button
                   onClick={() => setMerge({ target: p.b, source: p.a })}
-                  className="w-full px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium"
+                  className="w-full px-3 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm font-medium"
                 >
                   Garder cette fiche, fusionner l’autre
                 </button>
@@ -379,7 +379,7 @@ export default function StudentMergePage() {
                 onClick={() => setTab(id)}
                 className={cn(
                   'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  tab === id ? 'bg-indigo-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
+                  tab === id ? 'bg-emerald-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200',
                 )}
               >
                 <Icon size={14} /> {label}

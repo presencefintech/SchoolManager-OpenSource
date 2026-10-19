@@ -36,19 +36,16 @@ apiClient.interceptors.request.use((config) => {
     }
   }
 
-  try {
-    const raw = localStorage.getItem('auth_user')
-    const role = raw ? (JSON.parse(raw) as { role?: string }).role : undefined
-    if (role === 'SUPER_ADMIN') {
-      delete config.headers['x-school-id']
-      return config
-    }
-    // PROMOTER / SUPER_ADMIN_NETWORK : X-School-Id = campus actif (CampusSwitcher)
-  } catch {
-    /* ignore malformed auth_user */
-  }
+  // Le cookie `auth_school_id` (posé par le serveur, synchrone dès la redirection)
+  // fait foi — `localStorage.auth_user` n'est resynchronisé qu'après coup via
+  // AuthProvider.bootstrap(), donc son rôle peut rester périmé juste après un
+  // changement de session (impersonation, sortie d'impersonation).
   const schoolId = getAuthSchoolId()
-  if (schoolId) config.headers['x-school-id'] = schoolId
+  if (schoolId) {
+    config.headers['x-school-id'] = schoolId
+  } else {
+    delete config.headers['x-school-id']
+  }
   return config
 })
 

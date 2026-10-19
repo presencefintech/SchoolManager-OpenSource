@@ -43,7 +43,7 @@ export function ControlDashboardPanel() {
     <div className="rounded-xl border border-slate-200/80 bg-white/90 shadow-[0_1px_3px_rgba(15,23,42,0.06)] overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
         <div className="flex items-center gap-2">
-          <Server size={16} className="text-indigo-600" />
+          <Server size={16} className="text-emerald-600" />
           <h3 className="text-sm font-semibold text-slate-800">Supervision</h3>
           <span
             className={cn(
