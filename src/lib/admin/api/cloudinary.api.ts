@@ -1,10 +1,11 @@
 import { apiClient } from '@/lib/api/client'
 import { getAuthSchoolId } from '@/lib/api/auth-storage'
+import { compressImageFile } from '@/lib/image/compress-image'
 
 export const adminCloudinaryApi = {
-  uploadPhoto: (studentId: number, file: File, description?: string) => {
+  uploadPhoto: async (studentId: number, file: File, description?: string) => {
     const fd = new FormData()
-    fd.append('file', file)
+    fd.append('file', await compressImageFile(file))
     const schoolId = getAuthSchoolId()
     if (schoolId) fd.append('schoolId', String(schoolId))
     if (description) fd.append('description', description)

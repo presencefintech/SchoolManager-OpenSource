@@ -5,6 +5,33 @@ import type {
   StudentListItem,
   StudentActivity, DossierStatus, Debtor, StudentApplication, PaginatedResponse,
 } from '@/types/admin'
+import { compressImageFile } from '@/lib/image/compress-image'
+
+/** Corps max par requête batch-photos (limite proxy serverless ~4,5 Mo). */
+const BATCH_PHOTOS_CHUNK_BYTES = 3.5 * 1024 * 1024
+
+function mergeBatchPhotosResults(parts: BatchPhotosResult[]): BatchPhotosResult {
+  return parts.reduce<BatchPhotosResult>(
+    (acc, p) => ({
+      matchedCount: acc.matchedCount + p.matchedCount,
+      failedCount: acc.failedCount + p.failedCount,
+      unmatchedCount: acc.unmatchedCount + p.unmatchedCount,
+      processedCount: acc.processedCount + p.processedCount,
+      biometricEnrolledCount: (acc.biometricEnrolledCount ?? 0) + (p.biometricEnrolledCount ?? 0),
+      unmatchedFiles: [...acc.unmatchedFiles, ...p.unmatchedFiles],
+      results: [...acc.results, ...p.results],
+    }),
+    {
+      matchedCount: 0,
+      failedCount: 0,
+      unmatchedCount: 0,
+      processedCount: 0,
+      biometricEnrolledCount: 0,
+      unmatchedFiles: [],
+      results: [],
+    },
+  )
+}
 
 function normalizeDossierStatus(raw: Record<string, unknown>): DossierStatus {
   const checks = (raw.checks && typeof raw.checks === 'object' ? raw.checks : {}) as Record<string, unknown>
@@ -243,29 +270,51 @@ export const studentsApi = {
    * POST /admin/students/batch-photos
    * Images et/ou ZIP nommés `{numeroCourt}.jpg` / `{matricule}.jpg`.
    */
-  batchPhotos: (files: File[], options?: { enrollBiometrics?: boolean }) => {
-    const fd = new FormData()
-    for (const file of files) {
-      fd.append('photos', file)
+  batchPhotos: async (files: File[], options?: { enrollBiometrics?: boolean }) => {
+    // Images compressées puis envoyées par lots ≤ 3,5 Mo : le proxy serverless
+    // rejette (413) tout corps > ~4,5 Mo. Les ZIP partent seuls dans leur lot.
+    const prepared = await Promise.all(files.map(compressImageFile))
+    const chunks: File[][] = []
+    let current: File[] = []
+    let currentBytes = 0
+    for (const file of prepared) {
+      if (current.length && currentBytes + file.size > BATCH_PHOTOS_CHUNK_BYTES) {
+        chunks.push(current)
+        current = []
+        currentBytes = 0
+      }
+      current.push(file)
+      currentBytes += file.size
     }
-    fd.append('enrollBiometrics', options?.enrollBiometrics === false ? 'false' : 'true')
-    return apiClient
-      .post<{ success: boolean; data: BatchPhotosResult; message?: string }>(
-        '/admin/students/batch-photos',
-        fd,
-        {
-          timeout: 180_000,
-          transformRequest: [
-            (data: unknown, headers: Record<string, unknown>) => {
-              if (typeof FormData !== 'undefined' && data instanceof FormData) {
-                delete headers['Content-Type']
-              }
-              return data
-            },
-          ],
-        },
-      )
-      .then((r) => r.data.data)
+    if (current.length) chunks.push(current)
+
+    const results: BatchPhotosResult[] = []
+    for (const chunk of chunks) {
+      const fd = new FormData()
+      for (const file of chunk) {
+        fd.append('photos', file)
+      }
+      fd.append('enrollBiometrics', options?.enrollBiometrics === false ? 'false' : 'true')
+      const data = await apiClient
+        .post<{ success: boolean; data: BatchPhotosResult; message?: string }>(
+          '/admin/students/batch-photos',
+          fd,
+          {
+            timeout: 180_000,
+            transformRequest: [
+              (data: unknown, headers: Record<string, unknown>) => {
+                if (typeof FormData !== 'undefined' && data instanceof FormData) {
+                  delete headers['Content-Type']
+                }
+                return data
+              },
+            ],
+          },
+        )
+        .then((r) => r.data.data)
+      results.push(data)
+    }
+    return mergeBatchPhotosResults(results)
   },
 }
 
