@@ -888,6 +888,16 @@ export const financeApi = {
       .then((r) => r.data.data),
 
   // ── Secours / supervision (ADMIN) ─────────────────────────────────────────
+  /**
+   * Correction admin de lignes (espèces) — même contre-passation que le guichet
+   * (avoir + reçu rectificatif), sans exiger une session de caisse ouverte.
+   * Mois : on annule toujours le(s) plus récent(s) d’abord.
+   */
+  adminCorrectPaymentLines: (paymentId: number, body: { paymentFeeIds: number[]; reason: string }) =>
+    apiClient
+      .post(`/admin/finance/payments/${paymentId}/admin-correct-lines`, body)
+      .then((r) => r.data.data as AdminPaymentLineCorrectionResult),
+
   listPaymentVoids: (params?: { status?: 'PENDING' | 'APPROVED' | 'REJECTED' }) =>
     apiClient
       .get('/admin/finance/payment-voids', { params })
@@ -931,6 +941,29 @@ export const financeApi = {
           }>
         },
     ),
+}
+
+/** Réponse de POST /admin/finance/payments/:id/admin-correct-lines (PaymentLineCorrectionService). */
+export type AdminPaymentLineCorrectionResult = {
+  paymentId: number
+  correctionKey: string
+  amountReversed: number
+  remainingActiveLines: number
+  status?: string
+  avoirPaymentId: number | null
+  receiptNumber: string | null
+  originalReceiptNumber: string
+  rectificationLabel: string
+  pdfBase64: string | null
+  pdfFilename: string | null
+  feeLines: Array<{
+    id: number
+    feeStructureId: number
+    monthYear: string | null
+    amount: number
+    reversedAt: string | null
+    reversalReason: string | null
+  }>
 }
 
 export type PaymentVoidStatus = 'PENDING' | 'APPROVED' | 'REJECTED'

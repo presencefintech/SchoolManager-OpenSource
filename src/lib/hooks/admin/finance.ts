@@ -424,3 +424,19 @@ export function useRepairSchoolLedgers() {
     },
   })
 }
+
+/** Correction admin de lignes d’un encaissement espèces (avoir + reçu rectificatif). */
+export function useAdminCorrectPaymentLines() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { paymentId: number; paymentFeeIds: number[]; reason: string }) =>
+      financeApi.adminCorrectPaymentLines(input.paymentId, {
+        paymentFeeIds: input.paymentFeeIds,
+        reason: input.reason,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin', 'finance'] })
+      void qc.invalidateQueries({ queryKey: ['admin', 'students'] })
+    },
+  })
+}

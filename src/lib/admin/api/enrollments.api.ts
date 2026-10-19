@@ -410,6 +410,17 @@ export const enrollmentsApi = {
       `attestations-classe-${classId}.pdf`,
     ),
 
+  /** ZIP des fiches d'inscription PDF — élèves ACTIVE de la classe (80 max côté backend). */
+  downloadClassFichesZip: (classId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/fiches/zip`, {
+        responseType: 'blob',
+        timeout: 180_000,
+      }),
+      `fiches-inscription-classe-${classId}.zip`,
+      'zip',
+    ),
+
   revokeIssuedDocument: (payload: { documentRef: string; reason?: string }) =>
     apiClient
       .post<{ success: boolean; data: { documentRef: string; revokedAt: string } }>(
@@ -422,11 +433,12 @@ export const enrollmentsApi = {
 async function fetchStudentCardsPdf(
   request: Promise<{ data: Blob; headers: Record<string, unknown> }>,
   fallbackFilename: string,
+  format: 'pdf' | 'zip' = 'pdf',
 ): Promise<{ blob: Blob; filename: string }> {
   try {
     const res = await request
     const contentType = res.headers['content-type'] as string | undefined
-    if (!isExportContentType(contentType, 'pdf')) {
+    if (!isExportContentType(contentType, format)) {
       throw new Error(await readBlobErrorMessage(res.data))
     }
     return {
