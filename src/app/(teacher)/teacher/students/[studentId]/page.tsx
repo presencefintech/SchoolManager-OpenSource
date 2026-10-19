@@ -21,10 +21,10 @@ export default function TeacherStudentProfilePage() {
       <button type="button" onClick={() => router.back()} className="inline-flex items-center gap-1 text-sm text-slate-500 hover:underline">
         <ArrowLeft className="h-4 w-4" /> Retour
       </button>
-      {q.isLoading ? (
-        <ListSkeleton rows={3} />
-      ) : q.isError ? (
+      {q.isError ? (
         <ErrorState message={apiErrorMessage(q.error, 'Profil introuvable.')} onRetry={() => q.refetch()} />
+      ) : !q.data ? (
+        <ListSkeleton rows={3} />
       ) : (
         <>
           <PageHeader

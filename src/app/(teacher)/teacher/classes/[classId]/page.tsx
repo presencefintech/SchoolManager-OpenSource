@@ -140,7 +140,6 @@ function StatsTab({ classId }: { classId: number }) {
     queryKey: ['teacher', 'mobile', 'class-stats', classId],
     queryFn: () => teacherMobileApi.classStats(classId),
   })
-  if (q.isLoading) return <ListSkeleton rows={2} />
   if (q.isError) {
     const status = (q.error as { response?: { status?: number } })?.response?.status
     return (
@@ -150,7 +149,8 @@ function StatsTab({ classId }: { classId: number }) {
       />
     )
   }
-  const s = q.data!
+  const s = q.data
+  if (!s) return <ListSkeleton rows={2} />
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <StatTile label="Effectif" value={s.studentCount ?? '—'} />
