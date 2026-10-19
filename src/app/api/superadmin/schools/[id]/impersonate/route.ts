@@ -93,11 +93,15 @@ export async function GET(req: NextRequest, ctx: Ctx) {
       }
     }
 
+    // Toujours posé : le proxy /api/[...path] n'attache x-school-id qu'à partir
+    // de ce cookie, jamais via le payload backend directement.
+    const activeSchoolId =
+      data.user?.schoolId ?? data.impersonation?.schoolId ?? data.school?.id ?? Number(id)
     res.cookies.set(buildAuthCookie(AUTH_COOKIE.access, data.token, maxAge, true))
     res.cookies.set(buildAuthCookie(AUTH_COOKIE.refresh, data.refreshToken, maxAge, true))
-    if (data.user?.schoolId != null) {
+    if (activeSchoolId != null) {
       res.cookies.set(
-        buildAuthCookie(AUTH_COOKIE.school, String(data.user.schoolId), maxAge, false),
+        buildAuthCookie(AUTH_COOKIE.school, String(activeSchoolId), maxAge, false),
       )
     }
 
