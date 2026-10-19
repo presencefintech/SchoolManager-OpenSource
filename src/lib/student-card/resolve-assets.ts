@@ -48,6 +48,11 @@ export function createInitialsAvatarDataUrl(firstName: string, lastName: string)
 /** Résout une URL relative backend (/uploads/…) vers le proxy authentifié Next */
 export function normalizeAssetUrl(url: string): string {
   if (url.startsWith('data:') || url.startsWith('blob:')) return url
+  // Photos du bucket privé : toujours via le proxy same-origin (évite CORS sur l'URL absolue du backend)
+  const storageIdx = url.indexOf('/api/v1/storage/o/')
+  if (storageIdx >= 0 && typeof window !== 'undefined') {
+    return `${window.location.origin}${url.slice(storageIdx)}`
+  }
   if (/^https?:\/\//i.test(url)) return url
   if (typeof window !== 'undefined' && url.startsWith('/uploads/')) {
     return `${window.location.origin}/api${url}`
@@ -78,7 +83,9 @@ export async function resolveImageDataUrl(
     const resolved = normalizeAssetUrl(url.trim())
     if (resolved.startsWith('data:')) return resolved
 
-    const response = await fetch(resolved, { credentials: 'include' })
+    let response = await fetch(resolved, { credentials: 'include' }).catch(() => null)
+    // URL absolue cross-origin : CORS refuse credentials + wildcard → nouvel essai sans cookies
+    if (!response?.ok) response = await fetch(resolved, { credentials: 'omit' })
     if (!response.ok) return fallback()
 
     const blob = await response.blob()

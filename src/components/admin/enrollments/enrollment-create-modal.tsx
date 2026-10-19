@@ -45,7 +45,7 @@ import { isValidInternationalPhone } from '@/lib/phone/validation'
 import { STUDENT_CATEGORY_OPTIONS } from '@/lib/finance/student-category-labels'
 
 const inputCls =
-  'w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400'
+  'w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400'
 const labelCls = 'block text-xs font-medium text-zinc-600 mb-1'
 const hintCls = 'text-[10px] text-zinc-400 mt-1'
 const errorCls = 'text-xs text-red-600 mt-1'

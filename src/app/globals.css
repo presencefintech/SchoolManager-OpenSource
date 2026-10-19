@@ -150,6 +150,16 @@ html.dark textarea {
   border-color: rgb(var(--pf-border));
 }
 
+/* Listes déroulantes natives : fond/texte explicites (sinon texte clair sur popup blanc) */
+html.dark select {
+  color-scheme: dark;
+}
+html.dark select option,
+html.dark select optgroup {
+  background-color: rgb(var(--pf-surface));
+  color: rgb(var(--pf-fg));
+}
+
 .bg-brand-soft {
   background-color: rgb(var(--pf-accent-soft));
 }
@@ -720,4 +730,12 @@ html.reduce-motion .pf-atmosphere span {
   height: 40%;
   background: rgb(167 139 250 / 0.25);
   animation-name: pf-wave-c;
+}
+
+/* Tableaux : pas de coupure au milieu des identifiants (matricule, codes) ni des en-têtes. */
+@layer components {
+  table th,
+  table td.font-mono {
+    white-space: nowrap;
+  }
 }
