@@ -316,6 +316,20 @@ export const studentsApi = {
     }
     return mergeBatchPhotosResults(results)
   },
+
+  /** GET /admin/students/numero-court/status — élèves (hors archivés / pré-inscrits) sans N° court. */
+  numeroCourtStatus: () =>
+    apiClient
+      .get<{ success: boolean; data: { missing: number; total: number } }>('/admin/students/numero-court/status')
+      .then((r) => r.data.data),
+
+  /** POST /admin/students/numero-court/backfill — attribue les N° manquants (idempotent). */
+  numeroCourtBackfill: () =>
+    apiClient
+      .post<{ success: boolean; data: { assigned: number; remaining: number } }>(
+        '/admin/students/numero-court/backfill',
+      )
+      .then((r) => r.data.data),
 }
 
 export type BatchPhotoMatchKind = 'numeroCourt' | 'matricule'
