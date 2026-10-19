@@ -98,7 +98,7 @@ function CashierPaymentCodeLookup({
   async function identify(raw: string) {
     const compact = compactPaymentCode(raw)
     if (!isCompletePaymentCode(compact)) {
-      setError('Saisissez les 6 caractères du code (carte élève).')
+      setError('Saisissez les 6 caractères du code (badge scolaire).')
       return
     }
     setError(null)
