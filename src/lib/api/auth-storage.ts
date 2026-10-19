@@ -28,10 +28,13 @@ export function getAuthToken(): string | null {
 
 export function getAuthSchoolId(): string | null {
   if (typeof window === 'undefined' || !authHydrated) return null
-  const fromStorage = localStorage.getItem(AUTH_SCHOOL_ID_KEY)
-  if (fromStorage && fromStorage !== 'null' && fromStorage !== '0') return fromStorage
+  // Le cookie est posé par le serveur de façon synchrone à chaque changement de
+  // session (login, impersonation, sortie d'impersonation) : il fait foi avant
+  // que `localStorage` ait eu l'occasion de se resynchroniser (AuthProvider.bootstrap).
   const fromCookie = getCookie('auth_school_id')
-  return fromCookie && fromCookie !== 'null' && fromCookie !== '0' ? fromCookie : null
+  if (fromCookie && fromCookie !== 'null' && fromCookie !== '0') return fromCookie
+  const fromStorage = localStorage.getItem(AUTH_SCHOOL_ID_KEY)
+  return fromStorage && fromStorage !== 'null' && fromStorage !== '0' ? fromStorage : null
 }
 
 /** Switch campus promoteur — pose `X-School-Id` pour le tenant actif. */
