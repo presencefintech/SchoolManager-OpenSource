@@ -114,7 +114,7 @@ export function SchoolBrandingSettings() {
       <div className="p-5 border-b lg:border-b-0 lg:border-r border-zinc-100">
         <h3 className="text-sm font-semibold text-zinc-700 mb-1">Identité de l&apos;établissement</h3>
         <p className="text-xs text-zinc-500 mb-4">
-          Logo, adresse et couleurs — appliqués aux cartes élèves, reçus, rapports PDF, fiches d&apos;inscription, attestations et e-mails.
+          Logo, adresse et couleurs — appliqués aux badges scolaires, reçus, rapports PDF, fiches d&apos;inscription, attestations et e-mails.
         </p>
 
         {loadError ? (
@@ -263,7 +263,7 @@ export function SchoolBrandingSettings() {
                 disabled={!!loadError}
                 className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
               />
-              <p className="mt-1 text-[10px] text-zinc-400">Valeur ou devise de l&apos;école — cartes élèves et en-têtes.</p>
+              <p className="mt-1 text-[10px] text-zinc-400">Valeur ou devise de l&apos;école — badges scolaires et en-têtes.</p>
             </div>
             {([form.address, form.city].some((v) => v?.trim()) || branding?.addressLine) ? (
               <p className="text-[11px] text-zinc-500">
@@ -352,7 +352,7 @@ export function SchoolBrandingSettings() {
       </div>
 
       <div className="p-5">
-        <h3 className="text-sm font-semibold text-zinc-700 mb-1">Style de la carte élève</h3>
+        <h3 className="text-sm font-semibold text-zinc-700 mb-1">Style du badge scolaire</h3>
         <p className="text-xs text-zinc-500 mb-4">
           Choisissez un thème — appliqué à l&apos;aperçu, au PDF téléchargé et aux feuilles A4.
         </p>
@@ -454,7 +454,7 @@ export function SchoolBrandingSettings() {
                 </p>
               ) : (
                 <p className="text-[10px] mt-0.5" style={{ color: cardTheme.accent }}>
-                  Aperçu carte élève
+                  Aperçu badge scolaire
                 </p>
               )}
             </div>

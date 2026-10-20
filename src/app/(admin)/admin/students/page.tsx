@@ -333,13 +333,13 @@ function StudentsPageInner() {
                                           const { blob, filename } = await enrollmentsApi.downloadStudentCardPdf(s.id)
                                           try {
                                             await printPdfBlob(blob)
-                                            toast.success('Carte élève', filename)
+                                            toast.success('Badge scolaire', filename)
                                           } catch {
                                             triggerBlobDownload(blob, filename)
-                                            toast.info('Carte élève', 'PDF téléchargé — ouvrez-le pour imprimer.')
+                                            toast.info('Badge scolaire', 'PDF téléchargé — ouvrez-le pour imprimer.')
                                           }
                                         } catch (error) {
-                                          toast.error('Carte élève', getApiErrorMessage(error))
+                                          toast.error('Badge scolaire', getApiErrorMessage(error))
                                         }
                                       })()
                                     },

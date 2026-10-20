@@ -297,7 +297,7 @@ function openPrintDocument(
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Carte élève — ${safeTitle}</title>
+  <title>Badge scolaire — ${safeTitle}</title>
   <style>${PRINT_PAGE_CSS}</style>
 </head>
 <body>

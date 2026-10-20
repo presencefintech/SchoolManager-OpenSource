@@ -125,7 +125,7 @@ function StudentCardsPageContent() {
         toast.success('Impression', 'Dialogue d’impression ouvert')
       }
     } catch (error) {
-      toast.error('Cartes élèves', getApiErrorMessage(error))
+      toast.error('Badges scolaires', getApiErrorMessage(error))
     } finally {
       setBusy(null)
     }
@@ -138,7 +138,7 @@ function StudentCardsPageContent() {
     <div className="min-h-full bg-[#e8ecf4]">
       <AdminModuleHero
         eyebrow="Guichet"
-        title="Cartes élèves"
+        title="Badges scolaires"
         subtitle="Feuilles A4 · 8 cartes CR80 par page · matricule et QR requis"
         actions={
           <button
@@ -178,7 +178,7 @@ function StudentCardsPageContent() {
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 space-y-4">
         <p className="text-xs text-zinc-600 rounded-xl border border-zinc-200 bg-white px-4 py-3">
-          Cette page imprime les <strong className="font-medium text-zinc-800">cartes élèves</strong> (présence du matin).
+          Cette page imprime les <strong className="font-medium text-zinc-800">badges scolaires</strong> (présence du matin).
           Les cartes parent (photo + QR) s’impriment depuis la{' '}
           <Link href="/admin/desk" className="font-medium text-emerald-700 hover:text-emerald-900">
             fiche élève

@@ -910,7 +910,7 @@ function EnrollmentPageContent() {
                     </div>
                     {lastCardData && (
                       <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-5 flex flex-col items-center gap-3">
-                        <p className="text-xs font-medium text-zinc-500 self-start">Aperçu carte élève</p>
+                        <p className="text-xs font-medium text-zinc-500 self-start">Aperçu badge scolaire</p>
                         <StudentCard
                           data={lastCardData}
                           preview
