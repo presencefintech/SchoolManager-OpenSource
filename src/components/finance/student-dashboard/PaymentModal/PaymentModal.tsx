@@ -370,6 +370,13 @@ export function PaymentModal({
     }
   }, [open, allowedMethods, method, allowedTenderCurrencies, tenderCurrency])
 
+  // À l'ouverture : espèces proposées dans la devise de l'école (FC pour une école CDF).
+  useEffect(() => {
+    if (!open) return
+    const schoolTender: TenderCurrency = currency === 'CDF' ? 'CDF' : 'USD'
+    if (allowedTenderCurrencies.includes(schoolTender)) setTenderCurrency(schoolTender)
+  }, [open, currency, allowedTenderCurrencies])
+
   // Brouillon local — reprise après coupure / refresh (2 h)
   useEffect(() => {
     if (!open || successPaymentId) return
@@ -594,13 +601,20 @@ export function PaymentModal({
     }
     if (method === 'CASH') {
       const preview = tenderCurrency === 'MIXED'
-        ? previewCashTender(totalAmount, Number(tenderedUsd) || 0, Number(tenderedCdf) || 0, exchangeRate)
+        ? previewCashTender(
+            totalAmount,
+            Number(tenderedUsd) || 0,
+            Number(tenderedCdf) || 0,
+            exchangeRate,
+            currency === 'CDF' ? 'CDF' : 'USD',
+          )
         : tendered.trim()
           ? previewCashTender(
               totalAmount,
               tenderCurrency === 'USD' ? Number(tendered) : 0,
               tenderCurrency === 'CDF' ? Number(tendered) : 0,
               exchangeRate,
+              currency === 'CDF' ? 'CDF' : 'USD',
             )
           : null
       if (preview?.short) {
@@ -1368,7 +1382,7 @@ export function PaymentModal({
 
             {method === 'CASH' && totalAmount > 0 ? (
               <CashChangeCalculator
-                amountDueUsd={totalAmount}
+                amountDue={totalAmount}
                 currency={currency}
                 exchangeRate={exchangeRate}
                 tendered={tendered}

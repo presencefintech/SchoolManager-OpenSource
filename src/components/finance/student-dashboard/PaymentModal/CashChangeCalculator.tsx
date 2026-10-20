@@ -17,10 +17,11 @@ import { cn } from '@/lib/utils'
 
 /**
  * Billetage guichet RDC — espèces USD ou Francs Congolais.
- * Client-only : le paiement serveur reste en devise de base (USD).
+ * `amountDue` est dans la devise de l'école (`currency`) ; conversion seulement quand
+ * le client paie dans l'autre devise. Le serveur confirme le rendu.
  */
 export function CashChangeCalculator({
-  amountDueUsd,
+  amountDue,
   currency,
   exchangeRate,
   tendered,
@@ -34,7 +35,8 @@ export function CashChangeCalculator({
   availableDrawerUsd,
   allowedTenderCurrencies = ['USD', 'CDF'],
 }: {
-  amountDueUsd: number
+  /** Dû dans la devise de l'école (`currency`). */
+  amountDue: number
   currency: FinanceCurrencyCode
   exchangeRate?: number | null
   tendered: string
@@ -50,10 +52,18 @@ export function CashChangeCalculator({
   allowedTenderCurrencies?: TenderCurrency[]
 }) {
   const rate = exchangeRate != null && exchangeRate > 0 ? exchangeRate : null
-  const dueInTender =
-    tenderCurrency === 'CDF' && rate
-      ? usdToCdf(amountDueUsd, rate)
-      : amountDueUsd
+  const dueCurrency: TenderCurrency = currency === 'CDF' ? 'CDF' : 'USD'
+  const otherCurrency: TenderCurrency = dueCurrency === 'CDF' ? 'USD' : 'CDF'
+  /** Dû converti dans l'autre devise (≈), null sans taux. */
+  const dueInOther = rate
+    ? dueCurrency === 'USD'
+      ? usdToCdf(amountDue, rate)
+      : cdfToUsd(amountDue, rate)
+    : null
+  const tenderIsOther = tenderCurrency === otherCurrency
+  const dueInTender = tenderIsOther && dueInOther != null ? dueInOther : amountDue
+  /** Remise dans l'autre devise ou mixte : il faut le taux. */
+  const needsRate = tenderCurrency !== dueCurrency
 
   const tenderedNum = Number(tendered)
   const hasTendered = tendered.trim() !== '' && Number.isFinite(tenderedNum)
@@ -77,10 +87,11 @@ export function CashChangeCalculator({
 
   const mixedPreview = tenderCurrency === 'MIXED'
     ? previewCashTender(
-        amountDueUsd,
+        amountDue,
         Number(tenderedUsd) || 0,
         Number(tenderedCdf) || 0,
         rate,
+        dueCurrency,
       )
     : null
   const mixedChangeUsd = mixedPreview && !mixedPreview.short ? mixedPreview.changeUsd : 0
@@ -150,22 +161,22 @@ export function CashChangeCalculator({
       <div className="rounded-lg bg-white/80 border border-amber-100 px-2.5 py-1.5 text-[11px] text-zinc-600">
         Dû{' '}
         <span className="font-semibold tabular-nums text-zinc-900">
-          {formatMoney(amountDueUsd, currency)}
+          {formatMoney(amountDue, currency)}
         </span>
-        {rate && (tenderCurrency === 'CDF' || tenderCurrency === 'MIXED') ? (
+        {dueInOther != null && needsRate ? (
           <>
             {' '}
             ≈{' '}
             <span className="font-semibold tabular-nums text-amber-900">
-              {formatMoney(tenderCurrency === 'CDF' ? dueInTender : usdToCdf(amountDueUsd, rate), 'CDF')}
+              {formatMoney(dueInOther, otherCurrency)}
             </span>
           </>
         ) : null}
       </div>
 
-      {!rate && (tenderCurrency === 'CDF' || tenderCurrency === 'MIXED') ? (
+      {!rate && needsRate ? (
         <p className="text-[10px] text-amber-800">
-          Taux école indisponible — basculez en USD ou configurez le taux Admin.
+          Taux école indisponible — encaissez en {dueCurrency === 'CDF' ? 'FC' : 'USD'} ou configurez le taux Admin.
         </p>
       ) : null}
 
@@ -176,6 +187,7 @@ export function CashChangeCalculator({
               <button
                 key={`usd-${d}`}
                 type="button"
+                disabled={dueCurrency === 'CDF' && !rate}
                 onClick={() => addMixedDenomination('USD', d)}
                 className="rounded-md border border-amber-200/90 bg-white px-2 py-1 text-[10px] font-semibold text-amber-950 hover:bg-amber-50"
               >
@@ -188,7 +200,7 @@ export function CashChangeCalculator({
               <button
                 key={`cdf-${d}`}
                 type="button"
-                disabled={!rate}
+                disabled={dueCurrency === 'USD' && !rate}
                 onClick={() => addMixedDenomination('CDF', d)}
                 className="rounded-md border border-amber-200/90 bg-white px-2 py-1 text-[10px] font-semibold text-amber-950 hover:bg-amber-50 disabled:opacity-40"
               >
@@ -214,6 +226,7 @@ export function CashChangeCalculator({
                 min={0}
                 step={0.01}
                 value={tenderedUsd}
+                disabled={dueCurrency === 'CDF' && !rate}
                 onChange={(e) => onTenderedUsdChange?.(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-400"
               />
@@ -225,7 +238,7 @@ export function CashChangeCalculator({
                 min={0}
                 step={1}
                 value={tenderedCdf}
-                disabled={!rate}
+                disabled={dueCurrency === 'USD' && !rate}
                 onChange={(e) => onTenderedCdfChange?.(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-zinc-200 bg-white text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:opacity-40"
               />
@@ -262,7 +275,7 @@ export function CashChangeCalculator({
           <button
             key={d}
             type="button"
-            disabled={tenderCurrency === 'CDF' && !rate}
+            disabled={tenderIsOther && !rate}
             onClick={() => addDenomination(d)}
             className="rounded-md border border-amber-200/90 bg-white px-2 py-1 text-[10px] font-semibold text-amber-950 hover:bg-amber-50 disabled:opacity-40"
           >
