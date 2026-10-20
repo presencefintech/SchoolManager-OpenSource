@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, User, AlertTriangle, Wallet, ImagePlus,
 } from 'lucide-react'
 import { NumeroCourtBadge } from '@/components/students/NumeroCourtBadge'
+import { NumeroCourtBackfillBanner } from '@/components/admin/students/numero-court-backfill-banner'
 import { cn } from '@/lib/utils'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
@@ -176,6 +177,8 @@ function StudentsPageInner() {
       </motion.div>
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-5">
+
+        <NumeroCourtBackfillBanner />
 
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
