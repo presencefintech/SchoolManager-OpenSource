@@ -42,7 +42,7 @@ import { adminPdfApi } from '@/lib/admin/api/pdf.api'
 import { triggerBlobDownload } from '@/lib/download-blob'
 import { PhoneInput } from '@/components/ui/phone-input'
 import { isValidInternationalPhone } from '@/lib/phone/validation'
-import { STUDENT_CATEGORY_OPTIONS } from '@/lib/finance/student-category-labels'
+import { useStudentFeeCategories } from '@/lib/hooks/admin/student-fee-categories'
 import { EnrollmentFeePreviewCard } from '@/components/admin/enrollments/enrollment-fee-preview-card'
 
 const inputCls =
@@ -226,6 +226,9 @@ export function EnrollmentCreateModal({
   const emergencyContactName = watch('emergencyContactName')
   const autoAssignExplicitFees = watch('autoAssignExplicitFees')
   const studentCategory = watch('studentCategory')
+  const watchedFeeCategoryIds = watch('studentFeeCategoryIds')
+  const studentFeeCategoryIds = useMemo(() => watchedFeeCategoryIds ?? [], [watchedFeeCategoryIds])
+  const { data: feeCategoryCatalog } = useStudentFeeCategories()
   const scholarshipPercent = watch('scholarshipPercent')
   const watchedExplicitFeeStructureIds = watch('explicitFeeStructureIds')
   const explicitFeeStructureIds = useMemo(
@@ -288,6 +291,7 @@ export function EnrollmentCreateModal({
       sessionId: currentSession?.id,
       explicitFeeStructureIds: previewExplicitIds.length ? previewExplicitIds : undefined,
       studentCategory: studentCategory || undefined,
+      studentFeeCategoryIds: studentFeeCategoryIds.length ? studentFeeCategoryIds : undefined,
       scholarshipPercent:
         scholarshipPercent != null && !Number.isNaN(Number(scholarshipPercent))
           ? Number(scholarshipPercent)
@@ -298,14 +302,14 @@ export function EnrollmentCreateModal({
 
   useEffect(() => {
     if (!feePreview || !classId || classId <= 0) return
-    const syncKey = `${classId}:${previewExplicitIds.slice().sort((a, b) => a - b).join(',')}:${studentCategory ?? ''}:${scholarshipPercent ?? ''}:${feePreview.totalFees}`
+    const syncKey = `${classId}:${previewExplicitIds.slice().sort((a, b) => a - b).join(',')}:${studentCategory ?? ''}:${studentFeeCategoryIds.join('+')}:${scholarshipPercent ?? ''}:${feePreview.totalFees}`
     if (lastFeeSyncKeyRef.current === syncKey) return
     lastFeeSyncKeyRef.current = syncKey
     setValue('totalFees', feePreview.totalFees, { shouldValidate: true })
     if (feePreview.academicYear) {
       setValue('academicYear', feePreview.academicYear, { shouldValidate: false })
     }
-  }, [feePreview, classId, previewExplicitIds, studentCategory, scholarshipPercent, setValue])
+  }, [feePreview, classId, previewExplicitIds, studentCategory, studentFeeCategoryIds, scholarshipPercent, setValue])
 
   const phoneIsValid = isValidInternationalPhone(emergencyContactPhone)
   const { data: parentLookup, isFetching: lookingUpParent } = useParentLookupByPhone(
@@ -890,16 +894,45 @@ export function EnrollmentCreateModal({
               title="Frais & acompte"
               hint="Barème de la classe, frais optionnels et acompte en caisse."
             >
-              <Field label="Catégorie Financière initiale" error={errors.studentCategory?.message}>
-                <select {...register('studentCategory')} className={cn(inputCls, 'pr-8')}>
-                  {STUDENT_CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+              <Field label="Catégories de l’élève (tarification)">
+                {(feeCategoryCatalog?.categories ?? []).length === 0 ? (
+                  <p className={hintCls}>
+                    Aucune catégorie définie : tarif standard de la classe. Créez-les dans Finance → Factures.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {(feeCategoryCatalog?.categories ?? []).map((cat) => {
+                      const checked = studentFeeCategoryIds.includes(cat.id)
+                      return (
+                        <label
+                          key={cat.id}
+                          className={cn(
+                            'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs cursor-pointer select-none',
+                            checked
+                              ? 'border-emerald-300 bg-emerald-50 text-emerald-900'
+                              : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50',
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded border-zinc-300"
+                            checked={checked}
+                            onChange={() => {
+                              const next = checked
+                                ? studentFeeCategoryIds.filter((id) => id !== cat.id)
+                                : [...studentFeeCategoryIds, cat.id]
+                              setValue('studentFeeCategoryIds', next, { shouldValidate: true })
+                            }}
+                          />
+                          {cat.name}
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
                 <p className={hintCls}>
-                  Applique la grille tarifaire V2 (Nouveau, Enfant de personnel, Boursier…) dès l&apos;inscription.
+                  Plusieurs choix possibles. Les catégories automatiques (nouvel élève, fratrie, enfant du personnel) sont
+                  détectées par le système{feePreview?.studentFeeCategories?.length ? ` — appliquées : ${feePreview.studentFeeCategories.map((c) => c.name).join(', ')}` : ''}.
                 </p>
               </Field>
 
