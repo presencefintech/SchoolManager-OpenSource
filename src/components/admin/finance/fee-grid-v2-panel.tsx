@@ -10,9 +10,8 @@ import {
   useUpsertFeeCatalogV2,
 } from '@/lib/hooks/use-admin'
 import { formatMoney } from '@/lib/finance/currency'
+import { useStudentFeeCategories } from '@/lib/hooks/admin/student-fee-categories'
 import {
-  CUSTOM_CATEGORY_LABEL_SUGGESTIONS,
-  STUDENT_CATEGORY_OPTIONS,
   labelStudentCategory,
   normalizeCustomCategoryLabel,
   toMoneyNumber,
@@ -22,6 +21,7 @@ import type {
   FeeDiscountType,
   FeeGridRule,
   StudentCategory,
+  StudentFeeCategory,
   UpsertFeeCatalogV2Payload,
 } from '@/types/admin'
 import { cn } from '@/lib/utils'
@@ -40,12 +40,50 @@ type DraftPolicy = {
   value: string
   appliesToCategory: StudentCategory
   appliesToCustomLabel: string
+  /** Catégorie élève dynamique ; null = élèves sans catégorie (standard) ou règle historique */
+  studentFeeCategoryId: number | null
   feeCategoryId: number | null
   isActive: boolean
 }
 
-function cellKey(optionId: number | null, category: StudentCategory) {
-  return `${optionId ?? 'all'}::${category}`
+/** Colonne de la grille : le tarif de base + une colonne par catégorie de l'école. */
+type GridColumn = {
+  key: string
+  label: string
+  studentFeeCategoryId: number | null
+  legacyCategory: StudentCategory | null
+}
+
+const STANDARD_COLUMN: GridColumn = {
+  key: 'STANDARD',
+  label: 'Standard (tarif de base)',
+  studentFeeCategoryId: null,
+  legacyCategory: null,
+}
+
+function buildColumns(categories: StudentFeeCategory[]): GridColumn[] {
+  return [
+    STANDARD_COLUMN,
+    ...categories.map((c) => ({
+      key: `cat:${c.id}`,
+      label: c.name,
+      studentFeeCategoryId: c.id,
+      legacyCategory: c.legacyCategory,
+    })),
+  ]
+}
+
+/** Règle de grille correspondant à une colonne (règle liée à la catégorie, sinon ancienne règle enum). */
+function ruleMatchesColumn(rule: FeeGridRule, column: GridColumn): boolean {
+  if (column.studentFeeCategoryId == null) {
+    return rule.studentFeeCategoryId == null && rule.studentCategory === 'STANDARD'
+  }
+  if (rule.studentFeeCategoryId != null) return rule.studentFeeCategoryId === column.studentFeeCategoryId
+  return column.legacyCategory != null && rule.studentCategory === column.legacyCategory
+}
+
+function cellKey(optionId: number | null, columnKey: string) {
+  return `${optionId ?? 'all'}::${columnKey}`
 }
 
 function ruleMatchesScope(
@@ -76,6 +114,12 @@ export function FeeGridV2Panel({
   const bulkApply = useBulkApplyFeeStructureV2()
 
   const categories = catalog?.categories ?? []
+  const { data: studentCategoryCatalog } = useStudentFeeCategories()
+  const studentCategories = useMemo(
+    () => studentCategoryCatalog?.categories ?? [],
+    [studentCategoryCatalog],
+  )
+  const columns = useMemo(() => buildColumns(studentCategories), [studentCategories])
   const [feeCategoryId, setFeeCategoryId] = useState(0)
   const [cells, setCells] = useState<Record<string, DraftCell>>({})
   const [policies, setPolicies] = useState<DraftPolicy[]>([])
@@ -103,12 +147,13 @@ export function FeeGridV2Panel({
     if (!catalog || !feeCategoryId || !sessionId) return
     const next: Record<string, DraftCell> = {}
     for (const row of optionRows) {
-      for (const cat of STUDENT_CATEGORY_OPTIONS) {
-        const key = cellKey(row.id, cat.value)
-        const existing = (catalog.gridRules ?? []).find((r) =>
-          ruleMatchesScope(r, feeCategoryId, sessionId, row.id) &&
-          r.studentCategory === cat.value,
+      for (const col of columns) {
+        const key = cellKey(row.id, col.key)
+        const candidates = (catalog.gridRules ?? []).filter(
+          (r) => ruleMatchesScope(r, feeCategoryId, sessionId, row.id) && ruleMatchesColumn(r, col),
         )
+        // une règle déjà liée à la catégorie prime sur l'ancienne règle enum
+        const existing = candidates.find((r) => r.studentFeeCategoryId != null) ?? candidates[0]
         next[key] = {
           ruleId: existing?.id,
           amount: existing ? String(toMoneyNumber(existing.amount)) : '',
@@ -117,22 +162,38 @@ export function FeeGridV2Panel({
       }
     }
     setCells(next)
-  }, [catalog, feeCategoryId, sessionId, optionRows, defaultCurrency])
+  }, [catalog, feeCategoryId, sessionId, optionRows, columns, defaultCurrency])
 
   useEffect(() => {
-    const rows = (catalog?.discountPolicies ?? []).map((p, i) => ({
-      key: p.id != null ? `id-${p.id}` : `new-${i}`,
-      id: p.id,
-      name: p.name,
-      discountType: p.discountType,
-      value: String(toMoneyNumber(p.value)),
-      appliesToCategory: p.appliesToCategory,
-      appliesToCustomLabel: p.appliesToCustomLabel ?? '',
-      feeCategoryId: p.feeCategoryId,
-      isActive: p.isActive !== false,
-    }))
+    const rows = (catalog?.discountPolicies ?? []).map((p, i) => {
+      // Politique historique (enum / libellé) : rattachée à la catégorie équivalente quand elle existe
+      let studentFeeCategoryId = p.studentFeeCategoryId ?? null
+      if (studentFeeCategoryId == null) {
+        const label = normalizeCustomCategoryLabel(p.appliesToCustomLabel)?.toLocaleLowerCase('fr-CD')
+        const byLabel = label
+          ? studentCategories.find((c) => c.name.toLocaleLowerCase('fr-CD') === label)
+          : undefined
+        const byEnum =
+          !label && p.appliesToCategory !== 'STANDARD'
+            ? studentCategories.find((c) => c.legacyCategory === p.appliesToCategory)
+            : undefined
+        studentFeeCategoryId = (byLabel ?? byEnum)?.id ?? null
+      }
+      return {
+        key: p.id != null ? `id-${p.id}` : `new-${i}`,
+        id: p.id,
+        name: p.name,
+        discountType: p.discountType,
+        value: String(toMoneyNumber(p.value)),
+        appliesToCategory: p.appliesToCategory,
+        appliesToCustomLabel: p.appliesToCustomLabel ?? '',
+        studentFeeCategoryId,
+        feeCategoryId: p.feeCategoryId,
+        isActive: p.isActive !== false,
+      }
+    })
     setPolicies(rows)
-  }, [catalog?.discountPolicies])
+  }, [catalog?.discountPolicies, studentCategories])
 
   function setCellAmount(key: string, amount: string) {
     setCells((prev) => ({
@@ -151,8 +212,8 @@ export function FeeGridV2Panel({
 
     const gridRules: UpsertFeeCatalogV2Payload['gridRules'] = []
     for (const row of optionRows) {
-      for (const cat of STUDENT_CATEGORY_OPTIONS) {
-        const key = cellKey(row.id, cat.value)
+      for (const col of columns) {
+        const key = cellKey(row.id, col.key)
         const cell = cells[key]
         if (!cell) continue
         const amount = Number(cell.amount)
@@ -164,7 +225,9 @@ export function FeeGridV2Panel({
               sessionId,
               optionId: row.id,
               sectionId: sectionId || null,
-              studentCategory: cat.value,
+              ...(col.studentFeeCategoryId != null
+                ? { studentFeeCategoryId: col.studentFeeCategoryId }
+                : { studentCategory: 'STANDARD' as const }),
               amount: 0,
               currency: cell.currency || defaultCurrency,
               isActive: false,
@@ -178,7 +241,9 @@ export function FeeGridV2Panel({
           sessionId,
           optionId: row.id,
           sectionId: sectionId || null,
-          studentCategory: cat.value,
+          ...(col.studentFeeCategoryId != null
+            ? { studentFeeCategoryId: col.studentFeeCategoryId }
+            : { studentCategory: 'STANDARD' as const }),
           amount,
           currency: cell.currency || defaultCurrency,
           isActive: true,
@@ -193,8 +258,13 @@ export function FeeGridV2Panel({
         name: p.name.trim(),
         discountType: p.discountType,
         value: Number(p.value),
-        appliesToCategory: p.appliesToCategory,
-        appliesToCustomLabel: normalizeCustomCategoryLabel(p.appliesToCustomLabel),
+        ...(p.studentFeeCategoryId != null
+          ? { studentFeeCategoryId: p.studentFeeCategoryId, appliesToCustomLabel: null }
+          : {
+              studentFeeCategoryId: null,
+              appliesToCategory: p.appliesToCategory,
+              appliesToCustomLabel: normalizeCustomCategoryLabel(p.appliesToCustomLabel),
+            }),
         feeCategoryId: p.feeCategoryId,
         isActive: p.isActive,
       }))
@@ -228,8 +298,9 @@ export function FeeGridV2Panel({
         name: '',
         discountType: 'PERCENTAGE',
         value: '50',
-        appliesToCategory: 'STAFF_CHILD',
+        appliesToCategory: 'STANDARD',
         appliesToCustomLabel: '',
+        studentFeeCategoryId: studentCategories[0]?.id ?? null,
         feeCategoryId: feeCategoryId || null,
         isActive: true,
       },
@@ -262,7 +333,7 @@ export function FeeGridV2Panel({
             </h3>
           </div>
           <p className="text-xs text-zinc-500 mt-0.5 break-words">
-            Montants par option et catégorie élève (Nouveau, Ancien / Standard, Enfant de personnel, Boursier…).
+            Montants par option et par catégorie d’élève de votre école. Une case vide = le tarif de base s’applique.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
@@ -345,8 +416,8 @@ export function FeeGridV2Panel({
                 <th className="text-left px-4 py-3 text-xs font-semibold text-zinc-500 sticky left-0 bg-zinc-50/95">
                   Option
                 </th>
-                {STUDENT_CATEGORY_OPTIONS.map((c) => (
-                  <th key={c.value} className="text-left px-3 py-3 text-xs font-semibold text-zinc-500 whitespace-nowrap">
+                {columns.map((c) => (
+                  <th key={c.key} className="text-left px-3 py-3 text-xs font-semibold text-zinc-500 whitespace-nowrap">
                     {c.label}
                   </th>
                 ))}
@@ -358,8 +429,8 @@ export function FeeGridV2Panel({
                   <td className="px-4 py-2.5 text-xs font-medium text-zinc-800 sticky left-0 bg-white">
                     {row.name}
                   </td>
-                  {STUDENT_CATEGORY_OPTIONS.map((cat) => {
-                    const key = cellKey(row.id, cat.value)
+                  {columns.map((col) => {
+                    const key = cellKey(row.id, col.key)
                     const cell = cells[key]
                     return (
                       <td key={key} className="px-2 py-2">
@@ -398,7 +469,7 @@ export function FeeGridV2Panel({
           </button>
         </div>
         <p className="text-xs text-zinc-500">
-          Remises automatiques par catégorie enum ou libellé dynamique (Famille Nombreuse, Orphelin…).
+          Remises rattachées à vos catégories d’élèves. L’ordre d’application suit la priorité de la catégorie ; le plafond de cumul est réglé plus haut.
         </p>
 
         {activePolicies.length === 0 ? (
@@ -408,7 +479,7 @@ export function FeeGridV2Panel({
             {activePolicies.map((p) => (
               <div
                 key={p.key}
-                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_6rem_5rem_minmax(0,1fr)_minmax(0,1fr)_auto] gap-2 items-end rounded-xl border border-zinc-100 bg-zinc-50/50 p-3"
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.2fr)_6rem_5rem_minmax(0,1.6fr)_auto] gap-2 items-end rounded-xl border border-zinc-100 bg-zinc-50/50 p-3"
               >
                 <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">
                   Nom
@@ -443,40 +514,28 @@ export function FeeGridV2Panel({
                     className="mt-1 w-full px-2 py-1.5 rounded-lg border border-zinc-200 text-xs tabular-nums focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   />
                 </label>
-                <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">
-                  Catégorie enum
+                <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide sm:col-span-2">
+                  Catégorie d’élève concernée
                   <select
-                    value={p.appliesToCategory}
+                    value={p.studentFeeCategoryId ?? 0}
                     onChange={(e) =>
                       updatePolicy(p.key, {
-                        appliesToCategory: e.target.value as StudentCategory,
+                        studentFeeCategoryId: Number(e.target.value) || null,
                       })
                     }
-                    className="mt-1 w-full px-2 py-1.5 rounded-lg border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                    className="mt-1 w-full px-2 py-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   >
-                    {STUDENT_CATEGORY_OPTIONS.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
+                    <option value={0}>
+                      {p.appliesToCustomLabel
+                        ? `Libellé historique : ${p.appliesToCustomLabel}`
+                        : 'Élèves sans catégorie (standard)'}
+                    </option>
+                    {studentCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
                       </option>
                     ))}
                   </select>
-                </label>
-                <label className="text-[10px] font-medium text-zinc-500 uppercase tracking-wide">
-                  Libellé dynamique
-                  <input
-                    list={`policy-custom-${p.key}`}
-                    value={p.appliesToCustomLabel}
-                    onChange={(e) =>
-                      updatePolicy(p.key, { appliesToCustomLabel: e.target.value })
-                    }
-                    placeholder="Famille Nombreuse…"
-                    className="mt-1 w-full px-2 py-1.5 rounded-lg border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                  />
-                  <datalist id={`policy-custom-${p.key}`}>
-                    {CUSTOM_CATEGORY_LABEL_SUGGESTIONS.map((s) => (
-                      <option key={s} value={s} />
-                    ))}
-                  </datalist>
                 </label>
                 <button
                   type="button"
@@ -501,7 +560,8 @@ export function FeeGridV2Panel({
                     'bg-amber-50 text-amber-800',
                   )}
                 >
-                  {normalizeCustomCategoryLabel(p.appliesToCustomLabel) ||
+                  {studentCategories.find((c) => c.id === p.studentFeeCategoryId)?.name ||
+                    normalizeCustomCategoryLabel(p.appliesToCustomLabel) ||
                     labelStudentCategory(p.appliesToCategory)}
                 </span>
                 {p.name || 'Sans nom'} ·{' '}

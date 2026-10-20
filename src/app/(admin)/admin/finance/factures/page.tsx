@@ -30,6 +30,7 @@ import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { FeeStructureComposer } from '@/components/admin/finance/fee-structure-composer'
 import { FeeGridV2Panel } from '@/components/admin/finance/fee-grid-v2-panel'
+import { StudentFeeCategoriesManager } from '@/components/admin/finance/student-fee-categories-manager'
 import {
   isValidFeeCategoryCode,
   toFeeCategoryCode,
@@ -659,6 +660,10 @@ export default function FacturesPage() {
           })
         }}
       />
+
+      <div id="categories-eleves">
+        <StudentFeeCategoriesManager />
+      </div>
 
       {selectedSessionId > 0 && (
         <div id="grille-tarifaire-v2">

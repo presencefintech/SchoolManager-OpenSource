@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -13,145 +13,95 @@ export interface RowAction {
   disabled?: boolean
 }
 
-/** Marge minimale entre le menu et les bords de la fenêtre (px). */
-const VIEWPORT_GAP = 8
 const MENU_WIDTH = 220
-
-type MenuPosition = { top: number; left: number; maxHeight: number }
+const GAP = 4
+const MARGIN = 8
 
 /**
- * Menu « … » d'une ligne de tableau.
- * Rendu dans un portail en `position: fixed` : jamais rogné par un conteneur
- * `overflow-hidden` / `overflow-x-auto` (tableaux défilants). S'ouvre vers le haut
- * quand la place manque en bas, défile s'il dépasse la hauteur disponible.
+ * Menu d'actions de ligne. Rendu dans un portail en position fixe : il n'est donc jamais
+ * coupé par le conteneur à défilement du tableau et s'ouvre vers le haut près du bas de l'écran.
  */
 export function RowActionsMenu({ actions, label = 'Actions' }: { actions: RowAction[]; label?: string }) {
   const [open, setOpen] = useState(false)
-  const [position, setPosition] = useState<MenuPosition | null>(null)
-  const triggerRef = useRef<HTMLButtonElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const menuId = useId()
 
-  const close = useCallback((restoreFocus = false) => {
-    setOpen(false)
-    setPosition(null)
-    if (restoreFocus) triggerRef.current?.focus()
-  }, [])
-
-  /** Place le menu sous (ou au-dessus du) bouton, d'après la hauteur réelle mesurée. */
   const place = useCallback(() => {
-    const trigger = triggerRef.current
-    if (!trigger) return
-    const rect = trigger.getBoundingClientRect()
-    const menuHeight = menuRef.current?.scrollHeight ?? 0
-    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_GAP
-    const spaceAbove = rect.top - VIEWPORT_GAP
-    const above = menuHeight > spaceBelow && spaceAbove > spaceBelow
-    const maxHeight = Math.max(120, (above ? spaceAbove : spaceBelow) - 4)
-    const height = Math.min(menuHeight, maxHeight)
-    const left = Math.min(
-      Math.max(VIEWPORT_GAP, rect.right - MENU_WIDTH),
-      window.innerWidth - MENU_WIDTH - VIEWPORT_GAP,
-    )
-    const top = above ? rect.top - 4 - height : rect.bottom + 4
-    setPosition({ top, left, maxHeight })
-  }, [])
+    const btn = btnRef.current
+    if (!btn) return
+    const r = btn.getBoundingClientRect()
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const menuH = menuRef.current?.offsetHeight ?? actions.length * 36 + 8
+    const spaceBelow = vh - r.bottom - MARGIN
+    const spaceAbove = r.top - MARGIN
+    const openUp = spaceBelow < menuH && spaceAbove > spaceBelow
+    const maxHeight = Math.max(120, openUp ? spaceAbove - GAP : spaceBelow - GAP)
+    const height = Math.min(menuH, maxHeight)
+    const top = openUp ? r.top - GAP - height : r.bottom + GAP
+    const left = Math.min(Math.max(MARGIN, r.right - MENU_WIDTH), vw - MENU_WIDTH - MARGIN)
+    setPos({ top, left, maxHeight })
+  }, [actions.length])
 
-  // Rendu caché pour la mesure, puis placement réel avant affichage (pas de flash)
   useLayoutEffect(() => {
-    if (open) place()
+    if (!open) return
+    place()
+    // 2e passe : la hauteur réelle du menu n'est connue qu'après le premier rendu.
+    const raf = requestAnimationFrame(place)
+    return () => cancelAnimationFrame(raf)
   }, [open, place])
 
   useEffect(() => {
     if (!open) return
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Node
-      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return
-      close()
+    function onDoc(e: MouseEvent) {
+      const t = e.target as Node
+      if (btnRef.current?.contains(t) || menuRef.current?.contains(t)) return
+      setOpen(false)
     }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        close(true)
-      }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
     }
-    // Position fixe : tout défilement (page ou tableau) ou redimensionnement referme le menu
-    const onScrollOrResize = (e: Event) => {
-      if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return
-      close()
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    window.addEventListener('scroll', onScrollOrResize, true)
-    window.addEventListener('resize', onScrollOrResize)
+    const close = () => setOpen(false)
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
     return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('scroll', onScrollOrResize, true)
-      window.removeEventListener('resize', onScrollOrResize)
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
     }
-  }, [open, close])
-
-  // Focus sur la première action disponible à l'ouverture (navigation clavier)
-  useEffect(() => {
-    if (!open || !position) return
-    menuRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true })
-  }, [open, position])
-
-  const onMenuKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End') return
-    e.preventDefault()
-    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
-    if (!items.length) return
-    const index = items.indexOf(document.activeElement as HTMLButtonElement)
-    const next =
-      e.key === 'Home' ? 0
-      : e.key === 'End' ? items.length - 1
-      : e.key === 'ArrowDown' ? (index + 1) % items.length
-      : (index - 1 + items.length) % items.length
-    items[next]?.focus()
-  }
+  }, [open])
 
   return (
     <>
       <button
-        ref={triggerRef}
+        ref={btnRef}
         type="button"
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={(e) => {
-          e.stopPropagation()
-          if (open) close()
-          else setOpen(true)
-        }}
-        className={cn(
-          'inline-flex shrink-0 items-center justify-center rounded-lg border p-1.5 text-zinc-500 transition-colors',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-          open ? 'border-zinc-300 bg-zinc-100' : 'border-zinc-200 hover:bg-zinc-50',
-        )}
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+        className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50"
       >
         <MoreHorizontal size={14} />
       </button>
-      {open &&
+      {open && typeof document !== 'undefined' &&
         createPortal(
           <div
             ref={menuRef}
-            id={menuId}
             role="menu"
-            aria-label={label}
-            onKeyDown={onMenuKeyDown}
-            onClick={(e) => e.stopPropagation()}
             style={{
               position: 'fixed',
+              top: pos?.top ?? -9999,
+              left: pos?.left ?? -9999,
               width: MENU_WIDTH,
-              top: position?.top ?? 0,
-              left: position?.left ?? 0,
-              maxHeight: position?.maxHeight,
-              visibility: position ? 'visible' : 'hidden',
+              maxHeight: pos?.maxHeight,
+              visibility: pos ? 'visible' : 'hidden',
             }}
-            className="z-[90] overflow-y-auto overscroll-contain rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
+            className="z-[60] overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-lg py-1"
           >
             {actions.map((a) => (
               <button
@@ -159,13 +109,13 @@ export function RowActionsMenu({ actions, label = 'Actions' }: { actions: RowAct
                 type="button"
                 role="menuitem"
                 disabled={a.disabled}
-                onClick={() => {
-                  close()
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setOpen(false)
                   a.onClick()
                 }}
                 className={cn(
-                  'block w-full px-3 py-2 text-left text-xs font-medium leading-snug',
-                  'hover:bg-zinc-50 focus:bg-zinc-50 focus:outline-none disabled:opacity-40',
+                  'w-full text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 disabled:opacity-40',
                   a.danger ? 'text-red-600' : 'text-zinc-700',
                 )}
               >

@@ -28,6 +28,8 @@ import type {
   BulkMoratoriumPayload, FeeStructurePayload, CreateFeeStructurePayload, UpdateFeeStructurePayload,
   CreateFeeCategoryPayload, UpdateFeeCategoryPayload, FeeCategoryItem, LinkOrphanPayload, AdvancedSearchParams,
   UpsertFeeCatalogV2Payload, FeeCatalogV2, AssignStudentCategoryPayload, AssignStudentCategoryResult,
+  StudentFeeCategory, StudentFeeCategoryInput, StudentFeeCategoryList, StudentFeeCategoriesOverview,
+  CalculateObligationsResult,
   ApplyObligationManualDiscountPayload, ApplyObligationManualDiscountResult,
   BulkApplyFeeStructurePayload, BulkApplyFeeStructureResult,
   PaymentProfile, UpsertPaymentProfilePayload, SessionEnrollment, MoratoriumPolicy,
@@ -510,6 +512,7 @@ export const financeApi = {
           categories: Array.isArray(d.categories) ? d.categories : [],
           gridRules: Array.isArray(d.gridRules) ? d.gridRules : [],
           discountPolicies: Array.isArray(d.discountPolicies) ? d.discountPolicies : [],
+          studentFeeCategories: Array.isArray(d.studentFeeCategories) ? d.studentFeeCategories : [],
         } satisfies FeeCatalogV2
       }),
 
@@ -518,6 +521,44 @@ export const financeApi = {
     apiClient
       .post('/finance/fee-structures', payload)
       .then((r) => r.data.data as FeeCatalogV2),
+
+  /** Catégories tarifaires d'élève de l'école (dynamiques) + plafond de cumul */
+  listStudentFeeCategories: (includeInactive = false) =>
+    apiClient
+      .get('/finance/student-fee-categories', { params: includeInactive ? { includeInactive: true } : {} })
+      .then((r) => r.data.data as StudentFeeCategoryList),
+
+  createStudentFeeCategory: (payload: StudentFeeCategoryInput) =>
+    apiClient.post('/finance/student-fee-categories', payload).then((r) => r.data.data as StudentFeeCategory),
+
+  updateStudentFeeCategory: (id: number, payload: Partial<StudentFeeCategoryInput>) =>
+    apiClient.put(`/finance/student-fee-categories/${id}`, payload).then((r) => r.data.data as StudentFeeCategory),
+
+  deactivateStudentFeeCategory: (id: number) =>
+    apiClient.delete(`/finance/student-fee-categories/${id}`).then((r) => r.data.data as StudentFeeCategory),
+
+  setFeeCumulativeCap: (maxCumulativeDiscountPercent: number | null) =>
+    apiClient
+      .put('/finance/student-fee-categories/settings/cap', { maxCumulativeDiscountPercent })
+      .then((r) => r.data.data as { maxCumulativeDiscountPercent: number | null }),
+
+  getStudentFeeCategories: (studentId: number, sessionId?: number) =>
+    apiClient
+      .get(`/finance/students/${studentId}/fee-categories`, { params: sessionId ? { sessionId } : {} })
+      .then((r) => r.data.data as StudentFeeCategoriesOverview),
+
+  assignStudentFeeCategory: (
+    studentId: number,
+    payload: { categoryId: number; sessionId?: number | null; reason?: string },
+  ) =>
+    apiClient
+      .post(`/finance/students/${studentId}/fee-categories`, payload)
+      .then((r) => r.data.data as { obligations: CalculateObligationsResult | null }),
+
+  revokeStudentFeeCategory: (studentId: number, assignmentId: number, reason?: string) =>
+    apiClient
+      .delete(`/finance/students/${studentId}/fee-categories/${assignmentId}`, { data: { reason } })
+      .then((r) => r.data.data as { obligations: CalculateObligationsResult | null }),
 
   /** Affecte la catégorie tarifaire et recalcule les obligations */
   assignStudentCategory: (studentId: number, payload: AssignStudentCategoryPayload) =>

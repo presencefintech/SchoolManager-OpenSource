@@ -44,6 +44,7 @@ import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/
 import { StudentFeeAssignmentPanel } from '@/components/admin/students/StudentFeeAssignmentPanel'
 import { StudentFeeObligationsPanel } from '@/components/admin/students/StudentFeeObligationsPanel'
 import { StudentCategoryCard } from '@/components/admin/students/student-category-card'
+import { StudentFeeCategoriesCard } from '@/components/admin/students/student-fee-categories-card'
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
 import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
 import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
@@ -1779,6 +1780,11 @@ function StudentDetailPageContent() {
               )}
 
               <div className="border-t border-zinc-100 pt-5 space-y-5">
+                <StudentFeeCategoriesCard
+                  studentId={studentId}
+                  sessionId={feeAttributionSessionId}
+                  readOnly={deskOnly}
+                />
                 <StudentCategoryCard
                   studentId={studentId}
                   currentCategory={student.studentCategory}

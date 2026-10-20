@@ -81,6 +81,8 @@ export const enrollmentCreateSchema = z
     nfcTagId: z.string().min(8).max(64).optional().or(z.literal('')),
     autoAssignExplicitFees: z.boolean().default(false),
     explicitFeeStructureIds: z.array(z.number().int().positive()).max(50).default([]),
+    /** Catégories tarifaires dynamiques de l'école (plusieurs possibles) */
+    studentFeeCategoryIds: z.array(z.number().int().positive()).max(20).default([]),
   })
 
 export type EnrollmentCreateForm = z.infer<typeof enrollmentCreateSchema>
@@ -178,6 +180,9 @@ export function toCreateEnrollmentPayload(data: EnrollmentCreateForm): CreateEnr
     medicalNotes: trimOptional(data.medicalNotes),
     nfcTagId: trimOptional(data.nfcTagId),
     ...(data.autoAssignExplicitFees ? { autoAssignExplicitFees: true } : {}),
+    ...(data.studentFeeCategoryIds?.length
+      ? { studentFeeCategoryIds: data.studentFeeCategoryIds }
+      : {}),
     ...(data.explicitFeeStructureIds?.length
       ? { explicitFeeStructureIds: data.explicitFeeStructureIds }
       : {}),
@@ -214,4 +219,5 @@ export const ENROLLMENT_CREATE_DEFAULTS: EnrollmentCreateForm = {
   nfcTagId: '',
   autoAssignExplicitFees: false,
   explicitFeeStructureIds: [],
+  studentFeeCategoryIds: [],
 }

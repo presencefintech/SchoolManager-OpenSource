@@ -164,6 +164,7 @@ export const enrollmentsApi = {
     studentCategory?: string
     scholarshipPercent?: number
     customCategoryLabel?: string
+    studentFeeCategoryIds?: number[]
   }) => {
     const {
       classId,
@@ -173,6 +174,7 @@ export const enrollmentsApi = {
       studentCategory,
       scholarshipPercent,
       customCategoryLabel,
+      studentFeeCategoryIds,
     } = params
     return apiClient
       .get<{ success: boolean; data: import('@/types/admin').EnrollmentFeePreview }>(
@@ -184,6 +186,9 @@ export const enrollmentsApi = {
             ...(studentId != null ? { studentId } : {}),
             ...(explicitFeeStructureIds?.length
               ? { explicitFeeStructureIds: explicitFeeStructureIds.join(',') }
+              : {}),
+            ...(studentFeeCategoryIds?.length
+              ? { studentFeeCategoryIds: studentFeeCategoryIds.join(',') }
               : {}),
             ...(studentCategory ? { studentCategory } : {}),
             ...(scholarshipPercent != null && !Number.isNaN(scholarshipPercent)

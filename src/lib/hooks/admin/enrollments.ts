@@ -131,6 +131,7 @@ export function useEnrollmentFeePreview(
     studentCategory?: string
     scholarshipPercent?: number
     customCategoryLabel?: string
+    studentFeeCategoryIds?: number[]
   },
 ) {
   const explicitKey = (options?.explicitFeeStructureIds ?? []).slice().sort((a, b) => a - b).join(',')
@@ -146,6 +147,7 @@ export function useEnrollmentFeePreview(
       options?.studentCategory ?? null,
       options?.scholarshipPercent ?? null,
       options?.customCategoryLabel ?? null,
+      (options?.studentFeeCategoryIds ?? []).slice().sort((a, b) => a - b).join(','),
     ],
     queryFn: () =>
       enrollmentsApi.getFeePreview({
@@ -156,6 +158,7 @@ export function useEnrollmentFeePreview(
         studentCategory: options?.studentCategory,
         scholarshipPercent: options?.scholarshipPercent,
         customCategoryLabel: options?.customCategoryLabel,
+        studentFeeCategoryIds: options?.studentFeeCategoryIds,
       }),
     enabled: !!classId && classId > 0,
     staleTime: 60_000,

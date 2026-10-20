@@ -1052,6 +1052,8 @@ export type FeeGridRule = {
   optionId: number | null
   classId: number | null
   studentCategory: StudentCategory
+  /** Catégorie élève dynamique de l'école (prioritaire sur l'enum quand renseignée) */
+  studentFeeCategoryId?: number | null
   amount: number | string
   currency: string
   dueDate: string | null
@@ -1070,6 +1072,8 @@ export type FeeDiscountPolicy = {
   appliesToCategory: StudentCategory
   /** Libellé dynamique (prioritaire sur l’enum si renseigné) */
   appliesToCustomLabel?: string | null
+  /** Catégorie élève dynamique de l'école (prioritaire sur l'enum et le libellé) */
+  studentFeeCategoryId?: number | null
   feeCategoryId: number | null
   isActive: boolean
   createdAt?: string
@@ -1087,10 +1091,22 @@ export type FeeCatalogV2Category = {
   isActive?: boolean
 }
 
+export type {
+  FeeAutoRule,
+  FeeCategoryStackMode,
+  StudentFeeCategory,
+  StudentFeeCategoryInput,
+  StudentFeeCategoryList,
+  StudentFeeCategoryAssignment,
+  ResolvedStudentFeeCategory,
+  StudentFeeCategoriesOverview,
+} from '@/types/admin'
+
 export type FeeCatalogV2 = {
   categories: FeeCatalogV2Category[]
   gridRules: FeeGridRule[]
   discountPolicies: FeeDiscountPolicy[]
+  studentFeeCategories?: import('@/types/admin').StudentFeeCategory[]
 }
 
 export type UpsertFeeCatalogV2Payload = {
@@ -1109,7 +1125,8 @@ export type UpsertFeeCatalogV2Payload = {
     optionId?: number | null
     classId?: number | null
     classLevelId?: number | null
-    studentCategory: StudentCategory
+    studentCategory?: StudentCategory
+    studentFeeCategoryId?: number | null
     amount: number | string
     currency?: string
     dueDate?: string | Date | null
@@ -1121,7 +1138,8 @@ export type UpsertFeeCatalogV2Payload = {
     name: string
     discountType: FeeDiscountType
     value: number | string
-    appliesToCategory: StudentCategory
+    appliesToCategory?: StudentCategory
+    studentFeeCategoryId?: number | null
     appliesToCustomLabel?: string | null
     feeCategoryId?: number | null
     isActive?: boolean
@@ -1151,6 +1169,7 @@ export type CalculateObligationsResult = {
   obligations: StudentFeeObligationLine[]
   totalNet: number
   ledgerSynced: boolean
+  feeCategories?: Array<{ id: number; name: string; source: string }>
 }
 
 export type AssignStudentCategoryPayload = {

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { StudentFinanceDashboard } from '@/components/finance/student-dashboard/StudentFinanceDashboard'
 import { StudentCategoryCard } from '@/components/admin/students/student-category-card'
+import { StudentFeeCategoriesCard } from '@/components/admin/students/student-fee-categories-card'
 import { FinancePageHeader, FinancePageShell } from '@/components/finance/finance-page-shell'
 import { useGuichetDashboard, useStudentFinanceProfile } from '@/lib/hooks/use-finance'
 import { parseGuichetStudentIdentity } from '@/lib/finance/guichet-student.utils'
@@ -67,6 +68,7 @@ export default function StudentFinancePage() {
         }
       />
       <div className="space-y-5">
+        <StudentFeeCategoriesCard studentId={studentId} sessionId={academicSessionId ?? undefined} />
         <StudentCategoryCard
           studentId={studentId}
           currentCategory={identity.studentCategory}
