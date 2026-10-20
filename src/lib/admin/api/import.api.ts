@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { apiClient } from '@/lib/api/client'
 import { parseContentDispositionFilename, readBlobErrorMessage } from '@/lib/download-blob'
 
@@ -98,7 +99,63 @@ export interface StudentImportAnalysis {
   }
 }
 
+// ── Classeur complet (pack multi-onglets) ───────────────────────────
+
+/** GET /admin/import/types — catalogue des types et ordre d'import recommandé. */
+export interface ImportCatalog {
+  order: string[]
+  types: Array<{
+    slug: string
+    label: string
+    description: string
+    recommendedOrder: number
+    columns: Array<{ header: string; required: boolean; example?: string }>
+  }>
+}
+
+/** POST /admin/import/pack — un job par onglet reconnu, dans l'ordre recommandé. */
+export interface ImportPackResult {
+  jobs: Array<{ jobId: string; type: string; totalRows: number; fileName: string }>
+  skipped: string[]
+  fileName: string
+}
+
 export const importApi = {
+  getCatalog: (): Promise<ImportCatalog> =>
+    apiClient.get('/admin/import/types').then((r) => r.data.data),
+
+  /** GET /admin/import/templates — classeur Excel multi-onglets (Structure, Frais, Élèves…). */
+  downloadPackTemplate: async (): Promise<{ blob: Blob; filename: string }> => {
+    try {
+      const res = await apiClient.get('/admin/import/templates', { responseType: 'blob' })
+      const ct = String(res.headers['content-type'] ?? '')
+      if (ct.includes('application/json') || ct.includes('text/plain')) {
+        throw new Error(await readBlobErrorMessage(res.data as Blob))
+      }
+      const filename = parseContentDispositionFilename(
+        res.headers['content-disposition'] as string | undefined,
+        'modele-import-complet.xlsx',
+      )
+      return { blob: res.data as Blob, filename }
+    } catch (error) {
+      // responseType blob : le JSON d'erreur arrive sous forme de Blob
+      if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+        throw new Error(await readBlobErrorMessage(error.response.data))
+      }
+      throw error
+    }
+  },
+
+  uploadPack: async (file: File, schoolId?: number): Promise<ImportPackResult> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const r = await apiClient.post('/admin/import/pack', fd, {
+      params: schoolId ? { schoolId } : undefined,
+      timeout: 180_000,
+    })
+    return r.data.data
+  },
+
   upload: async (
     type: ImportType,
     file: File,

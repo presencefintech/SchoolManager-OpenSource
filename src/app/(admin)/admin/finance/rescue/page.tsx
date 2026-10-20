@@ -7,9 +7,11 @@ import {
   LifeBuoy,
   RefreshCw,
   ShieldAlert,
+  Undo2,
   Wrench,
   XCircle,
 } from 'lucide-react'
+import { AdminPaymentCorrectionPanel } from '@/components/admin/finance/admin-payment-correction-panel'
 import {
   usePaymentVoidRequests,
   useRepairSchoolLedgers,
@@ -24,7 +26,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import type { PaymentVoidRequestRow, PaymentVoidStatus } from '@/lib/admin/api/finance.api'
 
-type Tab = 'voids' | 'sync' | 'repair'
+type Tab = 'voids' | 'correct' | 'sync' | 'repair'
 
 const VOID_FILTERS: Array<{ value: '' | PaymentVoidStatus; label: string }> = [
   { value: 'PENDING', label: 'En attente' },
@@ -80,6 +82,8 @@ export default function FinanceRescuePage() {
 
   const canAdmin =
     user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' || user?.role === 'DIRECTOR'
+  /** admin-correct-lines : ADMIN / SUPER_ADMIN uniquement (fullAdmin côté backend). */
+  const canCorrect = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
 
   const handleReview = (action: 'approve' | 'reject') => {
     if (!selected) return
@@ -162,8 +166,8 @@ export default function FinanceRescuePage() {
               Opérations de secours
             </h1>
             <p className="mt-1 text-sm text-zinc-600 max-w-2xl">
-              Annulation de reçus , synchronisation de ledger élève et réparation des
-              soldes dérivés. Réservé à l’administration — chaque action est journalisée.
+              Annulation de reçus, correction de lignes encaissées, synchronisation de ledger
+              élève et réparation des soldes dérivés. Réservé à l’administration — chaque action est journalisée.
             </p>
           </div>
           {!canAdmin && (
@@ -178,6 +182,7 @@ export default function FinanceRescuePage() {
         {(
           [
             { id: 'voids' as const, label: 'Annulations (voids)', icon: XCircle },
+            { id: 'correct' as const, label: 'Corriger des lignes', icon: Undo2 },
             { id: 'sync' as const, label: 'Sync ledger', icon: RefreshCw },
             { id: 'repair' as const, label: 'Réparer soldes', icon: Wrench },
           ] as const
@@ -366,6 +371,8 @@ export default function FinanceRescuePage() {
           </aside>
         </div>
       )}
+
+      {tab === 'correct' && <AdminPaymentCorrectionPanel canCorrect={canCorrect} />}
 
       {tab === 'sync' && (
         <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm space-y-4 max-w-xl">

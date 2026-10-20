@@ -156,6 +156,9 @@ export function getApiErrorMessage(error: unknown): string {
     const resolved = resolveApiErrorMessage(data)
     if (resolved !== 'Une erreur inattendue est survenue') return resolved
     if (typeof msg === 'string' && msg) return msg
+    if (error.response?.status === 413) {
+      return 'Fichier trop volumineux pour le serveur. Réduisez la taille de la photo (ou découpez le ZIP) puis réessayez.'
+    }
     if (error.response?.status === 429) {
       return 'Trop de requêtes — patientez une minute avant de réessayer.'
     }

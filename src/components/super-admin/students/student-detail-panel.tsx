@@ -327,7 +327,7 @@ export function StudentDetailPanel({ studentId, schoolId, open, onClose }: Stude
                             <div className="flex items-center gap-2 min-w-0">
                               <CreditCard size={14} className="text-indigo-600 flex-shrink-0" />
                               <div className="min-w-0">
-                                <p className="text-xs font-semibold text-zinc-800">Carte élève</p>
+                                <p className="text-xs font-semibold text-zinc-800">Badge scolaire</p>
                                 <p className="text-[10px] text-zinc-400 truncate">Format badge · réimpression</p>
                               </div>
                             </div>

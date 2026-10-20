@@ -8,6 +8,7 @@ import { fitFontSize } from '@/lib/student-card/fit-font'
 import { STATUS_COLORS } from '@/lib/student-card/card-dimensions'
 import { resolveCardTheme } from '@/lib/student-card/card-theme'
 import { formatGenderLabel, formatValidityLabel } from '@/lib/student-card/utils'
+import { STUDENT_BADGE_FOOTER, STUDENT_BADGE_TITLE } from '@/lib/student-card/badge-labels'
 import { formatStudentIdentityView } from '@/lib/utils/student-name.util'
 import { cn } from '@/lib/utils'
 import { CardText } from './card-text'
@@ -91,7 +92,8 @@ function DetailRow({
 }
 
 /**
- * Carte élève CR80 — thème école + identité RDC (Nom / Postnom / Prénom).
+ * Badge scolaire CR80 — thème école + identité RDC (Nom / Postnom / Prénom).
+ * Ni date ni lieu de naissance : ce n'est pas une pièce d'identité (carte d'élève = État).
  */
 export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewProps>(
   function StudentCardPreview({ data, assets, className }, ref) {
@@ -113,30 +115,10 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
         nom: fitFontSize(identity.nom, CARD.font.lastName, 14, 5.5),
         postnom: fitFontSize(identity.postnom ?? '', CARD.font.lastName, 14, 5.5),
         prenom: fitFontSize(identity.prenom, CARD.font.firstName, 14, 5.5),
-        detailValue: fitFontSize(
-          [classLine, data.nationality, data.placeOfBirth, data.dateOfBirth]
-            .filter(Boolean)
-            .join(' '),
-          CARD.font.detailValue,
-          36,
-          4.2,
-        ),
+        detailValue: fitFontSize(classLine, CARD.font.detailValue, 36, 4.2),
       }),
-      [
-        data.schoolName,
-        identity.nom,
-        identity.postnom,
-        identity.prenom,
-        classLine,
-        data.nationality,
-        data.placeOfBirth,
-        data.dateOfBirth,
-      ],
+      [data.schoolName, identity.nom, identity.postnom, identity.prenom, classLine],
     )
-
-    const originLine = [data.nationality?.trim(), data.placeOfBirth?.trim()]
-      .filter(Boolean)
-      .join(' · ')
 
     return (
       <div
@@ -302,7 +284,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {data.schoolSlogan?.trim() || "Carte d'identité élève"}
+                  {data.schoolSlogan?.trim() || STUDENT_BADGE_TITLE}
                 </span>
                 {data.schoolCity?.trim() ? (
                   <CardText
@@ -557,16 +539,6 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
             {classLine ? (
               <DetailRow label="Classe" value={classLine} fontSize={typography.detailValue} />
             ) : null}
-            {data.dateOfBirth?.trim() ? (
-              <DetailRow
-                label="Né(e)"
-                value={data.dateOfBirth.trim()}
-                fontSize={typography.detailValue}
-              />
-            ) : null}
-            {originLine ? (
-              <DetailRow label="Origine" value={originLine} fontSize={typography.detailValue} />
-            ) : null}
           </div>
 
           <div
@@ -675,7 +647,7 @@ export const StudentCardPreview = forwardRef<HTMLDivElement, StudentCardPreviewP
               whiteSpace: 'nowrap',
             }}
           >
-            Document officiel · RDC
+            {STUDENT_BADGE_FOOTER}
           </span>
           <span
             style={{

@@ -1472,7 +1472,7 @@ function StudentDetailPageContent() {
               <div className="flex items-center gap-2 min-w-0">
                 <CreditCard size={14} className="text-emerald-600 flex-shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-zinc-800">Aperçu carte élève</p>
+                  <p className="text-sm font-semibold text-zinc-800">Aperçu badge scolaire</p>
                   <p className="text-[11px] text-zinc-400">Format CR80 · vérifiez avant d&apos;imprimer</p>
                 </div>
               </div>

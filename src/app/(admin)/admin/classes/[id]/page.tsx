@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { motion, type Variants } from 'framer-motion'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2 } from 'lucide-react'
+import { ArrowLeft, Users, TrendingUp, DollarSign, BookOpen, ToggleLeft, Download, UserPlus, ArrowRightLeft, Pencil, AlertTriangle, Wallet, Trash2, FileArchive, Loader2 } from 'lucide-react'
+import { triggerBlobDownload } from '@/lib/download-blob'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -232,6 +233,7 @@ export default function ClassDetailPage() {
   const { mutateAsync: deleteClass, isPending: deleting } = useDeleteClass()
   const toast = useToast()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [fichesExporting, setFichesExporting] = useState(false)
 
   function handleExport() {
     classesApi.exportClass(classId).then(blob => {
@@ -264,6 +266,21 @@ export default function ClassDetailPage() {
       a.click()
       URL.revokeObjectURL(url)
     })
+  }
+
+  /** Génération serveur séquentielle (1 PDF / élève) — peut prendre jusqu'à ~1 min. */
+  async function handleClassFichesZip() {
+    if (fichesExporting) return
+    setFichesExporting(true)
+    try {
+      const { blob, filename } = await enrollmentsApi.downloadClassFichesZip(classId)
+      triggerBlobDownload(blob, filename)
+      toast.success('Fiches générées', filename)
+    } catch (error) {
+      toast.error('Export des fiches impossible', getApiErrorMessage(error))
+    } finally {
+      setFichesExporting(false)
+    }
   }
 
   if (isLoading) {
@@ -336,6 +353,17 @@ export default function ClassDetailPage() {
             <button onClick={handleClassCertificates} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">
               <BookOpen size={12} />
               Attestations
+            </button>
+            <button
+              type="button"
+              onClick={handleClassFichesZip}
+              disabled={fichesExporting}
+              aria-busy={fichesExporting}
+              title="Fiches d'inscription PDF de tous les élèves actifs (ZIP)"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors disabled:cursor-wait disabled:opacity-60"
+            >
+              {fichesExporting ? <Loader2 size={12} className="animate-spin" /> : <FileArchive size={12} />}
+              {fichesExporting ? 'Génération…' : 'Fiches ZIP'}
             </button>
             {!deskOnly && (
             <button onClick={() => toggle(classId)} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-zinc-200 text-xs text-zinc-600 hover:bg-zinc-50 transition-colors">

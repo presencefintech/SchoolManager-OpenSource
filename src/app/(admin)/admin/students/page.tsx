@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, User, AlertTriangle, Wallet, ImagePlus,
 } from 'lucide-react'
 import { NumeroCourtBadge } from '@/components/students/NumeroCourtBadge'
+import { NumeroCourtBackfillBanner } from '@/components/admin/students/numero-court-backfill-banner'
 import { cn } from '@/lib/utils'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import {
@@ -177,6 +178,8 @@ function StudentsPageInner() {
 
       <div className="max-w-6xl mx-auto px-8 py-6 space-y-5">
 
+        <NumeroCourtBackfillBanner />
+
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
@@ -256,11 +259,12 @@ function StudentsPageInner() {
                 <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
               ) : students.length > 0 ? (
                 <>
+                  {/* min-w : sur écran étroit le tableau défile au lieu d'écraser la colonne Élève */}
                   <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[820px]">
                     <thead>
                       <tr className="border-b border-zinc-100">
-                        <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Élève</th>
+                        <th className="min-w-[280px] text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Élève</th>
                         <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Classe</th>
                         <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Statut</th>
                         <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Matricule</th>
@@ -277,9 +281,10 @@ function StudentsPageInner() {
                                 <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
                                   <User size={12} className="text-emerald-600" />
                                 </div>
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-1.5">
-                                    <p className="text-sm font-medium text-zinc-900">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                    {/* Nom complet sur une seule ligne (pas de coupure « Marie- / Claire ») ; le tableau défile si besoin */}
+                                    <p className="whitespace-nowrap text-sm font-medium leading-snug text-zinc-900">
                                       {formatStudentFullName(s) || `Élève #${s.id}`}
                                     </p>
                                     <NumeroCourtBadge numeroCourt={s.numeroCourt} size="sm" navigateOnClick={false} />
@@ -328,13 +333,13 @@ function StudentsPageInner() {
                                           const { blob, filename } = await enrollmentsApi.downloadStudentCardPdf(s.id)
                                           try {
                                             await printPdfBlob(blob)
-                                            toast.success('Carte élève', filename)
+                                            toast.success('Badge scolaire', filename)
                                           } catch {
                                             triggerBlobDownload(blob, filename)
-                                            toast.info('Carte élève', 'PDF téléchargé — ouvrez-le pour imprimer.')
+                                            toast.info('Badge scolaire', 'PDF téléchargé — ouvrez-le pour imprimer.')
                                           }
                                         } catch (error) {
-                                          toast.error('Carte élève', getApiErrorMessage(error))
+                                          toast.error('Badge scolaire', getApiErrorMessage(error))
                                         }
                                       })()
                                     },
