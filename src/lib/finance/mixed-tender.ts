@@ -8,15 +8,16 @@ export type CashTenderPreview = {
 
 /**
  * Aperçu guichet. Le serveur, au taux officiel, reste la référence au moment de valider.
- * Les dollars sont appliqués d'abord ; le reliquat est converti en francs (demi supérieur).
+ * Le dû est dans la devise de l'école (`dueCurrency`) : cette devise est appliquée
+ * d'abord, le reliquat est converti dans l'autre (même règle que settleCashTender).
  */
 export function previewCashTender(
-  dueUsd: number,
+  due: number,
   paidUsd: number,
   paidCdf: number,
   rate: number | null,
+  dueCurrency: 'USD' | 'CDF' = 'USD',
 ): CashTenderPreview {
-  const dueCents = Math.round(dueUsd * 100)
   const paidUsdCents = Math.round((Number.isFinite(paidUsd) ? paidUsd : 0) * 100)
   const paidCdfUnits = Math.round(Number.isFinite(paidCdf) ? paidCdf : 0)
   if (paidUsdCents <= 0 && paidCdfUnits <= 0) {
@@ -28,6 +29,9 @@ export function previewCashTender(
       message: 'Indiquez le montant remis en USD, en CDF, ou les deux.',
     }
   }
+  if (dueCurrency === 'CDF') return previewCdfDue(Math.round(due), paidUsdCents, paidCdfUnits, rate)
+
+  const dueCents = Math.round(due * 100)
   const appliedCents = Math.min(paidUsdCents, dueCents)
   const changeUsd = (paidUsdCents - appliedCents) / 100
   const remainingCents = dueCents - appliedCents
@@ -57,6 +61,46 @@ export function previewCashTender(
     changeUsd,
     changeCdf,
     requiredCdf,
+    message: null,
+  }
+}
+
+/** École en francs : CDF d'abord, reliquat en USD au taux (tolérance 0,01 $). */
+function previewCdfDue(
+  dueCdf: number,
+  paidUsdCents: number,
+  paidCdfUnits: number,
+  rate: number | null,
+): CashTenderPreview {
+  const appliedCdf = Math.min(paidCdfUnits, dueCdf)
+  const changeCdf = paidCdfUnits - appliedCdf
+  const remainingCdf = dueCdf - appliedCdf
+  const hasRate = rate != null && rate > 0
+  if ((remainingCdf > 0 || paidUsdCents > 0) && !hasRate) {
+    return {
+      short: true,
+      changeUsd: 0,
+      changeCdf,
+      requiredCdf: 0,
+      message: 'Taux du jour indisponible pour convertir la part en dollars.',
+    }
+  }
+  const requiredUsdCents = remainingCdf > 0 ? Math.round((remainingCdf / (rate as number)) * 100) : 0
+  const gap = requiredUsdCents - paidUsdCents
+  if (gap > 1) {
+    return {
+      short: true,
+      changeUsd: 0,
+      changeCdf: 0,
+      requiredCdf: remainingCdf,
+      message: `Encaissement insuffisant. Il reste ${remainingCdf.toLocaleString('fr-CD')} FC, soit ${(requiredUsdCents / 100).toFixed(2)} $ (reçu : ${(paidUsdCents / 100).toFixed(2)} $).`,
+    }
+  }
+  return {
+    short: false,
+    changeUsd: gap <= 0 ? (paidUsdCents - requiredUsdCents) / 100 : 0,
+    changeCdf,
+    requiredCdf: remainingCdf,
     message: null,
   }
 }
