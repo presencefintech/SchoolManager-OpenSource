@@ -3,18 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertCircle, CheckCircle2, RefreshCw, ArrowLeft, DollarSign, ExternalLink } from 'lucide-react'
+import { AlertCircle, RefreshCw, ArrowLeft, ExternalLink } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FeesTable } from '@/components/finance/student-dashboard/FeesTable/FeesTable'
 import { PaymentModal } from '@/components/finance/student-dashboard/PaymentModal/PaymentModal'
-import { PrintReceiptButton } from '@/components/finance/student-dashboard/receipts/PrintReceiptButton'
 import { StudentPaymentHistory } from '@/components/finance/student-dashboard/StudentPaymentHistory'
+import { UnifiedFeeSchedule } from '@/components/finance/student-dashboard/UnifiedFeeSchedule'
+import { CashTicketPanel } from '@/components/finance/student-dashboard/CashTicketPanel'
+import type { FeeAttributionValue } from '@/components/finance/fee-attribution-picker'
 import {
-  FeeAttributionPanel,
-  type FeeAttributionValue,
-} from '@/components/finance/fee-attribution-picker'
-import {
-  FinanceCatalogFeePanel,
   validateManualCatalogPeriod,
   type FinanceCatalogSelection,
 } from '@/components/finance/finance-catalog-fee-panel'
@@ -24,10 +20,15 @@ import { useStudentFeePeriodStatus } from '@/lib/hooks/use-finance'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
 import {
-  buildContiguousSelectionThrough,
-  getSelectableFeeLines,
+  feeScheduleLineKey,
+  lineRemainingAmount,
+  selectAllRemainingMonths,
   selectionTotalAmount,
+  toggleContiguousFeeSelection,
+  type FeeLineSelection,
 } from '@/lib/finance/fee-schedule.utils'
+import { clampCollectAmount, scheduleTotals } from '@/lib/finance/fee-schedule-view'
+import { cn } from '@/lib/utils'
 import type { FeeScheduleLineDto } from '@/types/finance'
 import type { StudentFinanceApi } from '@/components/finance/student-dashboard/StudentPaymentHistory'
 
@@ -39,7 +40,7 @@ interface StudentFinanceDashboardProps {
   /** Source API — défaut finance (comptable). */
   api?: StudentFinanceApi
   /**
-   * Affiche encaissement + raccourci « Payer ».
+   * Affiche la sélection et le ticket de caisse.
    * Défaut : true pour finance, false pour admin (lecture + lien guichet).
    */
   allowPay?: boolean
@@ -47,6 +48,11 @@ interface StudentFinanceDashboardProps {
   showNav?: boolean
   /** Titre compact pour embed. */
   compactHeader?: boolean
+  /**
+   * split : échéancier à gauche, ticket fixe à droite (≥ lg).
+   * stacked : ticket sous l’échéancier (conteneurs étroits, ex. tiroir).
+   */
+  layout?: 'split' | 'stacked'
   className?: string
 }
 
@@ -62,7 +68,10 @@ function DashboardSkeleton() {
           <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-80 rounded-xl" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     </div>
   )
 }
@@ -74,6 +83,7 @@ export function StudentFinanceDashboard({
   allowPay,
   showNav = true,
   compactHeader = false,
+  layout = 'split',
   className,
 }: StudentFinanceDashboardProps) {
   const canPay = allowPay ?? api === 'finance'
@@ -87,11 +97,13 @@ export function StudentFinanceDashboard({
   const { data, isLoading, isError, error, refetch, isFetching } =
     api === 'admin' ? adminQuery : financeQuery
 
-  const [attribution, setAttribution] = useState<FeeAttributionValue | null>(null)
+  const [selection, setSelection] = useState<FeeLineSelection[]>([])
   const [useCatalogFallback, setUseCatalogFallback] = useState(false)
   const [catalog, setCatalog] = useState<FinanceCatalogSelection>({ amount: 0 })
   const [payModalOpen, setPayModalOpen] = useState(false)
   const [payMode, setPayMode] = useState<'schedule' | 'catalog'>('schedule')
+  // Figée à l'ouverture de la modale : la sélection reste éditable derrière sans la modifier.
+  const [pendingAttribution, setPendingAttribution] = useState<FeeAttributionValue | null>(null)
   const [lastPaymentId, setLastPaymentId] = useState<number | null>(null)
   const [catalogError, setCatalogError] = useState<string | null>(null)
 
@@ -100,15 +112,45 @@ export function StudentFinanceDashboard({
     useCatalogFallback && canPay ? catalog.feeStructureId : undefined,
   )
 
-  function openPaymentModal(nextAttribution: FeeAttributionValue | null) {
-    if (!canPay || !nextAttribution || nextAttribution.lines.length === 0) return
-    setUseCatalogFallback(false)
+  function toggleLine(line: FeeScheduleLineDto) {
+    if (!data) return
+    setLastPaymentId(null)
+    setSelection((current) => toggleContiguousFeeSelection(line, current, data.lines))
+  }
+
+  function changeLineAmount(line: FeeScheduleLineDto, raw: string) {
+    const key = feeScheduleLineKey(line)
+    const amount = clampCollectAmount(raw, lineRemainingAmount(line))
+    setSelection((current) =>
+      current.map((sel) => (feeScheduleLineKey(sel.line) === key ? { ...sel, amount } : sel)),
+    )
+  }
+
+  function selectYear(feeStructureId: number) {
+    if (!data) return
+    setLastPaymentId(null)
+    setSelection((current) => selectAllRemainingMonths(feeStructureId, current, data.lines))
+  }
+
+  function setCatalogMode(on: boolean) {
+    setUseCatalogFallback(on)
+    setCatalogError(null)
+    if (on) setSelection([])
+    else setCatalog({ amount: 0 })
+  }
+
+  function openSchedulePayment() {
+    if (!canPay || !data || selection.length === 0) return
     setPayMode('schedule')
-    setAttribution(nextAttribution)
+    setPendingAttribution({
+      sessionId: data.sessionId,
+      lines: selection,
+      totalAmount: selectionTotalAmount(selection),
+    })
     setPayModalOpen(true)
   }
 
-  function openCatalogPaymentModal() {
+  function openCatalogPayment() {
     if (!canPay || catalog.amount <= 0) {
       setCatalogError('Indiquez un montant valide.')
       return
@@ -121,21 +163,9 @@ export function StudentFinanceDashboard({
       }
     }
     setCatalogError(null)
-    setAttribution(null)
+    setPendingAttribution(null)
     setPayMode('catalog')
     setPayModalOpen(true)
-  }
-
-  function handleQuickPay(line: FeeScheduleLineDto) {
-    if (!canPay || !data) return
-    setLastPaymentId(null)
-    const lines = buildContiguousSelectionThrough(line, data.lines)
-    if (lines.length === 0) return
-    openPaymentModal({
-      sessionId: data.sessionId,
-      lines,
-      totalAmount: selectionTotalAmount(lines),
-    })
   }
 
   if (isLoading) {
@@ -164,14 +194,16 @@ export function StudentFinanceDashboard({
   const { summary } = data
   const academicSessionId = sessionId ?? data.sessionId
   const paymentsHref = api === 'admin' ? '/admin/finance/paiements' : '/finances/paiements'
-  const totalBilled = data.lines.reduce((s, l) => s + Number(l.amount || 0), 0)
+  const totals = scheduleTotals(data.lines)
   const totalPaid = Number(summary.totalAmountPaid || 0)
   const totalRemaining = Number(summary.totalAmountDue || 0)
+  const dueLines = summary.dueCount + summary.overdueCount
+  const split = layout === 'split' && canPay
 
   return (
-    <div className={className ? `space-y-6 ${className}` : 'space-y-6'}>
+    <div className={cn('space-y-6', className)}>
       {showNav && api === 'finance' ? (
-        <nav className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <nav className="flex flex-wrap items-center gap-2 text-xs font-light text-zinc-500">
           <Link
             href="/finances/debiteurs"
             className="inline-flex items-center gap-1 hover:text-emerald-700 transition-colors"
@@ -195,13 +227,13 @@ export function StudentFinanceDashboard({
           <h2
             className={
               compactHeader
-                ? 'text-base font-semibold text-zinc-900'
-                : 'text-xl sm:text-2xl font-semibold text-zinc-900'
+                ? 'text-base font-medium text-zinc-900'
+                : 'text-xl sm:text-2xl font-medium tracking-tight text-zinc-900'
             }
           >
             Échéancier financier
           </h2>
-          <p className="mt-1 text-sm text-zinc-500 break-words">
+          <p className="mt-1 text-sm font-light text-zinc-500 break-words">
             Session {data.sessionLabel}
             {' · '}
             {data.billingStartMonth} → {data.billingEndMonth}
@@ -211,7 +243,7 @@ export function StudentFinanceDashboard({
           <button
             type="button"
             onClick={() => refetch()}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-normal text-zinc-600 hover:bg-zinc-50"
           >
             <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} />
             Actualiser
@@ -219,7 +251,7 @@ export function StudentFinanceDashboard({
           {!canPay && (
             <Link
               href={paymentsHref}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
             >
               <ExternalLink size={12} />
               Encaisser
@@ -228,28 +260,8 @@ export function StudentFinanceDashboard({
         </div>
       </div>
 
-      {lastPaymentId ? (
-        <div className="flex flex-col gap-3 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-emerald-900">
-                Paiement enregistré · #{lastPaymentId}
-              </p>
-              <p className="text-[11px] text-emerald-700/80 mt-0.5">
-                Téléchargez le ticket caisse ou le reçu A4
-              </p>
-            </div>
-          </div>
-          <PrintReceiptButton paymentId={lastPaymentId} />
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          label="Total facturé"
-          value={formatMoney(totalBilled, currency)}
-        />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SummaryCard label="Total facturé" value={formatMoney(totals.billed, currency)} />
         <SummaryCard
           label="Déjà payé"
           value={formatMoney(totalPaid, currency)}
@@ -260,121 +272,52 @@ export function StudentFinanceDashboard({
           label="Reste à payer"
           value={formatMoney(totalRemaining, currency)}
           tone="danger"
-          hint={`${summary.dueCount + summary.overdueCount} ligne${summary.dueCount + summary.overdueCount === 1 ? '' : 's'} due${summary.dueCount + summary.overdueCount === 1 ? '' : 's'} / retard`}
+          hint={`${dueLines} ligne${dueLines === 1 ? '' : 's'} due${dueLines === 1 ? '' : 's'} / retard`}
         />
-        <SummaryCard
-          label="Lignes"
-          value={String(summary.lineCount)}
-          hint={`${summary.upcomingCount} à venir`}
-        />
+        <SummaryCard label="Lignes" value={String(summary.lineCount)} hint={`${summary.upcomingCount} à venir`} />
       </div>
 
-      {canPay ? (
-        <div className="rounded-2xl border border-violet-200/50 bg-gradient-to-br from-violet-50/40 via-white to-emerald-50/30 p-5 space-y-4 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-base font-semibold text-zinc-900">Encaissement premium</h3>
-                <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
-                  Preuve · partiel · hors échéancier
-                </span>
-              </div>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Échéancier multi-mois ou paiement hors échéancier (catalogue / montant libre)
-              </p>
-            </div>
-            {!useCatalogFallback && attribution && attribution.lines.length > 0 && (
-              <button
-                type="button"
-                onClick={() => openPaymentModal(attribution)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 shrink-0 shadow-sm"
-              >
-                <DollarSign size={14} />
-                Encaisser {formatMoney(attribution.totalAmount, currency)}
-              </button>
-            )}
-            {useCatalogFallback && catalog.amount > 0 && (
-              <button
-                type="button"
-                onClick={openCatalogPaymentModal}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 shrink-0 shadow-sm"
-              >
-                <DollarSign size={14} />
-                Encaisser {formatMoney(catalog.amount, currency)}
-              </button>
-            )}
-          </div>
-
-          {api === 'finance' ? (
-            <label className="flex items-center gap-2 text-xs text-zinc-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={useCatalogFallback}
-                onChange={(e) => {
-                  const on = e.target.checked
-                  setUseCatalogFallback(on)
-                  setCatalogError(null)
-                  if (on) {
-                    setAttribution(null)
-                  } else {
-                    setCatalog({ amount: 0 })
-                  }
-                }}
-                className="rounded border-zinc-300"
-              />
-              Paiement hors échéancier (barème catalogue ou montant libre)
-            </label>
-          ) : null}
-
-          {api === 'finance' && useCatalogFallback ? (
-            <>
-              <FinanceCatalogFeePanel
-                studentId={studentId}
-                value={catalog}
-                onChange={(next) => {
-                  setCatalog(next)
-                  setCatalogError(null)
-                }}
-              />
-              {catalogError ? (
-                <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  {catalogError}
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <FeeAttributionPanel
-              api={api}
-              studentId={studentId}
-              sessionId={sessionId}
-              value={attribution}
-              onChange={setAttribution}
-            />
+      <div className={cn('grid gap-6', split && 'lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start')}>
+        <section className="min-w-0 space-y-3">
+          <h3 className="text-sm font-medium text-zinc-900">Échéancier</h3>
+          <UnifiedFeeSchedule
+            lines={data.lines}
+            currency={currency}
+            selection={canPay && !useCatalogFallback ? selection : null}
+            onToggle={toggleLine}
+            onAmountChange={changeLineAmount}
+            onSelectYear={selectYear}
+          />
+          {data.lines.length === 0 && (
+            <p className="rounded-lg border border-amber-100 bg-amber-50/80 px-4 py-3 text-xs font-light text-amber-900">
+              Créez une catégorie et un barème sur{' '}
+              <span className="font-medium">Admin → Finance → Factures & Frais</span> pour la session{' '}
+              {data.sessionLabel}.
+            </p>
           )}
-        </div>
-      ) : null}
+        </section>
 
-      <div>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-zinc-900">Détail des frais</h3>
-          <p className="text-xs text-zinc-400">
-            {canPay && getSelectableFeeLines(data.lines).length > 0
-              ? 'Colonnes Payé / Reste · raccourci Payer inclut les mois précédents'
-              : 'Montant · déjà payé · reste impayé par ligne'}
-          </p>
-        </div>
-        <FeesTable
-          lines={data.lines}
-          currency={currency}
-          onPayLine={canPay ? handleQuickPay : undefined}
-        />
-        {data.lines.length === 0 && (
-          <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50/80 px-4 py-3 text-xs text-amber-900">
-            Aucune ligne d&apos;échéancier pour cette session. Créez une catégorie et un barème sur{' '}
-            <span className="font-medium">Admin → Finance → Factures & Frais</span> pour la session{' '}
-            {data.sessionLabel}.
-          </p>
-        )}
+        {canPay ? (
+          <CashTicketPanel
+            className={cn(split && 'lg:sticky lg:top-6')}
+            studentId={studentId}
+            currency={currency}
+            selection={selection}
+            totalAmount={selectionTotalAmount(selection)}
+            onClear={() => setSelection([])}
+            onCollect={openSchedulePayment}
+            catalogMode={api === 'finance' ? useCatalogFallback : null}
+            onCatalogModeChange={setCatalogMode}
+            catalog={catalog}
+            onCatalogChange={(next) => {
+              setCatalog(next)
+              setCatalogError(null)
+            }}
+            catalogError={catalogError}
+            onCollectCatalog={openCatalogPayment}
+            lastPaymentId={lastPaymentId}
+          />
+        ) : null}
       </div>
 
       <StudentPaymentHistory studentId={studentId} api={api} />
@@ -382,18 +325,16 @@ export function StudentFinanceDashboard({
       {canPay ? (
         <PaymentModal
           open={payModalOpen}
-          onClose={() => {
-            setPayModalOpen(false)
-            if (payMode === 'schedule') setAttribution(null)
-          }}
+          onClose={() => setPayModalOpen(false)}
           studentId={studentId}
           academicSessionId={academicSessionId}
-          selection={payMode === 'schedule' ? attribution : null}
+          selection={payMode === 'schedule' ? pendingAttribution : null}
           catalog={payMode === 'catalog' ? catalog : null}
           currency={currency}
           onSuccess={(paymentId) => {
             setLastPaymentId(paymentId)
-            setAttribution(null)
+            setSelection([])
+            setPendingAttribution(null)
             setCatalog({ amount: 0 })
             setUseCatalogFallback(false)
             void refetch()
@@ -425,17 +366,13 @@ function SummaryCard({
   hint?: string
 }) {
   const toneClass =
-    tone === 'success'
-      ? 'text-emerald-700'
-      : tone === 'danger'
-        ? 'text-red-700'
-        : 'text-zinc-900'
+    tone === 'success' ? 'text-emerald-700' : tone === 'danger' ? 'text-rose-700' : 'text-zinc-900'
 
   return (
-    <div className="rounded-xl border border-zinc-200/60 bg-white px-5 py-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">{label}</p>
-      <p className={`mt-1 text-xl font-semibold tabular-nums ${toneClass}`}>{value}</p>
-      {hint ? <p className="mt-1 text-[11px] text-zinc-400">{hint}</p> : null}
+    <div className="rounded-xl border border-zinc-200/70 bg-white px-5 py-4">
+      <p className="text-[11px] font-light uppercase tracking-wider text-zinc-400">{label}</p>
+      <p className={cn('mt-1.5 font-mono text-lg tabular-nums tracking-tight', toneClass)}>{value}</p>
+      {hint ? <p className="mt-1 text-[11px] font-light text-zinc-400">{hint}</p> : null}
     </div>
   )
 }
