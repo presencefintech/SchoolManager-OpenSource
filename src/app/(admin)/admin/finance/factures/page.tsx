@@ -30,6 +30,7 @@ import { useToast } from '@/providers/toast-provider'
 import { formatMoney } from '@/lib/finance/currency'
 import { FeeStructureComposer } from '@/components/admin/finance/fee-structure-composer'
 import { FeeGridV2Panel } from '@/components/admin/finance/fee-grid-v2-panel'
+import { CreateFeeDialog } from '@/components/admin/finance/create-fee-dialog'
 import { StudentFeeCategoriesManager } from '@/components/admin/finance/student-fee-categories-manager'
 import {
   isValidFeeCategoryCode,
@@ -375,6 +376,8 @@ export default function FacturesPage() {
   const [cloneSourceSessionId, setCloneSourceSessionId] = useState(0)
   const [cloneMsg, setCloneMsg] = useState<string | null>(null)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showCreateFee, setShowCreateFee] = useState(false)
+  const selectedSession = sessions.find((s) => s.id === selectedSessionId)
   const [editingCategory, setEditingCategory] = useState<FeeCategoryItem | null>(null)
   const [activeStudentId, setActiveStudentId] = useState<number>(0)
   const [showGenerateModal, setShowGenerateModal] = useState(false)
@@ -523,6 +526,15 @@ export default function FacturesPage() {
             Catégories et barèmes — visibles automatiquement au guichet finance
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowCreateFee(true)}
+          disabled={!selectedSession}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          title="Unique, en tranches (T1/T2/T3) ou mensuel : toutes les échéances en une saisie"
+        >
+          <Plus size={14} /> Créer un frais
+        </button>
       </motion.div>
 
       <div className="rounded-2xl border border-sky-100 bg-sky-50/80 px-4 py-4 space-y-3">
@@ -872,6 +884,10 @@ export default function FacturesPage() {
           </div>
         )}
       </div>
+
+      {showCreateFee && selectedSession && (
+        <CreateFeeDialog academicYear={selectedSession} onClose={() => setShowCreateFee(false)} />
+      )}
 
       {showCategoryModal && (
         <CategoryModal

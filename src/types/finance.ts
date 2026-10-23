@@ -2008,3 +2008,72 @@ export type PaymentDeclarationStudentLookup = {
   }
   pendingCount: number
 }
+
+// ── Création d'un frais (POST /finance/fees, moteur V2) ───────────────────────
+
+/** ONE_TIME : une échéance · INSTALLMENT : 2 à 12 tranches · MONTHLY : une échéance par mois. */
+export type FeeScheduleType = 'ONE_TIME' | 'INSTALLMENT' | 'MONTHLY'
+
+export interface FeeInstallmentInput {
+  /** Libellé de la tranche (« T1 »…), ajouté au nom du frais : « Minerval — T1 ». */
+  label: string
+  amount: number
+  /** AAAA-MM-JJ */
+  dueDate: string
+}
+
+/** Corps de POST /finance/fees (createFeeSchema côté backend). Un seul périmètre à la fois. */
+export interface CreateFeePayload {
+  academicYearId: number
+  name: string
+  description?: string
+  scheduleType: FeeScheduleType
+  /** Devise de l'école : le backend refuse toute autre devise. */
+  currency: 'USD' | 'CDF'
+  /** ONE_TIME / MONTHLY. */
+  amount?: number
+  /** ONE_TIME, AAAA-MM-JJ. */
+  dueDate?: string
+  /** MONTHLY : jour d'échéance (1–28). */
+  dueDayOfMonth?: number
+  installments?: FeeInstallmentInput[]
+  appliesToAll?: boolean
+  classIds?: number[]
+  optionIds?: number[]
+  sectionIds?: number[]
+  /** Codes des catégories de profil élève (GET /finance/student-categories). */
+  studentCategories?: string[]
+  generateObligations: boolean
+}
+
+export interface CreateFeeResult {
+  sessionId: number
+  parentCategory: { id: number; name: string; code: string } | null
+  lines: Array<{
+    feeCategoryId: number
+    name: string
+    code: string
+    amount: number
+    currency: string
+    dueDate: string | null
+    reusedCategory: boolean
+    gridRuleIds: number[]
+  }>
+  obligations: {
+    eligibleStudents: number
+    processed: number
+    failed: Array<{ studentId: number; error: string }>
+  } | null
+}
+
+/** Catégorie de profil élève (GET /finance/student-categories) — référencée par la grille V2. */
+export interface StudentProfileCategoryItem {
+  id: number
+  code: string
+  name: string
+  description?: string | null
+  isSystem: boolean
+  studentCount: number
+  gridRuleCount: number
+  discountPolicyCount: number
+}

@@ -546,6 +546,18 @@ export const financeApi = {
       .then((r) => r.data.data as FeeCatalogV2),
 
   /** Catégories tarifaires d'élève de l'école (dynamiques) + plafond de cumul */
+  /** Frais complet en un appel (moteur V2) : lignes par échéance, grille, obligations élèves. */
+  createFee: (payload: import('@/types/finance').CreateFeePayload) =>
+    apiClient
+      .post('/finance/fees', payload)
+      .then((r) => r.data.data as import('@/types/finance').CreateFeeResult),
+
+  /** Catégories de profil élève : les codes attendus par POST /finance/fees (studentCategories). */
+  listStudentProfileCategories: () =>
+    apiClient
+      .get('/finance/student-categories')
+      .then((r) => (r.data.data ?? []) as import('@/types/finance').StudentProfileCategoryItem[]),
+
   listStudentFeeCategories: (includeInactive = false) =>
     apiClient
       .get('/finance/student-fee-categories', { params: includeInactive ? { includeInactive: true } : {} })
