@@ -71,6 +71,20 @@ describe('middleware', () => {
     expect(location(res)).toBeNull()
   })
 
+  it('accepte le Gérant dans ses trois espaces', async () => {
+    for (const path of ['/finances/caisse', '/admin/desk', '/director/dashboard']) {
+      const res = await middleware(request(path, { [AUTH_COOKIE.access]: token('MANAGER') }))
+      expect(location(res)).toBeNull()
+    }
+  })
+
+  it('renvoie le Gérant vers la caisse hors de ses espaces (paramétrage, barèmes)', async () => {
+    for (const path of ['/admin/settings', '/admin/finance/factures', '/admin/dashboard']) {
+      const res = await middleware(request(path, { [AUTH_COOKIE.access]: token('MANAGER') }))
+      expect(location(res)).toBe('/finances/dashboard')
+    }
+  })
+
   it('refuse un rôle inconnu', async () => {
     const res = await middleware(request('/admin/dashboard', { [AUTH_COOKIE.access]: token('STUDENT') }))
     expect(res.headers.get('location')).toContain('/login?error=role_not_supported')

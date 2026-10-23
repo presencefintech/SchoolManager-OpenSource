@@ -25,6 +25,8 @@ const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   IT: '/admin',
   PROMOTER: '/admin',
   SUPER_ADMIN_NETWORK: '/admin',
+  /** Espace principal du Gérant (caisse) ; /admin et /director lui restent ouverts par préfixe. */
+  MANAGER: '/finances',
 }
 
 const REFRESH_TIMEOUT_MS = 8_000

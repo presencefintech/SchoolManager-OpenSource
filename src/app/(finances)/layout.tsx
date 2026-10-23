@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
+import { ManagerSpaceSwitcher } from '@/components/nav/ManagerSpaceSwitcher'
 import { FinanceRealtimeProvider, useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
 
 const NAV_LINKS = [
@@ -149,6 +150,7 @@ function FinanceNav() {
             </button>
           </div>
           <div className="mx-5 h-px bg-zinc-100" />
+          <ManagerSpaceSwitcher />
         </div>
 
         <nav className={cn('px-3 py-2 space-y-0.5', NAV_SCROLL)} aria-label="Menu finance">

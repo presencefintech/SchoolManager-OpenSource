@@ -21,7 +21,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/providers/toast-provider'
 import { useAuth } from '@/providers/auth-provider'
-import type { UserRole } from '@/types/auth'
+import { hasWebRole, type UserRole } from '@/types/auth'
 
 type Props = {
   studentId: number
@@ -50,7 +50,7 @@ const PATHWAY_LABELS: Record<string, string> = {
 }
 
 function canManageOrientation(role?: UserRole | null): boolean {
-  return role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'DIRECTOR'
+  return role === 'ADMIN' || role === 'SUPER_ADMIN' || hasWebRole(role, 'DIRECTOR')
 }
 
 function labelCycle(cycle?: string | null): string {

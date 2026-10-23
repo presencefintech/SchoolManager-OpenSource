@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { getAuthToken, getAuthSchoolId } from '@/lib/api/auth-storage'
-import type { UserRole } from '@/types/auth'
+import { isItDesk, isManagerRole, type UserRole } from '@/types/auth'
+import { ManagerSpaceSwitcher } from '@/components/nav/ManagerSpaceSwitcher'
 import {
   dashboardApi, studentsApi,
   presencesApi, financeApi,
@@ -149,8 +150,14 @@ const IT_NAV_SECTIONS: NavSection[] = [
   },
 ]
 
+/** Guichet IT, et Gérant dans sa casquette IT (ses autres espaces : ManagerSpaceSwitcher). */
 function navForRole(role?: UserRole): NavSection[] {
-  return role === 'IT' ? IT_NAV_SECTIONS : NAV_SECTIONS
+  return isItDesk(role) ? IT_NAV_SECTIONS : NAV_SECTIONS
+}
+
+function badgeForRole(role?: UserRole): string {
+  if (isManagerRole(role)) return 'Gérant · Guichet'
+  return role === 'IT' ? 'IT · Guichet' : 'Admin'
 }
 
 export function AdminNav() {
@@ -202,8 +209,10 @@ export function AdminNav() {
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'AD'
   const sections = navForRole(user?.role)
-  const homeHref = user?.role === 'IT' ? '/admin/inbox' : '/admin/dashboard'
-  const badgeLabel = user?.role === 'IT' ? 'IT · Guichet' : 'Admin'
+  const homeHref = isManagerRole(user?.role)
+    ? '/admin/desk'
+    : user?.role === 'IT' ? '/admin/inbox' : '/admin/dashboard'
+  const badgeLabel = badgeForRole(user?.role)
 
   return (
     <>
@@ -269,6 +278,7 @@ export function AdminNav() {
             <X size={18} />
           </button>
         </div>
+        <ManagerSpaceSwitcher className="flex-shrink-0 pb-1" />
 
         <nav className="flex-1 min-h-0 px-3 py-2 overflow-y-auto overscroll-contain space-y-3 [scrollbar-gutter:stable] [scrollbar-width:thin] [scrollbar-color:#d4d4d8_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
         {sections.map(({ title, links }) => (

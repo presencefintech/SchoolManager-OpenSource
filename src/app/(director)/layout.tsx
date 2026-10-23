@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
+import { ManagerSpaceSwitcher } from '@/components/nav/ManagerSpaceSwitcher'
 import { useDirectorPresenceRealtime } from '@/lib/director/use-director-presence-realtime'
 import { directorActionItemsApi } from '@/lib/admin/api/director-action-items.api'
 
@@ -149,6 +150,7 @@ function DirectorNav() {
         </div>
 
         <div className="mx-5 h-px bg-zinc-100" />
+        <ManagerSpaceSwitcher className="flex-shrink-0" />
 
         <nav className="flex-1 min-h-0 px-3 py-2 space-y-0.5 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-zinc-300 hover:[&::-webkit-scrollbar-thumb]:bg-zinc-400 [&::-webkit-scrollbar-track]:bg-transparent">
           {NAV_LINKS.map(({ label, href, icon: Icon }) => {

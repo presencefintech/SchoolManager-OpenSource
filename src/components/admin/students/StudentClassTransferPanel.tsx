@@ -8,7 +8,7 @@ import { useClasses } from '@/lib/hooks/admin/classes'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useToast } from '@/providers/toast-provider'
 import { useAuth } from '@/providers/auth-provider'
-import type { UserRole } from '@/types/auth'
+import { hasWebRole, type UserRole } from '@/types/auth'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -18,7 +18,7 @@ type Props = {
 }
 
 function canTransfer(role?: UserRole | null): boolean {
-  return role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'DIRECTOR'
+  return role === 'ADMIN' || role === 'SUPER_ADMIN' || hasWebRole(role, 'DIRECTOR')
 }
 
 export function StudentClassTransferPanel({
