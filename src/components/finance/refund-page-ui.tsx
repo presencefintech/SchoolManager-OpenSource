@@ -173,11 +173,12 @@ export function RefundSearchInput({
   )
 }
 
-export function RefundStatusBadge({ status }: { status: string }) {
+/** `label` remplace le libellé par défaut (ex. accord au féminin pour une remise). */
+export function RefundStatusBadge({ status, label }: { status: string; label?: string }) {
   const cfg = REFUND_STATUS_STYLES[status] ?? { label: status, cls: 'bg-slate-500/10 text-slate-600' }
   return (
     <span className={cn('inline-flex text-[11px] px-2 py-0.5 rounded-full font-medium', cfg.cls)}>
-      {cfg.label}
+      {label ?? cfg.label}
     </span>
   )
 }

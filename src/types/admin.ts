@@ -1098,6 +1098,11 @@ export interface PendingVerificationItem {
   studentMatricule?: string
   studentClassName?: string
   studentBalance?: number
+  /**
+   * Montant ≥ seuil de validation du Promoteur (ou seuil non réglé) : le guichet
+   * contrôle, le Promoteur valide. Sinon la validation du guichet confirme le paiement.
+   */
+  requiresPromoterApproval: boolean
   /** Alias paymentId for legacy UI */
   id: number
 }

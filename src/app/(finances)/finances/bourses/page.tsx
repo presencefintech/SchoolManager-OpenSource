@@ -6,6 +6,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useFeeStructures } from '@/lib/hooks/admin/finance'
+import { feeWaiverKeys } from '@/lib/hooks/admin/fee-waivers'
+import { FEE_WAIVER_PENDING_MESSAGE } from '@/lib/finance/fee-waiver'
 import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import {
   financeScholarshipApi,
@@ -115,7 +117,7 @@ function ScholarshipsPanel() {
   const [percentOverride, setPercentOverride] = useState('')
   const [reason, setReason] = useState('')
   const [err, setErr] = useState('')
-  const [ok, setOk] = useState('')
+  const [ok, setOk] = useState<{ tone: 'applied' | 'pending'; text: string } | null>(null)
 
   const sponsorsQuery = useQuery({
     queryKey: ['finance', 'sponsors'],
@@ -131,7 +133,10 @@ function ScholarshipsPanel() {
 
   const createMut = useMutation({
     mutationFn: financeScholarshipApi.createScholarship,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['finance', 'scholarships'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['finance', 'scholarships'] })
+      qc.invalidateQueries({ queryKey: feeWaiverKeys.all })
+    },
   })
   const endMut = useMutation({
     mutationFn: (id: number) => financeScholarshipApi.endScholarship(id),
@@ -145,7 +150,7 @@ function ScholarshipsPanel() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
-    setOk('')
+    setOk(null)
     if (!studentId || !sponsorId || !feeStructureId || reason.trim().length < 3) {
       setErr('Élève, sponsor, barème de frais et motif sont requis.')
       return
@@ -159,7 +164,14 @@ function ScholarshipsPanel() {
         percentOverride: type === 'OVERRIDE' && percentOverride ? Number(percentOverride) : undefined,
         reason: reason.trim(),
       })
-      setOk(`Bourse créée (#${created.id})`)
+      setOk(
+        created.status === 'PENDING_APPROVAL'
+          ? {
+              tone: 'pending',
+              text: `Bourse transmise au Promoteur (demande #${created.request.id}). ${FEE_WAIVER_PENDING_MESSAGE}`,
+            }
+          : { tone: 'applied', text: `Bourse créée (#${created.data.id})` },
+      )
       setStudentId(0)
       setSponsorId('')
       setFeeStructureId('')
@@ -263,7 +275,16 @@ function ScholarshipsPanel() {
         </div>
 
         {err && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{err}</p>}
-        {ok && <p className="text-xs text-emerald-600">{ok}</p>}
+        {ok && (
+          <p
+            className={cn(
+              'text-xs rounded-lg px-3 py-2',
+              ok.tone === 'pending' ? 'text-amber-800 bg-amber-50' : 'text-emerald-700 bg-emerald-50',
+            )}
+          >
+            {ok.text}
+          </p>
+        )}
         <button
           type="submit"
           disabled={createMut.isPending}

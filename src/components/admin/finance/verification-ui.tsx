@@ -10,24 +10,21 @@ import {
 } from '@/lib/finance/payment-proof'
 import { AlertTriangle, CheckCircle2, Circle, ExternalLink, FileText, X } from 'lucide-react'
 
-const STEPS = [
-  { key: 'finance', label: 'Finance', field: 'financeCheck' as const },
-  { key: 'admin', label: 'Admin', field: 'adminCheck' as const },
-] as const
-
 import { formatMoney } from '@/lib/finance/currency'
+import { verificationSteps } from '@/lib/finance/verification-steps'
 
 export function fmtMoney(amount: number, currency = 'USD') {
   return formatMoney(amount, currency)
 }
 
 export function VerificationStepper({ item }: { item: PendingVerificationItem }) {
+  const steps = verificationSteps(item)
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
-        {STEPS.map((step, i) => {
+        {steps.map((step, i) => {
           const done = item[step.field]
-          const active = !done && (i === 0 || item[STEPS[i - 1].field])
+          const active = !done && (i === 0 || item[steps[i - 1].field])
           const checker =
             step.key === 'finance' ? item.financeCheckerName : item.adminCheckerName
           return (

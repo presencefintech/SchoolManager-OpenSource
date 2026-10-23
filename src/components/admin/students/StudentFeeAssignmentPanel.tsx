@@ -1,13 +1,17 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Loader2, Pencil, Plus, ShieldOff, Tag, X } from 'lucide-react'
+import { Hourglass, Loader2, Pencil, Plus, ShieldOff, Tag, X } from 'lucide-react'
 import {
   useAdminStudentFeeAssignments,
   useCreateStudentFeeAssignment,
+  useFeeWaiverRequests,
   useRevokeStudentFeeAssignment,
   useUpdateStudentFeeAssignment,
 } from '@/lib/hooks/use-admin'
+import { useAuth } from '@/providers/auth-provider'
+import { isPromoterRole } from '@/types/auth'
+import { FEE_WAIVER_KIND_LABEL, FEE_WAIVER_PENDING_MESSAGE } from '@/lib/finance/fee-waiver'
 import { financeApi } from '@/lib/admin/api/finance.api'
 import { useQuery } from '@tanstack/react-query'
 import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
@@ -16,6 +20,8 @@ import { useToast } from '@/providers/toast-provider'
 import { cn } from '@/lib/utils'
 import type {
   CreateStudentFeeAssignmentPayload,
+  FeeWaiverOutcome,
+  FeeWaiverRequestDto,
   StudentFeeAssignmentDto,
   StudentFeeAssignmentType,
   UpdateStudentFeeAssignmentPayload,
@@ -61,7 +67,9 @@ export function StudentFeeAssignmentPanel({
   className,
   hideAmounts = false,
 }: StudentFeeAssignmentPanelProps) {
-  const { success, error } = useToast()
+  const { success, error, info } = useToast()
+  const { user } = useAuth()
+  const isPromoter = isPromoterRole(user?.role)
   const [open, setOpen] = useState(false)
   const [includeRevoked, setIncludeRevoked] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -80,6 +88,8 @@ export function StudentFeeAssignmentPanel({
   const createMutation = useCreateStudentFeeAssignment(studentId)
   const updateMutation = useUpdateStudentFeeAssignment(studentId)
   const revokeMutation = useRevokeStudentFeeAssignment(studentId)
+  const pendingWaiversQuery = useFeeWaiverRequests({ studentId, status: 'PENDING' })
+  const pendingWaivers = pendingWaiversQuery.data ?? []
 
   const structuresQuery = useQuery({
     queryKey: ['admin', 'fee-structures', 'assignable', sessionId],
@@ -107,6 +117,17 @@ export function StudentFeeAssignmentPanel({
     setPercentOverride('')
     setValidFrom('')
     setValidTo('')
+  }
+
+  /** Applique le retour du serveur : attribution enregistrée, ou remise transmise au Promoteur. */
+  function handleOutcome(outcome: FeeWaiverOutcome<StudentFeeAssignmentDto>, appliedTitle: string) {
+    if (outcome.status === 'PENDING_APPROVAL') {
+      info('Remise transmise au Promoteur', FEE_WAIVER_PENDING_MESSAGE)
+    } else {
+      success(appliedTitle)
+    }
+    setOpen(false)
+    resetForm()
   }
 
   function startEdit(a: StudentFeeAssignmentDto) {
@@ -141,10 +162,8 @@ export function StudentFeeAssignmentPanel({
       payload.validTo = to ?? null
 
       try {
-        await updateMutation.mutateAsync({ assignmentId: editingId, payload })
-        success('Attribution mise à jour')
-        setOpen(false)
-        resetForm()
+        const outcome = await updateMutation.mutateAsync({ assignmentId: editingId, payload })
+        handleOutcome(outcome, 'Attribution mise à jour')
       } catch (err) {
         error('Échec', getApiErrorMessage(err))
       }
@@ -179,10 +198,8 @@ export function StudentFeeAssignmentPanel({
     if (to) payload.validTo = to
 
     try {
-      await createMutation.mutateAsync(payload)
-      success('Attribution enregistrée')
-      setOpen(false)
-      resetForm()
+      const outcome = await createMutation.mutateAsync(payload)
+      handleOutcome(outcome, 'Attribution enregistrée')
     } catch (err) {
       error('Échec', getApiErrorMessage(err))
     }
@@ -351,6 +368,14 @@ export function StudentFeeAssignmentPanel({
             />
           </label>
 
+          {!isPromoter && (type === 'EXEMPT' || type === 'OVERRIDE' || editingId != null) && (
+            <p className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
+              <Hourglass size={12} className="mt-0.5 shrink-0" />
+              Une exonération, un montant réduit ou une remise prolongée est transmis au Promoteur.
+              L’élève doit le montant plein jusqu’à sa validation.
+            </p>
+          )}
+
           <button
             type="button"
             disabled={saving}
@@ -361,6 +386,23 @@ export function StudentFeeAssignmentPanel({
             {editingId != null ? 'Enregistrer l’amendment' : 'Enregistrer l’attribution'}
           </button>
         </div>
+      )}
+
+      {pendingWaivers.length > 0 && (
+        <div className="space-y-2 border-b border-amber-100 bg-amber-50/50 px-4 py-3">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800">
+            <Hourglass size={12} />
+            En attente du Promoteur ({pendingWaivers.length})
+          </p>
+          {pendingWaivers.map((w) => (
+            <PendingWaiverRow key={w.id} waiver={w} hideAmounts={hideAmounts} />
+          ))}
+        </div>
+      )}
+      {pendingWaiversQuery.isError && (
+        <p className="border-b border-zinc-100 px-4 py-2 text-[11px] text-red-600">
+          Impossible de charger les remises en attente : {getApiErrorMessage(pendingWaiversQuery.error)}
+        </p>
       )}
 
       <div className="divide-y divide-zinc-50">
@@ -472,6 +514,30 @@ function AssignmentRow({
             </button>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+function PendingWaiverRow({ waiver: w, hideAmounts }: { waiver: FeeWaiverRequestDto; hideAmounts?: boolean }) {
+  const currency = (w.currency || 'USD') as FinanceCurrencyCode
+  return (
+    <div className="flex items-start justify-between gap-3 text-xs">
+      <div className="min-w-0">
+        <p className="font-medium text-zinc-800">
+          {FEE_WAIVER_KIND_LABEL[w.kind]}
+          <span className="font-normal text-zinc-500"> · {w.reason}</span>
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Demandée par {w.requestedBy.name ?? '—'} le{' '}
+          {new Date(w.requestedAt).toLocaleDateString('fr-FR')}
+        </p>
+      </div>
+      {!hideAmounts && w.baseAmount != null && w.proposedAmount != null && (
+        <p className="shrink-0 text-right tabular-nums text-zinc-700">
+          <span className="text-zinc-400 line-through">{formatMoney(w.baseAmount, currency)}</span>
+          <span className="ml-1.5 font-semibold">{formatMoney(w.proposedAmount, currency)}</span>
+        </p>
       )}
     </div>
   )

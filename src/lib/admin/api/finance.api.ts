@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api/client'
 import axios from 'axios'
 import { idempotencyHeaders, newIdempotencyKey } from '@/lib/idempotency'
+import { toFeeWaiverOutcome } from '@/lib/finance/fee-waiver'
 import {
   normalizePendingVerification,
   normalizePaymentProfile,
@@ -405,7 +406,7 @@ export const financeApi = {
       .post(`/admin/finance/students/${studentId}/fee-assignments`, payload, {
         headers: idempotencyHeaders(key),
       })
-      .then((r) => r.data.data as import('@/types/finance').StudentFeeAssignmentDto)
+      .then((r) => toFeeWaiverOutcome<import('@/types/finance').StudentFeeAssignmentDto>(r))
   },
 
   updateStudentFeeAssignment: (
@@ -419,8 +420,30 @@ export const financeApi = {
       .patch(`/admin/finance/students/${studentId}/fee-assignments/${assignmentId}`, payload, {
         headers: idempotencyHeaders(key),
       })
-      .then((r) => r.data.data as import('@/types/finance').StudentFeeAssignmentDto)
+      .then((r) => toFeeWaiverOutcome<import('@/types/finance').StudentFeeAssignmentDto>(r))
   },
+
+  /** Remises / exonérations : le guichet voit, le Promoteur décide. */
+  listFeeWaivers: (params?: { status?: import('@/types/finance').FeeWaiverStatus; studentId?: number }) =>
+    apiClient
+      .get('/admin/finance/fee-waivers', { params })
+      .then((r) => (r.data.data ?? []) as import('@/types/finance').FeeWaiverRequestDto[]),
+
+  reviewFeeWaiver: (id: number, payload: import('@/types/finance').ReviewFeeWaiverPayload) =>
+    apiClient
+      .post(`/admin/finance/fee-waivers/${id}/review`, payload)
+      .then((r) => r.data.data as import('@/types/finance').FeeWaiverRequestDto),
+
+  /** Seuils du Promoteur : alerte des encaissements du Gérant, validation des paiements manuels. */
+  getManagerControls: () =>
+    apiClient
+      .get('/admin/settings/manager-controls')
+      .then((r) => r.data.data as import('@/types/finance').ManagerControls),
+
+  updateManagerControls: (payload: import('@/types/finance').UpdateManagerControlsPayload) =>
+    apiClient
+      .put('/admin/settings/manager-controls', payload)
+      .then((r) => r.data.data as import('@/types/finance').ManagerControls),
 
   revokeStudentFeeAssignment: (
     studentId: number,
