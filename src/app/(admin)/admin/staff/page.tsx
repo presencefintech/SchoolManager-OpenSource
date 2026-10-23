@@ -24,6 +24,7 @@ const ROLE_CFG: Record<string, { label: string; cls: string }> = {
   FINANCE:  { label: 'Finance',    cls: 'bg-amber-50 text-amber-700' },
   DIRECTOR: { label: 'Directeur',  cls: 'bg-violet-50 text-violet-700' },
   IT:       { label: 'IT / Guichet', cls: 'bg-sky-50 text-sky-700' },
+  MANAGER:  { label: 'Gérant',     cls: 'bg-rose-50 text-rose-700' },
 }
 
 type StaffRoleOption = CreateStaffPayload['role']
@@ -215,7 +216,8 @@ export default function StaffPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="inline-flex items-center gap-1">
-                          {member.role === 'DIRECTOR' && (
+                          {/* Préfet, ou Gérant (casquette direction : sections optionnelles). */}
+                          {(member.role === 'DIRECTOR' || member.role === 'MANAGER') && (
                             <button
                               type="button"
                               title="Affecter les sections"
@@ -371,7 +373,15 @@ export default function StaffPage() {
                   <option value="FINANCE">Finance</option>
                   <option value="DIRECTOR">Directeur (chef de section)</option>
                   <option value="IT">IT / Guichet (inscriptions)</option>
+                  <option value="MANAGER">Gérant (caisse + guichet + direction)</option>
                 </select>
+                {form.role === 'MANAGER' && (
+                  <p className="mt-1.5 text-[11px] text-zinc-500">
+                    Exploitation quotidienne : encaisse, inscrit, dirige. Ni barèmes, ni paramétrage ; vous
+                    validez ses remises et les paiements au-dessus du seuil. Toute l’école tant qu’aucune
+                    section ne lui est affectée.
+                  </p>
+                )}
               </div>
               {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
               <div className="flex gap-3 pt-2">

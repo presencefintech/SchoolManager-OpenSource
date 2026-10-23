@@ -22,6 +22,7 @@ const ROLE_OPTIONS = [
   { value: 'TEACHER', label: 'Enseignant' },
   { value: 'DIRECTOR', label: 'Directeur' },
   { value: 'IT', label: 'IT / Guichet' },
+  { value: 'MANAGER', label: 'Gérant' },
   { value: 'PARENT', label: 'Parent' },
 ]
 
@@ -31,6 +32,7 @@ const ROLE_COLORS: Record<string, string> = {
   TEACHER: 'bg-emerald-50 text-emerald-700',
   DIRECTOR: 'bg-violet-50 text-violet-700',
   IT: 'bg-sky-50 text-sky-700',
+  MANAGER: 'bg-rose-50 text-rose-700',
   PARENT: 'bg-zinc-100 text-zinc-500',
   SUPER_ADMIN: 'bg-red-50 text-red-600',
 }

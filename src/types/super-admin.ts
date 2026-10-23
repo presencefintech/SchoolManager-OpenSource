@@ -934,7 +934,7 @@ export interface StaffInvitation {
 export interface InviteStaffPayload {
   email: string
   phone: string
-  role: 'ADMIN' | 'FINANCE' | 'TEACHER' | 'DIRECTOR' | 'IT'
+  role: 'ADMIN' | 'FINANCE' | 'TEACHER' | 'DIRECTOR' | 'IT' | 'MANAGER'
   schoolId: number
   firstName: string
   lastName: string

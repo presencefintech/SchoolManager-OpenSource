@@ -284,6 +284,7 @@ function StaffInvitationsTab() {
             <option value="FINANCE">Finance</option>
             <option value="DIRECTOR">Directeur</option>
             <option value="IT">IT / Guichet</option>
+            <option value="MANAGER">Gérant</option>
           </select>
           <input
             placeholder="Mot de passe (optionnel — connexion immédiate)"
