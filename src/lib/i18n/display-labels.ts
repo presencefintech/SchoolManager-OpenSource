@@ -169,6 +169,7 @@ const ROLE_LABELS: Record<string, string> = {
   TEACHER: 'Enseignant',
   PARENT: 'Parent',
   FINANCE: 'Finance',
+  MANAGER: 'Gérant',
   CASHIER: 'Caissier',
   STAFF: 'Personnel',
 }

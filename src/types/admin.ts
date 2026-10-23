@@ -200,7 +200,8 @@ export interface CreateStaffPayload {
   lastName: string
   email: string
   password: string
-  role: 'TEACHER' | 'FINANCE' | 'DIRECTOR' | 'IT'
+  /** MANAGER (Gérant) : accepté par le backend (INVITABLE_STAFF_ROLES, IdentityPolicy). */
+  role: 'TEACHER' | 'FINANCE' | 'DIRECTOR' | 'IT' | 'MANAGER'
   phone?: string
 }
 

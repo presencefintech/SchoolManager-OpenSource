@@ -63,6 +63,7 @@ const STAFF_ROLES = new Set(['ADMIN', 'FINANCE', 'SUPER_ADMIN', 'DIRECTOR', 'IT'
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Administrateur',
   FINANCE: 'Finance / Guichet',
+  MANAGER: 'Gérant',
   SUPER_ADMIN: 'Super administrateur',
 }
 
