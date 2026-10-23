@@ -63,6 +63,7 @@ export function StudentFinanceDrawer({
           <StudentFinanceDashboard
             studentId={studentId}
             sessionId={academicSessionId ?? undefined}
+            layout="stacked"
           />
         </div>
       </aside>

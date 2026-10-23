@@ -15,7 +15,7 @@ import {
   toggleContiguousFeeSelection,
   type FeeLineSelection,
 } from '@/lib/finance/fee-schedule.utils'
-import { FeeAttributionSourceBadge, FeeScheduleStatusBadge } from '@/components/finance/student-dashboard/FeesTable/fees-table.columns'
+import { FeeAttributionSourceBadge, FeeScheduleStatusBadge } from '@/components/finance/student-dashboard/schedule-badges'
 import { formatMoney } from '@/lib/finance/currency'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { cn } from '@/lib/utils'
