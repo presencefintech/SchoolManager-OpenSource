@@ -8,6 +8,8 @@ export type UserRole =
   | 'PARENT'
   | 'PROMOTER'
   | 'SUPER_ADMIN_NETWORK'
+  /** Gérant / Secrétaire général : FINANCE + IT + DIRECTOR, jamais ADMIN. */
+  | 'MANAGER'
 
 export interface AuthUser {
   id: number
@@ -46,6 +48,25 @@ export const ROLE_HOME: Record<UserRole, string> = {
   PARENT: '/parent/dashboard',
   PROMOTER: '/admin/network',
   SUPER_ADMIN_NETWORK: '/admin/network',
+  /** La caisse est le cœur de l'exploitation quotidienne du Gérant. */
+  MANAGER: '/finances/dashboard',
+}
+
+/** Métiers de base cumulés par un rôle composite (cf. rbac/effective-roles côté backend). */
+export type BaseWebRole = 'FINANCE' | 'IT' | 'DIRECTOR'
+
+const ROLE_COMPOSITION: Partial<Record<UserRole, readonly BaseWebRole[]>> = {
+  MANAGER: ['FINANCE', 'IT', 'DIRECTOR'],
+}
+
+/** Le rôle exerce-t-il ce métier (directement ou par composition) ? */
+export function hasWebRole(role: UserRole | null | undefined, base: BaseWebRole): boolean {
+  if (!role) return false
+  return role === base || (ROLE_COMPOSITION[role]?.includes(base) ?? false)
+}
+
+export function isManagerRole(role?: UserRole | null): boolean {
+  return role === 'MANAGER'
 }
 
 /**
@@ -56,36 +77,45 @@ export function isWebRole(role: string): role is UserRole {
   return role in ROLE_HOME
 }
 
+const IT_ALLOWED_PREFIXES = [
+  '/admin/inbox',
+  '/admin/desk',
+  '/admin/enrollments',
+  '/admin/pre-enrollments',
+  '/admin/students',
+  '/admin/cards',
+  '/admin/classes',
+  '/admin/import',
+  '/admin/schedule',
+  '/admin/presences',
+  '/admin/invitations',
+  '/admin/announcements',
+  '/admin/teachers',
+  '/admin/files',
+  '/admin/finance/controle',
+  '/admin/profil-securite',
+  '/verify',
+]
+const FINANCE_ALLOWED_PREFIXES = ['/finances']
+/** Préfet (DIRECTOR) : portail direction + délibérations admin. */
+const DIRECTOR_ALLOWED_PREFIXES = ['/director', '/admin/deliberations']
+
 /** Préfixes d’URL autorisés par rôle (IT = sous-ensemble admin guichet). */
 export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
   ADMIN: ['/admin'],
   SUPER_ADMIN: ['/super-admin'],
-  FINANCE: ['/finances'],
-  /** Préfet (DIRECTOR) : portail direction + délibérations admin. */
-  DIRECTOR: ['/director', '/admin/deliberations'],
+  FINANCE: FINANCE_ALLOWED_PREFIXES,
+  DIRECTOR: DIRECTOR_ALLOWED_PREFIXES,
   TEACHER: ['/teacher'],
   PARENT: ['/parent'],
   PROMOTER: ['/admin'],
   SUPER_ADMIN_NETWORK: ['/admin'],
-  IT: [
-    '/admin/inbox',
-    '/admin/desk',
-    '/admin/enrollments',
-    '/admin/pre-enrollments',
-    '/admin/students',
-    '/admin/cards',
-    '/admin/classes',
-    '/admin/import',
-    '/admin/schedule',
-    '/admin/presences',
-    '/admin/invitations',
-    '/admin/announcements',
-    '/admin/teachers',
-    '/admin/files',
-    '/admin/finance/controle',
-    '/admin/profil-securite',
-    '/verify',
-  ],
+  IT: IT_ALLOWED_PREFIXES,
+  /**
+   * Union exacte des trois métiers : chaque espace (caisse, guichet, direction) tel quel.
+   * Jamais /admin entier : ni barèmes, ni paramétrage, ni validations du Promoteur.
+   */
+  MANAGER: [...new Set([...FINANCE_ALLOWED_PREFIXES, ...IT_ALLOWED_PREFIXES, ...DIRECTOR_ALLOWED_PREFIXES])],
 }
 
 export function pathAllowedForRole(role: UserRole, pathname: string): boolean {
@@ -94,8 +124,12 @@ export function pathAllowedForRole(role: UserRole, pathname: string): boolean {
   )
 }
 
+/**
+ * Mode guichet de l'espace /admin (pages ouvertes à IT) : actions d'administration masquées.
+ * Le Gérant y exerce sa casquette IT ; il a la vue chiffrée complète dans /finances.
+ */
 export function isItDesk(role?: UserRole | null): boolean {
-  return role === 'IT'
+  return hasWebRole(role, 'IT')
 }
 
 /**
@@ -113,7 +147,7 @@ export function isPromoterRole(role?: UserRole | null): boolean {
  * Photos, batch, cartes, inscriptions = autorisés ; soldes / caisse = verrouillés.
  */
 export function canItManageStudentOps(role?: UserRole | null): boolean {
-  return role === 'IT' || role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'DIRECTOR'
+  return role === 'ADMIN' || role === 'SUPER_ADMIN' || hasWebRole(role, 'IT') || hasWebRole(role, 'DIRECTOR')
 }
 
 /** Montants / ledger / attribution frais chiffrée — fermé pour IT. */
@@ -126,6 +160,6 @@ export function canSeeFinanceAmounts(
   role?: UserRole | null,
   schoolAllow?: boolean | null,
 ): boolean {
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'FINANCE') return true
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN' || hasWebRole(role, 'FINANCE')) return true
   return schoolAllow === true
 }

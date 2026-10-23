@@ -20,6 +20,12 @@ import type { CashPaceTrend } from '@/lib/finance/cash-pace'
 import { formatMoney } from '@/lib/finance/currency'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
+import { hasWebRole, isWebRole } from '@/types/auth'
+
+/** Rôle renvoyé par le serveur (MANAGER compris) : la vue comptable suit le métier FINANCE. */
+function viewerHasFinanceRole(role: string): boolean {
+  return isWebRole(role) && hasWebRole(role, 'FINANCE')
+}
 
 const PRINT_CSS = `
 @media print {
@@ -209,7 +215,7 @@ export function CashJournalReport({ className }: { className?: string }) {
             <option value="quarter">Trimestriel</option>
             <option value="semester">Semestriel</option>
             <option value="year">Annuel</option>
-            {report?.viewer.role === 'FINANCE' ? (
+            {report && viewerHasFinanceRole(report.viewer.role) ? (
               <option value="cashier">Situation mensuelle</option>
             ) : null}
             <option value="range">Intervalle</option>

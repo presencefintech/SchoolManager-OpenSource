@@ -11,6 +11,7 @@ import {
 import { getApiErrorMessage } from '@/lib/api/client'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
+import { hasWebRole } from '@/types/auth'
 
 const STATUS_LABELS: Record<TeacherNeedStatus, string> = {
   PENDING: 'En attente',
@@ -48,7 +49,8 @@ type Props = {
 export function TeacherNeedsReview({ variant = 'admin' }: Props) {
   const { user } = useAuth()
   const qc = useQueryClient()
-  const isDirector = user?.role === 'DIRECTOR'
+  // Préfet, ou Gérant dans sa casquette direction.
+  const isDirector = hasWebRole(user?.role, 'DIRECTOR')
   const [status, setStatus] = useState<TeacherNeedStatus | ''>('PENDING')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [feedback, setFeedback] = useState('')
