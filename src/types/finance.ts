@@ -1262,6 +1262,73 @@ export interface UpdateStudentFeeAssignmentPayload {
   validTo?: string | null
 }
 
+// ── Remises / exonérations validées par le Promoteur ─────────────────────────
+
+export type FeeWaiverStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+/** CREATE : nouvelle attribution · UPDATE : modification · SCHOLARSHIP : bourse. */
+export type FeeWaiverKind = 'CREATE' | 'UPDATE' | 'SCHOLARSHIP'
+
+/** GET /admin/finance/fee-waivers — FeeWaiverRequestService.toDto côté backend. */
+export interface FeeWaiverRequestDto {
+  id: number
+  kind: FeeWaiverKind
+  status: FeeWaiverStatus
+  studentId: number
+  studentName: string
+  matricule: string
+  feeStructureId: number | null
+  assignmentId: number | null
+  /** Montant catalogue du barème. */
+  baseAmount: number | null
+  /** Montant dû si la remise est approuvée. */
+  proposedAmount: number | null
+  currency: string | null
+  reason: string
+  requestedBy: { id: number; name: string | null }
+  reviewedBy: { id: number; name: string | null } | null
+  reviewNotes: string | null
+  appliedAssignmentId: number | null
+  requestedAt: string
+  reviewedAt: string | null
+}
+
+/**
+ * Saisie du guichet (attribution, modification, bourse) :
+ * 201/200 = appliquée tout de suite ; 202 = remise transmise au Promoteur.
+ */
+export type FeeWaiverOutcome<T> =
+  | { status: 'APPLIED'; data: T }
+  | { status: 'PENDING_APPROVAL'; request: FeeWaiverRequestDto }
+
+export interface ReviewFeeWaiverPayload {
+  action: 'approve' | 'reject'
+  /** Obligatoire pour un rejet. */
+  reviewNotes?: string
+}
+
+// ── Contrôles du Promoteur (GET/PUT /admin/settings/manager-controls) ────────
+
+/** Montant par devise ; null = pas de seuil dans cette devise. */
+export interface CurrencyThreshold {
+  USD: number | null
+  CDF: number | null
+}
+
+export interface ManagerControls {
+  /** Encaissement du Gérant ≥ seuil : alerte. null = pas d'alerte. */
+  paymentAlertThreshold: CurrencyThreshold
+  /**
+   * Paiement manuel sur preuve ≥ seuil : validation du Promoteur.
+   * null = toujours le Promoteur (sens inverse du seuil d'alerte).
+   */
+  promoterApprovalThreshold: CurrencyThreshold
+}
+
+export interface UpdateManagerControlsPayload {
+  paymentAlertThreshold?: CurrencyThreshold
+  promoterApprovalThreshold?: CurrencyThreshold
+}
+
 export interface PaymentFeeLinePayload {
   feeStructureId: number
   monthYear?: MonthYear

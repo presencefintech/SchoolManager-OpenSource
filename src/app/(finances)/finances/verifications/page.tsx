@@ -14,6 +14,7 @@ import type { PendingVerificationItem } from '@/types/admin'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/finance/finance-page-shell'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
+import { PromoterApprovalBadge } from '@/components/finance/promoter-approval-badge'
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: 'Espèces',
@@ -88,7 +89,9 @@ function VerifyStepModal({
             )}
             <p className="text-sm text-zinc-700">
               {done === 'approve'
-                ? 'Paiement validé (étape finance)'
+                ? payment.requiresPromoterApproval
+                  ? 'Contrôle enregistré : le Promoteur valide ensuite.'
+                  : 'Paiement validé et confirmé.'
                 : done === 'reject'
                   ? 'Paiement rejeté'
                   : 'Vérification externe effectuée'}
@@ -108,6 +111,10 @@ function VerifyStepModal({
                 <span className="font-medium text-zinc-700">
                   {METHOD_LABEL[payment.method] ?? payment.method}
                 </span>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-zinc-500">Validation</span>
+                <PromoterApprovalBadge requiresPromoterApproval={payment.requiresPromoterApproval} />
               </div>
               {(payment.reference || payment.providerRef) && (
                 <div className="flex justify-between text-xs">
@@ -269,6 +276,9 @@ export default function VerificationsPage() {
                     </td>
                     <td className="px-5 py-3.5 text-right font-semibold text-zinc-900">
                       {formatMoney(Number(p.amount), p.currency)}
+                      <div className="mt-1">
+                        <PromoterApprovalBadge requiresPromoterApproval={p.requiresPromoterApproval} />
+                      </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5">
@@ -313,7 +323,7 @@ export default function VerificationsPage() {
         )}
       </FinancePanel>
 
-      {payments.some((p) => p.method === 'CASH') && (
+      {payments.some((p) => p.requiresPromoterApproval) && (
         <motion.div
           variants={fadeUp}
           initial="hidden"
@@ -322,8 +332,8 @@ export default function VerificationsPage() {
         >
           <AlertTriangle size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-700">
-            Les paiements en espèces peuvent nécessiter une double validation Admin après votre
-            étape finance.
+            Les paiements marqués « Validation Promoteur » dépassent le seuil de l’école : votre validation
+            est un contrôle, le Promoteur confirme ensuite. Les autres sont confirmés par votre seule validation.
           </p>
         </motion.div>
       )}

@@ -99,6 +99,16 @@ export function isItDesk(role?: UserRole | null): boolean {
 }
 
 /**
+ * Promoteur : applique directement remises et exonérations, valide les paiements
+ * au-dessus du seuil. Même liste que SCHOOL_ADMIN_ROLES (isSchoolAdminRole) côté backend.
+ */
+export function isPromoterRole(role?: UserRole | null): boolean {
+  return (
+    role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'PROMOTER' || role === 'SUPER_ADMIN_NETWORK'
+  )
+}
+
+/**
  * IT = guichet ops élèves hors montants finance.
  * Photos, batch, cartes, inscriptions = autorisés ; soldes / caisse = verrouillés.
  */

@@ -30,7 +30,8 @@ describe('day-cash-remittance', () => {
     expect(view.remitCdf).toBe(228_000)
     expect(view.total.primary).toContain('80')
     expect(view.total.primary).toMatch(/\$US/)
-    expect(view.total.secondary).toMatch(/228[\s\u202f]?000/)
+    // Format CDF de formatMoney : s\u00e9parateur de milliers \u00ab . \u00bb (`228.000 CDF`).
+    expect(view.total.secondary).toMatch(/228[.\s\u202f]?000/)
     expect(view.total.secondary).toMatch(/CDF/)
     expect(view.banner).toBe(formatPromoterRemittanceBanner(80, RATE))
     expect(view.banner).toMatch(/À remettre au promoteur :/)
@@ -130,7 +131,7 @@ describe('day-cash-remittance', () => {
 
     expect(view.physical?.title).toBe('Billets dans le tiroir')
     expect(view.physical?.usd).toMatch(/50/)
-    expect(view.physical?.cdf).toMatch(/85[\s\u202f]?500/)
+    expect(view.physical?.cdf).toMatch(/85[.\s\u202f]?500/)
     expect(view.physical?.cdfBookHint).toMatch(/30/)
     expect(view.totalHint).toMatch(/Équivalent/)
     expect(view.scopeNote).toBeNull()

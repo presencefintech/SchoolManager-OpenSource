@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/admin/api'
+import { feeWaiverKeys } from './fee-waivers'
 import type { ManualPaymentPayload, FeeStructurePayload, CreateFeeStructurePayload, UpdateFeeStructurePayload, CreateFeeCategoryPayload, UpdateFeeCategoryPayload, ConfirmPaymentProofPayload, FinanceFraudAlert } from '@/types/admin'
 
 // ── Finance ────────────────────────────────────────────────────────
@@ -127,6 +128,8 @@ export function useCreateStudentFeeAssignment(studentId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
       qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+      // Remise d'un non-Promoteur : une demande vient d'être créée.
+      qc.invalidateQueries({ queryKey: feeWaiverKeys.all })
     },
   })
 }
@@ -144,6 +147,7 @@ export function useUpdateStudentFeeAssignment(studentId: number) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'fee-assignments', studentId] })
       qc.invalidateQueries({ queryKey: ['admin', 'fee-schedule', studentId] })
+      qc.invalidateQueries({ queryKey: feeWaiverKeys.all })
     },
   })
 }

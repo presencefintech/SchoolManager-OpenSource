@@ -1,4 +1,6 @@
 import { apiClient } from '@/lib/api/client'
+import { toFeeWaiverOutcome } from '@/lib/finance/fee-waiver'
+import type { FeeWaiverOutcome } from '@/types/finance'
 
 export type SponsorType = 'NGO' | 'COMPANY' | 'INDIVIDUAL'
 
@@ -77,10 +79,11 @@ export const financeScholarshipApi = {
       .get<{ success: boolean; data: ScholarshipItem[] }>('/admin/finance/scholarships', { params })
       .then((r) => r.data.data),
 
-  createScholarship: (input: CreateScholarshipInput) =>
+  /** 201 = bourse créée ; 202 = bourse transmise au Promoteur (remise à valider). */
+  createScholarship: (input: CreateScholarshipInput): Promise<FeeWaiverOutcome<ScholarshipItem>> =>
     apiClient
-      .post<{ success: boolean; data: ScholarshipItem }>('/admin/finance/scholarships', input)
-      .then((r) => r.data.data),
+      .post('/admin/finance/scholarships', input)
+      .then((r) => toFeeWaiverOutcome<ScholarshipItem>(r)),
 
   endScholarship: (id: number) =>
     apiClient

@@ -702,6 +702,16 @@ export default function PaiementsPage() {
     return null
   }
 
+  /** Sous le seuil, l'étape guichet confirme le paiement : pas de seconde étape annoncée. */
+  function verifyActionLabels(p: PendingVerificationItem, action: 'FINANCE' | 'ADMIN') {
+    if (action === 'ADMIN') {
+      return { button: 'Promoteur ✓', title: 'Validation finale du Promoteur', done: 'Paiement validé par le Promoteur' }
+    }
+    return p.requiresPromoterApproval
+      ? { button: 'Guichet ✓', title: 'Contrôle du guichet (le Promoteur valide ensuite)', done: 'Contrôle guichet enregistré' }
+      : { button: 'Valider ✓', title: 'Sous le seuil : cette validation confirme le paiement', done: 'Paiement validé' }
+  }
+
   async function handleDownloadReceipt(paymentId: number) {
     try {
       const blob = await adminPdfApi.getReceipt(paymentId)
@@ -1301,6 +1311,7 @@ export default function PaiementsPage() {
               <tbody>
                 {filteredPending.map((p) => {
                   const action = nextVerifyAction(p)
+                  const labels = action ? verifyActionLabels(p, action) : null
                   return (
                   <tr key={p.verificationId} className="border-b border-zinc-50 hover:bg-zinc-50/50">
                     <td className="px-5 py-3.5">
@@ -1337,18 +1348,16 @@ export default function PaiementsPage() {
                         >
                           <Eye size={14} />
                         </button>
-                        {action && (
+                        {action && labels && (
                           <button
                             disabled={verifying}
                             onClick={() => verify({ verificationId: p.verificationId, action }, {
-                              onSuccess: () => toast.success(
-                                action === 'FINANCE' ? 'Validation finance enregistrée' : 'Validation direction enregistrée',
-                              ),
+                              onSuccess: () => toast.success(labels.done),
                             })}
                             className="px-2 py-1 rounded-lg text-[10px] font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                            title={action === 'FINANCE' ? 'Validation finance' : 'Validation admin'}
+                            title={labels.title}
                           >
-                            {action === 'FINANCE' ? 'Finance ✓' : 'Admin ✓'}
+                            {labels.button}
                           </button>
                         )}
                         {p.financeCheck && p.adminCheck && (

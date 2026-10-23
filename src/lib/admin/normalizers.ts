@@ -319,6 +319,8 @@ export function normalizePendingVerification(row: Record<string, unknown>): Pend
     studentMatricule: student.matricule as string | undefined,
     studentClassName: student.className as string | undefined,
     studentBalance: student.balance != null ? toAmount(student.balance) : undefined,
+    // Absent (backend antérieur à #22) : prudence, le Promoteur valide.
+    requiresPromoterApproval: row.requiresPromoterApproval !== false,
     id: Number(row.paymentId ?? payment.id ?? row.id),
   }
 }
