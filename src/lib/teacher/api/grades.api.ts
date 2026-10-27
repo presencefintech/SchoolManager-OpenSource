@@ -151,6 +151,15 @@ export const teacherGradesApi = {
         { params: { academicYear: params.academicYear } },
       )
       .then((r) => unwrap<ClassPeriodSummary>(r.data)),
+
+  periodBulletinHtml: (studentId: number, params: { term: SchoolTerm; academicYear: string }) =>
+    apiClient
+      .get(`/teacher/grades/students/${studentId}/bulletin`, {
+        params: { ...params, format: 'html' },
+        responseType: 'text',
+        headers: { Accept: 'text/html' },
+      })
+      .then((r) => String(r.data)),
 }
 
 export type ClassPeriodSummary = {

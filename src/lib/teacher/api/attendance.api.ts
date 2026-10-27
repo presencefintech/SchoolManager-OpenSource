@@ -12,6 +12,8 @@ export type TeacherGateScanResult = {
   financeDisplayed: boolean
   alreadyPresent: boolean
   attendanceLabel: string
+  balanceFormatted: string | null
+  unpaidMonths: Array<{ monthYear: string; label: string; remainingFormatted: string }>
 }
 
 function asMap(raw: unknown): Record<string, unknown> {
@@ -49,6 +51,21 @@ function parseGateScan(payload: unknown): TeacherGateScanResult {
   const alreadyPresent = outcome === 'ALREADY_PRESENT'
   const financeDisplayed = finance.displayed !== false
   const alert = text(finance.alertMessage)
+  const unpaidMonths = Array.isArray(finance.unpaidMonths)
+    ? finance.unpaidMonths.flatMap((row) => {
+        const item = asMap(row)
+        const label = text(item.label)
+        const remainingFormatted = text(item.remainingFormatted)
+        if (!label || !remainingFormatted) return []
+        return [
+          {
+            monthYear: text(item.monthYear) ?? '',
+            label,
+            remainingFormatted,
+          },
+        ]
+      })
+    : []
 
   return {
     studentName: composed || text(data.studentName) || 'Élève',
@@ -60,9 +77,11 @@ function parseGateScan(payload: unknown): TeacherGateScanResult {
     financeStatus: (text(finance.status) ?? 'UP_TO_DATE').toUpperCase(),
     // Mention discrète uniquement en alerte (WARNING / CRITICAL).
     financeMessage: financeDisplayed ? alert || '' : '',
-    financeDisplayed: financeDisplayed && Boolean(alert),
+    financeDisplayed: financeDisplayed && Boolean(alert || unpaidMonths.length),
     alreadyPresent,
     attendanceLabel: alreadyPresent ? 'Déjà présent' : 'Enregistré',
+    balanceFormatted: financeDisplayed ? text(finance.balanceFormatted) : null,
+    unpaidMonths: financeDisplayed ? unpaidMonths : [],
   }
 }
 

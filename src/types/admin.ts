@@ -65,6 +65,19 @@ export interface ControlDashboardStats {
   }
   scanFlow: ScanFlowPoint[]
   generatedAt?: string
+  totalStudents?: number
+  presentToday?: number
+  presentByMethod?: { FACIAL: number; PIN: number }
+  attendanceRate?: number
+  schoolAttendance?: {
+    totalEnrolled: number
+    totalStudents: number
+    presentToday: number
+    facialCount: number
+    pinCount: number
+    presentByMethod: { FACIAL: number; PIN: number }
+    attendanceRate: number
+  }
 }
 
 export interface ScanFlowPoint {

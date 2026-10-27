@@ -62,6 +62,17 @@ export function useControlStats() {
   })
 }
 
+export function useAdminDevices() {
+  const refetchInterval = useEmpirePollingInterval(30_000)
+  return useQuery({
+    queryKey: ['admin', 'devices'],
+    queryFn: dashboardApi.getDevices,
+    enabled: !!getAuthToken(),
+    staleTime: 15_000,
+    refetchInterval,
+  })
+}
+
 export function useTriggerWeeklyReport() {
   return useMutation({
     mutationFn: dashboardApi.triggerWeeklyReport,

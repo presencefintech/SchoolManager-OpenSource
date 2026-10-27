@@ -3,6 +3,18 @@ import { mapControlDashboardSnapshot } from '@/lib/admin/control-dashboard.utils
 import { mapPresenceSecurityEventToFraudAlert } from '@/lib/admin/fraud-alert.utils'
 import type { DashboardStats, LiveFeedEntry, HeatmapEntry, FraudAlert, ControlDashboardStats } from '@/types/admin'
 
+export type TabletConnectionStatus = 'ONLINE' | 'OFFLINE' | 'SYNCING'
+
+export type SchoolTabletDevice = {
+  deviceId: string
+  lastSyncAt: string | null
+  lastSeenAt: string | null
+  pendingCount: number
+  scanCount: number
+  status: TabletConnectionStatus
+  online?: boolean
+}
+
 export const dashboardApi = {
   getStats: () =>
     apiClient.get<{ success: boolean; data: any }>('/admin/presences/stats')
@@ -53,6 +65,11 @@ export const dashboardApi = {
   getControlStats: () =>
     apiClient.get<{ success: boolean; data: Record<string, unknown> }>('/admin/dashboard/stats')
       .then(r => mapControlDashboardSnapshot(r.data.data) satisfies ControlDashboardStats),
+
+  getDevices: () =>
+    apiClient
+      .get<{ success: boolean; data: { devices: SchoolTabletDevice[] } }>('/admin/devices')
+      .then((r) => r.data.data?.devices ?? []),
 
   triggerWeeklyReport: () =>
     apiClient.post<{ success: boolean; message: string }>('/admin/dashboard/reports/weekly')

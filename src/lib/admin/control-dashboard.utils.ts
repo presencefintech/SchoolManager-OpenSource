@@ -16,6 +16,7 @@ export function mapControlDashboardSnapshot(
   const active = Number(workers?.active ?? 0)
   const failed = Number(workers?.failed ?? 0)
 
+  const schoolAttendance = mapSchoolAttendance(raw)
   const scanFlowRaw = Array.isArray(raw?.scanFlow) ? raw.scanFlow : []
   const scanFlow = scanFlowRaw.map((point) => {
     const p = point as Record<string, unknown>
@@ -65,5 +66,33 @@ export function mapControlDashboardSnapshot(
     },
     scanFlow,
     generatedAt: typeof raw?.generatedAt === 'string' ? raw.generatedAt : undefined,
+    totalStudents: schoolAttendance.totalStudents,
+    presentToday: schoolAttendance.presentToday,
+    presentByMethod: schoolAttendance.presentByMethod,
+    attendanceRate: schoolAttendance.attendanceRate,
+    schoolAttendance,
+  }
+}
+
+function mapSchoolAttendance(raw: Record<string, unknown> | null | undefined) {
+  const nested = raw?.schoolAttendance as Record<string, unknown> | undefined
+  const methods = (nested?.presentByMethod ?? raw?.presentByMethod) as
+    | Record<string, unknown>
+    | undefined
+  const facialCount = Number(
+    nested?.facialCount ?? raw?.facialCount ?? methods?.FACIAL ?? 0,
+  )
+  const pinCount = Number(nested?.pinCount ?? raw?.pinCount ?? methods?.PIN ?? 0)
+  const totalEnrolled = Number(
+    nested?.totalEnrolled ?? raw?.totalEnrolled ?? nested?.totalStudents ?? raw?.totalStudents ?? 0,
+  )
+  return {
+    totalEnrolled,
+    totalStudents: totalEnrolled,
+    presentToday: Number(nested?.presentToday ?? raw?.presentToday ?? 0),
+    facialCount,
+    pinCount,
+    presentByMethod: { FACIAL: facialCount, PIN: pinCount },
+    attendanceRate: Number(nested?.attendanceRate ?? raw?.attendanceRate ?? 0),
   }
 }
