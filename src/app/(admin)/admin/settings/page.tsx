@@ -490,7 +490,7 @@ export default function SettingsPage() {
             />
             <Toggle
               label="Rapport de ponctualité quotidien"
-              description="PDF + email aux DIRECTOR/ADMIN chaque matin (≈ 09:00)"
+              description="PDF + email aux DIRECTOR/ADMIN chaque matin (≈ 09:00). Activé par défaut."
               checked={form.notificationSettings.dailyPunctualityReportEnabled}
               onChange={(v) =>
                 updateForm((f) => ({

@@ -21,7 +21,7 @@ const DEFAULT_NOTIFICATION_SETTINGS: AttendanceNotificationSettings = {
   parentPresenceNotificationsEnabled: false,
   parentDepartureNotificationsEnabled: false,
   gateFinanceDisplayEnabled: true,
-  dailyPunctualityReportEnabled: false,
+  dailyPunctualityReportEnabled: true,
   dailyPunctualityReportEmails: [],
 }
 const DEFAULT_ABSENCE_SETTINGS: AttendanceAbsenceSettings = {
@@ -154,7 +154,7 @@ export function buildPatch(
     gateFinanceDisplayEnabled:
       original.notificationSettings?.gateFinanceDisplayEnabled ?? true,
     dailyPunctualityReportEnabled:
-      original.notificationSettings?.dailyPunctualityReportEnabled ?? false,
+      original.notificationSettings?.dailyPunctualityReportEnabled ?? true,
     dailyPunctualityReportEmails: [
       ...(original.notificationSettings?.dailyPunctualityReportEmails ?? []),
     ],
