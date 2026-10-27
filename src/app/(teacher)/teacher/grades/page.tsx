@@ -222,6 +222,14 @@ function TeacherGradesPageInner() {
           <GradebookGrid
             grid={gridQuery.data}
             queryKey={gridKey}
+            onExportBulletin={async (studentId) => {
+              const html = await teacherGradesApi.periodBulletinHtml(studentId, {
+                term,
+                academicYear,
+              })
+              const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+              window.open(url, '_blank', 'noopener,noreferrer')
+            }}
             onEditEvaluation={(evaluation) => {
               setFormMode('edit')
               setEditing(evaluation)

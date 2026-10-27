@@ -95,8 +95,29 @@ function FlashCard({
         {scan.attendanceLabel}
         {scan.attendanceMessage ? ` — ${scan.attendanceMessage}` : ''}
       </div>
-      {scan.financeDisplayed && scan.financeMessage ? (
-        <p className={cn('mt-2 text-xs font-medium', styles.label)}>{scan.financeMessage}</p>
+      {scan.financeDisplayed && (scan.unpaidMonths.length > 0 || scan.financeMessage) ? (
+        <div className="mt-3 space-y-1.5 rounded-xl bg-white/70 px-3 py-2">
+          <p className={cn('text-[11px] font-extrabold uppercase tracking-wide', styles.label)}>
+            {scan.unpaidMonths.length > 0 ? 'Mois dus' : 'Solde frais'}
+            {scan.financeStatus === 'CRITICAL' ? ' · Alerte' : ''}
+          </p>
+          {scan.unpaidMonths.length > 0
+            ? scan.unpaidMonths.map((month) => (
+                <div key={`${month.monthYear}|${month.label}`} className="flex justify-between gap-3 text-sm">
+                  <span className="font-medium text-slate-800">{month.label}</span>
+                  <span className={cn('font-extrabold', styles.label)}>{month.remainingFormatted}</span>
+                </div>
+              ))
+            : (
+                <p className={cn('text-xs font-medium', styles.label)}>{scan.financeMessage}</p>
+              )}
+          {scan.unpaidMonths.length > 0 && scan.balanceFormatted ? (
+            <div className="flex justify-between gap-3 border-t border-slate-200 pt-1.5 text-sm font-extrabold">
+              <span>Total</span>
+              <span className={styles.label}>{scan.balanceFormatted}</span>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </div>
   )

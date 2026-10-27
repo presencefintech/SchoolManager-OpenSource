@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { enrollmentsApi } from '@/lib/admin/api'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { compressImageFile } from '@/lib/image/compress-image'
 import { useToast } from '@/providers/toast-provider'
 import type { CreateEnrollmentPayload } from '@/types/admin'
 
@@ -285,9 +286,9 @@ export function usePurgeEnrollment() {
 export function useUpdateBiometrics() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ studentId, photo }: { studentId: number; photo: File }) => {
+    mutationFn: async ({ studentId, photo }: { studentId: number; photo: File }) => {
       const fd = new FormData()
-      fd.append('photo', photo)
+      fd.append('photo', await compressImageFile(photo))
       return enrollmentsApi.updateBiometrics(studentId, fd)
     },
     onSuccess: (_, { studentId }) => {

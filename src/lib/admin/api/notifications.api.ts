@@ -3,6 +3,26 @@ import { apiClient } from '@/lib/api/client'
 export type NotificationDeliveryChannel = 'WEBSOCKET' | 'SMS' | 'EMAIL' | 'PUSH'
 
 /** Entrée DLQ — `GET /admin/notifications/dlq` */
+export type PresenceNotifDlqItem = {
+  jobId: string | number | null
+  name?: string
+  timestamp?: number
+  presenceId?: number
+  studentId?: number
+  schoolId?: number
+  attemptsMade?: number
+  deadAt?: string
+  errorCode?: string
+  errorMessage?: string
+  originalJobId?: string
+  data?: {
+    schoolId?: number
+    studentId?: number
+    presenceId?: number
+    failedReason?: string
+  }
+}
+
 export type NotificationDlqItem = {
   deliveryId: string
   outboxId: string
@@ -96,6 +116,28 @@ export const adminNotificationsApi = {
         }
       }>('/admin/notifications/deliverability/summary', { params })
       .then((r) => r.data.data),
+
+  getPresenceDlq: (params?: { limit?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: { redis?: boolean; items: PresenceNotifDlqItem[] }
+      }>('/admin/notifications/presence-dlq', { params })
+      .then((r) => r.data.data),
+
+  replayPresenceDlq: (jobId: string) =>
+    apiClient
+      .post<{ success: boolean; message?: string }>(
+        `/admin/notifications/presence-dlq/${encodeURIComponent(jobId)}/replay`,
+      )
+      .then((r) => r.data),
+
+  discardPresenceDlq: (jobId: string) =>
+    apiClient
+      .delete<{ success: boolean; message?: string }>(
+        `/admin/notifications/presence-dlq/${encodeURIComponent(jobId)}`,
+      )
+      .then((r) => r.data),
 
   getDeliverability: (params?: {
     status?: string

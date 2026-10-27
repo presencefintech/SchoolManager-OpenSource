@@ -17,22 +17,19 @@ const DEFAULT_SCHEDULE: AttendanceScheduleSettings = {
   scanWindowStrict: true,
   exitScanEnabled: true,
 }
-
 const DEFAULT_NOTIFICATION_SETTINGS: AttendanceNotificationSettings = {
   parentPresenceNotificationsEnabled: false,
   parentDepartureNotificationsEnabled: false,
-  gateFinanceDisplayEnabled: false,
+  gateFinanceDisplayEnabled: true,
   dailyPunctualityReportEnabled: false,
   dailyPunctualityReportEmails: [],
 }
-
 const DEFAULT_ABSENCE_SETTINGS: AttendanceAbsenceSettings = {
   autoMarkEnabled: false,
   cutoffHour: 9,
   cutoffMinute: 0,
   timezone: 'Africa/Kinshasa',
 }
-
 const DEFAULT_RADIUS_KM = 0.2
 
 export type AttendanceFormState = {
@@ -46,7 +43,6 @@ export type AttendanceFormState = {
   notificationSettings: AttendanceNotificationSettings
   absenceSettings: AttendanceAbsenceSettings
 }
-
 export function normalizeSchedule(
   raw: AttendanceSettings['scheduleSettings'] | null | undefined,
 ): AttendanceScheduleSettings {
@@ -60,7 +56,6 @@ export function normalizeSchedule(
     exitScanEnabled: raw?.exitScanEnabled ?? DEFAULT_SCHEDULE.exitScanEnabled,
   }
 }
-
 export function settingsToForm(settings: AttendanceSettings): AttendanceFormState {
   const geofence = settings.geofence ?? {
     latitude: null,
@@ -157,7 +152,7 @@ export function buildPatch(
     parentDepartureNotificationsEnabled:
       original.notificationSettings?.parentDepartureNotificationsEnabled ?? false,
     gateFinanceDisplayEnabled:
-      original.notificationSettings?.gateFinanceDisplayEnabled ?? false,
+      original.notificationSettings?.gateFinanceDisplayEnabled ?? true,
     dailyPunctualityReportEnabled:
       original.notificationSettings?.dailyPunctualityReportEnabled ?? false,
     dailyPunctualityReportEmails: [

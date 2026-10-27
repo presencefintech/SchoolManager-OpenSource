@@ -93,6 +93,8 @@ export async function enqueueGateScan(payload: string): Promise<{
     financeDisplayed: false,
     alreadyPresent: false,
     attendanceLabel: 'Enregistré',
+    balanceFormatted: null,
+    unpaidMonths: [],
   }
 
   return { item, optimistic }

@@ -259,6 +259,15 @@ export const adminGradesApi = {
       .post('/admin/grades/periods/status', body)
       .then((r) => unwrap<AdminAcademicTermPeriod>(r.data)),
 
+  periodBulletinHtml: (studentId: number, params: { term: SchoolTerm; academicYear: string }) =>
+    apiClient
+      .get(`/admin/grades/students/${studentId}/bulletin`, {
+        params: { ...params, format: 'html' },
+        responseType: 'text',
+        headers: { Accept: 'text/html' },
+      })
+      .then((r) => String(r.data)),
+
   listAuditLogs: (params?: {
     classId?: number
     subjectId?: number

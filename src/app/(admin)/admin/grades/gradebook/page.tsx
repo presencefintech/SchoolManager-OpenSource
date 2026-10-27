@@ -285,6 +285,14 @@ function AdminGradebookInner() {
               grid={grid}
               queryKey={gridKey}
               upsertGrades={adminGradesApi.upsertGrades}
+              onExportBulletin={async (studentId) => {
+                const html = await adminGradesApi.periodBulletinHtml(studentId, {
+                  term,
+                  academicYear,
+                })
+                const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+                window.open(url, '_blank', 'noopener,noreferrer')
+              }}
               onEditEvaluation={(evaluation) => {
                 setFormMode('edit')
                 setEditing(evaluation)

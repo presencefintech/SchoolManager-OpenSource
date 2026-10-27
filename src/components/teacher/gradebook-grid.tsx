@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Check, Loader2, MessageSquare, Pencil, Trash2 } from 'lucide-react'
+import { Check, FileDown, Loader2, MessageSquare, Pencil, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { teacherGradesApi } from '@/lib/teacher/api/grades.api'
 import { gradeEntryAgainstMax } from '@/lib/teacher/schemas/grade-entry.schema'
@@ -27,6 +27,7 @@ type Props = {
   queryKey: unknown[]
   onEditEvaluation?: (evaluation: GradebookEvaluationColumn) => void
   onDeleteEvaluation?: (evaluation: GradebookEvaluationColumn) => void
+  onExportBulletin?: (studentId: number) => void
   upsertGrades?: (
     evaluationId: number,
     body: {
@@ -113,6 +114,7 @@ function liveTotals(
 }
 
 export function GradebookGrid({
+  onExportBulletin,
   grid,
   queryKey,
   onEditEvaluation,
@@ -449,6 +451,16 @@ export function GradebookGrid({
                         </div>
                         <div className="text-xs text-slate-400">{student.matricule}</div>
                       </div>
+                      {onExportBulletin && (
+                        <button
+                          type="button"
+                          title="Bulletin de période"
+                          onClick={() => onExportBulletin(student.studentId)}
+                          className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-teal-600"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {activeEvalId != null && (
                         <button
                           type="button"

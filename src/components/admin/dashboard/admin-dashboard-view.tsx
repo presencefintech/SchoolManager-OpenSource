@@ -10,7 +10,7 @@ import {
 import { cn } from '@/lib/utils'
 import {
   useAdminStats, useLiveFeed, useFraudAlerts, useControlStats, useHeatmap, useClasses,
-  useTriggerWeeklyReport, useStaff,
+  useTriggerWeeklyReport, useStaff, useAdminDevices,
 } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useAuth } from '@/providers/auth-provider'
@@ -31,6 +31,10 @@ import { DashboardActionWidgets } from '@/components/admin/dashboard/dashboard-a
 import { ActiveQrSessionsPanel } from '@/components/admin/dashboard/active-qr-sessions-panel'
 import { SyncBatchesPanel } from '@/components/admin/dashboard/sync-batches-panel'
 import { AdminPlatformEventsPanel } from '@/components/admin/dashboard/admin-platform-events-panel'
+import { ADMIN_OPS_UI } from '@/lib/admin/admin-ops-messages'
+import { SchoolOpsKpiCards } from '@/components/admin/dashboard/school-ops-kpi-cards'
+import { TabletDevicesTable } from '@/components/admin/dashboard/tablet-devices-table'
+import { PresenceNotifDlqPanel } from '@/components/admin/dashboard/presence-notif-dlq-panel'
 import { StudentPaymentStatusWidget } from '@/components/finance/student-payment-status-widget'
 import { CashJournalReport } from '@/components/finance/cash-journal-report'
 
@@ -223,6 +227,7 @@ export function AdminDashboardView() {
   const { data: heatmap = [], isPending: heatmapPending } = useHeatmap()
   const { data: classes = [], isPending: classesPending } = useClasses(ACTIVE_CLASSES_PARAMS)
   const { data: staff = [], isPending: staffPending } = useStaff()
+  const { data: devices = [], isPending: devicesPending, isError: devicesError } = useAdminDevices()
 
   const loadingStats = authLoading || statsPending
   const loadingFeed = authLoading || feedPending
@@ -423,6 +428,19 @@ export function AdminDashboardView() {
         <AttendanceReadinessPanel />
         <AttendanceSettingsBanner />
         <DashboardActionWidgets />
+        <SchoolOpsKpiCards
+          stats={control}
+          loading={loadingControl}
+          error={controlError ? ADMIN_OPS_UI.STATS_FETCH_FAILED : null}
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <TabletDevicesTable
+            devices={devices}
+            loading={devicesPending}
+            error={devicesError ? ADMIN_OPS_UI.DEVICES_FETCH_FAILED : null}
+          />
+          <PresenceNotifDlqPanel />
+        </div>
 
         {statsError && !authLoading && (
           <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-50/90 border border-amber-200/80 text-sm text-amber-900">
