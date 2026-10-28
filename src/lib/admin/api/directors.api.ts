@@ -117,6 +117,16 @@ export type DirectorPunctualityLatecomer = {
   scannedAtLabel: string
 }
 
+export type DirectorPunctualityDebtor = {
+  studentId: number
+  studentName: string
+  classId: number | null
+  className: string | null
+  monthsLabel: string
+  remainingTotalFormatted: string
+  unpaidCount: number
+}
+
 export type DirectorPunctualityReport = {
   schoolId: number
   schoolName: string
@@ -131,9 +141,11 @@ export type DirectorPunctualityReport = {
     absent: number
     attendanceRate: number
     punctualityRate: number
+    presentWithUnpaid: number
   }
   classRanking: DirectorPunctualityClassRank[]
   latecomers: DirectorPunctualityLatecomer[]
+  debtors: DirectorPunctualityDebtor[]
 }
 
 export type DirectorPunctualityDeliverResult = {
@@ -257,6 +269,20 @@ export const directorsApi = {
     const filename = parseContentDispositionFilename(
       res.headers['content-disposition'] as string | undefined,
       `rapport-ponctualite-${params?.date ?? 'jour'}.pdf`
+    )
+    triggerBlobDownload(res.data, filename)
+    return filename
+  },
+
+  downloadFourProofsPdf: async () => {
+    const res = await apiClient.get<Blob>('/admin/director/four-proofs', {
+      params: { format: 'pdf' },
+      responseType: 'blob',
+      timeout: 60_000,
+    })
+    const filename = parseContentDispositionFilename(
+      res.headers['content-disposition'] as string | undefined,
+      'PresenceFintech-4-preuves.pdf',
     )
     triggerBlobDownload(res.data, filename)
     return filename

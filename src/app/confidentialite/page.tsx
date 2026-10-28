@@ -3,140 +3,138 @@ import { LegalPageLayout } from '@/components/legal/legal-page-layout'
 
 export const metadata: Metadata = {
   title: 'Politique de Confidentialité — SchoolManager',
-  description: 'Politique de confidentialité et de protection des données de SchoolManager.',
+  description:
+    'Politique de confidentialité de SchoolManager (PresenceFintech) : données scolaires, présence, paiements et applications mobiles.',
 }
 
 export default function ConfidentialitePage() {
   return (
     <LegalPageLayout
       title="Politique de Confidentialité"
-      lastUpdated="[À COMPLÉTER]"
+      lastUpdated="28 octobre 2026"
       otherDocHref="/cgu"
       otherDocLabel="Conditions Générales d'Utilisation"
     >
       <section>
         <h3>1. Responsable du traitement</h3>
         <p>
-          [Nom de la société], [statut juridique], immatriculée sous le numéro [numéro RCCM /
-          SIREN], dont le siège social est situé [adresse complète], est responsable du traitement
-          des données décrites dans la présente politique. Contact : [email du responsable /
-          délégué à la protection des données].
+          PresenceFintech, éditeur de la plateforme SchoolManager, est responsable du traitement
+          des données décrites ci-dessous, pour le compte des établissements scolaires clients
+          (responsables conjoints ou sous-traitant selon le module). Exploitation : Kinshasa,
+          République Démocratique du Congo.
+        </p>
+        <p>
+          Contact :{' '}
+          <a href="mailto:support@presence-fintech.com">support@presence-fintech.com</a>.
         </p>
       </section>
 
       <section>
         <h3>2. Données collectées</h3>
         <ul>
-          <li>Données d&apos;identification : nom, prénom, email, téléphone, rôle (administrateur, directeur, personnel financier, élève/parent).</li>
-          <li>Données de présence : horodatage, statut de présence, données biométriques le cas échéant [préciser : empreinte digitale / reconnaissance faciale / autre].</li>
-          <li>Données financières : historique de paiements, montants dus, moyens de paiement utilisés (hors données bancaires complètes, traitées par les prestataires de paiement).</li>
-          <li>Données techniques : adresse IP, journaux de connexion, données de navigation.</li>
+          <li>
+            Identification : nom, postnom, prénom, sexe, date de naissance, contacts, rôle
+            (parent, enseignant, direction, caisse, etc.).
+          </li>
+          <li>
+            Scolarité : classe, présence, retards, notes, bulletins, discipline, infirmerie,
+            autorisations de sortie.
+          </li>
+          <li>
+            Finance : échéancier, paiements, reçus, moratoires — hors numéros de carte complets,
+            conservés par le prestataire de paiement.
+          </li>
+          <li>
+            Biométrie (si l’école active le module) : photographie et vecteur facial utilisés
+            uniquement pour vérifier l’identité à l’entrée ; pas de revente, pas de publicité.
+          </li>
+          <li>
+            Techniques : journaux de connexion, identifiant d’appareil, jetons de notification
+            push, traces de sécurité.
+          </li>
         </ul>
       </section>
 
       <section>
-        <h3>3. Finalités du traitement</h3>
+        <h3>3. Finalités</h3>
         <ul>
-          <li>Gestion des comptes utilisateurs et contrôle d&apos;accès.</li>
-          <li>Suivi de la présence des élèves et du personnel.</li>
-          <li>Gestion de la facturation, des encaissements et des remboursements.</li>
-          <li>Prévention de la fraude et sécurité de la Plateforme.</li>
-          <li>Production de statistiques et de rapports à destination des établissements clients.</li>
+          <li>Fournir le service SchoolManager à l’établissement et aux familles.</li>
+          <li>Informer les parents (arrivée, sortie, dette, vie scolaire, infirmerie).</li>
+          <li>Encaisser et justifier les frais de scolarité.</li>
+          <li>Sécuriser les comptes (fraude, accès non autorisé).</li>
+          <li>Produire des rapports à l’usage exclusif de l’établissement client.</li>
         </ul>
       </section>
 
       <section>
-        <h3>4. Données biométriques</h3>
+        <h3>4. Base légale</h3>
         <p>
-          Lorsque la Plateforme est utilisée pour le suivi de présence biométrique, ces données sont
-          traitées avec un niveau de protection renforcé, sur la base de [préciser la base légale :
-          consentement / intérêt légitime / obligation contractuelle], et ne sont utilisées qu&apos;à
-          la finalité exclusive de vérification de présence. [Préciser les modalités de stockage et
-          de suppression.]
+          Exécution du contrat avec l’établissement ; intérêt légitime (sécurité, continuité du
+          service) ; obligations comptables ; consentement lorsqu’il est requis (biométrie,
+          canaux WhatsApp/SMS selon les réglages de l’école et les préférences du parent).
         </p>
       </section>
 
       <section>
-        <h3>5. Base légale</h3>
+        <h3>5. Destinataires</h3>
         <p>
-          Les traitements reposent selon les cas sur l&apos;exécution du contrat liant l&apos;Éditeur
-          à l&apos;établissement scolaire, le respect d&apos;obligations légales, l&apos;intérêt
-          légitime de l&apos;Éditeur (sécurité, prévention de la fraude) ou le consentement de la
-          personne concernée.
+          Personnel habilité de l’école, équipes techniques de l’Éditeur, hébergeurs (notamment
+          infrastructure cloud de type Railway) et prestataires de paiement / messagerie
+          strictement nécessaires. Aucune vente de données à des annonceurs.
         </p>
       </section>
 
       <section>
-        <h3>6. Destinataires des données</h3>
+        <h3>6. Applications mobiles et Google</h3>
         <p>
-          Les données sont accessibles au personnel habilité de l&apos;établissement scolaire
-          concerné et de l&apos;Éditeur, ainsi qu&apos;aux prestataires techniques nécessaires au
-          fonctionnement de la Plateforme (hébergement, prestataires de paiement mobile money /
-          bancaires — [préciser les prestataires]). Aucune donnée n&apos;est vendue à des tiers.
+          L’application peut utiliser Firebase Cloud Messaging (notifications), l’appareil photo
+          (scan, photo d’élève, liveness) et, au scan de présence, une position pour vérifier que
+          l’appareil est bien sur le site de l’école. Ces traitements sont liés au service, pas à
+          de la publicité Google.
         </p>
       </section>
 
       <section>
-        <h3>7. Hébergement et transfert de données</h3>
+        <h3>7. Conservation</h3>
         <p>
-          Les données sont hébergées chez [nom de l&apos;hébergeur, ex. Railway / Render], situé
-          [pays/région d&apos;hébergement]. [Préciser si un transfert hors de l&apos;espace
-          économique concerné a lieu et les garanties associées.]
+          Les données sont conservées pendant la relation contractuelle avec l’établissement, puis
+          pour les durées légales (notamment pièces comptables). Les vecteurs faciaux peuvent être
+          désactivés par l’école ; un parent peut demander, via l’établissement, la suppression
+          de la photo biométrique de son enfant lorsque le module n’est plus utilisé.
         </p>
       </section>
 
       <section>
-        <h3>8. Durée de conservation</h3>
+        <h3>8. Sécurité</h3>
         <p>
-          Les données sont conservées pendant la durée nécessaire aux finalités décrites ci-dessus,
-          et au maximum [durée] après la fin de la relation contractuelle avec l&apos;établissement,
-          sous réserve des durées de conservation légales applicables (comptabilité, obligations
-          fiscales).
+          Chiffrement en transit, contrôle d’accès par rôle, isolation par établissement,
+          journalisation et reçus signés. Aucun système n’est infaillible ; l’utilisateur
+          protège également son téléphone et son mot de passe.
         </p>
       </section>
 
       <section>
-        <h3>9. Sécurité</h3>
+        <h3>9. Droits</h3>
         <p>
-          L&apos;Éditeur met en œuvre des mesures techniques et organisationnelles raisonnables
-          (chiffrement, contrôle d&apos;accès, journalisation) pour protéger les données contre tout
-          accès non autorisé, perte ou altération.
+          Accès, rectification, opposition, limitation et, lorsque la loi le permet, effacement
+          ou portabilité. Exercice : auprès du secrétariat de l’école, ou à{' '}
+          <a href="mailto:support@presence-fintech.com">support@presence-fintech.com</a>.
         </p>
       </section>
 
       <section>
-        <h3>10. Droits des personnes concernées</h3>
+        <h3>10. Cookies</h3>
         <p>
-          Conformément à la réglementation applicable, toute personne concernée dispose d&apos;un
-          droit d&apos;accès, de rectification, d&apos;effacement, de limitation, d&apos;opposition
-          et de portabilité de ses données. Ces droits peuvent être exercés en écrivant à
-          [email de contact dédié].
+          Cookies et stockage local strictement nécessaires à la session et à la sécurité du
+          portail. Pas de cookies publicitaires tiers.
         </p>
       </section>
 
       <section>
-        <h3>11. Cookies et traceurs</h3>
+        <h3>11. Modifications</h3>
         <p>
-          La Plateforme utilise des cookies strictement nécessaires à son fonctionnement (session,
-          authentification) [et, le cas échéant, des cookies de mesure d&apos;audience — préciser
-          lesquels et proposer un mécanisme de consentement si requis].
-        </p>
-      </section>
-
-      <section>
-        <h3>12. Modification de la politique</h3>
-        <p>
-          La présente politique peut être mise à jour à tout moment. La date de dernière mise à jour
-          figure en haut de ce document. En cas de changement substantiel, les utilisateurs en seront
-          informés par [email / notification in-app].
-        </p>
-      </section>
-
-      <section>
-        <h3>13. Contact</h3>
-        <p>
-          Pour toute question relative à la présente politique ou pour exercer vos droits :
-          [email de contact / délégué à la protection des données].
+          La date en tête de page fait foi. Une évolution substantielle est indiquée dans
+          l’application ou par message.
         </p>
       </section>
     </LegalPageLayout>

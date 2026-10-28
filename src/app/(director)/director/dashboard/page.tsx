@@ -17,6 +17,7 @@ import {
   UserX,
   History,
   ClipboardList,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/providers/auth-provider'
@@ -233,6 +234,12 @@ export default function DirectorDashboardPage() {
               title: 'Voir mon périmètre',
               desc: 'Sections et classes rattachées',
               icon: Layers,
+            },
+            {
+              href: '/4-preuves',
+              title: 'Fiche promoteur',
+              desc: 'Les 4 preuves — une page à envoyer',
+              icon: FileText,
             },
           ].map((item, i) => (
             <motion.div

@@ -7,6 +7,8 @@ type LegalPageLayoutProps = {
   otherDocHref: string
   otherDocLabel: string
   children: React.ReactNode
+  /** Affiche le bandeau « modèle à personnaliser ». Défaut : masqué. */
+  showDraftNotice?: boolean
 }
 
 export function LegalPageLayout({
@@ -15,6 +17,7 @@ export function LegalPageLayout({
   otherDocHref,
   otherDocLabel,
   children,
+  showDraftNotice = false,
 }: LegalPageLayoutProps) {
   return (
     <div className="relative min-h-screen bg-[#f4f6fa] px-4 py-12">
@@ -43,11 +46,13 @@ export function LegalPageLayout({
             <p className="text-xs text-zinc-400 mt-1">Dernière mise à jour : {lastUpdated}</p>
           </div>
 
-          <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 mb-8">
-            Modèle à personnaliser : remplacez les informations entre crochets par les données
-            réelles de votre structure avant mise en production. Faites relire le document par un
-            juriste si nécessaire.
-          </div>
+          {showDraftNotice ? (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800 mb-8">
+              Modèle à personnaliser : remplacez les informations entre crochets par les données
+              réelles de votre structure avant mise en production. Faites relire le document par un
+              juriste si nécessaire.
+            </div>
+          ) : null}
 
           <div className="prose prose-sm prose-zinc max-w-none space-y-6 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-zinc-900 [&_h3]:mb-2 [&_p]:text-sm [&_p]:text-zinc-600 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:text-sm [&_ul]:text-zinc-600">
             {children}
