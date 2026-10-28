@@ -13,7 +13,7 @@ import {
 } from '@/lib/auth/session-cookies'
 import { NONCE_HEADER, buildContentSecurityPolicy, generateNonce } from '@/lib/security/csp'
 
-const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite']
+const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password', '/verify-email', '/activate', '/verify', '/cgu', '/confidentialite', '/4-preuves']
 
 const EXCLUSIVE_PREFIXES: Record<UserRole, string> = {
   ADMIN: '/admin',
@@ -141,11 +141,14 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isPublic && pathname !== '/verify-email' && pathname !== '/activate' && pathname !== '/activate-parent' && !pathname.startsWith('/verify')) {
-    const stayOnAuthForm =
+    const stayOnPublicPage =
       pathname.startsWith('/login') ||
       pathname.startsWith('/forgot-password') ||
-      pathname.startsWith('/reset-password')
-    if (stayOnAuthForm) {
+      pathname.startsWith('/reset-password') ||
+      pathname.startsWith('/cgu') ||
+      pathname.startsWith('/confidentialite') ||
+      pathname.startsWith('/4-preuves')
+    if (stayOnPublicPage) {
       return attachRefreshedCookies(next(), refreshed)
     }
     return attachRefreshedCookies(

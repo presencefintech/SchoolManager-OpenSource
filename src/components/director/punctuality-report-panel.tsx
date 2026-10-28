@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Activity, Clock, Download, Mail, RefreshCw, UserX } from 'lucide-react'
+import { Activity, Clock, Download, Mail, RefreshCw, UserX, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { directorsApi } from '@/lib/admin/api/directors.api'
@@ -132,7 +132,7 @@ export function PunctualityReportPanel() {
             {new Date(report.generatedAt).toLocaleString('fr-FR')}
           </p>
 
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
             <DirectorKpiCard
               label="Taux de présence"
               value={`${report.totals.attendanceRate.toFixed(1)}%`}
@@ -160,6 +160,13 @@ export function PunctualityReportPanel() {
               hint="Non pointés"
               icon={UserX}
               tone="indigo"
+            />
+            <DirectorKpiCard
+              label="Mois dus"
+              value={report.totals.presentWithUnpaid ?? 0}
+              hint="Présents à relancer hors grille"
+              icon={Wallet}
+              tone="amber"
             />
           </div>
 
@@ -237,6 +244,58 @@ export function PunctualityReportPanel() {
                 </ul>
               )}
             </div>
+          </div>
+
+          <div>
+            <h3 className="mb-1 text-sm font-semibold text-zinc-800">
+              Présents avec mois dus
+            </h3>
+            <p className="mb-3 text-[11px] text-zinc-500">
+              Mêmes mois que le portail. Relancer le parent en privé — jamais à
+              la grille.
+            </p>
+            {(report.debtors ?? []).length === 0 ? (
+              <p className="text-xs text-zinc-500">
+                Aucun présent avec un mois non soldé.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-zinc-100">
+                <table className="w-full min-w-[360px] text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-100 bg-zinc-50/80">
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                        Élève
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                        Classe
+                      </th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                        Mois dus
+                      </th>
+                      <th className="px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                        Reste
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50">
+                    {report.debtors.map((row) => (
+                      <tr key={row.studentId} className="hover:bg-zinc-50/80">
+                        <td className="px-3 py-2 font-medium text-zinc-800">
+                          {row.studentName}
+                        </td>
+                        <td className="px-3 py-2 text-zinc-600">
+                          {row.className ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-zinc-600">{row.monthsLabel}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-amber-800">
+                          {row.remainingTotalFormatted}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}
