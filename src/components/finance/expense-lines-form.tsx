@@ -17,6 +17,7 @@ export type ExpenseDraftLine = {
   label: string
   amount: string
   reference: string
+  notes: string
 }
 
 function newLine(): ExpenseDraftLine {
@@ -27,6 +28,7 @@ function newLine(): ExpenseDraftLine {
     label: '',
     amount: '',
     reference: '',
+    notes: '',
   }
 }
 
@@ -51,6 +53,7 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
   const [affectsCash, setAffectsCash] = useState(true)
   const [postImmediately, setPostImmediately] = useState(true)
   const [budgetCategoryId, setBudgetCategoryId] = useState('')
+  const [vendor, setVendor] = useState('')
   const [lines, setLines] = useState<ExpenseDraftLine[]>([newLine()])
 
   const budgetCategoriesQuery = useQuery({
@@ -84,6 +87,7 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
         label: l.label.trim(),
         amount: Number(l.amount),
         reference: l.reference.trim() || null,
+        notes: l.notes.trim() || null,
       }))
       .filter((l) => l.category || l.label || (Number.isFinite(l.amount) && l.amount > 0))
 
@@ -104,10 +108,12 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
         affectsCash,
         postImmediately,
         budgetCategoryId: budgetCategoryId ? Number(budgetCategoryId) : undefined,
+        vendor: vendor.trim() || null,
         lines: prepared,
       })
       setOk(`${result.count} dépense(s) enregistrée(s) · ${formatMoney(result.total, displayCurrency)}.`)
       setLines([newLine()])
+      setVendor('')
       onSaved?.()
     } catch (err) {
       setError(getApiErrorMessage(err))
@@ -171,10 +177,19 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
             ))}
           </select>
         </label>
+        <label className="text-xs font-medium text-zinc-500">
+          Fournisseur (optionnel)
+          <input
+            value={vendor}
+            onChange={(e) => setVendor(e.target.value)}
+            placeholder="Nom du fournisseur / prestataire"
+            className="mt-1 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          />
+        </label>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200">
-        <table className="w-full text-sm min-w-[720px]">
+        <table className="w-full text-sm min-w-[860px]">
           <thead>
             <tr className="border-b border-zinc-100 bg-zinc-50 text-left text-[10px] uppercase tracking-wide text-zinc-500">
               <th className="px-3 py-2">Type</th>
@@ -182,6 +197,7 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
               <th className="px-3 py-2">Libellé</th>
               <th className="px-3 py-2 text-right">Montant</th>
               <th className="px-3 py-2">N° preuve</th>
+              <th className="px-3 py-2">Notes</th>
               <th className="px-3 py-2 w-12" />
             </tr>
           </thead>
@@ -233,6 +249,14 @@ export function ExpenseLinesForm({ defaultDate, compact, onSaved }: Props) {
                   <input
                     value={line.reference}
                     onChange={(e) => updateLine(line.key, { reference: e.target.value })}
+                    placeholder="Optionnel"
+                    className="w-full rounded-lg border border-zinc-200 px-2 py-1.5 text-sm"
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    value={line.notes}
+                    onChange={(e) => updateLine(line.key, { notes: e.target.value })}
                     placeholder="Optionnel"
                     className="w-full rounded-lg border border-zinc-200 px-2 py-1.5 text-sm"
                   />

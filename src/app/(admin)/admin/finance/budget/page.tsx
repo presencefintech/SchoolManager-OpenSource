@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useAcademicSessions } from '@/lib/hooks/admin/enrollments'
 import { financeBudgetApi } from '@/lib/admin/api/finance-budget.api'
-import { FinanceAdminSubNav } from '@/components/admin/finance/finance-admin-subnav'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 
 function BudgetContent() {
@@ -231,7 +230,6 @@ function BudgetContent() {
 export default function AdminFinanceBudgetPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <FinanceAdminSubNav />
       <BudgetContent />
     </div>
   )

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { StudentFeeLedgerTable } from '@/components/finance/student-fee-ledger-table'
 import { cn } from '@/lib/utils'
-import { formatMoney } from '@/lib/finance/currency'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { useStudentFeeSchedule } from '@/lib/finance/hooks/use-student-fee-schedule'
 import { StudentFeeScheduleLink } from '@/components/finance/student-fee-schedule-link'
 import type { FeeScheduleLineDto, StudentFinancialRow } from '@/types/finance'
@@ -45,7 +45,7 @@ function situationTone(status: string): string {
   }
 }
 
-function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
+function FeeLinesMiniTable({ lines, currency }: { lines: FeeScheduleLineDto[]; currency: string }) {
   if (lines.length === 0) {
     return <p className="text-xs text-zinc-400 py-2">Aucun frais sur l&apos;échéancier</p>
   }
@@ -62,7 +62,7 @@ function FeeLinesMiniTable({ lines }: { lines: FeeScheduleLineDto[] }) {
         </p>
       )}
       <StudentFeeLedgerTable
-        currency="USD"
+        currency={currency}
         lines={lines.map((line) => ({
           id: `${line.feeStructureId}-${line.monthYear ?? 'once'}-${line.categoryId}`,
           name: line.categoryName,
@@ -87,6 +87,7 @@ function ExpandedFeeSchedule({
   const { data, isLoading, isError } = useStudentFeeSchedule(studentId, undefined, {
     enabled: true,
   })
+  const { displayCurrency } = useSchoolMoney()
 
   if (isLoading) {
     return <p className="text-xs text-zinc-400 py-3">Chargement de l&apos;échéancier…</p>
@@ -102,7 +103,7 @@ function ExpandedFeeSchedule({
         <p className="text-xs font-semibold text-zinc-600">Détail — qui a payé quoi / qui manque</p>
         <StudentFeeScheduleLink studentId={studentId} variant="inline" href={scheduleHref} />
       </div>
-      <FeeLinesMiniTable lines={lines} />
+      <FeeLinesMiniTable lines={lines} currency={displayCurrency} />
     </div>
   )
 }
@@ -119,6 +120,7 @@ export function StudentFinancialControlRows({
   hideAmounts?: boolean
 }) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
+  const { format: formatMoney } = useSchoolMoney()
 
   return (
     <div className="w-full overflow-x-auto">

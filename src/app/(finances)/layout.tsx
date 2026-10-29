@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { ThemePicker } from '@/components/theme/theme-picker'
 import { useAuth } from '@/providers/auth-provider'
+import { ROLE_HOME, pathAllowedForRole } from '@/types/auth'
 import { EmailVerificationBanner } from '@/components/auth/email-verification-banner'
 import { ManagerSpaceSwitcher } from '@/components/nav/ManagerSpaceSwitcher'
 import { FinanceRealtimeProvider, useFinanceRealtimeStatus } from '@/lib/finance/hooks/finance-realtime-provider'
@@ -71,6 +72,21 @@ function FinanceNav() {
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : 'FI'
 
+  // Un rôle restreint à une sous-page (ex. Admin → /finances/depenses seulement)
+  // ne doit pas voir les liens de l'espace Finance qu'il ne peut pas ouvrir.
+  const visibleLinks = user
+    ? NAV_LINKS.filter((link) => pathAllowedForRole(user.role, link.href))
+    : NAV_LINKS
+  // Logo / profil : rediriger vers une page réellement ouverte au rôle (ex. Admin → dépenses / profil admin).
+  const homeHref =
+    user && !pathAllowedForRole(user.role, '/finances/dashboard')
+      ? (visibleLinks[0]?.href ?? ROLE_HOME[user.role])
+      : '/finances/dashboard'
+  const profileHref =
+    user && !pathAllowedForRole(user.role, '/finances/profil-securite')
+      ? '/admin/profil-securite'
+      : '/finances/profil-securite'
+
   function handleLogout() {
     queryClient.clear()
     logout()
@@ -88,7 +104,7 @@ function FinanceNav() {
         >
           <Menu size={20} />
         </button>
-        <Link href="/finances/dashboard" className="flex items-center gap-2 min-w-0">
+        <Link href={homeHref} className="flex items-center gap-2 min-w-0">
           <div className="w-6 h-6 flex-shrink-0">
             <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={24} height={24} className="h-full w-full object-contain" />
           </div>
@@ -123,7 +139,7 @@ function FinanceNav() {
       >
         <div className="flex-shrink-0">
           <div className="flex items-center justify-between gap-2 px-6 py-4">
-            <Link href="/finances/dashboard" className="flex items-center gap-3.5 min-w-0 group">
+            <Link href={homeHref} className="flex items-center gap-3.5 min-w-0 group">
               <div className="w-8 h-8 flex-shrink-0">
                 <Image src="/logo-icon-transparent.png" alt="SchoolManager" width={32} height={32} className="h-full w-full object-contain" />
               </div>
@@ -154,7 +170,7 @@ function FinanceNav() {
         </div>
 
         <nav className={cn('px-3 py-2 space-y-0.5', NAV_SCROLL)} aria-label="Menu finance">
-          {NAV_LINKS.map(({ label, href, icon: Icon }) => {
+          {visibleLinks.map(({ label, href, icon: Icon }) => {
             const active = pathname.startsWith(href)
             return (
               <Link
@@ -184,7 +200,7 @@ function FinanceNav() {
               <ThemePicker compact />
             </div>
             <Link
-              href="/finances/profil-securite"
+              href={profileHref}
               className="flex items-center gap-3 mb-2 rounded-xl px-1 py-1 hover:bg-zinc-50 transition-colors group"
             >
               <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center ring-1 ring-emerald-200/80 flex-shrink-0">

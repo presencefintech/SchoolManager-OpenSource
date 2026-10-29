@@ -41,6 +41,9 @@ export default function DepensesPage() {
   const { format: formatMoney } = useSchoolMoney()
   const [status, setStatus] = useState<string>('')
   const [kind, setKind] = useState<string>('')
+  const [from, setFrom] = useState<string>('')
+  const [to, setTo] = useState<string>('')
+  const [search, setSearch] = useState<string>('')
   const [showForm, setShowForm] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,8 +51,10 @@ export default function DepensesPage() {
     () => ({
       status: status || undefined,
       kind: kind || undefined,
+      from: from || undefined,
+      to: to || undefined,
     }),
-    [status, kind],
+    [status, kind, from, to],
   )
 
   const { data, isLoading, isFetching, refetch } = useFinanceExpenses(filters)
@@ -75,7 +80,34 @@ export default function DepensesPage() {
     }
   }
 
-  const items = data?.items ?? []
+  const items = useMemo(() => {
+    const all = data?.items ?? []
+    const q = search.trim().toLowerCase()
+    if (!q) return all
+    return all.filter(
+      (item) =>
+        item.category.toLowerCase().includes(q) ||
+        item.label.toLowerCase().includes(q) ||
+        item.vendor?.toLowerCase().includes(q) ||
+        item.reference?.toLowerCase().includes(q),
+    )
+  }, [data?.items, search])
+
+  const summary = useMemo(() => {
+    let postedTotal = 0
+    let draftTotal = 0
+    let operatingTotal = 0
+    let investmentTotal = 0
+    for (const item of items) {
+      if (item.status === 'POSTED') postedTotal += item.amount
+      if (item.status === 'DRAFT') draftTotal += item.amount
+      if (item.status !== 'VOID') {
+        if (item.kind === 'OPERATING') operatingTotal += item.amount
+        else investmentTotal += item.amount
+      }
+    }
+    return { postedTotal, draftTotal, operatingTotal, investmentTotal, count: items.length }
+  }, [items])
 
   return (
     <FinancePageShell>
@@ -122,7 +154,52 @@ export default function DepensesPage() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <p className="text-xs text-zinc-500">Postées</p>
+          <p className="text-xl font-bold text-emerald-700 break-words tabular-nums">
+            {formatMoney(summary.postedTotal)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <p className="text-xs text-zinc-500">Brouillons</p>
+          <p className="text-xl font-bold text-amber-700 break-words tabular-nums">
+            {formatMoney(summary.draftTotal)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <p className="text-xs text-zinc-500">Fonctionnement</p>
+          <p className="text-xl font-bold text-zinc-900 break-words tabular-nums">
+            {formatMoney(summary.operatingTotal)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-4">
+          <p className="text-xs text-zinc-500">Investissement</p>
+          <p className="text-xl font-bold text-zinc-900 break-words tabular-nums">
+            {formatMoney(summary.investmentTotal)}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-xs font-medium text-zinc-500">
+          Du
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="text-xs font-medium text-zinc-500">
+          Au
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="mt-1 block rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          />
+        </label>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -142,6 +219,13 @@ export default function DepensesPage() {
           <option value="OPERATING">Opérationnelle</option>
           <option value="INVESTMENT">Investissement</option>
         </select>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher (poste, fournisseur, réf.)"
+          className="min-w-[220px] flex-1 rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+        />
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-zinc-200 bg-white">
@@ -181,8 +265,12 @@ export default function DepensesPage() {
                     </p>
                     <p className="text-[11px] text-zinc-400">
                       {item.affectsCash ? 'Impact caisse · ' : ''}
+                      {item.vendor ? `${item.vendor} · ` : ''}
                       {item.reference ? `Réf. ${item.reference}` : 'Sans réf.'}
                     </p>
+                    {item.notes ? (
+                      <p className="mt-0.5 text-[11px] text-zinc-400 italic">{item.notes}</p>
+                    ) : null}
                   </td>
                   <td className="px-4 py-3 text-zinc-600">
                     {item.kind === 'OPERATING' ? 'Opex' : 'Capex'}

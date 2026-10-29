@@ -252,7 +252,7 @@ function Metric({
       </span>
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">{label}</p>
-        <p className={cn('truncate text-lg font-semibold tabular-nums tracking-tight text-zinc-900', valueClass)}>
+        <p className={cn('break-words text-lg font-semibold tabular-nums tracking-tight text-zinc-900', valueClass)}>
           {value}
         </p>
       </div>

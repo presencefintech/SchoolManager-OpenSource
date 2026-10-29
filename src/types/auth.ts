@@ -102,7 +102,8 @@ const DIRECTOR_ALLOWED_PREFIXES = ['/director', '/admin/deliberations']
 
 /** Préfixes d’URL autorisés par rôle (IT = sous-ensemble admin guichet). */
 export const ROLE_ALLOWED_PREFIXES: Record<UserRole, string[]> = {
-  ADMIN: ['/admin'],
+  /** Module Dépenses : porté par l'espace Finance (/finances/depenses), ouvert à l'Admin en lecture/gestion. */
+  ADMIN: ['/admin', '/finances/depenses'],
   SUPER_ADMIN: ['/super-admin'],
   FINANCE: FINANCE_ALLOWED_PREFIXES,
   DIRECTOR: DIRECTOR_ALLOWED_PREFIXES,

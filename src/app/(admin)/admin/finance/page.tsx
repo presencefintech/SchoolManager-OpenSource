@@ -393,7 +393,7 @@ export default function FinanceDashboardPage() {
                         {m.label}
                       </span>
                     </div>
-                    <p className="text-xl sm:text-2xl font-bold tabular-nums tracking-tight text-white truncate">
+                    <p className="text-xl sm:text-2xl font-bold tabular-nums tracking-tight text-white break-words">
                       {m.value}
                     </p>
                     {m.sub && <p className="text-[11px] text-slate-500 truncate">{m.sub}</p>}

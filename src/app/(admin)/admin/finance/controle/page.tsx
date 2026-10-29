@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Filter, RefreshCw, Users, CheckCircle2, AlertTriangle, ClipboardList, ShieldCheck, Download, Printer } from 'lucide-react'
+import { Filter, RefreshCw, Users, CheckCircle2, AlertTriangle, ClipboardList, ShieldCheck, Download, Printer, FileDown } from 'lucide-react'
 import { StudentFinancialControlRows } from '@/components/finance/student-financial-control-rows'
 import {
   useStudentsFinancial,
@@ -13,7 +13,7 @@ import { useClasses, usePendingVerifications } from '@/lib/hooks/use-admin'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { downloadBlob } from '@/lib/finance/download-blob'
 import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
-import { FinanceAdminSubNav } from '@/components/admin/finance/finance-admin-subnav'
+import { downloadStudentsFinancialPdf } from '@/lib/finance/export-students-financial-pdf'
 import { VerificationStepper, fmtMoney } from '@/components/admin/finance/verification-ui'
 import { useAuth } from '@/providers/auth-provider'
 import { isItDesk } from '@/types/auth'
@@ -154,6 +154,17 @@ function ControleContent() {
     }
   }
 
+  async function handleDownloadPdf() {
+    const { page: _page, limit: _limit, ...exportFilters } = filters
+    const result = await exportPrint.mutateAsync({
+      ...exportFilters,
+      format: 'json',
+    })
+    if (result.type === 'json') {
+      downloadStudentsFinancialPdf(result.report, displayCurrency)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -202,10 +213,19 @@ function ControleContent() {
             type="button"
             disabled={exportPrint.isPending}
             onClick={() => void handleExport('json')}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
           >
             <Printer size={14} />
-            Imprimer la liste
+            Imprimer
+          </button>
+          <button
+            type="button"
+            disabled={exportPrint.isPending}
+            onClick={() => void handleDownloadPdf()}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            <FileDown size={14} />
+            Télécharger PDF
           </button>
         </div>
       </div>
@@ -370,12 +390,8 @@ function ControleContent() {
 }
 
 export default function AdminFinanceControlePage() {
-  const { user } = useAuth()
-  const deskOnly = isItDesk(user?.role)
-
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {!deskOnly && <FinanceAdminSubNav />}
       <Suspense fallback={<div className="text-sm text-zinc-400">Chargement…</div>}>
         <ControleContent />
       </Suspense>

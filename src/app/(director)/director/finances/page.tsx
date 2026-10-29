@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { RefreshCw, Wallet, CheckCircle2, AlertTriangle, Printer } from 'lucide-react'
+import { RefreshCw, Wallet, CheckCircle2, AlertTriangle, Printer, FileDown } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { directorsApi } from '@/lib/admin/api/directors.api'
@@ -10,6 +10,7 @@ import { directorFinanceApi } from '@/lib/admin/api/director-finance.api'
 import { StudentFinancialControlRows } from '@/components/finance/student-financial-control-rows'
 import { CashJournalReport } from '@/components/finance/cash-journal-report'
 import { openStudentsFinancialPrintReport } from '@/lib/finance/open-students-financial-print'
+import { downloadStudentsFinancialPdf } from '@/lib/finance/export-students-financial-pdf'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
 import { DirectorPageHeader, DirectorEmptyState, DirectorKpiCard } from '@/components/director/director-ui'
 import type { StudentFinancialStatus } from '@/types/finance'
@@ -45,15 +46,30 @@ export default function DirectorFinancesPage() {
     queryFn: () => directorsApi.myClasses(),
     staleTime: 60_000,
   })
+  const sectionsQuery = useQuery({
+    queryKey: ['director', 'sections'],
+    queryFn: () => directorsApi.mySections(),
+    staleTime: 60_000,
+  })
 
   const classes = useMemo(() => classesQuery.data ?? [], [classesQuery.data])
+  const sections = useMemo(
+    () => (sectionsQuery.data ?? []).map((a) => a.section),
+    [sectionsQuery.data],
+  )
+  const [sectionId, setSectionId] = useState<number | null>(null)
   const [classId, setClassId] = useState<number | null>(null)
   const [status, setStatus] = useState<'' | StudentFinancialStatus>('')
   const [exporting, setExporting] = useState(false)
 
+  const filteredClasses = useMemo(
+    () => (sectionId == null ? classes : classes.filter((c) => c.sectionId === sectionId)),
+    [classes, sectionId],
+  )
+
   useEffect(() => {
-    if (classId == null && classes.length > 0) setClassId(classes[0].id)
-  }, [classes, classId])
+    if (classId == null && filteredClasses.length > 0) setClassId(filteredClasses[0].id)
+  }, [filteredClasses, classId])
 
   const filters = useMemo(
     () => (classId != null ? { classId, status: status || undefined, limit: 100 } : null),
@@ -82,6 +98,17 @@ export default function DirectorFinancesPage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    if (!filters) return
+    setExporting(true)
+    try {
+      const report = await directorFinanceApi.exportSituationPrint(filters)
+      downloadStudentsFinancialPdf(report, displayCurrency)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <DirectorPageHeader
@@ -100,6 +127,15 @@ export default function DirectorFinancesPage() {
             </button>
             <button
               type="button"
+              onClick={() => void handleDownloadPdf()}
+              disabled={!filters || exporting}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <FileDown size={14} />
+              Télécharger PDF
+            </button>
+            <button
+              type="button"
               onClick={() => situationQuery.refetch()}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50"
             >
@@ -113,13 +149,31 @@ export default function DirectorFinancesPage() {
       <div className="max-w-6xl mx-auto px-6 sm:px-8 py-8 space-y-6">
         <CashJournalReport />
         <div className="flex flex-wrap items-center gap-3">
+          {sections.length > 1 && (
+            <select
+              value={sectionId ?? ''}
+              onChange={(e) => {
+                const next = e.target.value ? Number(e.target.value) : null
+                setSectionId(next)
+                setClassId(null)
+              }}
+              className="px-3 py-2 text-sm border border-zinc-200 rounded-xl bg-white"
+            >
+              <option value="">Toutes sections</option>
+              {sections.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={classId ?? ''}
             onChange={(e) => setClassId(e.target.value ? Number(e.target.value) : null)}
             className="px-3 py-2 text-sm border border-zinc-200 rounded-xl bg-white"
           >
-            {classes.length === 0 && <option value="">Aucune classe</option>}
-            {classes.map((c) => (
+            {filteredClasses.length === 0 && <option value="">Aucune classe</option>}
+            {filteredClasses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>

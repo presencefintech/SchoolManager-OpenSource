@@ -839,7 +839,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
                   {kpi.label}
                 </p>
-                <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-900 truncate">
+                <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-900 break-words">
                   {kpi.value}
                 </p>
               </div>
