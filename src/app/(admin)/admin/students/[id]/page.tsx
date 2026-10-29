@@ -46,6 +46,7 @@ import { StudentFeeObligationsPanel } from '@/components/admin/students/StudentF
 import { StudentCategoryCard } from '@/components/admin/students/student-category-card'
 import { StudentFeeCategoriesCard } from '@/components/admin/students/student-fee-categories-card'
 import { PickupAdultsPanel } from '@/components/admin/students/PickupAdultsPanel'
+import { StudentInfirmaryPanel } from '@/components/admin/students/StudentInfirmaryPanel'
 import { StudentGuardiansPanel } from '@/components/admin/students/StudentGuardiansPanel'
 import { StudentAdministrativeCareerPanel } from '@/components/admin/students/StudentAdministrativeCareerPanel'
 import { StudentClassTransferPanel } from '@/components/admin/students/StudentClassTransferPanel'
@@ -1697,6 +1698,7 @@ function StudentDetailPageContent() {
               enrollmentFormUrl={student.enrollmentFormUrl}
             />
 
+            <StudentInfirmaryPanel studentId={studentId} />
             <PickupAdultsPanel studentId={studentId} />
             <StudentGuardiansPanel studentId={studentId} />
             <StudentClassTransferPanel
