@@ -21,6 +21,7 @@ import { formatRdcFullName } from '@/lib/utils/student-name.util'
 import type { StudentCardData } from '@/types/student-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { StudentPicker } from '@/components/ui/student-picker'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 /* â"€â"€ design system (page) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */
 
@@ -556,10 +557,9 @@ function EnrollmentPageContent() {
       setFaceVectorJson('')
       if (schoolId) refetchWorker()
     } catch (e: unknown) {
-      const err = e as { message?: string; response?: { data?: { message?: string } } }
       setActionResult({
         type: 'error',
-        message: err.response?.data?.message ?? err.message ?? 'Erreur lors de l\'injection biométrique.',
+        message: getApiErrorMessage(e) || 'Erreur lors de l\'injection biométrique.',
       })
     } finally {
       setLoading(null)

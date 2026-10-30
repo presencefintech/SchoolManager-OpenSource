@@ -15,7 +15,6 @@ const KNOWN: Record<string, { label: string; subtitle: string }> = {
   MPESA: { label: 'M-Pesa', subtitle: 'Paiement mobile Vodacom RDC' },
   AIRTEL: { label: 'Airtel Money', subtitle: 'Paiement mobile Airtel' },
   ORANGE: { label: 'Orange Money', subtitle: 'Paiement mobile Orange' },
-  FLUTTERWAVE: { label: 'Carte / Flutterwave', subtitle: 'Carte bancaire ou mobile via passerelle' },
 }
 
 const SUBTITLE: Record<CatalogCategory, string> = {
@@ -55,12 +54,10 @@ export function buildCatalogOptions(catalog: PaymentMethods | undefined): Catalo
     ['CARD', catalog.methods?.CARD],
   ]
   for (const [category, options] of groups) {
+    if (category !== 'MOBILE_MONEY') continue
     for (const o of options ?? []) if (o.code) register(o.code, category)
   }
   for (const code of catalog.mobileMoney ?? []) register(code, 'MOBILE_MONEY')
-  for (const code of catalog.banks ?? []) register(code, 'BANK')
-  for (const code of catalog.aggregators ?? []) register(code, 'AGGREGATOR')
-  for (const code of catalog.cards ?? []) register(code, 'CARD')
 
   return [...ordered.entries()].map(([code, category]) => ({
     code,
@@ -72,9 +69,6 @@ export function buildCatalogOptions(catalog: PaymentMethods | undefined): Catalo
   }))
 }
 
-/** Une carte « CARD » passe par la passerelle FLUTTERWAVE si le catalogue l'expose. */
-export function resolveGateway(option: CatalogOption, catalog: PaymentMethods | undefined): string {
-  if (option.code !== 'CARD') return option.code
-  const hasFlutterwave = (catalog?.aggregators ?? []).some((a) => a.toUpperCase() === 'FLUTTERWAVE')
-  return hasFlutterwave ? 'FLUTTERWAVE' : option.code
+export function resolveGateway(option: CatalogOption, _catalog?: PaymentMethods): string {
+  return option.code
 }

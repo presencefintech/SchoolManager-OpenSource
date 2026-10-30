@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { AlertTriangle, CheckCircle2, Loader2, MailCheck } from 'lucide-react'
+import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 type VerifyState = 'idle' | 'loading' | 'success' | 'error'
 
@@ -34,7 +35,7 @@ function VerifyEmailContent() {
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) {
-          throw new Error(data.message ?? 'Ce lien est invalide ou a expiré.')
+          throw new Error(resolveApiErrorMessage(data, 'Ce lien est invalide ou a expiré.'))
         }
         setState('success')
         setTimeout(() => router.push('/login'), 3000)

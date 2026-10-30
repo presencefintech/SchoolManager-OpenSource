@@ -137,7 +137,7 @@ export function SecurityProfilePanel() {
     try {
       const data = await authApi.changePhone(values)
       setWaLink(data.whatsappDeepLink)
-      success('Code envoyé', 'Saisissez l’OTP reçu sur le nouveau numéro.')
+      success('Code envoyé', 'Saisissez le code reçu sur le nouveau numéro.')
       phoneForm.reset()
       await refreshUser()
     } catch (err) {
@@ -292,12 +292,12 @@ export function SecurityProfilePanel() {
         <div className="p-6 space-y-6 max-w-lg">
           <form onSubmit={phoneForm.handleSubmit(onRequestPhone)} className="space-y-4" noValidate>
             <p className="text-xs text-zinc-500 -mt-1">
-              Un OTP est envoyé vers le nouveau numéro (SMS et/ou WhatsApp). Il n&apos;est appliqué qu&apos;après
+              Un code est envoyé vers le nouveau numéro (SMS et/ou WhatsApp). Il n&apos;est appliqué qu&apos;après
               confirmation.
             </p>
             <div className="space-y-1.5">
               <label htmlFor="loginPhone" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
-                Nouveau numéro (E.164)
+                Nouveau numéro (ex. +243…)
               </label>
               <input
                 {...phoneForm.register('phone')}
@@ -356,7 +356,7 @@ export function SecurityProfilePanel() {
               )}
               <div className="space-y-1.5">
                 <label htmlFor="phoneOtp" className="block text-xs font-medium text-zinc-500 uppercase tracking-wide">
-                  Code OTP
+                  Code reçu
                 </label>
                 <input
                   {...otpForm.register('otp')}

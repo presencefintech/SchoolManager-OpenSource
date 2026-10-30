@@ -191,7 +191,7 @@ export default function RelancesPage() {
             ) : health ? (
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">Redis / file</span>
+                  <span className="text-zinc-500">File d’envoi</span>
                   <span className={health.queueAvailable ? 'text-emerald-700 font-medium' : 'text-red-600 font-medium'}>
                     {health.queueAvailable ? 'OK' : 'Indisponible'}
                   </span>
@@ -201,7 +201,7 @@ export default function RelancesPage() {
                   <span>{health.policyEnabled ? 'Activée' : 'Désactivée'}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">DLQ relances</span>
+                  <span className="text-zinc-500">Relances en échec</span>
                   <span className={health.dlqDebtReminders > 0 ? 'text-amber-700 font-medium' : ''}>
                     {health.dlqDebtReminders}
                   </span>

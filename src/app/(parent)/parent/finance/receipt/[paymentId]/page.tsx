@@ -9,6 +9,7 @@ import { triggerBlobDownload } from '@/lib/download-blob'
 import { parentApi, formatMoney } from '@/lib/parent/api'
 import { parentKeys } from '@/lib/parent/hooks'
 import { Card, ErrorState, ListSkeleton, PageHeader, Pill, Spinner, statusTone } from '@/components/parent/ui'
+import { paymentMethodLabel, paymentStatusLabel } from '@/lib/i18n/display-labels'
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -72,11 +73,11 @@ export default function ReceiptDetailPage() {
       <Card className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-zinc-500">Statut</span>
-          <Pill tone={statusTone(p.status)}>{p.status}</Pill>
+          <Pill tone={statusTone(p.status)}>{paymentStatusLabel(p.status)}</Pill>
         </div>
         <Row label="Montant" value={formatMoney(p.serverAmount ?? p.amount, p.currency)} />
         {p.student?.name && <Row label="Élève" value={p.student.name} />}
-        {p.method && <Row label="Méthode" value={p.method} />}
+        {p.method && <Row label="Méthode" value={paymentMethodLabel(p.method)} />}
         {p.receiptNumber && <Row label="N° de reçu" value={p.receiptNumber} />}
         {p.confirmedAt && <Row label="Confirmé le" value={new Date(p.confirmedAt).toLocaleString('fr-FR')} />}
       </Card>

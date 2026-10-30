@@ -19,7 +19,7 @@ export function WhatsAppInviteAssist({
   link,
   error,
   className,
-  hint = 'Message OTP prérempli — appuyez sur Envoyer dans WhatsApp.',
+  hint = 'Message de code prérempli — appuyez sur Envoyer dans WhatsApp.',
 }: Props) {
   const [copied, setCopied] = useState(false)
 
@@ -33,7 +33,7 @@ export function WhatsAppInviteAssist({
           className,
         )}
       >
-        Lien WhatsApp indisponible{error ? ` : ${error}` : ''}. Transmettez le code OTP présent
+        Lien WhatsApp indisponible{error ? ` : ${error}` : ''}. Transmettez le code présent
         dans l’email d’invitation.
       </div>
     )
@@ -58,7 +58,7 @@ export function WhatsAppInviteAssist({
     >
       <MessageCircle size={16} className="text-emerald-700 shrink-0" />
       <div className="flex-1 min-w-[12rem]">
-        <p className="text-xs font-semibold text-emerald-950">Envoyer l’OTP via WhatsApp</p>
+        <p className="text-xs font-semibold text-emerald-950">Envoyer le code via WhatsApp</p>
         <p className="text-[11px] text-emerald-800/90 mt-0.5">{hint}</p>
       </div>
       <a

@@ -117,9 +117,9 @@ export default function CguPage() {
       <section>
         <h3>7. Paiements</h3>
         <p>
-          Les encaissements (Mobile Money, passerelle de paiement, caisse) sont traités par
-          l’établissement et/ou des prestataires de paiement (notamment agrégateurs de type
-          Flutterwave et opérateurs Mobile Money). L’Éditeur n’est pas banque. Un reçu émis par
+          Les encaissements (Mobile Money, caisse) sont traités par l’établissement et/ou des
+          prestataires de paiement (opérateurs Mobile Money et agrégateur de l’école). L’Éditeur
+          n’est pas banque. Un reçu émis par
           SchoolManager atteste d’une opération enregistrée dans le système ; les délais, rejets
           ou indisponibilités imputables à un opérateur tiers n’engagent pas l’Éditeur.
         </p>

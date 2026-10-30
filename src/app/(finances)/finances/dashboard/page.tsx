@@ -375,7 +375,7 @@ export default function FinanceDashboardPage() {
                 <KpiCard
                   label="Remboursements en cours"
                   value={g?.gatewayRefundsProcessing ?? '—'}
-                  sub="Via gateway"
+                  sub="Vers l’opérateur"
                   icon={RefreshCw} color="text-blue-600" bg="bg-blue-50"
                 />
               </motion.div>

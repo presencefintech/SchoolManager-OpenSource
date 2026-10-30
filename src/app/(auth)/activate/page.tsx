@@ -27,6 +27,7 @@ import {
   staffPasswordField,
   staffPasswordStrength,
 } from '@/lib/auth/password-policy'
+import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 const activateSchema = z
   .object({
@@ -42,7 +43,7 @@ type ActivateForm = z.infer<typeof activateSchema>
 
 const onboardingSteps = [
   { icon: UserCheck, title: 'Mot de passe défini', desc: 'Votre accès staff est préparé.' },
-  { icon: Mail, title: 'Code OTP vérifié', desc: 'Le code à 6 chiffres du SMS.' },
+  { icon: Mail, title: 'Code SMS vérifié', desc: 'Le code à 6 chiffres reçu par SMS.' },
   { icon: ShieldCheck, title: 'Connexion sécurisée', desc: 'Accédez à votre espace.' },
 ]
 
@@ -124,7 +125,7 @@ function ActivateContent() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(mapActivateErrorMessage(data.message ?? data.code))
+        throw new Error(resolveApiErrorMessage(data, mapActivateErrorMessage(undefined)))
       }
       if (data.requiresVerification) {
         setStep('otp')
@@ -149,7 +150,7 @@ function ActivateContent() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(mapActivateErrorMessage(data.message ?? data.code))
+        throw new Error(resolveApiErrorMessage(data, mapActivateErrorMessage(undefined)))
       }
       setStep('done')
       setTimeout(() => router.push('/login?activated=1'), 4500)

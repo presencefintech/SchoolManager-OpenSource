@@ -90,6 +90,26 @@ const SECURITY_ERROR_MESSAGES: Record<string, string> = {
     'Impossible de désactiver cette catégorie : des barèmes actifs l’utilisent encore.',
   NO_ACTIVE_SESSION:
     'Aucune année scolaire ouverte. Ouvrez l’année dans Classes avant d’inscrire, d’encaisser ou d’émettre un reçu.',
+  PARENT_PENDING_ACTIVATION_NOT_FOUND:
+    'Aucun compte parent en attente pour ce numéro. Vérifiez le téléphone donné à l’école.',
+  ACCOUNT_ALREADY_ACTIVE:
+    'Ce numéro a déjà un compte actif. Connectez-vous plutôt que d’activer.',
+  ACCOUNT_ACTIVATION_DENIED:
+    'Activation impossible. Vérifiez le code école, le téléphone et le code reçu par SMS ou WhatsApp.',
+  INVITATION_INVALID:
+    'Code école invalide ou expiré. Demandez un nouveau code à l’école.',
+  INVALID_OR_EXPIRED_OTP:
+    'Code de vérification invalide ou expiré. Demandez un nouveau code.',
+  TOO_MANY_OTP_REQUESTS:
+    'Trop de demandes de code. Patientez quelques minutes.',
+  SMS_NOT_CONFIGURED:
+    'L’envoi de SMS n’est pas disponible pour le moment. Réessayez plus tard ou contactez l’école.',
+  SMS_DELIVERY_FAILED:
+    'Impossible d’envoyer le code. Réessayez ou contactez l’école.',
+  USER_NOT_FOUND_IN_THIS_SCHOOL:
+    'Aucun compte trouvé pour ce numéro dans cet établissement.',
+  INTERNAL_ERROR:
+    'Une erreur est survenue. Réessayez dans un instant.',
 }
 
 export function mapSecurityErrorCode(code: string | undefined): string | null {
@@ -108,20 +128,69 @@ export function extractApiErrorPayload(data: unknown): {
     nested && typeof nested === 'object' && typeof (nested as { code?: unknown }).code === 'string'
       ? (nested as { code: string }).code
       : undefined
+  const envelope = record.error
+  const envelopeCode =
+    envelope && typeof envelope === 'object' && typeof (envelope as { code?: unknown }).code === 'string'
+      ? (envelope as { code: string }).code
+      : undefined
+  const envelopeMessage =
+    envelope && typeof envelope === 'object' && typeof (envelope as { message?: unknown }).message === 'string'
+      ? (envelope as { message: string }).message
+      : undefined
   return {
-    message: typeof record.message === 'string' ? record.message : undefined,
-    code: typeof record.code === 'string' ? record.code : nestedCode,
+    message:
+      typeof record.message === 'string'
+        ? record.message
+        : envelopeMessage,
+    code:
+      typeof record.code === 'string'
+        ? record.code
+        : nestedCode ?? envelopeCode,
   }
 }
 
+const DEFAULT_USER_ERROR = 'Une erreur est survenue. Réessayez dans un instant.'
+
+/** Messages / codes que le personnel et les parents ne doivent pas voir. */
+export function looksTechnical(text: string): boolean {
+  const t = text.trim()
+  if (!t) return true
+  if (/^[A-Z][A-Z0-9_]{3,}$/.test(t)) return true
+  if (/\bP\d{4}\b/.test(t)) return true
+  if (
+    /\b(Prisma|Railway|HMAC|JWT|SQL|ECONN|ERR_|stack trace|redeploy|migration|Axios|TypeError|Cannot read|BullMQ|Flutterwave|PostgreSQL)\b/i.test(
+      t,
+    )
+  ) {
+    return true
+  }
+  if (/\bDLQ\b/.test(t)) return true
+  if (/erreur lors du traitement (en|de la) base/i.test(t)) return true
+  if (/schéma base/i.test(t)) return true
+  if (/\/api\/v1\//i.test(t)) return true
+  return false
+}
+
+export function sanitizeUserFacingMessage(
+  text: string | undefined | null,
+  fallback: string = DEFAULT_USER_ERROR,
+): string {
+  if (!text?.trim()) return fallback
+  const fromCode = mapSecurityErrorCode(text.trim())
+  if (fromCode) return fromCode
+  if (looksTechnical(text)) return fallback
+  return text.trim()
+}
+
 export function resolveApiErrorMessage(data: unknown, fallback?: string): string {
+  const safeFallback = fallback ?? DEFAULT_USER_ERROR
   const { message, code } = extractApiErrorPayload(data)
   const fromCode = mapSecurityErrorCode(code)
   if (fromCode) return fromCode
-  if (message && !/^[A-Z][A-Z0-9_]+$/.test(message)) return message
   if (message) {
     const fromMsgCode = mapSecurityErrorCode(message)
     if (fromMsgCode) return fromMsgCode
+    return sanitizeUserFacingMessage(message, safeFallback)
   }
-  return fallback ?? 'Une erreur inattendue est survenue'
+  return safeFallback
 }

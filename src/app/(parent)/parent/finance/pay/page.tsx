@@ -20,6 +20,7 @@ import {
   statusTone,
 } from '@/components/parent/ui'
 import { cn } from '@/lib/utils'
+import { paymentStatusLabel } from '@/lib/i18n/display-labels'
 import Link from 'next/link'
 
 const POLL_MS = 3000
@@ -113,7 +114,7 @@ export default function PayFeesPage() {
           ) : result.status === 'PENDING' ? (
             <Spinner className="mx-auto h-8 w-8" />
           ) : null}
-          <Pill tone={statusTone(result.status)}>{result.status}</Pill>
+          <Pill tone={statusTone(result.status)}>{paymentStatusLabel(result.status)}</Pill>
           <p className="text-2xl font-bold">{formatMoney(result.serverAmount ?? result.amount, result.currency)}</p>
           <p className="text-sm text-zinc-500">Référence {result.reference}</p>
           {result.status === 'PENDING' && (

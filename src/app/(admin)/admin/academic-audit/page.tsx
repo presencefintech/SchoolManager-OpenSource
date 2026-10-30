@@ -35,16 +35,15 @@ const PAGE_SIZE = 25
 const selectCls =
   'w-full px-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400'
 
-function IntegrityBadge({ status, token }: { status: AcademicAuditIntegrityStatus; token: string | null }) {
+function IntegrityBadge({ status }: { status: AcademicAuditIntegrityStatus }) {
   if (status === 'VALID') {
     return (
       <span
         className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200"
-        title={token ?? 'HMAC valide'}
+        title="Signature du document valide"
       >
         <ShieldCheck size={12} />
-        HMAC OK
-        {token ? <span className="font-mono font-normal text-emerald-600/80">{token}</span> : null}
+        Signature valide
       </span>
     )
   }
@@ -55,7 +54,7 @@ function IntegrityBadge({ status, token }: { status: AcademicAuditIntegrityStatu
         title="Empreinte altérée — suspicion de falsification"
       >
         <ShieldAlert size={12} />
-        HMAC invalide
+        Signature altérée
       </span>
     )
   }
@@ -156,7 +155,7 @@ export default function AdminAcademicAuditPage() {
       <AdminModuleHero
         eyebrow="Conformité EPST · Audit"
         title="Journal d’audit académique"
-        subtitle="Traçabilité immuable des notes, délibérations, fiches pédagogiques et bulletins — empreinte HMAC."
+        subtitle="Traçabilité des notes, délibérations, fiches pédagogiques et bulletins — documents scellés."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -194,7 +193,7 @@ export default function AdminAcademicAuditPage() {
             icon: ScrollText,
           },
           {
-            label: 'HMAC valides (page)',
+            label: 'Signatures valides (page)',
             value: validCount,
             loading: logsQuery.isLoading,
             icon: Fingerprint,
@@ -313,7 +312,7 @@ export default function AdminAcademicAuditPage() {
                   <th className="px-4 py-3 font-semibold">Catégorie</th>
                   <th className="px-4 py-3 font-semibold">Cible</th>
                   <th className="px-4 py-3 font-semibold">Avant → Après</th>
-                  <th className="px-4 py-3 font-semibold">Jeton / HMAC</th>
+                  <th className="px-4 py-3 font-semibold">Sceau</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
@@ -404,7 +403,7 @@ function AuditRow({ log }: { log: AcademicAuditLogItem }) {
         <p className="leading-snug break-words">{log.changeSummary}</p>
       </td>
       <td className="px-4 py-3">
-        <IntegrityBadge status={log.integrityStatus} token={log.integrityToken} />
+        <IntegrityBadge status={log.integrityStatus} />
         {log.integrityHash ? (
           <p className="mt-1 font-mono text-[10px] text-zinc-400 break-all max-w-[180px]">
             {log.integrityHash}

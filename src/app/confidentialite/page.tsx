@@ -78,9 +78,9 @@ export default function ConfidentialitePage() {
       <section>
         <h3>5. Destinataires</h3>
         <p>
-          Personnel habilité de l’école, équipes techniques de l’Éditeur, hébergeurs (notamment
-          infrastructure cloud de type Railway) et prestataires de paiement / messagerie
-          strictement nécessaires. Aucune vente de données à des annonceurs.
+          Personnel habilité de l’école, équipes techniques de l’Éditeur, hébergeurs cloud
+          et prestataires de paiement / messagerie strictement nécessaires. Aucune vente de
+          données à des annonceurs.
         </p>
       </section>
 

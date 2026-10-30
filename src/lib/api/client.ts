@@ -1,6 +1,11 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { getAuthSchoolId, redirectToLogin } from '@/lib/api/auth-storage'
-import { extractApiErrorPayload, mapSecurityErrorCode, resolveApiErrorMessage } from '@/lib/auth/security-errors'
+import {
+  extractApiErrorPayload,
+  mapSecurityErrorCode,
+  resolveApiErrorMessage,
+  sanitizeUserFacingMessage,
+} from '@/lib/auth/security-errors'
 import { isAuthSessionFailure } from '@/lib/auth/session-failure'
 import {
   extractFeeAlreadyPaidDetails,
@@ -143,30 +148,28 @@ export function getApiErrorMessage(error: unknown): string {
     } | undefined
     if (data?.errors?.length) {
       const fieldErrors = data.errors
-        .map(e => (e.field ? `${e.field}: ${e.message}` : e.message))
+        .map((e) => e.message)
         .filter(Boolean)
         .join(' · ')
-      if (fieldErrors) return fieldErrors
+      if (fieldErrors) return sanitizeUserFacingMessage(fieldErrors)
     }
     const msg = data?.message
-    const code = data?.code ?? data?.error
-    if (Array.isArray(msg)) return msg.join(' · ')
+    const code = typeof data?.code === 'string' ? data.code : undefined
+    if (Array.isArray(msg)) {
+      return sanitizeUserFacingMessage(msg.join(' · '))
+    }
     const alreadyPaid = extractFeeAlreadyPaidDetails(error)
     if (alreadyPaid) return formatFeeAlreadyPaidMessage(alreadyPaid)
     const resolved = resolveApiErrorMessage(data)
-    if (resolved !== 'Une erreur inattendue est survenue') return resolved
-    if (typeof msg === 'string' && msg) return msg
+    if (resolved) return resolved
     if (error.response?.status === 413) {
-      return 'Fichier trop volumineux pour le serveur. Réduisez la taille de la photo (ou découpez le ZIP) puis réessayez.'
+      return 'Fichier trop volumineux. Réduisez la taille de la photo (ou découpez le ZIP) puis réessayez.'
     }
     if (error.response?.status === 429) {
-      return 'Trop de requêtes — patientez une minute avant de réessayer.'
+      return 'Trop de tentatives — patientez une minute avant de réessayer.'
     }
     if (error.response?.status === 503) {
-      return (
-        (typeof msg === 'string' && msg) ||
-        'Service indisponible (503). Souvent une migration Prisma en attente sur Railway — réessayez après le redeploy.'
-      )
+      return 'Le service est temporairement indisponible. Réessayez dans un instant.'
     }
     if (code === 'FORBIDDEN_ROLE') {
       return 'Accès refusé — seuls les administrateurs peuvent modifier l\'identité de l\'établissement.'
@@ -175,20 +178,19 @@ export function getApiErrorMessage(error: unknown): string {
       return 'École non identifiée. Déconnectez-vous puis reconnectez-vous.'
     }
     if (error.response?.status === 409 && !code) {
-      return 'Conflit : cette ressource existe déjà.'
+      return 'Cette information existe déjà.'
     }
   }
   if (error && typeof error === 'object' && 'response' in error) {
     const data = (error as { response?: { data?: unknown } }).response?.data
     if (data) {
-      const resolved = resolveApiErrorMessage(data)
-      if (resolved !== 'Une erreur inattendue est survenue') return resolved
+      return resolveApiErrorMessage(data)
     }
   }
   if (error instanceof Error && error.message && error.message !== 'Network Error') {
     const fromCode = mapSecurityErrorCode(error.message)
     if (fromCode) return fromCode
-    return error.message
+    return sanitizeUserFacingMessage(error.message)
   }
-  return 'Une erreur inattendue est survenue'
+  return 'Une erreur est survenue. Réessayez dans un instant.'
 }

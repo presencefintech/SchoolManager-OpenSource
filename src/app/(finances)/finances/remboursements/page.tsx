@@ -27,6 +27,7 @@ import {
 import { FinanceStudentSearchField } from '@/components/finance/student-search-field'
 import { fadeUp } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { paymentProviderLabel, paymentStatusLabel } from '@/lib/i18n/display-labels'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { RefundRequest } from '@/types/finance'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
@@ -274,7 +275,7 @@ export default function RemboursementsPage() {
   async function handleSyncRefund(id: number) {
     try {
       await sync(id)
-      toast.success('Synchronisation envoyée', 'Le statut gateway a été demandé.')
+      toast.success('Synchronisation envoyée', 'Le statut opérateur a été demandé.')
     } catch (err) {
       toast.error('Synchronisation impossible', getApiErrorMessage(err))
     }
@@ -460,19 +461,20 @@ export default function RemboursementsPage() {
                     <div className="rounded-xl border border-rose-200/80 bg-gradient-to-br from-rose-50/90 to-red-50/60 px-3 py-3 text-xs">
                       <p className="flex items-center gap-1.5 font-semibold text-rose-800">
                         <AlertTriangle size={14} />
-                        Échec gateway
+                        Remboursement échoué
                       </p>
                       <p className="mt-1 text-rose-700/90">
-                        Le remboursement Flutterwave a échoué (HTTP 400). Vérifiez que le paiement est remboursable côté opérateur, puis réessayez.
+                        Le remboursement vers l’opérateur a échoué. Vérifiez que le paiement peut
+                        être remboursé, puis réessayez.
                       </p>
                     </div>
                   )}
 
                   {selectedRefund.gateway && selectedRefund.status !== 'FAILED' && (
-                    <RefundDetailBlock title="Gateway" tone="violet">
-                      <p className="text-slate-600">Provider: {selectedRefund.gateway.provider ?? '—'}</p>
-                      <p className="text-slate-600">RefundRef: {selectedRefund.gateway.refundRef ?? '—'}</p>
-                      <p className="text-slate-600">Status: {selectedRefund.gateway.status ?? '—'}</p>
+                    <RefundDetailBlock title="Opérateur" tone="violet">
+                      <p className="text-slate-600">Canal : {paymentProviderLabel(selectedRefund.gateway.provider)}</p>
+                      <p className="text-slate-600">Référence : {selectedRefund.gateway.refundRef ?? '—'}</p>
+                      <p className="text-slate-600">Statut : {paymentStatusLabel(selectedRefund.gateway.status)}</p>
                     </RefundDetailBlock>
                   )}
 
@@ -511,7 +513,7 @@ export default function RemboursementsPage() {
                         onClick={() => handleSyncRefund(selectedRefund.id)}
                         disabled={syncing}
                       >
-                        <RefreshCcw size={13} /> {syncing ? 'Sync...' : 'Sync gateway'}
+                        <RefreshCcw size={13} /> {syncing ? 'Mise à jour…' : 'Actualiser le statut'}
                       </RefundActionButton>
                     )}
                   </div>

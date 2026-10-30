@@ -17,6 +17,7 @@ import type {
   FinancialSealBatchVerifyResult,
   SealablePaymentRow,
 } from '@/types/admin'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 export const SEAL_BATCH_STATUS_STYLES: Record<string, { label: string; cls: string }> = {
   PENDING: { label: 'En attente', cls: 'bg-amber-500/15 text-amber-800 ring-1 ring-amber-500/25' },
@@ -351,7 +352,7 @@ export function CreateSealBatchModal({
       })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Création du lot impossible.')
+      setError(getApiErrorMessage(err) || 'Création du lot impossible.')
     }
   }
 

@@ -17,6 +17,7 @@ import { useSchools, usePresenceDashboard } from '@/lib/hooks/use-super-admin'
 import { superAdminApi } from '@/lib/superAdmin/api'
 import { formatStudentFullName } from '@/lib/utils/student-name.util'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 const CHART_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
 
@@ -219,8 +220,7 @@ export default function PresencePage() {
       setSyncResult({ type: err === 0 ? 'success' : 'error', message: `${ok} enregistrés${err > 0 ? `, ${err} erreurs` : ''}.` })
       refetch()
     } catch (e: unknown) {
-      const err = e as { message?: string; response?: { data?: { message?: string } } }
-      setSyncResult({ type: 'error', message: err.response?.data?.message ?? err.message ?? 'Erreur de parsing ou d\'envoi.' })
+      setSyncResult({ type: 'error', message: getApiErrorMessage(e) || 'Erreur de parsing ou d\'envoi.' })
     } finally { setSyncLoading(false) }
   }
 

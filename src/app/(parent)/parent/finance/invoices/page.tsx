@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { asList, parentApi, formatMoney } from '@/lib/parent/api'
 import { useSelectedStudent } from '@/lib/parent/hooks'
 import { EmptyState, ErrorState, ListSkeleton, NoStudent, PageHeader, Pill, StudentSwitcher, statusTone } from '@/components/parent/ui'
+import { paymentStatusLabel } from '@/lib/i18n/display-labels'
 
 interface Invoice {
   id?: number | string
@@ -49,7 +50,7 @@ export default function InvoicesPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-semibold">{formatMoney(inv.total ?? inv.amount)}</p>
-                {inv.status && <Pill tone={statusTone(inv.status)}>{inv.status}</Pill>}
+                {inv.status && <Pill tone={statusTone(inv.status)}>{paymentStatusLabel(inv.status)}</Pill>}
               </div>
             </li>
           ))}

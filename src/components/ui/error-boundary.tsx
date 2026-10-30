@@ -36,8 +36,10 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center mb-4">
             <AlertTriangle size={20} className="text-red-500" />
           </div>
-          <p className="text-sm font-medium text-zinc-800 mb-1">Une erreur inattendue est survenue</p>
-          <p className="text-xs text-zinc-400 mb-5 max-w-xs">{this.state.error.message}</p>
+          <p className="text-sm font-medium text-zinc-800 mb-1">Une erreur est survenue</p>
+          <p className="text-xs text-zinc-400 mb-5 max-w-xs">
+            Réessayez. Si le problème continue, contactez le secrétariat.
+          </p>
           <button
             onClick={this.reset}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-700 transition-colors"

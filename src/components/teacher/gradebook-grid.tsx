@@ -12,6 +12,7 @@ import type {
   GradebookGrid,
 } from '@/types/teacher-grades'
 import { EVAL_TYPE_LABELS } from '@/types/teacher-grades'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 type DraftCell = {
   score: string
@@ -254,12 +255,7 @@ export function GradebookGrid({
       setSaveStatus('saved')
       await queryClient.invalidateQueries({ queryKey })
     } catch (err: unknown) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { message?: string } } })?.response?.data
-              ?.message ?? 'Échec de l’enregistrement des notes.'
-      setSaveError(message)
+      setSaveError(getApiErrorMessage(err) || 'Échec de l’enregistrement des notes.')
       setSaveStatus('error')
     }
   }, [persistEvaluation, queryClient, queryKey])
@@ -284,12 +280,7 @@ export function GradebookGrid({
       await queryClient.invalidateQueries({ queryKey })
     },
     onError: (err: unknown) => {
-      const message =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { message?: string } } })?.response?.data
-              ?.message ?? 'Échec de l’enregistrement des notes.'
-      setSaveError(message)
+      setSaveError(getApiErrorMessage(err) || 'Échec de l’enregistrement des notes.')
       setSaveStatus('error')
     },
   })

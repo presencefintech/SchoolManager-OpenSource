@@ -1122,20 +1122,25 @@ export interface PendingVerificationItem {
 }
 
 export type PaymentProfileKycStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'NOT_CONFIGURED'
-export type PaymentSettlementProvider = 'FLUTTERWAVE' | 'RAWBANK' | 'UBA'
+export type PaymentSettlementProvider = 'FLUTTERWAVE' | 'RAWBANK' | 'UBA' | 'EQUITY_BCDC' | 'OTHER'
+export type SettlementBank = 'RAWBANK' | 'EQUITY_BCDC'
+export type AggregateProvider = 'PAWAPAY' | 'MAXICASH'
 
 export interface PaymentProfile {
   schoolId: number
   schoolName?: string
   provider: PaymentSettlementProvider
+  settlementBank: SettlementBank
   legalName: string
   contactEmail?: string
   contactPhone?: string
   settlementBankCode?: string
   settlementAccountMasked?: string
   settlementAccountName?: string
-  mobileMoneyBusinessId?: string
-  flwSubaccountId?: string
+  aggregateProvider: AggregateProvider
+  mmAggregator?: AggregateProvider
+  pawapayConfigured: boolean
+  maxicashConfigured: boolean
   kycStatus: PaymentProfileKycStatus
   kycNote?: string
   onlinePaymentsEnabled: boolean
@@ -1165,11 +1170,16 @@ export interface UpsertPaymentProfilePayload {
   legalName: string
   contactEmail?: string
   contactPhone?: string
-  settlementBankCode: string
-  settlementAccountNumber: string
+  settlementBank?: SettlementBank
+  settlementBankCode?: string
+  settlementAccountNumber?: string
   settlementAccountName: string
-  mobileMoneyBusinessId?: string
   provider?: PaymentSettlementProvider
+  aggregateProvider?: AggregateProvider
+  pawapayApiKey?: string
+  pawapayApiSecret?: string
+  maxicashMerchantId?: string
+  maxicashMerchantPassword?: string
 }
 
 /**

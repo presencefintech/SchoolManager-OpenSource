@@ -24,4 +24,16 @@ describe('security-errors', () => {
       resolveApiErrorMessage({ message: 'Solde insuffisant pour cette opération.' }),
     ).toBe('Solde insuffisant pour cette opération.')
   })
+
+  it('ne montre pas un code PARENT_* ni un message Prisma', () => {
+    expect(
+      resolveApiErrorMessage({
+        code: 'PARENT_PENDING_ACTIVATION_NOT_FOUND',
+        message: 'Erreur lors du traitement en base de données',
+      }),
+    ).toMatch(/Aucun compte parent en attente/)
+    expect(
+      resolveApiErrorMessage({ message: 'Erreur base de données (P2002)' }),
+    ).toMatch(/Réessayez/)
+  })
 })

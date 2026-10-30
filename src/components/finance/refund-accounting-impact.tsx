@@ -76,7 +76,7 @@ export function RefundAccountingImpact({
               <span className={cn(done && 'text-slate-700', active && 'font-medium text-amber-800')}>
                 {step.label}
                 {step.key === 'review' && status === 'REJECTED' && ' — rejeté'}
-                {step.key === 'settle' && gatewayPending && ' — gateway en cours'}
+                {step.key === 'settle' && gatewayPending && ' — en cours chez l’opérateur'}
               </span>
             </li>
           )
@@ -126,7 +126,7 @@ export function RefundAccountingImpact({
 
               {gatewayPending && (
                 <p className="rounded-lg bg-sky-50/80 px-2.5 py-2 text-sky-800">
-                  Remboursement opérateur en cours : le solde reste inchangé jusqu&apos;à confirmation gateway ou sync.
+                  Remboursement opérateur en cours : le solde reste inchangé jusqu&apos;à confirmation.
                 </p>
               )}
 

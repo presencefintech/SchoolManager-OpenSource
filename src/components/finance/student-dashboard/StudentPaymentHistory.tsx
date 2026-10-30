@@ -13,6 +13,7 @@ import { PrintReceiptButton } from '@/components/finance/student-dashboard/recei
 import { CorrectLastMonthButton } from '@/components/finance/student-dashboard/CorrectLastMonthButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api/client'
 import type { StudentPaymentDetail } from '@/lib/finance/payment-history.utils'
 
 export type StudentFinanceApi = 'finance' | 'admin'
@@ -152,7 +153,7 @@ export function StudentPaymentHistory({
         <div className="px-5 py-8 text-center space-y-2">
           <p className="text-sm text-red-600">Impossible de charger l&apos;historique</p>
           <p className="text-xs text-zinc-400">
-            {error instanceof Error ? error.message : 'Erreur réseau'}
+            {getApiErrorMessage(error)}
           </p>
           <button
             type="button"

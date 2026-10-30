@@ -8,7 +8,7 @@ const PILLARS = [
     title: 'Arrivé',
     promise: 'Le parent sait que l’enfant est à l’école.',
     bullets: [
-      'Pointage carte HMAC, QR, PIN ou biométrie — anti-doublon.',
+      'Pointage carte, QR, code PIN ou biométrie — un élève n’est pas pointé deux fois.',
       'Mode hors-ligne : la grille continue, la synchro suit.',
       'WhatsApp en moins d’une minute : « Marie est entrée à 7 h 12, 6e A ».',
     ],
@@ -27,8 +27,8 @@ const PILLARS = [
     promise: 'L’argent est clair. L’enfant n’est jamais humilié à la grille.',
     bullets: [
       'Même échéancier au guichet, dans l’app parent et au scan (mois + montant).',
-      'Relance privée WhatsApp avec lien Mobile Money — le parent paie sans scène.',
-      'Le surveillant voit la dette. L’entrée n’est jamais bloquée.',
+      'Parent : M-Pesa, Orange Money ou Airtel Money, CDF ou USD — ou espèces au guichet.',
+      'Relance privée WhatsApp. Le surveillant voit la dette ; l’entrée n’est jamais bloquée.',
     ],
   },
   {
@@ -104,6 +104,51 @@ export function FourProofsSheet() {
             </section>
           ))}
         </div>
+
+        <section className="mt-3 rounded-xl border border-emerald-800/20 bg-emerald-50/80 px-3.5 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-800">
+            Kinshasa · RDC
+          </p>
+          <h2 className="mt-0.5 text-[17px] font-bold text-zinc-900">
+            Comment on paie vraiment — et qui a le droit d’entrer dans l’app
+          </h2>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-[11.5px] leading-snug text-zinc-700">
+            <li>
+              Le parent paie comme d’habitude : <strong>Vodacom M-Pesa, Orange Money ou Airtel Money</strong>,
+              en <strong>CDF ou USD</strong>. Pas de carte bancaire dans l’app parent. Pas d’IBAN école affiché.
+            </li>
+            <li>
+              Au guichet : <strong>espèces</strong> + code caisse. Reçu PDF avec QR vérifiable.
+            </li>
+            <li>
+              L’argent est versé sur <strong>le compte de l’école</strong>. Le parent ne voit jamais le RIB.
+            </li>
+            <li>
+              Pas d’inscription libre. L’école remet un <strong>code à 8 caractères</strong> ; le parent active
+              l’app Android avec son numéro <strong>+243</strong>.
+            </li>
+            <li>
+              Un mois difficile : la direction peut accorder un <strong>moratoire</strong> (relances suspendues).
+              Jamais d’enfant refusé à l’entrée pour une dette. Pas de chat dans l’app.
+            </li>
+          </ul>
+        </section>
+
+        <section className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          {[
+            { n: '1', t: 'Démonstration', d: 'Vos classes, vos frais, vos opérateurs.' },
+            { n: '2', t: 'Pilote 2 semaines', d: 'Codes parents, un flux présence, un flux paiement (guichet et/ou Mobile Money).' },
+            { n: '3', t: 'Déploiement', d: 'Formation direction (~2 h) et caissier (~1 h).' },
+          ].map((step) => (
+            <div key={step.n} className="rounded-xl border border-slate-200 px-3 py-2.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                Étape {step.n}
+              </p>
+              <p className="mt-0.5 text-[13px] font-bold text-zinc-900">{step.t}</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-zinc-600">{step.d}</p>
+            </div>
+          ))}
+        </section>
 
         <footer className="mt-4 space-y-2 border-t border-slate-200 pt-3 text-[11px] leading-relaxed text-zinc-600">
           <p>

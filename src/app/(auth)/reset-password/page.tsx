@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2, Lock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 const resetSchema = z
   .object({
@@ -51,9 +52,8 @@ function ResetPasswordContent() {
         body: JSON.stringify({ token, newPassword: values.newPassword }),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { message?: string | string[] }
-        const msg = Array.isArray(data.message) ? data.message.join(' · ') : data.message
-        throw new Error(msg || 'Ce lien est invalide ou a expiré.')
+        const data = await res.json().catch(() => ({}))
+        throw new Error(resolveApiErrorMessage(data, 'Ce lien est invalide ou a expiré.'))
       }
       setDone(true)
       setTimeout(() => router.push('/login'), 2500)
