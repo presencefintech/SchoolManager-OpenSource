@@ -100,6 +100,12 @@ export function useUpsertPaymentProfile() {
   })
 }
 
+export function useTestPaymentProfileCredentials() {
+  return useMutation({
+    mutationFn: financeApi.testPaymentProfileCredentials,
+  })
+}
+
 export function useMarkVerificationProcessed() {
   const qc = useQueryClient()
   return useMutation({

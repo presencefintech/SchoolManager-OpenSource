@@ -296,7 +296,7 @@ function StaffInvitationsTab() {
           />
         </div>
         <p className="text-[11px] text-zinc-500 mb-2">
-          Sans mot de passe : lien d’activation + OTP. Avec mot de passe (12 caractères, majuscule, chiffre, @$!%*?&) : connexion immédiate.
+          Sans mot de passe : lien d’activation + code SMS. Avec mot de passe (12 caractères, majuscule, chiffre, @$!%*?&) : connexion immédiate.
         </p>
         <button
           onClick={handleInvite}

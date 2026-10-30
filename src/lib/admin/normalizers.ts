@@ -334,15 +334,20 @@ export function normalizePaymentProfile(raw: Record<string, unknown>): PaymentPr
   return {
     schoolId: Number(src.schoolId ?? 0),
     schoolName: src.schoolName as string | undefined,
-    provider: String(src.provider ?? 'FLUTTERWAVE') as PaymentProfile['provider'],
+    provider: String(src.provider ?? src.settlementBank ?? 'RAWBANK') as PaymentProfile['provider'],
+    settlementBank: String(src.settlementBank ?? src.provider ?? 'RAWBANK') as PaymentProfile['settlementBank'],
     legalName: String(src.legalName ?? ''),
     contactEmail: src.contactEmail as string | undefined,
     contactPhone: src.contactPhone as string | undefined,
     settlementBankCode: src.settlementBankCode as string | undefined,
     settlementAccountMasked: src.settlementAccountMasked as string | undefined,
     settlementAccountName: src.settlementAccountName as string | undefined,
-    mobileMoneyBusinessId: src.mobileMoneyBusinessId as string | undefined,
-    flwSubaccountId: src.flwSubaccountId as string | undefined,
+    aggregateProvider: String(src.aggregateProvider ?? src.mmAggregator ?? 'PAWAPAY') as PaymentProfile['aggregateProvider'],
+    mmAggregator: src.mmAggregator
+      ? (String(src.mmAggregator) as PaymentProfile['aggregateProvider'])
+      : undefined,
+    pawapayConfigured: Boolean(src.pawapayConfigured),
+    maxicashConfigured: Boolean(src.maxicashConfigured),
     kycStatus: String(src.kycStatus ?? 'NOT_CONFIGURED') as PaymentProfile['kycStatus'],
     kycNote: src.kycNote as string | undefined,
     onlinePaymentsEnabled: Boolean(src.onlinePaymentsEnabled),

@@ -88,7 +88,7 @@ const NAV_SECTIONS: NavSection[] = [
           { label: 'Factures & Frais', href: '/admin/finance/factures', icon: FileText },
           { label: 'Moratoires', href: '/admin/finance/moratoriums', icon: Clock },
           { label: 'Lots scellés', href: '/admin/finance/scelles', icon: Fingerprint },
-          { label: 'Profil règlement', href: '/admin/finance/payment-profile', icon: Building2 },
+          { label: 'Configuration des règlements', href: '/admin/finance/payment-profile', icon: Building2 },
           { label: 'Console groupe', href: '/admin/finance/reseau', icon: Network },
           { label: 'Caisse & fonds', href: '/admin/finance/caisse', icon: Wallet },
           { label: 'Secours', href: '/admin/finance/rescue', icon: LifeBuoy },

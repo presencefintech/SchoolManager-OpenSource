@@ -31,7 +31,7 @@ const LINKS: FinanceAdminNavLink[] = [
   { href: '/admin/finance/remboursements', label: 'Remboursements', icon: RotateCcw },
   { href: '/admin/finance/moratoriums', label: 'Moratoires', icon: Clock },
   { href: '/admin/finance/scelles', label: 'Scellés', icon: Fingerprint },
-  { href: '/admin/finance/payment-profile', label: 'Profil règlement', icon: Building2 },
+  { href: '/admin/finance/payment-profile', label: 'Règlements', icon: Building2 },
   { href: '/admin/finance/reseau', label: 'Console groupe', icon: Network },
   { href: '/admin/finance/caisse', label: 'Caisse & fonds', icon: Wallet },
   { href: '/admin/finance/rescue', label: 'Secours', icon: LifeBuoy, highlight: true },

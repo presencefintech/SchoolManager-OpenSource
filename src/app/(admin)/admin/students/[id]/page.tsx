@@ -62,7 +62,7 @@ function RevokeIssuedDocumentPanel() {
 
   const onRevoke = async () => {
     if (!documentRef.trim()) {
-      toast.error('Référence requise', 'Indiquez le N° document (documentRef).')
+      toast.error('Référence requise', 'Indiquez le numéro du document.')
       return
     }
     setBusy(true)
@@ -71,7 +71,7 @@ function RevokeIssuedDocumentPanel() {
         documentRef: documentRef.trim(),
         reason: reason.trim() || undefined,
       })
-      toast.success('Document révoqué', result.documentRef)
+      toast.success('Document révoqué', 'Le document n’est plus valable à la vérification.')
       setDocumentRef('')
       setReason('')
     } catch (err) {

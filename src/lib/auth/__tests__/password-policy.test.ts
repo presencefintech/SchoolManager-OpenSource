@@ -28,4 +28,8 @@ describe('password-policy', () => {
   it('mappe un OTP WhatsApp incorrect sans le confondre avec un token invalide', () => {
     expect(mapActivateErrorMessage('INVALID_OTP')).toMatch(/SMS/i)
   })
+
+  it('ne laisse pas passer un message Prisma', () => {
+    expect(mapActivateErrorMessage('Erreur base de données (P2002)')).toMatch(/Réessayez|Activation impossible/)
+  })
 })

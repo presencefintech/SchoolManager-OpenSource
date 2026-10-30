@@ -100,8 +100,10 @@ export function DocumentVerifyCard({ result }: { result: DocumentVerifyResult })
         <div className="flex items-start gap-3">
           <Hash className="mt-0.5 h-4 w-4 text-zinc-400" />
           <div>
+            <p className="text-[11px] text-zinc-500">Référence</p>
             <p className="font-mono text-xs text-zinc-800">{result.documentRef}</p>
-            <p className="font-mono text-xs text-emerald-700 mt-0.5">{result.publicVerifyCode}</p>
+            <p className="text-[11px] text-zinc-500 mt-1">Code de vérification</p>
+            <p className="font-mono text-xs text-emerald-700">{result.publicVerifyCode}</p>
             {result.documentSerial ? (
               <p className="font-mono text-[11px] text-zinc-500 mt-0.5">
                 Série {result.documentSerial}
@@ -130,17 +132,17 @@ export function DocumentVerifyCard({ result }: { result: DocumentVerifyResult })
         {isCertified ? (
           <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
             <BadgeCheck className="h-4 w-4" />
-            Signature HMAC + empreinte contenu validées ({result.algorithm})
+            Document authentique — sceau vérifié
           </div>
         ) : null}
         {isSuspect ? (
           <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
             <ShieldAlert className="h-4 w-4" />
             {!result.hmacValid
-              ? 'Signature cryptographique altérée'
+              ? 'Ce document n’est pas authentique (sceau altéré).'
               : !result.contentHashValid
-                ? 'Empreinte du contenu incohérente'
-                : 'Contrôle manuel recommandé'}
+                ? 'Le contenu ne correspond plus au document émis.'
+                : 'Vérification manuelle recommandée'}
           </div>
         ) : null}
       </div>

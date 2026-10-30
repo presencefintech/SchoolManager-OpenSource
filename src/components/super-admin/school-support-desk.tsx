@@ -397,7 +397,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
       setConfirmReset(false)
       await refresh()
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Échec reset mot de passe')
+      toast.error(getApiErrorMessage(e) || 'Échec reset mot de passe')
     } finally {
       setResetBusy(false)
     }
@@ -409,7 +409,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
       return
     }
     if (!isValidInternationalPhone(invPhone)) {
-      toast.error('Téléphone mobile invalide (WhatsApp OTP)')
+      toast.error('Téléphone mobile invalide (WhatsApp)')
       return
     }
     setInviteBusy(true)
@@ -432,8 +432,8 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
       toast.success(
         'Invitation créée',
         res.whatsappDeepLink
-          ? 'Ouvrez WhatsApp pour envoyer l’OTP'
-          : res.message || 'Vérifiez l’email / OTP',
+          ? 'Ouvrez WhatsApp pour envoyer le code'
+          : res.message || 'Vérifiez l’email et le code SMS',
       )
       setInviteOpen(false)
       setInvFirst('')
@@ -622,7 +622,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
                 <div className="mt-1">
                   <p className="text-sm font-semibold text-amber-900">Aucun admin actif</p>
                   <p className="text-xs text-amber-800/80 mt-0.5 max-w-md">
-                    Parcours actuel : email + lien WhatsApp direct (OTP prérempli). L’admin choisit
+                    Parcours actuel : email + lien WhatsApp direct (code prérempli). L’admin choisit
                     son mot de passe à l’activation — pas de SMS payant tant que l’app ne monétise
                     pas.
                   </p>
@@ -676,7 +676,7 @@ export function SchoolSupportDesk({ school }: { school: SchoolDetail }) {
                   Envoyer l’invitation 2FA
                 </button>
                 <p className="text-[11px] text-zinc-400">
-                  Email + lien WhatsApp (OTP) · action journalisée
+                  Email + lien WhatsApp (code) · action journalisée
                 </p>
               </div>
             </div>

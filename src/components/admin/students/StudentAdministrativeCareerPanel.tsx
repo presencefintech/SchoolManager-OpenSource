@@ -561,7 +561,7 @@ export function StudentAdministrativeCareerPanel({
                   Certificat de fréquentation
                 </h3>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  Attestation de sortie scellée (HMAC) — génération officielle.
+                  Attestation de sortie officielle (document scellé).
                 </p>
               </div>
               {canWrite && (

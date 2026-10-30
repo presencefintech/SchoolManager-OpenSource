@@ -655,6 +655,16 @@ export const financeApi = {
         }
       }),
 
+  testPaymentProfileCredentials: (payload: {
+    provider: 'PAWAPAY' | 'MAXICASH'
+    pawapayApiKey?: string
+    pawapayApiSecret?: string
+    maxicashMerchantId?: string
+    maxicashMerchantPassword?: string
+  }) =>
+    apiClient.post('/admin/finance/payment-profile/test-credentials', payload)
+      .then((r) => r.data.data as { ok: boolean; provider: string; message: string }),
+
   markVerificationProcessed: (verificationId: number, notes?: string) =>
     apiClient.post(`/admin/finance/payments/verifications/${verificationId}/mark-processed`, { notes })
       .then((r) => r.data.data),

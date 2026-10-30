@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { sanitizeUserFacingMessage } from './security-errors'
 
 /** Aligné sur InvitationUtils.isPasswordRobust (backend). */
 export const STAFF_PASSWORD_REGEX =
@@ -50,7 +51,10 @@ export function mapActivateErrorMessage(raw: string | undefined): string {
     return 'Le mot de passe ne respecte pas la politique de sécurité.'
   }
   if (code.includes('ACCOUNT_NOT_VERIFIED')) {
-    return 'Le mot de passe est défini, mais le compte n’est pas encore validé. Reprenez le lien d’activation et saisissez le code OTP.'
+    return 'Le mot de passe est défini, mais le compte n’est pas encore validé. Reprenez le lien d’activation et saisissez le code reçu par SMS.'
   }
-  return raw
+  return sanitizeUserFacingMessage(
+    raw,
+    'Activation impossible. Réessayez ou contactez votre administrateur.',
+  )
 }

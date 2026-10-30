@@ -276,7 +276,7 @@ function CertifiedReceipt({
             <ShieldAlert size={16} className="shrink-0 text-amber-600" />
           )}
           <span>
-            {result.algorithm} · signature {result.hmacValid ? 'valide' : 'à contrôler'} · vérifié le{' '}
+            {result.hmacValid ? 'Reçu authentique' : 'Reçu à contrôler'} · vérifié le{' '}
             {formatReceiptDate(result.verifiedAt)}
           </span>
         </div>

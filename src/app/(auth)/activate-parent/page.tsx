@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 const API = '/api/v1/mobile/parents'
 
@@ -19,10 +20,7 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
-    const message =
-      (typeof data?.message === 'string' && data.message) ||
-      (typeof data?.error?.message === 'string' && data.error.message) ||
-      'Une erreur est survenue'
+    const message = resolveApiErrorMessage(data, 'Une erreur est survenue')
     throw Object.assign(new Error(message), { status: res.status })
   }
   return (data?.data ?? data) as T
@@ -56,11 +54,13 @@ function friendlyError(err: unknown): string {
     return 'Numéro invalide. Saisissez-le avec l’indicatif du pays, par exemple +33 7 78 66 17 66 ou +243 8X XXX XXXX.'
   }
   if (e.status === 403) {
-    return e.message && !/forbidden/i.test(e.message)
+    return e.message && !/forbidden/i.test(e.message) && !/^[A-Z][A-Z0-9_]+$/.test(e.message)
       ? e.message
       : 'Numéro inconnu ou compte déjà actif. Vérifiez le numéro donné à l’école.'
   }
-  return e.message || 'Une erreur est survenue'
+  return e.message && !/^[A-Z][A-Z0-9_]+$/.test(e.message)
+    ? e.message
+    : 'Une erreur est survenue'
 }
 
 /** Premier accès d'un parent : numéro → OTP (WhatsApp/SMS) → code école + mot de passe. */

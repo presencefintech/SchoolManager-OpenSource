@@ -57,11 +57,14 @@ export function auditActionLabel(value: string | null | undefined): string {
 const PAYMENT_STATUS_LABELS: Record<string, string> = {
   PENDING: 'En attente',
   COMPLETED: 'Réussi',
+  CONFIRMED: 'Confirmé',
+  RECONCILED: 'Confirmé',
   FAILED: 'Échoué',
   CANCELLED: 'Annulé',
   CANCELED: 'Annulé',
   REFUNDED: 'Remboursé',
   PROCESSING: 'En cours',
+  SUSPICIOUS: 'À contrôler',
 }
 
 export function paymentStatusLabel(value: string | null | undefined): string {
@@ -78,7 +81,23 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   ORANGE_MONEY: 'Orange Money',
   CARD: 'Carte',
   BANK_TRANSFER: 'Virement',
+  FLUTTERWAVE: 'Opérateur',
   OTHER: 'Autre',
+}
+
+const PAYMENT_PROVIDER_LABELS: Record<string, string> = {
+  FLUTTERWAVE: 'Opérateur',
+  PAWAPAY: 'PawaPay',
+  MAXICASH: 'Maxicash',
+  MPESA: 'M-Pesa',
+  ORANGE: 'Orange Money',
+  AIRTEL: 'Airtel Money',
+}
+
+export function paymentProviderLabel(value: string | null | undefined): string {
+  if (!value) return '—'
+  const key = value.toUpperCase()
+  return PAYMENT_PROVIDER_LABELS[key] ?? paymentMethodLabel(value)
 }
 
 export function paymentMethodLabel(value: string | null | undefined): string {
@@ -208,7 +227,7 @@ export function healthStatusLabel(value: string | null | undefined): string {
 const SERVICE_LABELS: Record<string, string> = {
   db: 'Base de données',
   database: 'Base de données',
-  redis: 'Cache Redis',
+  redis: 'Cache',
   notifications: 'Notifications push',
   biometrics: 'Biométrie',
   sms: 'SMS',

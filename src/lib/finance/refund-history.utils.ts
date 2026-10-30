@@ -85,10 +85,14 @@ export function buildRefundHistoryEvents(refund: RefundHistorySource): RefundHis
     })
   }
 
+  const providerLabel =
+    refund.gateway?.provider === 'FLUTTERWAVE'
+      ? 'Opérateur'
+      : refund.gateway?.provider ?? null
   const gatewayDetail = [
-    refund.gateway?.provider ? `Provider: ${refund.gateway.provider}` : null,
-    refund.gateway?.status ? `Statut: ${refund.gateway.status}` : null,
-    refund.gateway?.refundRef ? `Réf: ${refund.gateway.refundRef}` : null,
+    providerLabel ? `Canal : ${providerLabel}` : null,
+    refund.gateway?.status ? `Statut : ${refund.gateway.status}` : null,
+    refund.gateway?.refundRef ? `Réf. : ${refund.gateway.refundRef}` : null,
     notes.gateway,
   ]
     .filter(Boolean)
@@ -97,7 +101,7 @@ export function buildRefundHistoryEvents(refund: RefundHistorySource): RefundHis
   if (gatewayDetail) {
     events.push({
       key: 'gateway',
-      label: refund.status === 'FAILED' ? 'Échec gateway' : 'Gateway',
+      label: refund.status === 'FAILED' ? 'Échec opérateur' : 'Opérateur',
       date: refund.processedAt ?? refund.reviewedAt ?? undefined,
       detail: gatewayDetail,
       tone: refund.status === 'FAILED' ? 'danger' : 'neutral',

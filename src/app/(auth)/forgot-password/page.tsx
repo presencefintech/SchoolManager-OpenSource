@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ArrowLeft, Loader2, Mail, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { resolveApiErrorMessage } from '@/lib/auth/security-errors'
 
 const forgotSchema = z.object({
   email: z.string().email('Adresse email invalide'),
@@ -35,9 +36,8 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify(values),
       })
       if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { message?: string | string[] }
-        const msg = Array.isArray(data.message) ? data.message.join(' · ') : data.message
-        throw new Error(msg || 'Erreur lors de la demande.')
+        const data = await res.json().catch(() => ({}))
+        throw new Error(resolveApiErrorMessage(data, 'Erreur lors de la demande.'))
       }
       setSent(true)
     } catch (err) {

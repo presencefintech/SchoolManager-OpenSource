@@ -8,6 +8,7 @@ import { formatMoney, type FinanceCurrencyCode } from '@/lib/finance/currency'
 import { printRectification } from '@/lib/finance/print-rectification'
 import type { PaymentFeeLine, StudentPaymentDetail } from '@/lib/finance/payment-history.utils'
 import { cn } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 function pickCorrectableSuffix(fees: PaymentFeeLine[]): PaymentFeeLine | null {
   const active = fees.filter((f) => f.id && !f.reversedAt)
@@ -67,10 +68,7 @@ export function CorrectLastMonthButton({ payment, className, onDone }: Props) {
       onDone?.()
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        (err instanceof Error ? err.message : 'Correction impossible')
-      setError(msg)
+      setError(getApiErrorMessage(err) || 'Correction impossible')
     },
   })
 

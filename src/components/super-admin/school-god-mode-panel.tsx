@@ -10,6 +10,7 @@ import { CapacityBar, StatusBadge } from '@/components/super-admin/school-saas-d
 import { SchoolModulesConsole } from '@/components/super-admin/school-modules-console'
 import { cn } from '@/lib/utils'
 import { subscriptionTierLabel } from '@/lib/i18n/display-labels'
+import { getApiErrorMessage } from '@/lib/api/client'
 
 export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
   const toast = useToast()
@@ -31,11 +32,7 @@ export function SchoolGodModePanel({ schoolId }: { schoolId: number }) {
       void refetch()
 
     } catch (err) {
-      const message =
-        err instanceof Error && err.message.trim()
-          ? err.message
-          : 'Échec de l’export des cartes'
-      toast.error(message)
+      toast.error(getApiErrorMessage(err) || 'Échec de l’export des cartes')
     } finally {
       setZipBusy(false)
     }

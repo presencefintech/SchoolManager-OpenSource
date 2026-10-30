@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminNotificationsApi, type PresenceNotifDlqItem } from '@/lib/admin/api/notifications.api'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { adminOpsMessage, ADMIN_OPS_UI } from '@/lib/admin/admin-ops-messages'
+import { sanitizeUserFacingMessage } from '@/lib/auth/security-errors'
 
 export function PresenceNotifDlqPanel() {
   const qc = useQueryClient()
@@ -34,7 +35,7 @@ export function PresenceNotifDlqPanel() {
       <div className="flex items-start gap-2 px-5 py-3.5 border-b border-slate-100 bg-slate-50/50">
         <MessageCircleWarning size={16} className="text-amber-600 mt-0.5" />
         <div>
-          <h3 className="text-sm font-semibold text-slate-800">DLQ notifications présence</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Notifications de présence non envoyées</h3>
           <p className="text-xs text-slate-500">
             Motifs d’échec passerelle WhatsApp / SMS — relance manuelle confirmée
           </p>
@@ -49,7 +50,7 @@ export function PresenceNotifDlqPanel() {
       ) : query.isLoading ? (
         <div className="p-4 h-20 bg-slate-50 animate-pulse" aria-busy="true" />
       ) : items.length === 0 ? (
-        <p className="px-5 py-8 text-sm text-slate-500 text-center">Aucun job en échec définitif.</p>
+        <p className="px-5 py-8 text-sm text-slate-500 text-center">Aucune notification en échec définitif.</p>
       ) : (
         <ul className="divide-y divide-slate-100">
           {items.map((item: PresenceNotifDlqItem) => {
@@ -65,8 +66,8 @@ export function PresenceNotifDlqPanel() {
                     Présence #{item.presenceId ?? item.data?.presenceId ?? '—'} · élève{' '}
                     {item.studentId ?? item.data?.studentId ?? '—'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5" title={item.errorCode}>
-                    {reason}
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {sanitizeUserFacingMessage(reason, ADMIN_OPS_UI.GATEWAY_DELIVERY_FAILED)}
                     {item.attemptsMade != null ? ` · ${item.attemptsMade} tentative(s)` : ''}
                   </p>
                 </div>
@@ -77,7 +78,7 @@ export function PresenceNotifDlqPanel() {
                     onClick={() => {
                       if (
                         window.confirm(
-                          'Relancer cette notification vers WhatsApp / SMS ? Le job quittera la file d’échecs.',
+                          'Relancer cette notification vers WhatsApp / SMS ?',
                         )
                       ) {
                         replay.mutate(jobId)
@@ -94,7 +95,7 @@ export function PresenceNotifDlqPanel() {
                     onClick={() => {
                       if (
                         window.confirm(
-                          'Supprimer définitivement ce job (DLQ_JOB_PURGED) ? Cette action est irréversible.',
+                          'Retirer définitivement cette notification de la file d’échecs ? Cette action est irréversible.',
                         )
                       ) {
                         discard.mutate(jobId)

@@ -2,8 +2,8 @@ import type { DocumentVerifyFailureReason, DocumentVerifyResult } from '@/types/
 
 const REASON_LABELS: Record<DocumentVerifyFailureReason, string> = {
   INVALID_TOKEN: 'QR code invalide ou illisible.',
-  INVALID_CODE: 'Code SM incorrect ou ne correspond pas au document.',
-  NOT_FOUND: 'Document introuvable dans SchoolManager.',
+  INVALID_CODE: 'Code de vérification incorrect ou ne correspond pas au document.',
+  NOT_FOUND: 'Document introuvable.',
   SIGNATURE_MISMATCH: 'Signature de sécurité incorrecte — document suspect.',
   DOCUMENT_INCOMPLETE: 'Données du document incomplètes.',
   REVOKED: 'Ce document a été révoqué par l’établissement.',

@@ -18,6 +18,7 @@ import {
   type LessonStepKey,
 } from '@/lib/teacher/schemas/lesson-plan.schema'
 import { TERM_LABELS, type SchoolTerm } from '@/types/teacher-grades'
+import { getApiErrorMessage } from '@/lib/api/client'
 import { Skeleton } from '@/components/ui/skeleton'
 
 const STATUS_LABELS: Record<LessonPlanStatus, string> = {
@@ -123,12 +124,7 @@ export default function TeacherLessonPlanDetailPage() {
       await planQuery.refetch()
     },
     onError: (err: unknown) => {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { message?: string } } })?.response?.data
-              ?.message || "Impossible d'enregistrer la fiche."
-      setError(msg)
+      setError(getApiErrorMessage(err) || "Impossible d'enregistrer la fiche.")
       setMessage(null)
     },
   })
@@ -149,12 +145,7 @@ export default function TeacherLessonPlanDetailPage() {
       await planQuery.refetch()
     },
     onError: (err: unknown) => {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : (err as { response?: { data?: { message?: string } } })?.response?.data
-              ?.message || 'Impossible de soumettre. Complétez les huit étapes pédagogiques.'
-      setError(msg)
+      setError(getApiErrorMessage(err) || 'Impossible de soumettre. Complétez les huit étapes pédagogiques.')
       setMessage(null)
     },
   })
