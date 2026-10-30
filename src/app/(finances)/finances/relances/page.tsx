@@ -19,8 +19,22 @@ import { FinancePageHeader, FinancePageShell, FinancePanel } from '@/components/
 import { fadeUp, stagger } from '@/lib/animations'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useSchoolMoney } from '@/lib/finance/use-school-money'
-import type { DebtReminderPolicy, DebtReminderTriggerResult } from '@/types/finance'
+import {
+  TONE_LABEL,
+  describeStages,
+  formatCampaignKey,
+  offsetLabel,
+  parseOffsets,
+} from '@/lib/finance/debt-reminder-stages'
+import type { DebtReminderPolicy, DebtReminderTone, DebtReminderTriggerResult } from '@/types/finance'
 import { cn } from '@/lib/utils'
+
+const TONE_CHIP: Record<DebtReminderTone, string> = {
+  pre: 'bg-sky-50 text-sky-700 ring-sky-100',
+  due: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
+  firm: 'bg-amber-50 text-amber-700 ring-amber-100',
+  final: 'bg-red-50 text-red-700 ring-red-100',
+}
 
 function StatusPill({ status }: { status: string }) {
   const tone =
@@ -48,15 +62,18 @@ export default function RelancesPage() {
   const lateFees = useRunLateFees()
 
   const [form, setForm] = useState<Partial<DebtReminderPolicy>>({})
-  const [offsetsInput, setOffsetsInput] = useState('3,7,15')
+  const [offsetsInput, setOffsetsInput] = useState('-3, 1, 7, 15')
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; message: string } | null>(null)
   const [preview, setPreview] = useState<DebtReminderTriggerResult | null>(null)
 
   useEffect(() => {
     if (!policy) return
     setForm(policy)
-    setOffsetsInput((policy.offsetsDays ?? [3, 7, 15]).join(','))
+    setOffsetsInput((policy.offsetsDays ?? [-3, 1, 7, 15]).join(', '))
   }, [policy])
+
+  const stages = useMemo(() => describeStages(parseOffsets(offsetsInput)), [offsetsInput])
+  const deadlineMode = form.deadlineMode ?? 'FIXED_DAY'
 
   const journalItems = journal?.items ?? []
 
@@ -65,25 +82,25 @@ export default function RelancesPage() {
     return Object.entries(health.last24h ?? {}).map(([k, v]) => ({ k, v }))
   }, [health])
 
-  function parseOffsets(): number[] {
-    return offsetsInput
-      .split(/[,\s]+/)
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isFinite(n) && n >= 0 && n <= 60)
-      .slice(0, 10)
-  }
-
   async function handleSavePolicy() {
     setFeedback(null)
     try {
-      const offsetsDays = parseOffsets()
-      if (!offsetsDays.length) {
-        setFeedback({ type: 'err', message: 'Indiquez au moins un jour d’offset (ex. 3,7,15).' })
+      const offsetsDays = parseOffsets(offsetsInput)
+      if (!offsetsDays.some((day) => day >= 0)) {
+        setFeedback({
+          type: 'err',
+          message: 'Indiquez au moins un jour de relance le jour de l’échéance ou après (ex. -3, 1, 7, 15).',
+        })
         return
       }
       await updatePolicy.mutateAsync({
         enabled: form.enabled,
         offsetsDays,
+        deadlineMode,
+        deadlineDay: Number(form.deadlineDay ?? 5),
+        feeDueAfterDays: Number(form.feeDueAfterDays ?? 30),
+        endDate: form.endDate || null,
+        repeatDays: form.repeatDays ?? null,
         quietStartHour: form.quietStartHour ?? null,
         quietEndHour: form.quietEndHour ?? null,
         lateFeeEnabled: form.lateFeeEnabled,
@@ -258,16 +275,107 @@ export default function RelancesPage() {
                   </label>
                 </div>
 
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">Échéance des frais</label>
+                    <select
+                      value={deadlineMode}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, deadlineMode: e.target.value as typeof deadlineMode }))
+                      }
+                      className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
+                    >
+                      <option value="FIXED_DAY">Jour fixe du mois</option>
+                      <option value="FROM_FEE_CREATION">Délai après création du frais</option>
+                    </select>
+                  </div>
+                  {deadlineMode === 'FIXED_DAY' ? (
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-500 mb-1">Jour du mois (1 à 28)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={28}
+                        value={form.deadlineDay ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, deadlineDay: Number(e.target.value) }))}
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm"
+                        placeholder="5"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-500 mb-1">Délai en jours (1 à 120)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={form.feeDueAfterDays ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, feeDueAfterDays: Number(e.target.value) }))}
+                        className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm"
+                        placeholder="30"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-zinc-500 mb-1">
-                    Jours d’offset (après échéance)
+                    Jours de relance par rapport à l’échéance (négatif = avant)
                   </label>
                   <input
                     value={offsetsInput}
                     onChange={(e) => setOffsetsInput(e.target.value)}
-                    placeholder="3,7,15"
+                    placeholder="-3, 1, 7, 15"
                     className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm"
                   />
+                  {stages.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {stages.map(({ offset, tone }) => (
+                        <span
+                          key={offset}
+                          className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ring-1', TONE_CHIP[tone])}
+                        >
+                          {offsetLabel(offset)} · {TONE_LABEL[tone]}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="mt-1.5 text-[11px] text-zinc-400 leading-relaxed">
+                    Chaque frais suit sa propre échéance. Une famille reçoit un seul message, au ton le plus fort.
+                  </p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
+                      Répéter le dernier avis tous les (jours)
+                    </label>
+                    <input
+                      type="number"
+                      min={7}
+                      max={60}
+                      value={form.repeatDays ?? ''}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          repeatDays: e.target.value === '' ? null : Number(e.target.value),
+                        }))
+                      }
+                      className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm"
+                      placeholder="Vide = pas de répétition"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 mb-1">
+                      Fin des relances automatiques
+                    </label>
+                    <input
+                      type="date"
+                      value={form.endDate ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value || null }))}
+                      className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-3">
@@ -435,7 +543,7 @@ export default function RelancesPage() {
                       <p className="font-medium text-zinc-800">{row.studentName}</p>
                       <p className="text-[11px] text-zinc-400">{row.matricule}</p>
                     </td>
-                    <td className="py-2.5 pr-3 text-xs text-zinc-600">{row.campaignKey}</td>
+                    <td className="py-2.5 pr-3 text-xs text-zinc-600">{formatCampaignKey(row.campaignKey)}</td>
                     <td className="py-2.5 pr-3 text-xs">{row.priority}</td>
                     <td className="py-2.5 pr-3">
                       <StatusPill status={row.status} />

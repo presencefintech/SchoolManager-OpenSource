@@ -1544,12 +1544,26 @@ export interface StudentsFinancialPrintReport {
 }
 
 /** Politique relances dette + pénalités (SchoolSettings). */
+export type DebtReminderTone = 'pre' | 'due' | 'firm' | 'final'
+
+/** FIXED_DAY : jour fixe du mois · FROM_FEE_CREATION : création du frais + feeDueAfterDays */
+export type DebtDeadlineMode = 'FIXED_DAY' | 'FROM_FEE_CREATION'
+
 export interface DebtReminderPolicy {
   enabled: boolean
+  /** Jours par rapport à l'échéance (négatif = avant). */
   offsetsDays: number[]
+  /** Ton de chaque jour, calculé par le backend. */
+  stages?: { offset: number; tone: DebtReminderTone }[]
   quietStartHour: number | null
   quietEndHour: number | null
   deadlineDay: number
+  deadlineMode?: DebtDeadlineMode
+  feeDueAfterDays?: number
+  /** AAAA-MM-JJ : plus de relance automatique après ce jour. */
+  endDate?: string | null
+  /** Répétition du dernier avis tous les N jours (null = silence). */
+  repeatDays?: number | null
   exclusionDay: number
   minDebtThreshold: number
   moratoriumBehavior: string
@@ -1561,6 +1575,11 @@ export interface DebtReminderPolicy {
 export type DebtReminderPolicyUpdate = Partial<{
   enabled: boolean
   offsetsDays: number[]
+  deadlineDay: number
+  deadlineMode: DebtDeadlineMode
+  feeDueAfterDays: number
+  endDate: string | null
+  repeatDays: number | null
   quietStartHour: number | null
   quietEndHour: number | null
   lateFeeEnabled: boolean
