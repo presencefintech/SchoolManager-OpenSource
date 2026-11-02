@@ -1,15 +1,72 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Loader2, Trash2 } from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
+import { X, Loader2, Trash2, Fingerprint, ScanFace, ChevronDown } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
-import { staffAttendanceApi } from '@/lib/admin/api/staff-attendance.api'
+import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
 import type { CorrectionPayload, StaffDay } from '@/types/staff-attendance'
-import { extractValidationMessages, formatDateFr } from '@/lib/admin/staff-attendance.utils'
+import { extractValidationMessages, formatDateFr, formatInstantHHMM } from '@/lib/admin/staff-attendance.utils'
 import { StaffDayStatusBadge } from './StaffDayStatusBadge'
 import { FormErrorBlock } from './FormErrorBlock'
+
+function verifyModeLabel(mode: string): string {
+  const m = mode.toUpperCase()
+  if (m.includes('FACE')) return 'Visage'
+  if (m.includes('FINGER') || m.includes('FP')) return 'Empreinte'
+  if (m.includes('PASSWORD') || m.includes('PIN')) return 'Code'
+  if (m.includes('CARD')) return 'Badge'
+  return mode
+}
+
+function PunchHistory({ staffId, date }: { staffId: number; date: string }) {
+  const [open, setOpen] = useState(false)
+  const punchesQuery = useQuery({
+    queryKey: staffAttendanceKeys.punches(staffId, date),
+    queryFn: () => staffAttendanceApi.getPunches(staffId, date),
+    enabled: open,
+    staleTime: 30_000,
+  })
+  const punches = punchesQuery.data ?? []
+
+  return (
+    <div className="border border-zinc-100 rounded-lg overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+      >
+        <span className="flex items-center gap-1.5">
+          <Fingerprint size={12} className="text-zinc-400" />
+          Pointages bruts reçus du terminal
+        </span>
+        <ChevronDown size={13} className={cn('text-zinc-400 transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="px-3 pb-2.5 border-t border-zinc-50">
+          {punchesQuery.isLoading ? (
+            <p className="text-[11px] text-zinc-400 py-2">Chargement…</p>
+          ) : punches.length === 0 ? (
+            <p className="text-[11px] text-zinc-400 py-2">Aucun pointage reçu ce jour-là.</p>
+          ) : (
+            <ul className="divide-y divide-zinc-50 text-[11px]">
+              {punches.map((p) => (
+                <li key={p.id} className="flex items-center justify-between py-1.5">
+                  <span className="flex items-center gap-1.5 text-zinc-700 font-mono">
+                    <ScanFace size={11} className="text-zinc-300" />
+                    {formatInstantHHMM(p.punchedAt)}
+                  </span>
+                  <span className="text-zinc-400">{verifyModeLabel(p.verifyMode)} · {p.terminalName}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function CorrectionModal({
   staffId,
@@ -96,6 +153,10 @@ export function CorrectionModal({
               déjà corrigé — {day.correction?.reason}
             </span>
           )}
+        </div>
+
+        <div className="px-6 pt-3">
+          <PunchHistory staffId={staffId} date={date} />
         </div>
 
         <form onSubmit={onSubmit} className="p-6 space-y-4">

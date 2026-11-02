@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { FileDown, Loader2, AlertTriangle, BarChart3 } from 'lucide-react'
+import { FileDown, FileSpreadsheet, Loader2, AlertTriangle, BarChart3 } from 'lucide-react'
 import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
 import { Skeleton } from '@/components/ui/skeleton'
 import { currentMonthValue, formatDateFr, isCurrentMonth } from '@/lib/admin/staff-attendance.utils'
+import { exportRowsToCsv } from '@/lib/finance/export-csv'
 
 export function ReportPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: number) => void }) {
   const [month, setMonth] = useState(currentMonthValue())
@@ -46,6 +47,24 @@ export function ReportPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numb
   const corrections = correctionsQuery.data ?? []
   const provisional = isCurrentMonth(month)
 
+  function onExportCsv() {
+    exportRowsToCsv(
+      rows.map((r) => ({
+        'Nom': `${r.firstName} ${r.lastName}`,
+        'Jours dus': r.totals.present + r.totals.onMission,
+        'Présents': r.totals.present,
+        'Retards': r.totals.late,
+        'Minutes de retard': r.totals.lateMinutesTotal,
+        'Absents': r.totals.absent,
+        'Congés': r.totals.onLeave,
+        'Missions': r.totals.onMission,
+        'Départs anticipés': r.totals.leftEarly,
+        'Jours corrigés': r.totals.correctedDays,
+      })),
+      `rapport-presence-personnel-${month}.csv`,
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -61,6 +80,15 @@ export function ReportPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numb
             onChange={(e) => setMonth(e.target.value)}
             className="px-3 py-2 rounded-xl border border-zinc-200 text-sm"
           />
+          <button
+            type="button"
+            onClick={onExportCsv}
+            disabled={rows.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-zinc-200 text-zinc-700 rounded-xl hover:bg-zinc-50 disabled:text-zinc-300"
+          >
+            <FileSpreadsheet size={14} />
+            Export CSV
+          </button>
           <button
             type="button"
             onClick={onDownload}

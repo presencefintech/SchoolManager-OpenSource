@@ -12,7 +12,9 @@ import type {
   StaffLeavePayload,
   StaffMission,
   StaffMissionPayload,
+  StaffImportResult,
   StaffMonth,
+  StaffPunch,
   StaffReportRow,
   StaffSchedule,
   StaffSchedulePayload,
@@ -41,6 +43,7 @@ export const staffAttendanceKeys = {
   corrections: (month: string, staffMemberId?: number) =>
     ['staff-attendance', 'corrections', month, staffMemberId ?? 'all'] as const,
   alertSettings: () => ['staff-attendance', 'alert-settings'] as const,
+  punches: (staffId: number, date: string) => ['staff-attendance', 'punches', staffId, date] as const,
 }
 
 export interface ReportPdfResult {
@@ -103,6 +106,12 @@ export const staffAttendanceApi = {
 
   createStaff: (payload: AttendanceStaffPayload) =>
     apiClient.post<Envelope<AttendanceStaffMember>>(`${BASE}/staff`, payload).then((r) => r.data.data),
+
+  importStaff: (rows: AttendanceStaffPayload[]) =>
+    apiClient.post<Envelope<StaffImportResult>>(`${BASE}/staff/import`, { rows }).then((r) => r.data.data),
+
+  getPunches: (staffId: number, date: string) =>
+    apiClient.get<Envelope<StaffPunch[]>>(`${BASE}/staff/${staffId}/days/${date}/punches`).then((r) => r.data.data),
 
   updateStaff: (id: number, payload: Partial<AttendanceStaffPayload>) =>
     apiClient.patch<Envelope<AttendanceStaffMember>>(`${BASE}/staff/${id}`, payload).then((r) => r.data.data),
