@@ -5,14 +5,16 @@ import { motion } from 'framer-motion'
 import {
   Users, Plus, Loader2, X, Mail, Phone, BookOpen,
   CheckCircle, TrendingUp, Layers, Settings2, Monitor, KeyRound,
-  Ban, UserCheck, UserMinus,
+  Ban, UserCheck, UserMinus, Fingerprint, AlertTriangle,
 } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import {
   useStaff, useCreateStaff, useDeactivateStaff, useBlockStaff, useActivateStaff, useResetStaffPassword,
 } from '@/lib/hooks/use-admin'
 import { getApiErrorMessage } from '@/lib/api/client'
 import type { CreateStaffPayload, RegeneratePasswordResult } from '@/types/admin'
+import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AssignDirectorSectionsModal } from '@/components/admin/staff/AssignDirectorSectionsModal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -30,6 +32,7 @@ const ROLE_CFG: Record<string, { label: string; cls: string }> = {
 type StaffRoleOption = CreateStaffPayload['role']
 
 export default function StaffPage() {
+  const qc = useQueryClient()
   const { data: staff, isLoading } = useStaff()
   const createMutation = useCreateStaff()
   const deactivateMutation = useDeactivateStaff()
@@ -55,14 +58,43 @@ export default function StaffPage() {
   const [form, setForm] = useState<CreateStaffPayload>({
     firstName: '', lastName: '', email: '', password: '', role: 'TEACHER',
   })
+  const [trackAttendance, setTrackAttendance] = useState(false)
+  const [attendanceScheduleId, setAttendanceScheduleId] = useState('')
+  const [attendanceWarning, setAttendanceWarning] = useState('')
+
+  const schedulesQuery = useQuery({
+    queryKey: staffAttendanceKeys.schedules(),
+    queryFn: () => staffAttendanceApi.listSchedules(),
+    staleTime: 60_000,
+  })
+  const schedules = schedulesQuery.data ?? []
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setAttendanceWarning('')
     try {
       const created = await createMutation.mutateAsync(form)
       setShowModal(false)
       setForm({ firstName: '', lastName: '', email: '', password: '', role: 'TEACHER' })
+      if (trackAttendance && created?.id && attendanceScheduleId) {
+        try {
+          await staffAttendanceApi.createStaff({
+            firstName: form.firstName.trim(),
+            lastName: form.lastName.trim(),
+            scheduleId: Number(attendanceScheduleId),
+            userId: created.id,
+          })
+          qc.invalidateQueries({ queryKey: ['staff-attendance', 'staff'] })
+        } catch (attendanceErr) {
+          setAttendanceWarning(
+            `Compte créé, mais l'ajout au pointage du personnel a échoué : ${getApiErrorMessage(attendanceErr)} ` +
+            'Vous pouvez le lier manuellement depuis Pointage du personnel → Personnel.',
+          )
+        }
+      }
+      setTrackAttendance(false)
+      setAttendanceScheduleId('')
       if (form.role === 'DIRECTOR' && created?.id) {
         setAssignTarget({
           id: created.id,
@@ -134,6 +166,15 @@ export default function StaffPage() {
       </motion.div>
 
       <div className="max-w-5xl mx-auto px-8 py-8 space-y-5">
+        {attendanceWarning && (
+          <div className="flex items-start gap-2 text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+            <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+            <p className="flex-1">{attendanceWarning}</p>
+            <button type="button" onClick={() => setAttendanceWarning('')} className="flex-shrink-0 text-amber-600 hover:text-amber-900">
+              <X size={14} />
+            </button>
+          </div>
+        )}
         {!isLoading && staff && staff.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
@@ -382,6 +423,38 @@ export default function StaffPage() {
                     section ne lui est affectée.
                   </p>
                 )}
+              </div>
+              <div className="rounded-lg border border-zinc-200 p-3">
+                <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={trackAttendance}
+                    onChange={(e) => setTrackAttendance(e.target.checked)}
+                    disabled={schedules.length === 0}
+                    className="rounded border-zinc-300"
+                  />
+                  <Fingerprint size={13} className="text-zinc-400" />
+                  Suivre aussi au pointage du personnel
+                </label>
+                {schedules.length === 0 ? (
+                  <p className="mt-1.5 text-[11px] text-zinc-400">
+                    Créez d'abord un horaire dans Pointage du personnel → Horaires.
+                  </p>
+                ) : trackAttendance ? (
+                  <div className="mt-2">
+                    <select
+                      value={attendanceScheduleId}
+                      onChange={(e) => setAttendanceScheduleId(e.target.value)}
+                      required={trackAttendance}
+                      className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white"
+                    >
+                      <option value="">— Horaire —</option>
+                      {schedules.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
               </div>
               {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
               <div className="flex gap-3 pt-2">
