@@ -221,3 +221,24 @@ export interface AlertSettingsPayload {
   sendTime: string
   extraRecipientIds: number[]
 }
+
+/** Pointage brut reçu du terminal — lecture seule, pour diagnostiquer une journée. */
+export interface StaffPunch {
+  id: number
+  punchedAt: string
+  verifyMode: string
+  terminalName: string
+}
+
+export interface StaffImportRowResult {
+  index: number
+  success: boolean
+  member?: AttendanceStaffMember
+  error?: string
+}
+
+export interface StaffImportResult {
+  createdCount: number
+  failedCount: number
+  results: StaffImportRowResult[]
+}

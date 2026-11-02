@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Calendar, Users } from 'lucide-react'
+import { Calendar, Search, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
 import type { StaffDayStatus } from '@/types/staff-attendance'
@@ -14,6 +14,7 @@ const COUNT_TILES: StaffDayStatus[] = ['PRESENT', 'LATE', 'ABSENT', 'ON_LEAVE', 
 
 export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: number) => void }) {
   const [date, setDate] = useState(todayDateValue())
+  const [search, setSearch] = useState('')
 
   const dayQuery = useQuery({
     queryKey: staffAttendanceKeys.day(date),
@@ -22,6 +23,12 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
   })
 
   const day = dayQuery.data
+  const q = search.trim().toLowerCase()
+  const filteredStaff = day
+    ? q
+      ? day.staff.filter((s) => `${s.firstName} ${s.lastName} ${s.jobTitle ?? ''}`.toLowerCase().includes(q))
+      : day.staff
+    : []
 
   return (
     <div className="space-y-4">
@@ -30,15 +37,26 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
           <h2 className="text-sm font-semibold text-zinc-800">Tableau du jour</h2>
           <p className="text-xs text-zinc-400 mt-0.5">Les journées sont recalculées à chaque lecture — toujours à jour.</p>
         </div>
-        <div className="relative">
-          <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            max={todayDateValue()}
-            className="pl-9 pr-3 py-2 rounded-xl border border-zinc-200 text-sm"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="pl-8 pr-3 py-2 w-40 rounded-xl border border-zinc-200 text-sm"
+            />
+          </div>
+          <div className="relative">
+            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              max={todayDateValue()}
+              className="pl-9 pr-3 py-2 rounded-xl border border-zinc-200 text-sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -62,10 +80,10 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
       <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
         {dayQuery.isLoading ? (
           <div className="p-6 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-        ) : !day || day.staff.length === 0 ? (
+        ) : !day || filteredStaff.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-zinc-400">
             <Users size={28} className="text-zinc-200" />
-            Aucun employé
+            {q ? 'Aucun résultat pour cette recherche' : 'Aucun employé'}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -80,7 +98,7 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {day.staff.map((s) => (
+                {filteredStaff.map((s) => (
                   <tr key={s.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-4 py-3">
                       <button

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, Plus, X, Loader2, Fingerprint, UserCheck, UserMinus, Pencil, Copy, Check } from 'lucide-react'
+import { Users, Plus, X, Loader2, Fingerprint, UserCheck, UserMinus, Pencil, Copy, Check, Search, Upload } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
@@ -11,6 +11,7 @@ import { extractValidationMessages } from '@/lib/admin/staff-attendance.utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { FormErrorBlock } from './FormErrorBlock'
+import { ImportStaffModal } from './ImportStaffModal'
 
 function CopyCodeButton({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)
@@ -37,6 +38,8 @@ function CopyCodeButton({ code }: { code: string }) {
 export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: number) => void }) {
   const qc = useQueryClient()
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active')
+  const [search, setSearch] = useState('')
+  const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<AttendanceStaffMember | null>(null)
   const [form, setForm] = useState({ firstName: '', lastName: '', jobTitle: '', scheduleId: '' })
@@ -143,6 +146,10 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
 
   const staff = staffQuery.data ?? []
   const schedules = schedulesQuery.data ?? []
+  const q = search.trim().toLowerCase()
+  const filteredStaff = q
+    ? staff.filter((m) => `${m.firstName} ${m.lastName} ${m.jobTitle ?? ''}`.toLowerCase().includes(q))
+    : staff
 
   return (
     <div className="space-y-4">
@@ -153,7 +160,16 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
             Chaque employé créé reçoit un code terminal — à utiliser pour enrôler son empreinte ou son visage.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="pl-8 pr-3 py-1.5 w-40 rounded-lg border border-zinc-200 text-xs"
+            />
+          </div>
           <div className="inline-flex gap-1 p-1 bg-zinc-100 rounded-xl">
             {(['active', 'inactive', 'all'] as const).map((f) => (
               <button
@@ -171,6 +187,15 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
           </div>
           <button
             type="button"
+            onClick={() => setShowImport(true)}
+            disabled={schedules.length === 0}
+            title={schedules.length === 0 ? "Créez d'abord un horaire" : undefined}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-zinc-200 text-zinc-700 rounded-xl hover:bg-zinc-50 disabled:text-zinc-300"
+          >
+            <Upload size={14} /> Importer CSV
+          </button>
+          <button
+            type="button"
             onClick={openCreate}
             disabled={schedules.length === 0}
             title={schedules.length === 0 ? "Créez d'abord un horaire" : undefined}
@@ -184,10 +209,10 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
       <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
         {staffQuery.isLoading ? (
           <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
-        ) : staff.length === 0 ? (
+        ) : filteredStaff.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-zinc-400">
             <Users size={28} className="text-zinc-200" />
-            Aucun employé {activeFilter === 'active' ? 'actif' : activeFilter === 'inactive' ? 'désactivé' : ''}
+            {q ? 'Aucun résultat pour cette recherche' : `Aucun employé ${activeFilter === 'active' ? 'actif' : activeFilter === 'inactive' ? 'désactivé' : ''}`}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -202,7 +227,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {staff.map((m) => (
+                {filteredStaff.map((m) => (
                   <tr key={m.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-4 py-3">
                       <button
@@ -359,6 +384,17 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
         onConfirm={confirmAction}
         onCancel={() => { setConfirmTarget(null); setConfirmError('') }}
       />
+
+      {showImport && (
+        <ImportStaffModal
+          schedules={schedules}
+          onClose={() => setShowImport(false)}
+          onDone={() => {
+            setShowImport(false)
+            invalidateStaff()
+          }}
+        />
+      )}
     </div>
   )
 }
