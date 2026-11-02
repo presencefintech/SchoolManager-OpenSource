@@ -75,7 +75,7 @@ export function AlertSettingsPanel() {
         </p>
       </div>
 
-      {data?.warnings.map((w) => (
+      {data?.warnings?.map((w) => (
         <div key={w.code} className={cn('flex items-start gap-2 text-xs font-medium rounded-lg px-3 py-2.5 border', WARNING_STYLE[w.code] ?? 'bg-zinc-50 text-zinc-600 border-zinc-200')}>
           <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
           <div className="space-y-1.5">

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Calendar, Search, Users } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Calendar, CheckCheck, Search, Users } from 'lucide-react'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { cn } from '@/lib/utils'
 import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
 import type { StaffDayStatus } from '@/types/staff-attendance'
@@ -15,6 +17,11 @@ const COUNT_TILES: StaffDayStatus[] = ['PRESENT', 'LATE', 'ABSENT', 'ON_LEAVE', 
 export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: number) => void }) {
   const [date, setDate] = useState(todayDateValue())
   const [search, setSearch] = useState('')
+  const qc = useQueryClient()
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkReason, setBulkReason] = useState('')
+  const [bulkError, setBulkError] = useState('')
+  const [bulkPending, setBulkPending] = useState(false)
 
   const dayQuery = useQuery({
     queryKey: staffAttendanceKeys.day(date),
@@ -23,6 +30,28 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
   })
 
   const day = dayQuery.data
+
+  // Employés sans présence enregistrée ce jour-là (ni congé, ni mission, ni repos) : cibles de « Tout marquer présent ».
+  const toMark = day ? day.staff.filter((s) => s.day.status === 'ABSENT' || s.day.status === 'EXPECTED') : []
+
+  async function markAllPresent() {
+    setBulkError('')
+    const reasonText = bulkReason.trim()
+    const results = await Promise.allSettled(
+      toMark.map((s) => staffAttendanceApi.putCorrection(s.id, date, { mode: 'PRESENT', reason: reasonText })),
+    )
+    const failed = results
+      .map((r, i) => (r.status === 'rejected' ? `${toMark[i].firstName} ${toMark[i].lastName} : ${getApiErrorMessage(r.reason)}` : null))
+      .filter((m): m is string => m != null)
+    qc.invalidateQueries({ queryKey: ['staff-attendance'] })
+    if (failed.length > 0) {
+      setBulkError(`${toMark.length - failed.length} marqué(s), ${failed.length} en échec — ${failed.join(' ; ')}`)
+      return
+    }
+    setBulkOpen(false)
+    setBulkReason('')
+  }
+
   const q = search.trim().toLowerCase()
   const filteredStaff = day
     ? q
@@ -57,6 +86,15 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
               className="pl-9 pr-3 py-2 rounded-xl border border-zinc-200 text-sm"
             />
           </div>
+          <button
+            type="button"
+            onClick={() => { setBulkOpen(true); setBulkError('') }}
+            disabled={toMark.length === 0}
+            title={toMark.length === 0 ? 'Tout le monde a déjà un statut pour ce jour' : undefined}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400"
+          >
+            <CheckCheck size={14} /> Tout marquer présent{toMark.length > 0 ? ` (${toMark.length})` : ''}
+          </button>
         </div>
       </div>
 
@@ -132,6 +170,25 @@ export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: nu
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={bulkOpen}
+        title="Marquer tout le monde présent ?"
+        description={`${toMark.length} employé(s) sans présence enregistrée le ${date} seront marqués présents (correction « Présent »). Les congés, missions et repos ne sont pas touchés.`}
+        impact={bulkError ? [bulkError] : []}
+        confirmLabel="Marquer présents"
+        reasonLabel="Motif"
+        reasonPlaceholder="Ex. terminal en panne, journée complète validée…"
+        reason={bulkReason}
+        onReasonChange={setBulkReason}
+        confirmDisabled={bulkReason.trim().length < 3}
+        loading={bulkPending}
+        onConfirm={async () => {
+          setBulkPending(true)
+          try { await markAllPresent() } finally { setBulkPending(false) }
+        }}
+        onCancel={() => { setBulkOpen(false); setBulkReason(''); setBulkError('') }}
+      />
     </div>
   )
 }

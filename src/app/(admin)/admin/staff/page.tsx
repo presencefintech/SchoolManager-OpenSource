@@ -59,6 +59,7 @@ export default function StaffPage() {
     firstName: '', lastName: '', email: '', password: '', role: 'TEACHER',
   })
   const [createAccount, setCreateAccount] = useState(true)
+  const [jobTitle, setJobTitle] = useState('')
   const [trackAttendance, setTrackAttendance] = useState(false)
   const [attendanceScheduleId, setAttendanceScheduleId] = useState('')
   const [attendanceWarning, setAttendanceWarning] = useState('')
@@ -100,6 +101,7 @@ export default function StaffPage() {
         const member = await staffAttendanceApi.createStaff({
           firstName,
           lastName,
+          jobTitle: !createAccount ? jobTitle.trim() || undefined : undefined,
           scheduleId: Number(attendanceScheduleId),
           account: createAccount
             ? { email: form.email.trim(), password: form.password, role: form.role, phone: form.phone?.trim() || undefined }
@@ -112,6 +114,7 @@ export default function StaffPage() {
       setShowModal(false)
       setForm({ firstName: '', lastName: '', email: '', password: '', role: 'TEACHER' })
       setCreateAccount(true)
+      setJobTitle('')
       setTrackAttendance(false)
       setAttendanceScheduleId('')
       if (createAccount && form.role === 'DIRECTOR' && createdUserId) {
@@ -485,6 +488,23 @@ export default function StaffPage() {
                 )}
               </div>
               </>)}
+              {!createAccount && (
+                <div>
+                  <label className="block text-xs font-medium text-zinc-600 mb-1">Fonction / rôle</label>
+                  <input
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    list="staff-job-titles"
+                    placeholder="Ex. Enseignant, Gardien, Comptable…"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                  />
+                  <datalist id="staff-job-titles">
+                    {['Enseignant', 'Finance', 'Directeur', 'IT / Guichet', 'Gérant', 'Gardien', 'Comptable', 'Secrétaire', 'Entretien'].map((t) => (
+                      <option key={t} value={t} />
+                    ))}
+                  </datalist>
+                </div>
+              )}
               <div className="rounded-lg border border-zinc-200 p-3">
                 <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 cursor-pointer">
                   <input
