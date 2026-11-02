@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Users, Plus, X, Loader2, Fingerprint, UserCheck, UserMinus, Pencil, Copy, Check, Search, Upload } from 'lucide-react'
+import { Users, Plus, X, Loader2, Fingerprint, UserCheck, UserMinus, Pencil, Copy, Check, Search, Upload, Link2, Link2Off } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
+import { useStaff } from '@/lib/hooks/use-admin'
 import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
 import type { AttendanceStaffMember, AttendanceStaffPayload } from '@/types/staff-attendance'
 import { extractValidationMessages } from '@/lib/admin/staff-attendance.utils'
@@ -42,7 +43,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
   const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<AttendanceStaffMember | null>(null)
-  const [form, setForm] = useState({ firstName: '', lastName: '', jobTitle: '', scheduleId: '' })
+  const [form, setForm] = useState({ firstName: '', lastName: '', jobTitle: '', scheduleId: '', accountId: '' })
   const [error, setError] = useState('')
   const [validationDetails, setValidationDetails] = useState<string[]>([])
   const [confirmTarget, setConfirmTarget] = useState<{ member: AttendanceStaffMember; action: 'deactivate' | 'reactivate' } | null>(null)
@@ -59,6 +60,16 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
     queryFn: () => staffAttendanceApi.listSchedules(),
     staleTime: 60_000,
   })
+
+  /** Tous les employés pointés (sans filtre actif/inactif) : pour savoir quels comptes sont déjà liés. */
+  const allStaffQuery = useQuery({
+    queryKey: staffAttendanceKeys.staffList(),
+    queryFn: () => staffAttendanceApi.listStaff(),
+    staleTime: 20_000,
+  })
+
+  /** Comptes de connexion existants (« Personnel » / /admin/staff) — pour lier un employé pointé. */
+  const accountsQuery = useStaff()
 
   function invalidateStaff() {
     qc.invalidateQueries({ queryKey: ['staff-attendance', 'staff'] })
@@ -84,7 +95,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
 
   function openCreate() {
     setEditing(null)
-    setForm({ firstName: '', lastName: '', jobTitle: '', scheduleId: schedules[0] ? String(schedules[0].id) : '' })
+    setForm({ firstName: '', lastName: '', jobTitle: '', scheduleId: schedules[0] ? String(schedules[0].id) : '', accountId: '' })
     setError('')
     setValidationDetails([])
     setShowForm(true)
@@ -97,6 +108,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
       lastName: m.lastName,
       jobTitle: m.jobTitle ?? '',
       scheduleId: m.scheduleId ? String(m.scheduleId) : '',
+      accountId: m.userId ? String(m.userId) : '',
     })
     setError('')
     setValidationDetails([])
@@ -115,6 +127,9 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
       lastName: form.lastName.trim(),
       jobTitle: form.jobTitle.trim() || undefined,
       scheduleId: Number(form.scheduleId),
+      // `null` explicite en édition pour pouvoir délier un compte déjà rattaché ; `undefined`
+      // à la création quand aucun compte n'est choisi, pour ne pas envoyer le champ.
+      userId: form.accountId ? Number(form.accountId) : editing ? null : undefined,
     }
     try {
       if (editing) {
@@ -146,6 +161,13 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
 
   const staff = staffQuery.data ?? []
   const schedules = schedulesQuery.data ?? []
+  const accounts = accountsQuery.data ?? []
+  // Comptes déjà liés à un AUTRE employé pointé (un compte = au plus un employé).
+  const takenAccountIds = new Set(
+    (allStaffQuery.data ?? []).filter((m) => m.userId != null && m.id !== editing?.id).map((m) => m.userId as number),
+  )
+  const linkableAccounts = accounts.filter((a) => !takenAccountIds.has(a.id))
+  const linkedAccountById = new Map(accounts.map((a) => [a.id, a]))
   const q = search.trim().toLowerCase()
   const filteredStaff = q
     ? staff.filter((m) => `${m.firstName} ${m.lastName} ${m.jobTitle ?? ''}`.toLowerCase().includes(q))
@@ -240,6 +262,21 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
                       {!m.active && (
                         <span className="ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500">
                           Désactivé
+                        </span>
+                      )}
+                      {m.userId != null ? (
+                        <span
+                          title={`Compte lié : ${linkedAccountById.get(m.userId)?.email ?? `#${m.userId}`}`}
+                          className="ml-2 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-sky-50 text-sky-700"
+                        >
+                          <Link2 size={9} /> Compte lié
+                        </span>
+                      ) : (
+                        <span
+                          title="Aucun compte de connexion lié"
+                          className="ml-2 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-50 text-zinc-400"
+                        >
+                          <Link2Off size={9} /> Sans compte
                         </span>
                       )}
                     </td>
@@ -343,6 +380,25 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-600 mb-1">Compte de connexion lié (optionnel)</label>
+                <select
+                  value={form.accountId}
+                  onChange={(e) => setForm((f) => ({ ...f, accountId: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white"
+                >
+                  <option value="">— Aucun (employé sans connexion) —</option>
+                  {linkableAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.firstName} {a.lastName} · {a.email ?? a.role}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-zinc-400">
+                  Pour un employé qui a aussi un compte dans « Personnel » (ADMIN, enseignant…). Laissez vide pour un
+                  employé pointé uniquement (ex. gardien sans accès à l'application).
+                </p>
               </div>
               <FormErrorBlock message={error} details={validationDetails} />
               <div className="flex gap-3 pt-2">

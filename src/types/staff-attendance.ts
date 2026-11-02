@@ -88,8 +88,9 @@ export interface AttendanceStaffPayload {
   firstName: string
   lastName: string
   jobTitle?: string
-  userId?: number
-  teacherId?: number
+  /** Compte de connexion lié (optionnel) ; `null` explicite pour délier lors d'une modification. */
+  userId?: number | null
+  teacherId?: number | null
   scheduleId: number
 }
 
