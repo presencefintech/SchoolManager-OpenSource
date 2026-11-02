@@ -67,3 +67,5 @@ export type {
   AcademicAuditListParams,
   AcademicAuditIntegrityStatus,
 } from './audit.api'
+export { staffAttendanceApi, staffAttendanceKeys } from './staff-attendance.api'
+export type { ReportPdfResult } from './staff-attendance.api'

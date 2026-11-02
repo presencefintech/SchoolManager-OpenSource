@@ -68,6 +68,7 @@ const NAV_SECTIONS: NavSection[] = [
       { label: 'Enseignants', href: '/admin/teachers', icon: School },
       { label: 'Besoins matériels', href: '/admin/needs', icon: PackagePlus },
       { label: 'Personnel', href: '/admin/staff', icon: Users },
+      { label: 'Pointage du personnel', href: '/admin/staff-attendance', icon: Fingerprint },
     ],
   },
   {

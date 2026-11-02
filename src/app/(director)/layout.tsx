@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   Wallet,
   Bell,
+  Fingerprint,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
@@ -45,6 +46,7 @@ const NAV_LINKS = [
   { label: 'Besoins matériels', href: '/director/besoins', icon: PackagePlus },
   { label: 'Discipline', href: '/director/discipline', icon: ShieldAlert },
   { label: 'Personnel', href: '/director/personnel', icon: Users },
+  { label: 'Pointage du personnel', href: '/director/staff-attendance', icon: Fingerprint },
   { label: 'Parents & inspection', href: '/director/parents-inspection', icon: Handshake },
   { label: 'Finances', href: '/director/finances', icon: Wallet },
   { label: 'Communiqués', href: '/director/announcements', icon: Megaphone },
