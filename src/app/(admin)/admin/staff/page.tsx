@@ -58,6 +58,7 @@ export default function StaffPage() {
   const [form, setForm] = useState<CreateStaffPayload>({
     firstName: '', lastName: '', email: '', password: '', role: 'TEACHER',
   })
+  const [createAccount, setCreateAccount] = useState(true)
   const [trackAttendance, setTrackAttendance] = useState(false)
   const [attendanceScheduleId, setAttendanceScheduleId] = useState('')
   const [attendanceWarning, setAttendanceWarning] = useState('')
@@ -69,36 +70,54 @@ export default function StaffPage() {
   })
   const schedules = schedulesQuery.data ?? []
 
+  // Liste unifiée : les fiches pointage sans compte de connexion apparaissent aussi dans « Personnel ».
+  const accountlessQuery = useQuery({
+    queryKey: staffAttendanceKeys.staffList(true),
+    queryFn: () => staffAttendanceApi.listStaff(true),
+    staleTime: 20_000,
+  })
+  const accountless = (accountlessQuery.data ?? []).filter((m) => m.userId == null)
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setAttendanceWarning('')
     try {
-      const created = await createMutation.mutateAsync(form)
+      const firstName = form.firstName.trim()
+      const lastName = form.lastName.trim()
+      // Sans compte, la fiche n'existe que par le pointage : un horaire est donc obligatoire.
+      const needsSchedule = !createAccount || trackAttendance
+      if (needsSchedule && !attendanceScheduleId) {
+        setError('Choisissez un horaire.')
+        return
+      }
+      let createdUserId: number | null = null
+      if (!needsSchedule) {
+        const created = await createMutation.mutateAsync(form)
+        createdUserId = created?.id ?? null
+      } else {
+        // Une seule requête : fiche pointage (+ compte si demandé), créés ensemble côté serveur.
+        const member = await staffAttendanceApi.createStaff({
+          firstName,
+          lastName,
+          scheduleId: Number(attendanceScheduleId),
+          account: createAccount
+            ? { email: form.email.trim(), password: form.password, role: form.role, phone: form.phone?.trim() || undefined }
+            : undefined,
+        })
+        createdUserId = member?.userId ?? null
+        qc.invalidateQueries({ queryKey: ['staff-attendance', 'staff'] })
+        qc.invalidateQueries({ queryKey: ['admin', 'staff'] })
+      }
       setShowModal(false)
       setForm({ firstName: '', lastName: '', email: '', password: '', role: 'TEACHER' })
-      if (trackAttendance && created?.id && attendanceScheduleId) {
-        try {
-          await staffAttendanceApi.createStaff({
-            firstName: form.firstName.trim(),
-            lastName: form.lastName.trim(),
-            scheduleId: Number(attendanceScheduleId),
-            userId: created.id,
-          })
-          qc.invalidateQueries({ queryKey: ['staff-attendance', 'staff'] })
-        } catch (attendanceErr) {
-          setAttendanceWarning(
-            `Compte créé, mais l'ajout au pointage du personnel a échoué : ${getApiErrorMessage(attendanceErr)} ` +
-            'Vous pouvez le lier manuellement depuis Pointage du personnel → Personnel.',
-          )
-        }
-      }
+      setCreateAccount(true)
       setTrackAttendance(false)
       setAttendanceScheduleId('')
-      if (form.role === 'DIRECTOR' && created?.id) {
+      if (createAccount && form.role === 'DIRECTOR' && createdUserId) {
         setAssignTarget({
-          id: created.id,
-          name: `${form.firstName} ${form.lastName}`.trim(),
+          id: createdUserId,
+          name: `${firstName} ${lastName}`.trim(),
         })
       }
     } catch (err) {
@@ -178,7 +197,7 @@ export default function StaffPage() {
         {!isLoading && staff && staff.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: 'Total membres', value: staff.length,                                     icon: Users,       bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
+              { label: 'Total membres', value: staff.length + accountless.length,                icon: Users,      bg: 'bg-indigo-50',  iconCls: 'text-indigo-600' },
               { label: 'Enseignants',   value: staff.filter(m => m.role === 'TEACHER').length,   icon: BookOpen,    bg: 'bg-emerald-50', iconCls: 'text-emerald-600' },
               { label: 'Directeurs',    value: staff.filter(m => m.role === 'DIRECTOR').length,  icon: Layers,      bg: 'bg-violet-50',  iconCls: 'text-violet-600' },
               { label: 'Finance',       value: staff.filter(m => m.role === 'FINANCE').length,   icon: TrendingUp,  bg: 'bg-amber-50',   iconCls: 'text-amber-600' },
@@ -200,7 +219,7 @@ export default function StaffPage() {
         <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
           {isLoading ? (
             <div className="p-6 space-y-3">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14" />)}</div>
-          ) : staff?.length ? (
+          ) : (staff?.length ?? 0) + accountless.length > 0 ? (
             <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -213,7 +232,7 @@ export default function StaffPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {staff.map((member) => {
+                {(staff ?? []).map((member) => {
                   const roleCfg = ROLE_CFG[member.role] ?? { label: member.role, cls: 'bg-zinc-100 text-zinc-500' }
                   return (
                     <tr key={member.id} className="hover:bg-zinc-50 transition-colors">
@@ -345,6 +364,32 @@ export default function StaffPage() {
                     </tr>
                   )
                 })}
+                {accountless.map((m) => (
+                  <tr key={`att-${m.id}`} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-zinc-500">
+                            {(m.firstName?.[0] ?? '') + (m.lastName?.[0] ?? '')}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-zinc-900">{m.firstName} {m.lastName}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-zinc-400">{m.jobTitle || '—'}</td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-zinc-100 text-zinc-600">Sans compte</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-sky-50 text-sky-700">
+                        <Fingerprint size={11} /> Pointage · {m.terminalCode}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right text-[11px] text-zinc-400">
+                      Gérer dans Pointage du personnel
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
             </div>
@@ -385,6 +430,21 @@ export default function StaffPage() {
                   </div>
                 ))}
               </div>
+              <label className="flex items-start gap-2 text-sm text-zinc-700 cursor-pointer rounded-lg border border-zinc-200 p-3">
+                <input
+                  type="checkbox"
+                  checked={createAccount}
+                  onChange={(e) => setCreateAccount(e.target.checked)}
+                  className="mt-0.5 rounded border-zinc-300"
+                />
+                <span>
+                  Créer un compte de connexion
+                  <span className="block text-[11px] text-zinc-400">
+                    Décochez pour enregistrer seulement la personne (sans accès à l&apos;application). Elle sera suivie au pointage.
+                  </span>
+                </span>
+              </label>
+              {createAccount && (<>
               <div>
                 <label className="block text-xs font-medium text-zinc-600 mb-1">Email</label>
                 <input
@@ -399,7 +459,7 @@ export default function StaffPage() {
                 <input
                   type="password" value={form.password}
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                  required minLength={8}
+                  required minLength={12}
                   className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
                 />
               </div>
@@ -424,13 +484,14 @@ export default function StaffPage() {
                   </p>
                 )}
               </div>
+              </>)}
               <div className="rounded-lg border border-zinc-200 p-3">
                 <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={trackAttendance}
+                    checked={trackAttendance || !createAccount}
                     onChange={(e) => setTrackAttendance(e.target.checked)}
-                    disabled={schedules.length === 0}
+                    disabled={schedules.length === 0 || !createAccount}
                     className="rounded border-zinc-300"
                   />
                   <Fingerprint size={13} className="text-zinc-400" />
@@ -440,12 +501,12 @@ export default function StaffPage() {
                   <p className="mt-1.5 text-[11px] text-zinc-400">
                     Créez d'abord un horaire dans Pointage du personnel → Horaires.
                   </p>
-                ) : trackAttendance ? (
+                ) : trackAttendance || !createAccount ? (
                   <div className="mt-2">
                     <select
                       value={attendanceScheduleId}
                       onChange={(e) => setAttendanceScheduleId(e.target.value)}
-                      required={trackAttendance}
+                      required
                       className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white"
                     >
                       <option value="">— Horaire —</option>

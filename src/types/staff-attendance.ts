@@ -92,6 +92,15 @@ export interface AttendanceStaffPayload {
   userId?: number | null
   teacherId?: number | null
   scheduleId: number
+  /** Création uniquement : crée aussi un compte de connexion (rôle Personnel) lié à la fiche. */
+  account?: StaffAccountInput
+}
+
+export interface StaffAccountInput {
+  email: string
+  password: string
+  role: 'TEACHER' | 'FINANCE' | 'DIRECTOR' | 'IT' | 'MANAGER'
+  phone?: string
 }
 
 export interface StaffSchedule {

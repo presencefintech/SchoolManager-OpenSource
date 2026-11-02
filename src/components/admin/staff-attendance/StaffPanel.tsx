@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { getApiErrorMessage } from '@/lib/api/client'
 import { useStaff } from '@/lib/hooks/use-admin'
 import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
-import type { AttendanceStaffMember, AttendanceStaffPayload } from '@/types/staff-attendance'
+import type { AttendanceStaffMember, AttendanceStaffPayload, StaffAccountInput } from '@/types/staff-attendance'
 import { extractValidationMessages } from '@/lib/admin/staff-attendance.utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -43,7 +43,11 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
   const [showImport, setShowImport] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<AttendanceStaffMember | null>(null)
-  const [form, setForm] = useState({ firstName: '', lastName: '', jobTitle: '', scheduleId: '', accountId: '' })
+  const emptyForm = {
+    firstName: '', lastName: '', jobTitle: '', scheduleId: '', accountId: '',
+    createAccount: false, email: '', password: '', phone: '', role: 'TEACHER' as StaffAccountInput['role'],
+  }
+  const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [validationDetails, setValidationDetails] = useState<string[]>([])
   const [confirmTarget, setConfirmTarget] = useState<{ member: AttendanceStaffMember; action: 'deactivate' | 'reactivate' } | null>(null)
@@ -95,7 +99,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
 
   function openCreate() {
     setEditing(null)
-    setForm({ firstName: '', lastName: '', jobTitle: '', scheduleId: schedules[0] ? String(schedules[0].id) : '', accountId: '' })
+    setForm({ ...emptyForm, scheduleId: schedules[0] ? String(schedules[0].id) : '' })
     setError('')
     setValidationDetails([])
     setShowForm(true)
@@ -104,6 +108,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
   function openEdit(m: AttendanceStaffMember) {
     setEditing(m)
     setForm({
+      ...emptyForm,
       firstName: m.firstName,
       lastName: m.lastName,
       jobTitle: m.jobTitle ?? '',
@@ -129,7 +134,16 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
       scheduleId: Number(form.scheduleId),
       // `null` explicite en édition pour pouvoir délier un compte déjà rattaché ; `undefined`
       // à la création quand aucun compte n'est choisi, pour ne pas envoyer le champ.
-      userId: form.accountId ? Number(form.accountId) : editing ? null : undefined,
+      userId: !editing && form.createAccount ? undefined : form.accountId ? Number(form.accountId) : editing ? null : undefined,
+      account:
+        !editing && form.createAccount
+          ? {
+              email: form.email.trim(),
+              password: form.password,
+              role: form.role,
+              phone: form.phone.trim() || undefined,
+            }
+          : undefined,
     }
     try {
       if (editing) {
@@ -381,6 +395,65 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
                   ))}
                 </select>
               </div>
+              {!editing && (
+                <div className="rounded-xl border border-zinc-200 p-3 space-y-3">
+                  <label className="flex items-start gap-2 text-sm text-zinc-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.createAccount}
+                      onChange={(e) => setForm((f) => ({ ...f, createAccount: e.target.checked, accountId: '' }))}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      Créer aussi un compte de connexion
+                      <span className="block text-[11px] text-zinc-400">
+                        L&apos;employé apparaît dans « Personnel » avec un accès à l&apos;application. Sinon, il y apparaît quand même, sans compte.
+                      </span>
+                    </span>
+                  </label>
+                  {form.createAccount && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                          placeholder="E-mail"
+                          required
+                          className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm"
+                        />
+                        <select
+                          value={form.role}
+                          onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as StaffAccountInput['role'] }))}
+                          className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm bg-white"
+                        >
+                          <option value="TEACHER">Enseignant</option>
+                          <option value="FINANCE">Finance</option>
+                          <option value="DIRECTOR">Directeur</option>
+                          <option value="IT">Informatique</option>
+                          <option value="MANAGER">Gérant</option>
+                        </select>
+                      </div>
+                      <input
+                        type="password"
+                        value={form.password}
+                        onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                        placeholder="Mot de passe (12 car. min., maj., min., chiffre, @$!%*?&)"
+                        required
+                        minLength={12}
+                        className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm"
+                      />
+                      <input
+                        value={form.phone}
+                        onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                        placeholder="Téléphone (optionnel)"
+                        className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+              {(editing || !form.createAccount) && (
               <div>
                 <label className="block text-xs font-medium text-zinc-600 mb-1">Compte de connexion lié (optionnel)</label>
                 <select
@@ -400,6 +473,7 @@ export function StaffPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: numbe
                   employé pointé uniquement (ex. gardien sans accès à l'application).
                 </p>
               </div>
+              )}
               <FormErrorBlock message={error} details={validationDetails} />
               <div className="flex gap-3 pt-2">
                 <button
