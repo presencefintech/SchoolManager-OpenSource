@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.schoolmanager.app",
+      "sha256_cert_fingerprints": [
+        "60:14:80:C5:8E:8B:75:CA:CE:A1:FF:C6:D6:6E:B3:B6:FA:A6:2E:F3:EB:36:C6:C2:6B:BD:4E:D5:A9:DC:B6:01"
+      ]
+    }
+  }
+]

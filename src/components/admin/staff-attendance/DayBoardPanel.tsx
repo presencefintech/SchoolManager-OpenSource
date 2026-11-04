@@ -1,0 +1,194 @@
+'use client'
+
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Calendar, CheckCheck, Search, Users } from 'lucide-react'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { cn } from '@/lib/utils'
+import { staffAttendanceApi, staffAttendanceKeys } from '@/lib/admin/api/staff-attendance.api'
+import type { StaffDayStatus } from '@/types/staff-attendance'
+import { STAFF_DAY_STATUS_LABEL, STAFF_DAY_STATUS_STYLE, formatInstantHHMM, todayDateValue } from '@/lib/admin/staff-attendance.utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { StaffDayStatusBadge } from './StaffDayStatusBadge'
+
+const COUNT_TILES: StaffDayStatus[] = ['PRESENT', 'LATE', 'ABSENT', 'ON_LEAVE', 'ON_MISSION', 'REST', 'EXPECTED']
+
+export function DayBoardPanel({ onOpenCalendar }: { onOpenCalendar: (staffId: number) => void }) {
+  const [date, setDate] = useState(todayDateValue())
+  const [search, setSearch] = useState('')
+  const qc = useQueryClient()
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkReason, setBulkReason] = useState('')
+  const [bulkError, setBulkError] = useState('')
+  const [bulkPending, setBulkPending] = useState(false)
+
+  const dayQuery = useQuery({
+    queryKey: staffAttendanceKeys.day(date),
+    queryFn: () => staffAttendanceApi.getDay(date),
+    staleTime: 15_000,
+  })
+
+  const day = dayQuery.data
+
+  // Employés sans présence enregistrée ce jour-là (ni congé, ni mission, ni repos) : cibles de « Tout marquer présent ».
+  const toMark = day ? day.staff.filter((s) => s.day.status === 'ABSENT' || s.day.status === 'EXPECTED') : []
+
+  async function markAllPresent() {
+    setBulkError('')
+    const reasonText = bulkReason.trim()
+    const results = await Promise.allSettled(
+      toMark.map((s) => staffAttendanceApi.putCorrection(s.id, date, { mode: 'PRESENT', reason: reasonText })),
+    )
+    const failed = results
+      .map((r, i) => (r.status === 'rejected' ? `${toMark[i].firstName} ${toMark[i].lastName} : ${getApiErrorMessage(r.reason)}` : null))
+      .filter((m): m is string => m != null)
+    qc.invalidateQueries({ queryKey: ['staff-attendance'] })
+    if (failed.length > 0) {
+      setBulkError(`${toMark.length - failed.length} marqué(s), ${failed.length} en échec — ${failed.join(' ; ')}`)
+      return
+    }
+    setBulkOpen(false)
+    setBulkReason('')
+  }
+
+  const q = search.trim().toLowerCase()
+  const filteredStaff = day
+    ? q
+      ? day.staff.filter((s) => `${s.firstName} ${s.lastName} ${s.jobTitle ?? ''}`.toLowerCase().includes(q))
+      : day.staff
+    : []
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-800">Tableau du jour</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Les journées sont recalculées à chaque lecture — toujours à jour.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher…"
+              className="pl-8 pr-3 py-2 w-40 rounded-xl border border-zinc-200 text-sm"
+            />
+          </div>
+          <div className="relative">
+            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              max={todayDateValue()}
+              className="pl-9 pr-3 py-2 rounded-xl border border-zinc-200 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => { setBulkOpen(true); setBulkError('') }}
+            disabled={toMark.length === 0}
+            title={toMark.length === 0 ? 'Tout le monde a déjà un statut pour ce jour' : undefined}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:bg-zinc-200 disabled:text-zinc-400"
+          >
+            <CheckCheck size={14} /> Tout marquer présent{toMark.length > 0 ? ` (${toMark.length})` : ''}
+          </button>
+        </div>
+      </div>
+
+      {dayQuery.isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}
+        </div>
+      ) : day ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {COUNT_TILES.map((status) => (
+            <div key={status} className="bg-white rounded-2xl border border-zinc-100 px-4 py-3 shadow-sm">
+              <p className={cn('text-[11px] font-medium rounded-full inline-block px-2 py-0.5', STAFF_DAY_STATUS_STYLE[status])}>
+                {STAFF_DAY_STATUS_LABEL[status]}
+              </p>
+              <p className="text-xl font-bold text-zinc-900 leading-none tabular-nums mt-2">{day.counts[status] ?? 0}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
+        {dayQuery.isLoading ? (
+          <div className="p-6 space-y-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+        ) : !day || filteredStaff.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-2 text-sm text-zinc-400">
+            <Users size={28} className="text-zinc-200" />
+            {q ? 'Aucun résultat pour cette recherche' : 'Aucun employé'}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-4 py-3">Employé</th>
+                  <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-4 py-3">Fonction</th>
+                  <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-4 py-3">Arrivée</th>
+                  <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-4 py-3">Départ</th>
+                  <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-4 py-3">Statut</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50">
+                {filteredStaff.map((s) => (
+                  <tr key={s.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => onOpenCalendar(s.id)}
+                        className="text-sm font-medium text-zinc-900 hover:text-emerald-700 hover:underline"
+                      >
+                        {s.firstName} {s.lastName}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-zinc-500">{s.jobTitle || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700 tabular-nums">{formatInstantHHMM(s.day.arrivalAt)}</td>
+                    <td className="px-4 py-3 text-sm text-zinc-700 tabular-nums">{formatInstantHHMM(s.day.departureAt)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        <StaffDayStatusBadge status={s.day.status} />
+                        {s.day.corrected && (
+                          <span
+                            title={s.day.correction?.reason}
+                            className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-violet-50 text-violet-700"
+                          >
+                            corrigé
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={bulkOpen}
+        title="Marquer tout le monde présent ?"
+        description={`${toMark.length} employé(s) sans présence enregistrée le ${date} seront marqués présents (correction « Présent »). Les congés, missions et repos ne sont pas touchés.`}
+        impact={bulkError ? [bulkError] : []}
+        confirmLabel="Marquer présents"
+        reasonLabel="Motif"
+        reasonPlaceholder="Ex. terminal en panne, journée complète validée…"
+        reason={bulkReason}
+        onReasonChange={setBulkReason}
+        confirmDisabled={bulkReason.trim().length < 3}
+        loading={bulkPending}
+        onConfirm={async () => {
+          setBulkPending(true)
+          try { await markAllPresent() } finally { setBulkPending(false) }
+        }}
+        onCancel={() => { setBulkOpen(false); setBulkReason(''); setBulkError('') }}
+      />
+    </div>
+  )
+}

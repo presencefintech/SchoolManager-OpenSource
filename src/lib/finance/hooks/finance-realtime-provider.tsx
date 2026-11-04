@@ -1,0 +1,66 @@
+'use client'
+
+import { createContext, useContext, type ReactNode } from 'react'
+import {
+  EmpireRealtimeProvider,
+  useEmpireRealtimeContext,
+  useEmpireRealtimeStatus,
+} from '@/lib/realtime/empire-realtime-provider'
+import type { EmpireRealtimeStatus } from '@/lib/realtime/use-empire-realtime'
+
+type FinanceRealtimeContextValue = {
+  status: EmpireRealtimeStatus
+  lastUpdate: Date | null
+  refreshFinance: () => void
+  recentCashActivity: import('@/types/admin').CashActivityRealtimeItem[]
+}
+
+const FinanceRealtimeContext = createContext<FinanceRealtimeContextValue | null>(null)
+
+const OFFLINE_FINANCE: FinanceRealtimeContextValue = {
+  status: 'offline',
+  lastUpdate: null,
+  refreshFinance: () => {},
+  recentCashActivity: [],
+}
+
+function FinanceRealtimeBridge({ children }: { children: ReactNode }) {
+  const empire = useEmpireRealtimeStatus()
+  const value: FinanceRealtimeContextValue = {
+    status: empire.status,
+    lastUpdate: empire.lastUpdate,
+    refreshFinance: empire.refreshFinance,
+    recentCashActivity: empire.recentCashActivity,
+  }
+  return (
+    <FinanceRealtimeContext.Provider value={value}>{children}</FinanceRealtimeContext.Provider>
+  )
+}
+
+/** Utilise EmpireRealtimeProvider existant ou en crée un (layout finance standalone). */
+export function FinanceRealtimeProvider({ children }: { children: ReactNode }) {
+  const existing = useEmpireRealtimeContext()
+  if (existing) {
+    return <FinanceRealtimeBridge>{children}</FinanceRealtimeBridge>
+  }
+  return (
+    <EmpireRealtimeProvider>
+      <FinanceRealtimeBridge>{children}</FinanceRealtimeBridge>
+    </EmpireRealtimeProvider>
+  )
+}
+
+export function useFinanceRealtimeStatus() {
+  const ctx = useContext(FinanceRealtimeContext)
+  const empire = useEmpireRealtimeContext()
+  if (ctx) return ctx
+  if (empire) {
+    return {
+      status: empire.status,
+      lastUpdate: empire.lastUpdate,
+      refreshFinance: empire.refreshFinance,
+      recentCashActivity: empire.recentCashActivity,
+    }
+  }
+  return OFFLINE_FINANCE
+}

@@ -1,0 +1,464 @@
+import axios from 'axios'
+import { apiClient } from '@/lib/api/client'
+import {
+  normalizeEnrollmentDetail,
+  normalizeEnrollmentListItem,
+} from '@/lib/admin/normalizers'
+import {
+  isExportContentType,
+  parseContentDispositionFilename,
+  readBlobErrorMessage,
+} from '@/lib/download-blob'
+import { idempotencyHeaders, newIdempotencyKey } from '@/lib/idempotency'
+import type {
+  EnrollmentListItem,
+  CreateEnrollmentPayload,
+  PaginatedResponse,
+  SessionEnrollment,
+} from '@/types/admin'
+
+export const enrollmentsApi = {
+  list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+    apiClient.get<{ success: boolean; data: { data?: unknown[]; meta?: Record<string, unknown> } }>('/admin/enrollments', { params })
+      .then((r) => {
+        const raw = r.data.data
+        const items = (raw?.data ?? []).map((s) => normalizeEnrollmentListItem(s as Record<string, unknown>))
+        return {
+          data: items,
+          total: Number(raw?.meta?.total ?? 0),
+          totalPages: Number(raw?.meta?.totalPages ?? 1),
+          page: Number(raw?.meta?.page ?? 1),
+          limit: Number(raw?.meta?.limit ?? params?.limit ?? 25),
+        } satisfies PaginatedResponse<EnrollmentListItem>
+      }),
+
+  listByClass: (classId: number) =>
+    apiClient.get<{ success: boolean; data: unknown[] }>(`/admin/enrollments/class/${classId}`)
+      .then((r) => (r.data.data ?? []).map((s) => normalizeEnrollmentListItem(s as Record<string, unknown>))),
+
+  getDetail: (studentId: number) =>
+    apiClient.get<{ success: boolean; data: Record<string, unknown> }>(`/admin/enrollments/${studentId}`)
+      .then((r) => normalizeEnrollmentDetail(r.data.data)),
+
+  create: (payload: CreateEnrollmentPayload & { idempotencyKey?: string }) => {
+    const { idempotencyKey, ...payloadRest } = payload
+    const body = Object.fromEntries(
+      Object.entries({
+        ...payloadRest,
+        feesPaid: payloadRest.feesPaid ?? 0,
+      }).filter(([, v]) => v !== undefined && v !== '' && !(typeof v === 'number' && Number.isNaN(v))),
+    )
+    const key = idempotencyKey?.trim() || newIdempotencyKey('enroll')
+    return apiClient
+      .post<{ success: boolean; data: Record<string, unknown>; message?: string }>('/admin/enrollments', body, {
+        headers: idempotencyHeaders(key),
+        timeout: 30_000,
+      })
+      .then((r) => {
+        const data = r.data.data ?? {}
+        const student = (data.student as Record<string, unknown> | undefined) ?? data
+        return {
+          ...normalizeEnrollmentDetail(student),
+          deposit: data.deposit as
+            | { paymentId: number; amount: number; currency: string; reference: string | null }
+            | undefined,
+          depositWarning: data.depositWarning as string | undefined,
+          explicitFeePack: data.explicitFeePack as
+            | { assigned: number[]; skipped: Array<{ feeStructureId: number; reason: string }> }
+            | undefined,
+          explicitFeePackPending: data.explicitFeePackPending as boolean | undefined,
+          serverMessage: r.data.message,
+          idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
+        }
+      })
+  },
+
+  update: (studentId: number, payload: Partial<CreateEnrollmentPayload>) =>
+    apiClient.put<{ success: boolean; data: Record<string, unknown> }>(`/admin/enrollments/${studentId}`, payload)
+      .then((r) => normalizeEnrollmentDetail(r.data.data)),
+
+  approve: (studentId: number) =>
+    apiClient
+      .post<{
+        success: boolean
+        data: {
+          matricule?: string
+          message?: string
+          explicitFeePack?: {
+            assigned: number[]
+            skipped: Array<{ feeStructureId: number; reason: string }>
+          }
+        }
+        message?: string
+      }>(`/admin/enrollments/${studentId}/approve`)
+      .then((r) => r.data),
+
+  reject: (studentId: number, reason: string) =>
+    apiClient
+      .post<{ success: boolean; data: { message?: string }; message?: string }>(
+        `/admin/enrollments/${studentId}/reject`,
+        { reason },
+      )
+      .then((r) => r.data),
+
+  finalize: (studentId: number) =>
+    apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/finalize`)
+      .then((r) => r.data),
+
+  transfer: (studentId: number, targetSchoolId: number, newClassId?: number) =>
+    apiClient.post<{ success: boolean }>(`/admin/enrollments/${studentId}/transfer`, { targetSchoolId, newClassId })
+      .then((r) => r.data),
+
+  updateBiometrics: (studentId: number, formData: FormData) =>
+    apiClient
+      .put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics`, formData, {
+        timeout: 60_000,
+      })
+      .then((r) => r.data),
+
+  updateFingerprintBiometrics: (studentId: number, payload: { fingerprintVector: number[] }) =>
+    apiClient.put<{ success: boolean }>(`/admin/enrollments/${studentId}/biometrics/fingerprint`, payload)
+      .then((r) => r.data),
+
+  toggleLock: (studentId: number, isLocked: boolean) =>
+    apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/toggle-lock`, { isLocked })
+      .then((r) => r.data),
+
+  promote: (studentId: number, newClassId: number) =>
+    apiClient.patch<{ success: boolean }>(`/admin/enrollments/${studentId}/promote`, { newClassId })
+      .then((r) => r.data),
+
+  /** `paused: true` → suspend ~30 jours ; `false` → reprendre (until null). */
+  setReminderPause: (studentId: number, paused: boolean) => {
+    const until = paused
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : null
+    return apiClient
+      .patch<{ success: boolean }>(`/admin/enrollments/${studentId}/reminder-pause`, { until })
+      .then((r) => r.data)
+  },
+
+  purge: (studentId: number, confirmationToken: string) =>
+    apiClient.delete<{ success: boolean }>(`/admin/enrollments/${studentId}/purge`, {
+      data: { confirmationToken },
+    }).then((r) => r.data),
+
+  faceSearch: (imageBase64: string) =>
+    apiClient.post<{ success: boolean; data: unknown }>('/admin/enrollments/face-search', { image: imageBase64 })
+      .then((r) => r.data.data),
+
+  listSessions: () =>
+    apiClient.get<{ success: boolean; data: Array<{ id: number; label: string; isCurrent: boolean; status: string }> }>('/admin/enrollments/sessions')
+      .then((r) => r.data.data ?? []),
+
+  openSession: (label?: string) =>
+    apiClient
+      .post<{ success: boolean; data: { id: number; label: string } }>('/admin/enrollments/sessions', label ? { label } : {})
+      .then((r) => r.data.data),
+
+  getFeePreview: (params: {
+    classId: number
+    sessionId?: number
+    studentId?: number
+    explicitFeeStructureIds?: number[]
+    studentCategory?: string
+    scholarshipPercent?: number
+    customCategoryLabel?: string
+    studentFeeCategoryIds?: number[]
+  }) => {
+    const {
+      classId,
+      sessionId,
+      studentId,
+      explicitFeeStructureIds,
+      studentCategory,
+      scholarshipPercent,
+      customCategoryLabel,
+      studentFeeCategoryIds,
+    } = params
+    return apiClient
+      .get<{ success: boolean; data: import('@/types/admin').EnrollmentFeePreview }>(
+        '/admin/enrollments/fee-preview',
+        {
+          params: {
+            classId,
+            ...(sessionId != null ? { sessionId } : {}),
+            ...(studentId != null ? { studentId } : {}),
+            ...(explicitFeeStructureIds?.length
+              ? { explicitFeeStructureIds: explicitFeeStructureIds.join(',') }
+              : {}),
+            ...(studentFeeCategoryIds?.length
+              ? { studentFeeCategoryIds: studentFeeCategoryIds.join(',') }
+              : {}),
+            ...(studentCategory ? { studentCategory } : {}),
+            ...(scholarshipPercent != null && !Number.isNaN(scholarshipPercent)
+              ? { scholarshipPercent }
+              : {}),
+            ...(customCategoryLabel != null && customCategoryLabel !== ''
+              ? { customCategoryLabel }
+              : {}),
+          },
+        },
+      )
+      .then((r) => r.data.data)
+  },
+
+  getIntakeInbox: (params?: { kind?: string; page?: number; limit?: number }) =>
+    apiClient
+      .get<{
+        success: boolean
+        data: {
+          items: Array<{
+            kind: 'PRE_ENROLLMENT' | 'STUDENT_APPLICATION' | 'PENDING_ENROLLMENT'
+            id: number
+            status: string
+            studentName: string
+            className: string | null
+            classId: number | null
+            createdAt: string
+            href: string
+          }>
+          meta: {
+            total: number
+            page: number
+            limit: number
+            totalPages: number
+            byKind: Record<string, number>
+          }
+        }
+      }>('/admin/enrollments/inbox', { params })
+      .then((r) => r.data.data),
+
+  applyRentreePack: (
+    studentId: number,
+    payload: {
+      sessionId?: number
+      classId?: number
+      feesPaid?: number
+      collectDeposit?: boolean
+      paymentNotes?: string
+      type?: string
+      explicitFeeStructureIds?: number[]
+      autoAssignExplicitFees?: boolean
+      idempotencyKey?: string
+    },
+  ) => {
+    const { idempotencyKey, ...body } = payload
+    const key = idempotencyKey?.trim() || newIdempotencyKey('rentree')
+    return apiClient
+      .post<{ success: boolean; data: Record<string, unknown>; message?: string }>(
+        `/admin/enrollments/${studentId}/rentree-pack`,
+        body,
+        { headers: idempotencyHeaders(key), timeout: 30_000 },
+      )
+      .then((r) => ({
+        ...(r.data.data ?? {}),
+        serverMessage: r.data.message,
+        idempotencyReplayed: r.headers?.['idempotency-replayed'] === 'true',
+      }))
+  },
+
+  enrollInSession: (
+    studentId: number,
+    payload: {
+      sessionId: number
+      classId?: number
+      type?: string
+      autoAssignExplicitFees?: boolean
+      explicitFeeStructureIds?: number[]
+    },
+  ) =>
+    apiClient.post<{
+      success: boolean
+      data: {
+        explicitFeePack?: {
+          assigned: number[]
+          skipped?: Array<{ feeStructureId: number; reason: string }>
+        }
+      } & Record<string, unknown>
+    }>(`/admin/enrollments/${studentId}/sessions`, payload)
+      .then((r) => r.data.data),
+
+  updateAdministrativeProfile: (studentId: number, payload: Record<string, unknown>) =>
+    apiClient.patch<{ success: boolean; data: unknown }>(`/admin/enrollments/${studentId}/admin-profile`, payload)
+      .then((r) => r.data.data),
+
+  downloadStudentCardPdf: (studentId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/card/pdf`, {
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `carte-eleve-${studentId}.pdf`,
+    ),
+
+  downloadClassCardsPdf: (classId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/cards/pdf`, {
+        responseType: 'blob',
+        timeout: 90_000,
+      }),
+      `cartes-classe-${classId}.pdf`,
+    ),
+
+  downloadBatchCardsPdf: (studentIds: number[]) =>
+    fetchStudentCardsPdf(
+      apiClient.post<Blob>(
+        '/admin/enrollments/cards/pdf',
+        { studentIds },
+        { responseType: 'blob', timeout: 90_000 },
+      ),
+      `cartes-eleves.pdf`,
+    ),
+
+  downloadEnrollmentCertificatePdf: (studentId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/certificate/pdf`, {
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `attestation-scolarite-${studentId}.pdf`,
+    ),
+
+  downloadStudentFichePdf: (studentId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/fiche/pdf`, {
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `fiche-inscription-${studentId}.pdf`,
+    ),
+
+  downloadAttendanceCertificatePdf: (studentId: number, params?: { from?: string; to?: string }) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/attendance-certificate/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `justificatif-presence-${studentId}.pdf`,
+    ),
+
+  downloadExitCertificatePdf: (
+    studentId: number,
+    params?: {
+      reason?: string
+      destination?: string
+      destinationCity?: string
+      exitDate?: string
+      observations?: string
+      nothingToReport?: string
+    },
+  ) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/exit-certificate/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `certificat-radiation-${studentId}.pdf`,
+    ),
+
+  downloadParentSummonsPdf: (
+    studentId: number,
+    params?: {
+      reason?: string
+      meetingDate?: string
+      meetingTime?: string
+      location?: string
+      note?: string
+    },
+  ) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/parent-summons/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `convocation-${studentId}.pdf`,
+    ),
+
+  downloadExitPassPdf: (
+    studentId: number,
+    params?: {
+      reason?: string
+      exitDate?: string
+      timeFrom?: string
+      timeTo?: string
+      destination?: string
+      companion?: string
+      unaccompanied?: string
+      parentVisa?: string
+      pickerKind?: string
+      pickerName?: string
+      pickerPhone?: string
+      pickerIdNumber?: string
+      pickerRelation?: string
+      note?: string
+    },
+  ) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/${studentId}/exit-pass/pdf`, {
+        params,
+        responseType: 'blob',
+        timeout: 60_000,
+      }),
+      `autorisation-sortie-${studentId}.pdf`,
+    ),
+
+  downloadClassCertificatesPdf: (classId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/certificates/pdf`, {
+        responseType: 'blob',
+        timeout: 120_000,
+      }),
+      `attestations-classe-${classId}.pdf`,
+    ),
+
+  /** ZIP des fiches d'inscription PDF — élèves ACTIVE de la classe (80 max côté backend). */
+  downloadClassFichesZip: (classId: number) =>
+    fetchStudentCardsPdf(
+      apiClient.get<Blob>(`/admin/enrollments/class/${classId}/fiches/zip`, {
+        responseType: 'blob',
+        timeout: 180_000,
+      }),
+      `fiches-inscription-classe-${classId}.zip`,
+      'zip',
+    ),
+
+  revokeIssuedDocument: (payload: { documentRef: string; reason?: string }) =>
+    apiClient
+      .post<{ success: boolean; data: { documentRef: string; revokedAt: string } }>(
+        '/admin/enrollments/documents/revoke',
+        payload,
+      )
+      .then((r) => r.data.data),
+}
+
+async function fetchStudentCardsPdf(
+  request: Promise<{ data: Blob; headers: Record<string, unknown> }>,
+  fallbackFilename: string,
+  format: 'pdf' | 'zip' = 'pdf',
+): Promise<{ blob: Blob; filename: string }> {
+  try {
+    const res = await request
+    const contentType = res.headers['content-type'] as string | undefined
+    if (!isExportContentType(contentType, format)) {
+      throw new Error(await readBlobErrorMessage(res.data))
+    }
+    return {
+      blob: res.data,
+      filename: parseContentDispositionFilename(
+        res.headers['content-disposition'] as string | undefined,
+        fallbackFilename,
+      ),
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      throw new Error(await readBlobErrorMessage(error.response.data))
+    }
+    throw error
+  }
+}
+
+export type { SessionEnrollment }

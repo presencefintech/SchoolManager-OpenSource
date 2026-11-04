@@ -1,0 +1,633 @@
+'use client'
+
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import {
+  GraduationCap, CheckCircle, XCircle, Clock,
+  ChevronLeft, ChevronRight, User, AlertTriangle, Wallet, ImagePlus,
+} from 'lucide-react'
+import { NumeroCourtBadge } from '@/components/students/NumeroCourtBadge'
+import { NumeroCourtBackfillBanner } from '@/components/admin/students/numero-court-backfill-banner'
+import { cn } from '@/lib/utils'
+import { formatStudentFullName } from '@/lib/utils/student-name.util'
+import {
+  useStudents, useStudentDashboard, useClasses,
+  useStudentApplications, useApproveApplication, useRejectApplication, useDebtors, useArchiveStudent,
+} from '@/lib/hooks/use-admin'
+import { useSchoolMoney } from '@/lib/finance/use-school-money'
+import { AdminMultiCriteriaSearch } from '@/components/admin/shared/admin-multi-criteria-search'
+import { useMultiCriteriaSearch } from '@/lib/hooks/use-multi-criteria-search'
+import { StudentFinanceBadges } from '@/components/admin/students/student-finance-badges'
+import { ParentActivationButton } from '@/components/admin/students/ParentActivationButton'
+import { RowActionsMenu } from '@/components/admin/shared/row-actions-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useToast } from '@/providers/toast-provider'
+import { useAuth } from '@/providers/auth-provider'
+import { isItDesk, canItManageStudentOps } from '@/types/auth'
+import { enrollmentsApi } from '@/lib/admin/api/enrollments.api'
+import { getApiErrorMessage } from '@/lib/api/client'
+import { triggerBlobDownload } from '@/lib/download-blob'
+import { printPdfBlob } from '@/lib/finance/download-blob'
+import type { StudentListItem } from '@/types/admin'
+
+const STUDENT_FILTER_DEFAULTS = { search: '', status: '', classId: '' }
+
+function Sk({ className }: { className?: string }) {
+  return <div className={cn('rounded-xl bg-zinc-100 animate-pulse', className)} />
+}
+
+const STATUS_CFG: Record<string, { label: string; cls: string }> = {
+  ACTIVE:     { label: 'Actif',        cls: 'bg-emerald-50 text-emerald-600' },
+  INACTIVE:   { label: 'Inactif',      cls: 'bg-zinc-100 text-zinc-500' },
+  SUSPENDED:  { label: 'Suspendu',     cls: 'bg-red-50 text-red-700' },
+  PRE_ENROLL: { label: 'Pré-inscrit',  cls: 'bg-indigo-50 text-indigo-700' },
+}
+
+const APP_STATUS_CFG: Record<string, { label: string; cls: string }> = {
+  PENDING:  { label: 'En attente', cls: 'bg-amber-50 text-amber-700' },
+  APPROVED: { label: 'Approuvé',   cls: 'bg-emerald-50 text-emerald-700' },
+  REJECTED: { label: 'Refusé',     cls: 'bg-red-50 text-red-700' },
+}
+
+type Tab = 'list' | 'applications' | 'debtors'
+
+function StudentsPageInner() {
+  const { format: formatMoney } = useSchoolMoney()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const toast = useToast()
+  const { user } = useAuth()
+  const deskOnly = isItDesk(user?.role)
+  const canMediaOps = canItManageStudentOps(user?.role)
+  const [tab, setTab] = useState<Tab>('list')
+  const {
+    draft: filterDraft,
+    applied: filters,
+    setField: setFilterField,
+    apply: applyFilters,
+    applyValues,
+    reset: resetFilters,
+    removeFilter,
+  } = useMultiCriteriaSearch(STUDENT_FILTER_DEFAULTS)
+  const [page, setPage] = useState(1)
+
+  // Click-to-search depuis badge N° Court : `/admin/students?q=104` (soft nav)
+  const urlQ = (searchParams.get('q') ?? searchParams.get('search') ?? '').trim()
+  useEffect(() => {
+    if (!urlQ) return
+    if (String(filters.search ?? '') === urlQ) return
+    applyValues({ ...STUDENT_FILTER_DEFAULTS, search: urlQ })
+    setPage(1)
+    setTab('list')
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync URL → filters only when q changes
+  }, [urlQ])
+  const [appFilter, setAppFilter] = useState<string>('PENDING')
+  const [rejectId, setRejectId] = useState<number | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [archiveTarget, setArchiveTarget] = useState<StudentListItem | null>(null)
+  const archiveMutation = useArchiveStudent()
+
+  const limit = 20
+  const { data: dashboard } = useStudentDashboard()
+  const { data: classes = [] } = useClasses()
+  const { data: studentsData, isLoading: loadingStudents } = useStudents({
+    search: filters.search ? String(filters.search) : undefined,
+    status: filters.status ? String(filters.status) : undefined,
+    classId: filters.classId ? Number(filters.classId) : undefined,
+    page,
+    limit,
+  })
+  const { data: applications, isLoading: loadingApps } = useStudentApplications({ status: appFilter })
+  const applicationItems = applications?.data ?? []
+  const approveMutation = useApproveApplication()
+  const rejectMutation = useRejectApplication()
+  const { data: debtors = [], isLoading: loadingDebtors } = useDebtors()
+
+  function handleApplyFilters() {
+    applyFilters()
+    setPage(1)
+  }
+
+  function handleResetFilters() {
+    resetFilters()
+    setPage(1)
+  }
+
+  const filterChips = useMemo(() => {
+    const chips: { id: string; label: string }[] = []
+    if (filters.search) chips.push({ id: 'search', label: `Texte : ${filters.search}` })
+    if (filters.status) {
+      const label = STATUS_CFG[filters.status as string]?.label ?? filters.status
+      chips.push({ id: 'status', label: `Statut : ${label}` })
+    }
+    if (filters.classId) {
+      const name = classes.find((c) => c.id === Number(filters.classId))?.name ?? filters.classId
+      chips.push({ id: 'classId', label: `Classe : ${name}` })
+    }
+    return chips
+  }, [filters, classes])
+
+  const stats = dashboard?.stats
+  const students: StudentListItem[] = studentsData?.data ?? []
+  const totalPages = studentsData?.totalPages ?? 1
+  const total = studentsData?.total ?? 0
+
+  async function handleApprove(id: number) {
+    await approveMutation.mutateAsync(id)
+  }
+
+  async function handleArchive() {
+    if (!archiveTarget) return
+    try {
+      await archiveMutation.mutateAsync(archiveTarget.id)
+      toast.success('Élève archivé', 'Restaurable depuis « Doublons & corbeille ».')
+      setArchiveTarget(null)
+    } catch (error) {
+      toast.error('Archivage impossible', getApiErrorMessage(error))
+    }
+  }
+
+  async function handleReject() {
+    if (rejectId === null) return
+    await rejectMutation.mutateAsync({ id: rejectId, reason: rejectReason || undefined })
+    setRejectId(null)
+    setRejectReason('')
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-50">
+      <motion.div
+        className="bg-white border-b border-zinc-200"
+        initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+      >
+        <div className="max-w-6xl mx-auto px-8 py-6 flex flex-wrap items-end justify-between gap-3">
+          <h1 className="text-2xl font-semibold text-zinc-900">Élèves</h1>
+          {canMediaOps && (
+            <Link
+              href="/admin/students/batch-photos"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+            >
+              <ImagePlus size={13} />
+              Import batch photos
+            </Link>
+          )}
+        </div>
+      </motion.div>
+
+      <div className="max-w-6xl mx-auto px-8 py-6 space-y-5">
+
+        <NumeroCourtBackfillBanner />
+
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Total', value: stats.total, icon: GraduationCap, color: 'indigo' },
+              { label: 'Actifs', value: stats.active, icon: CheckCircle, color: 'emerald' },
+              { label: 'Inactifs', value: stats.inactive, icon: XCircle, color: 'zinc' },
+              { label: 'Suspendu', value: stats.suspended, icon: AlertTriangle, color: 'red' },
+            ].map(({ label, value, icon: Icon, color }) => (
+              <div key={label} className="bg-white rounded-xl border border-zinc-200 px-4 py-3 flex items-center gap-3">
+                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center',
+                  color === 'indigo' ? 'bg-indigo-50 text-indigo-600' :
+                  color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
+                  color === 'red' ? 'bg-red-50 text-red-600' : 'bg-zinc-100 text-zinc-500'
+                )}>
+                  <Icon size={15} />
+                </div>
+                <div>
+                  <p className="text-[11px] text-zinc-400 uppercase tracking-wide">{label}</p>
+                  <p className="text-lg font-bold text-zinc-900 leading-none tabular-nums">
+                    {typeof value === 'number' ? value : '—'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
+          {([['list', 'Liste'], ['applications', 'Candidatures'], ...(!deskOnly ? [['debtors', 'Débiteurs'] as [Tab, string]] : [])] as [Tab, string][]).map(([t, label]) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                'px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                tab === t ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'list' && (
+          <div className="space-y-4">
+            <AdminMultiCriteriaSearch
+              title="Rechercher un élève"
+              primaryPlaceholder="Nom, N° Court, matricule, téléphone…"
+              values={filterDraft}
+              onChange={(id, value) => setFilterField(id as keyof typeof STUDENT_FILTER_DEFAULTS, value)}
+              onApply={handleApplyFilters}
+              onReset={handleResetFilters}
+              activeChips={filterChips}
+              onRemoveChip={(id) => {
+                removeFilter(id as keyof typeof STUDENT_FILTER_DEFAULTS)
+                setPage(1)
+              }}
+              resultCount={total}
+              loading={loadingStudents}
+              fields={[
+                {
+                  id: 'status',
+                  type: 'select',
+                  label: 'Statut',
+                  options: Object.entries(STATUS_CFG).map(([value, { label }]) => ({ value, label })),
+                },
+                {
+                  id: 'classId',
+                  type: 'select',
+                  label: 'Classe',
+                  options: classes.map((c) => ({ value: String(c.id), label: c.name })),
+                },
+              ]}
+            />
+
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+              {loadingStudents ? (
+                <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
+              ) : students.length > 0 ? (
+                <>
+                  {/* min-w : sur écran étroit le tableau défile au lieu d'écraser la colonne Élève */}
+                  <div className="overflow-x-auto">
+                  <table className="w-full min-w-[820px]">
+                    <thead>
+                      <tr className="border-b border-zinc-100">
+                        <th className="min-w-[280px] text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Élève</th>
+                        <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Classe</th>
+                        <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Statut</th>
+                        <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Matricule</th>
+                        <th className="px-5 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-50">
+                      {students.map((s) => {
+                        const sc = STATUS_CFG[s.status] ?? { label: s.status, cls: 'bg-zinc-100 text-zinc-500' }
+                        return (
+                          <tr key={s.id} className="hover:bg-zinc-50 transition-colors">
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                                  <User size={12} className="text-emerald-600" />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                                    {/* Nom complet sur une seule ligne (pas de coupure « Marie- / Claire ») ; le tableau défile si besoin */}
+                                    <p className="whitespace-nowrap text-sm font-medium leading-snug text-zinc-900">
+                                      {formatStudentFullName(s) || `Élève #${s.id}`}
+                                    </p>
+                                    <NumeroCourtBadge numeroCourt={s.numeroCourt} size="sm" navigateOnClick={false} />
+                                  </div>
+                                  <StudentFinanceBadges
+                                    className="mt-0.5"
+                                    debtAmount={s.debtAmount}
+                                    isPaymentLocked={s.isPaymentLocked}
+                                    activeMoratoriumId={s.activeMoratoriumId}
+                                    biometricStatus={s.biometricStatus}
+                                    scholarshipPercent={s.scholarshipPercent}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3 text-sm text-zinc-500 whitespace-nowrap">{s.className ?? '—'}</td>
+                            <td className="px-5 py-3">
+                              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap', sc.cls)}>{sc.label}</span>
+                            </td>
+                            <td className="px-5 py-3 text-sm text-zinc-400 font-mono whitespace-nowrap">{s.matricule ?? '—'}</td>
+                            <td className="px-5 py-3 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-2">
+                                <ParentActivationButton studentId={s.id} studentName={formatStudentFullName(s) || `Élève #${s.id}`} />
+                              <RowActionsMenu
+                                actions={[
+                                  {
+                                    id: 'view',
+                                    label: 'Voir fiche',
+                                    onClick: () => router.push(`/admin/students/${s.id}`),
+                                  },
+                                  ...(!deskOnly
+                                    ? [
+                                        {
+                                          id: 'balance',
+                                          label: 'Modifier solde',
+                                          onClick: () => router.push(`/admin/enrollments?studentId=${s.id}`),
+                                        },
+                                      ]
+                                    : []),
+                                  {
+                                    id: 'card',
+                                    label: 'Imprimer carte',
+                                    onClick: () => {
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadStudentCardPdf(s.id)
+                                          try {
+                                            await printPdfBlob(blob)
+                                            toast.success('Badge scolaire', filename)
+                                          } catch {
+                                            triggerBlobDownload(blob, filename)
+                                            toast.info('Badge scolaire', 'PDF téléchargé — ouvrez-le pour imprimer.')
+                                          }
+                                        } catch (error) {
+                                          toast.error('Badge scolaire', getApiErrorMessage(error))
+                                        }
+                                      })()
+                                    },
+                                  },
+                                  {
+                                    id: 'certificate',
+                                    label: 'Attestation de scolarité',
+                                    onClick: () => {
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadEnrollmentCertificatePdf(s.id)
+                                          triggerBlobDownload(blob, filename)
+                                          toast.success('Attestation', filename)
+                                        } catch (error) {
+                                          toast.error('Attestation', getApiErrorMessage(error))
+                                        }
+                                      })()
+                                    },
+                                  },
+                                  {
+                                    id: 'fiche',
+                                    label: 'Fiche d’inscription',
+                                    onClick: () => {
+                                      void (async () => {
+                                        try {
+                                          const { blob, filename } = await enrollmentsApi.downloadStudentFichePdf(s.id)
+                                          triggerBlobDownload(blob, filename)
+                                          toast.success('Fiche d’inscription', filename)
+                                        } catch (error) {
+                                          toast.error('Fiche d’inscription', getApiErrorMessage(error))
+                                        }
+                                      })()
+                                    },
+                                  },
+                                  {
+                                    id: 'exit',
+                                    label: 'Certificat de radiation',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=exit`),
+                                  },
+                                  {
+                                    id: 'summons',
+                                    label: 'Convocation parent',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=summons`),
+                                  },
+                                  {
+                                    id: 'pickup',
+                                    label: 'Cartes parent',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=pickup`),
+                                  },
+                                  {
+                                    id: 'pass',
+                                    label: 'Autorisation de sortie',
+                                    onClick: () => router.push(`/admin/students/${s.id}?doc=pass`),
+                                  },
+                                  ...(!deskOnly
+                                    ? [
+                                        {
+                                          id: 'archive',
+                                          label: 'Archiver (doublon / erreur)',
+                                          danger: true,
+                                          onClick: () => setArchiveTarget(s),
+                                        },
+                                      ]
+                                    : []),
+                                ]}
+                              />
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center gap-3 px-5 py-3 border-t border-zinc-100">
+                      <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+                      >
+                        <ChevronLeft size={14} />
+                      </button>
+                      <span className="text-sm text-zinc-500">Page {page} / {totalPages}</span>
+                      <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        className="p-1.5 rounded-lg border border-zinc-200 text-zinc-500 hover:bg-zinc-50 disabled:opacity-40 transition-colors"
+                      >
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="py-14 text-center">
+                  <GraduationCap size={28} className="mx-auto text-zinc-200 mb-2" />
+                  <p className="text-sm text-zinc-400">Aucun élève trouvé</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === 'applications' && (
+          <div className="space-y-4">
+            <div className="flex gap-1 bg-zinc-100 rounded-xl p-1 w-fit">
+              {(['PENDING', 'APPROVED', 'REJECTED'] as const).map((s) => {
+                const cfg = APP_STATUS_CFG[s]
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setAppFilter(s)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                      appFilter === s ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-700',
+                    )}
+                  >
+                    {cfg.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+              {loadingApps ? (
+                <div className="p-4 space-y-3">{[...Array(4)].map((_, i) => <Sk key={i} className="h-16" />)}</div>
+              ) : applicationItems.length ? (
+                <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-zinc-100">
+                      <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Candidat</th>
+                      <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Contact</th>
+                      <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Soumis le</th>
+                      <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Statut</th>
+                      {appFilter === 'PENDING' && <th className="px-5 py-3" />}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50">
+                    {applicationItems.map((app) => {
+                      const cfg = APP_STATUS_CFG[app.status] ?? { label: app.status, cls: 'bg-zinc-100 text-zinc-500' }
+                      return (
+                        <tr key={app.id} className="hover:bg-zinc-50 transition-colors">
+                          <td className="px-5 py-3 text-sm font-medium text-zinc-900">{formatStudentFullName(app)}</td>
+                          <td className="px-5 py-3 text-sm text-zinc-500">{app.email ?? app.phone ?? '—'}</td>
+                          <td className="px-5 py-3 text-sm text-zinc-400">
+                            {new Date(app.submittedAt).toLocaleDateString('fr-FR')}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', cfg.cls)}>{cfg.label}</span>
+                          </td>
+                          {appFilter === 'PENDING' && (
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleApprove(app.id)}
+                                  disabled={approveMutation.isPending}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                >
+                                  Approuver
+                                </button>
+                                <button
+                                  onClick={() => setRejectId(app.id)}
+                                  className="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                >
+                                  Refuser
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                </div>
+              ) : (
+                <div className="py-14 text-center">
+                  <Clock size={28} className="mx-auto text-zinc-200 mb-2" />
+                  <p className="text-sm text-zinc-400">Aucune pré-inscription {appFilter === 'PENDING' ? 'en attente' : ''}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {tab === 'debtors' && !deskOnly && (
+          <div className="bg-white rounded-xl border border-zinc-200 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
+            {loadingDebtors ? (
+              <div className="p-4 space-y-3">{[...Array(6)].map((_, i) => <Sk key={i} className="h-14" />)}</div>
+            ) : debtors.length > 0 ? (
+              <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-100">
+                    <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Élève</th>
+                    <th className="text-left text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Classe</th>
+                    <th className="text-right text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Dû</th>
+                    <th className="text-right text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Payé</th>
+                    <th className="text-right text-xs font-semibold text-zinc-400 uppercase tracking-wide px-5 py-3">Solde</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {debtors.map((d) => (
+                    <tr
+                      key={d.studentId}
+                      className="hover:bg-zinc-50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/admin/students/${d.studentId}`)}
+                    >
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                            <Wallet size={12} className="text-red-500" />
+                          </div>
+                          <p className="text-sm font-medium text-zinc-900">{formatStudentFullName(d)}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-sm text-zinc-500">{d.className ?? '—'}</td>
+                      <td className="px-5 py-3 text-sm text-right tabular-nums text-zinc-600">{formatMoney(d.totalDue)}</td>
+                      <td className="px-5 py-3 text-sm text-right tabular-nums text-emerald-700">{formatMoney(d.totalPaid)}</td>
+                      <td className="px-5 py-3 text-sm text-right tabular-nums font-semibold text-red-600">{formatMoney(d.balance)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            ) : (
+              <div className="py-14 text-center">
+                <Wallet size={28} className="mx-auto text-zinc-200 mb-2" />
+                <p className="text-sm text-zinc-400">Aucun débiteur</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {rejectId !== null && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+          >
+            <h2 className="text-base font-semibold text-zinc-900">Motif de refus</h2>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Motif (optionnel)"
+              className="w-full px-3 py-2 rounded-lg border border-zinc-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 resize-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setRejectId(null); setRejectReason('') }}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-zinc-200 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={rejectMutation.isPending}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-medium transition-colors"
+              >
+                Confirmer
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      <ConfirmDialog
+        open={archiveTarget != null}
+        title="Archiver cet élève ?"
+        description="La fiche disparaît des listes mais reste conservée (paiements, présences). Pour regrouper deux fiches d’un même élève, utilisez plutôt la fusion."
+        impact={archiveTarget ? [`Élève : ${formatStudentFullName(archiveTarget)}`] : []}
+        confirmLabel="Archiver"
+        variant="danger"
+        loading={archiveMutation.isPending}
+        onConfirm={handleArchive}
+        onCancel={() => setArchiveTarget(null)}
+      />
+    </div>
+  )
+}
+
+export default function StudentsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-50 animate-pulse" />}>
+      <StudentsPageInner />
+    </Suspense>
+  )
+}
